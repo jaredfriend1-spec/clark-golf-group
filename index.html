@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clark Golf Group</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #2d5a27;
+    --green-mid: #3d7a35;
+    --green-light: #e8f5e3;
+    --green-pale: #f4faf2;
+    --gold: #c9a84c;
+    --gold-light: #fdf6e3;
+    --text: #1a1a1a;
+    --text-mid: #4a4a4a;
+    --text-muted: #888;
+    --border: #e2e8df;
+    --surface: #ffffff;
+    --surface-alt: #f7faf6;
+    --danger: #c0392b;
+    --danger-light: #fdf0ee;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--surface-alt); color: var(--text); }
+  #root { min-height: 100%; }
+
+  /* Layout */
+  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--surface); display: flex; flex-direction: column; }
+  .header { background: var(--green); color: white; padding: 16px 20px 12px; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; letter-spacing: 0.02em; }
+  .header-sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .nav { display: flex; background: var(--green); border-top: 1px solid rgba(255,255,255,0.15); }
+  .nav-btn { flex: 1; padding: 10px 4px 8px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: color 0.15s; }
+  .nav-btn.active { color: white; border-bottom: 2px solid var(--gold); }
+  .nav-btn svg { width: 18px; height: 18px; }
+  .content { flex: 1; padding: 20px 16px; overflow-y: auto; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .card-sub { font-size: 12px; color: var(--text-muted); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:hover { background: var(--green-mid); }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { background: var(--surface-alt); }
+  .btn-gold { background: var(--gold); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Form */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--text-mid); margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface); outline: none; }
+  .form-input:focus { border-color: var(--green-mid); }
+  .form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface); outline: none; appearance: none; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-gold { background: var(--gold-light); color: #8a6a10; }
+  .badge-gray { background: #f0f0f0; color: #666; }
+  .badge-red { background: var(--danger-light); color: var(--danger); }
+
+  /* Player list */
+  .player-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--surface); cursor: pointer; transition: all 0.12s; }
+  .player-item:hover { border-color: var(--green-mid); background: var(--green-pale); }
+  .player-item.selected { border-color: var(--green); background: var(--green-light); }
+  .player-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--green-light); color: var(--green); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .player-name { font-size: 14px; font-weight: 500; flex: 1; }
+  .player-detail { font-size: 12px; color: var(--text-muted); }
+
+  /* Team cards */
+  .team-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .team-header { background: var(--green); color: white; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .team-name { font-weight: 600; font-size: 14px; }
+  .team-hcp { font-size: 12px; opacity: 0.8; }
+  .team-body { padding: 0; }
+  .team-player { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  .team-player:last-child { border-bottom: none; }
+  .slot-label { font-size: 11px; font-weight: 600; color: var(--gold); background: var(--gold-light); padding: 2px 6px; border-radius: 4px; width: 22px; text-align: center; flex-shrink: 0; }
+
+  /* Scoring */
+  .score-section { margin-bottom: 20px; }
+  .score-title { font-size: 13px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .score-team-label { font-size: 13px; font-weight: 500; width: 70px; flex-shrink: 0; }
+  .score-input { width: 72px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; text-align: center; font-family: 'DM Sans', sans-serif; }
+  .score-input:focus { outline: none; border-color: var(--green); }
+
+  /* Skin tapper */
+  .skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .skin-btn { padding: 18px 12px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; text-align: center; transition: all 0.12s; font-family: 'DM Sans', sans-serif; }
+  .skin-btn:active { transform: scale(0.96); }
+  .skin-btn.has-skins { border-color: var(--green); background: var(--green-light); }
+  .skin-btn-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .skin-btn-count { font-size: 28px; font-weight: 600; color: var(--green); margin: 4px 0; }
+  .skin-btn-label { font-size: 11px; color: var(--text-muted); }
+  .skin-undo { font-size: 11px; color: var(--danger); margin-top: 4px; cursor: pointer; }
+
+  /* Payout */
+  .payout-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .payout-row:last-child { border-bottom: none; }
+  .payout-label { color: var(--text-mid); }
+  .payout-amount { font-weight: 600; color: var(--green); }
+  .payout-amount.tournament { color: var(--gold); }
+  .total-row { display: flex; justify-content: space-between; padding: 10px 0 0; font-size: 15px; font-weight: 600; border-top: 2px solid var(--green); margin-top: 4px; }
+
+  /* History */
+  .history-item { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+  .history-header { padding: 12px 14px; background: var(--surface-alt); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .history-date { font-size: 14px; font-weight: 600; }
+  .history-meta { font-size: 12px; color: var(--text-muted); }
+  .history-body { padding: 12px 14px; border-top: 1px solid var(--border); }
+
+  /* Admin */
+  .admin-badge { background: var(--gold); color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .section-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-card { background: var(--green-pale); border: 1px solid var(--green-light); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 600; color: var(--green); }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Signup list */
+  .signup-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .signup-item:last-child { border-bottom: none; }
+  .tee-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  .tee-blends { background: #1a3a8f; }
+  .tee-whites { background: #e8e8e8; border: 1px solid #ccc; }
+  .tee-golds { background: var(--gold); }
+  .tee-sga { background: #e74c3c; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; z-index: 100; }
+  .modal { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 16px 32px; width: 100%; max-height: 85vh; overflow-y: auto; }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+  .modal-close { float: right; background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
+
+  /* Misc */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  .empty-state svg { width: 48px; height: 48px; opacity: 0.3; margin-bottom: 12px; }
+  .empty-title { font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+  .pill-toggle { display: flex; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  .pill-opt { flex: 1; padding: 7px 12px; border: none; background: none; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
+  .pill-opt.active { background: var(--green); color: white; border-radius: 20px; }
+  .warning-box { background: #fff8e1; border: 1px solid #f0c040; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: #7a5c00; margin-bottom: 12px; }
+  .success-box { background: var(--green-light); border: 1px solid var(--green-mid); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--green); margin-bottom: 12px; }
+  .drag-handle { color: var(--text-muted); cursor: grab; padding: 0 4px; font-size: 16px; }
+  .admin-section { background: var(--gold-light); border: 1px solid #e8d49a; border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .admin-section-title { font-size: 12px; font-weight: 600; color: #8a6a10; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .search-input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; background: var(--surface); }
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; }
+  .places-count { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── ROSTER ────────────────────────────────────────────────────────────────────
+const ROSTER = [
+  {id:1,name:"Stephen Abbundi"},{id:2,name:"Chris Allen"},{id:3,name:"Bill Balster"},
+  {id:4,name:"Mike Barry"},{id:5,name:"Pete Bechtel"},{id:6,name:"Kyle Benjamin"},
+  {id:7,name:"Brian Dunn"},{id:8,name:"Rodolfo Camacho"},{id:9,name:"Luis Cardenas"},
+  {id:10,name:"Don Carlson"},{id:11,name:"Jim Carroll"},{id:12,name:"Robert Chase"},
+  {id:13,name:"Chip Mace"},{id:14,name:"Eric Cloutier"},{id:15,name:"Damian Cordovez"},
+  {id:16,name:"Carl Cutright"},{id:17,name:"Bill Collingwood"},{id:18,name:"George Divver"},
+  {id:19,name:"Gerald Ford"},{id:20,name:"Jimmy Ford"},{id:21,name:"Darren Franchke"},
+  {id:22,name:"Jared Friend"},{id:23,name:"Alan Friend"},{id:24,name:"Mike Furman"},
+  {id:25,name:"Sean Gagen"},{id:26,name:"Chris Ghion"},{id:27,name:"Tim Gilchrist"},
+  {id:28,name:"Mike Gohn"},{id:29,name:"Jack Goldsby"},{id:30,name:"Devin Grimaldi"},
+  {id:31,name:"Brian Grimes"},{id:32,name:"Dave Gularson"},{id:33,name:"Jim Harvey"},
+  {id:34,name:"Alex Hinson"},{id:35,name:"Matt Honacki"},{id:36,name:"Kevin Hwang"},
+  {id:37,name:"John Jakiun"},{id:38,name:"Craig Beamer Jr."},{id:39,name:"Rick Kelly"},
+  {id:40,name:"Man Kim"},{id:41,name:"Casey King"},{id:42,name:"Koby Kovacs"},
+  {id:43,name:"Clark Kunkle"},{id:44,name:"Bob Latos"},{id:45,name:"John Jang Lee"},
+  {id:46,name:"George Magas"},{id:47,name:"Tim Marose"},{id:48,name:"John McCarthy"},
+  {id:49,name:"Frank McGuire"},{id:50,name:"Tim McMahon"},{id:51,name:"Tim McNichol"},
+  {id:52,name:"Richard Meade"},{id:53,name:"Phil Moebus"},{id:54,name:"Marty More"},
+  {id:55,name:"Nick Mouzakis"},{id:56,name:"Jim Muir"},{id:57,name:"Phil Murray"},
+  {id:58,name:"Frank Owusu"},{id:59,name:"DJ Park"},{id:60,name:"Wally Pellerite"},
+  {id:61,name:"Cory Rennie"},{id:62,name:"Harry Rieckeman"},{id:63,name:"Duane Robins"},
+  {id:64,name:"Michael Roosevelt"},{id:65,name:"Rob Rosenberg"},{id:66,name:"Joe Sabelhaus"},
+  {id:67,name:"Steve Salem"},{id:68,name:"Ray Sanchez"},{id:69,name:"Jeff Sandusky"},
+  {id:70,name:"Ken Sanquist"},{id:71,name:"Jeff Sarris"},{id:72,name:"Kevin Scudder"},
+  {id:73,name:"Jacob Seiter"},{id:74,name:"Mark Shank"},{id:75,name:"Billy Shelton"},
+  {id:76,name:"Jimmy Stables"},{id:77,name:"Tom Steffes"},{id:78,name:"Cody Stewart"},
+  {id:79,name:"Rob Suggs"},{id:80,name:"Bob Sundell"},{id:81,name:"Joey Tominovich"},
+  {id:82,name:"Joe Travagline"},{id:83,name:"Jim Vaughn"},{id:84,name:"Thomas Vyskocil"},
+  {id:85,name:"Tom Watson"},{id:86,name:"Jim Weiskopf"},{id:87,name:"Steve Weiss"},
+  {id:88,name:"Greg Weyman"},{id:89,name:"Paul Will"},{id:90,name:"Steve Wilson"},
+  {id:91,name:"Rick Windon"},{id:92,name:"Bill Wood"},{id:93,name:"Jeff Yeakle"},
+  {id:94,name:"Bruce Yoo"},{id:95,name:"Gary Zgorski"},{id:96,name:"Geoff Zgorski"}
+];
+
+const TEES = ['Blends','Whites','Golds','SGA'];
+const TEE_COLORS = {Blends:'#1a3a8f',Whites:'#ccc',Golds:'#c9a84c',SGA:'#e74c3c'};
+const ADMIN_PASSWORD = 'golf2025';
+
+// ── FIREBASE CONFIG ─ Replace with your config after setup ───────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDwrlQyxkHRn0Xp5O-bCODz98oCHuj8xTY",
+  authDomain: "clark-group-dd15e.firebaseapp.com",
+  databaseURL: "https://clark-group-dd15e-default-rtdb.firebaseio.com",
+  projectId: "clark-group-dd15e",
+  storageBucket: "clark-group-dd15e.firebasestorage.app",
+  messagingSenderId: "92891899165",
+  appId: "1:92891899165:web:817f5f164f3fc50b506df4",
+  measurementId: "G-CWLX9F613Z"
+};
+
+// ── LOCAL STORAGE FALLBACK (works without Firebase) ──────────────────────────
+const LS = {
+  get: (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+// ── FIREBASE HOOK ─────────────────────────────────────────────────────────────
+function useDB() {
+  const [db, setDb] = useState(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (FIREBASE_CONFIG.apiKey === 'REPLACE_WITH_YOUR_API_KEY') {
+        setReady(true); // use local storage fallback
+        return;
+      }
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      const database = firebase.database();
+      setDb(database);
+      setReady(true);
+    } catch(e) {
+      setReady(true); // fallback to localStorage
+    }
+  }, []);
+
+  const read = useCallback((path, cb) => {
+    if (!db) {
+      const val = LS.get(path);
+      cb(val);
+      return () => {};
+    }
+    const ref = db.ref(path);
+    ref.on('value', snap => cb(snap.val()));
+    return () => ref.off();
+  }, [db]);
+
+  const write = useCallback((path, val) => {
+    if (!db) { LS.set(path, val); return Promise.resolve(); }
+    return db.ref(path).set(val);
+  }, [db]);
+
+  const push = useCallback((path, val) => {
+    if (!db) {
+      const existing = LS.get(path) || {};
+      const key = Date.now().toString();
+      existing[key] = val;
+      LS.set(path, existing);
+      return Promise.resolve(key);
+    }
+    return db.ref(path).push(val).then(r => r.key);
+  }, [db]);
+
+  const remove = useCallback((path) => {
+    if (!db) { localStorage.removeItem(path); return Promise.resolve(); }
+    return db.ref(path).remove();
+  }, [db]);
+
+  return { db, ready, read, write, push, remove };
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function initials(name) {
+  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+function fmt$(n) {
+  return '$' + parseFloat(n || 0).toFixed(2).replace(/\.00$/, '');
+}
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`;
+}
+
+// ── BUILD BALANCED TEAMS ──────────────────────────────────────────────────────
+function buildTeams(players) {
+  const sorted = [...players].sort((a,b) => parseFloat(a.handicap) - parseFloat(b.handicap));
+  const teamSize = sorted.length <= 12 ? 3 : 4;
+  const numTeams = Math.ceil(sorted.length / teamSize);
+  const teams = Array.from({length: numTeams}, (_,i) => ({
+    id: i+1, name: `Team ${i+1}`, players: [], totalHcp: 0
+  }));
+
+  // Snake draft: rank by handicap, distribute A/B/C/D
+  sorted.forEach((p, idx) => {
+    const round = Math.floor(idx / numTeams);
+    const pos = idx % numTeams;
+    const teamIdx = round % 2 === 0 ? pos : numTeams - 1 - pos;
+    teams[teamIdx].players.push({...p, slot: ['A','B','C','D'][Math.min(round,3)]});
+    teams[teamIdx].totalHcp += parseFloat(p.handicap) || 0;
+  });
+
+  return teams;
+}
+
+// ── ICONS ─────────────────────────────────────────────────────────────────────
+const Icons = {
+  home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  users: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  flag: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  trophy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
+  history: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 13 4 10"/></svg>,
+  x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
+  golf: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="18" r="3"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M12 3l5 3-5 3"/></svg>,
+  dollar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
+  chevron: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
+};
+
+// ── SIGNUP VIEW (Players) ─────────────────────────────────────────────────────
+function SignupView({ game, signups, onSignup, onRemove, isAdmin, rosterWithGuests }) {
+  const [showForm, setShowForm] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [isGuest, setIsGuest] = useState(false);
+  const [tee, setTee] = useState('Whites');
+  const [handicap, setHandicap] = useState('');
+  const [search, setSearch] = useState('');
+
+  const signedUpIds = Object.values(signups || {}).map(s => s.playerId);
+  const available = rosterWithGuests.filter(p =>
+    !p.isGuest && !signedUpIds.includes(p.id) &&
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function handleSubmit() {
+    const name = isGuest ? guestName.trim() : rosterWithGuests.find(p => p.id == selectedPlayer)?.name;
+    if (!name || !handicap) return;
+    onSignup({
+      playerId: isGuest ? `guest_${Date.now()}` : parseInt(selectedPlayer),
+      name,
+      isGuest,
+      tee,
+      handicap: parseFloat(handicap),
+      signedUpAt: Date.now()
+    });
+    setShowForm(false);
+    setSelectedPlayer(''); setGuestName(''); setHandicap(''); setIsGuest(false); setTee('Whites');
+  }
+
+  const signupList = Object.entries(signups || {}).sort((a,b) => a[1].signedUpAt - b[1].signedUpAt);
+
+  return (
+    <div>
+      {game && (
+        <div className="card" style={{background:'var(--green-pale)', borderColor:'var(--green-light)'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+            <div>
+              <div style={{fontSize:18, fontWeight:600, color:'var(--green)'}}>{game.day}</div>
+              <div style={{fontSize:14, color:'var(--text-mid)', marginTop:2}}>{fmtDate(game.date)}</div>
+              {game.course && <div style={{fontSize:13, color:'var(--text-muted)', marginTop:2}}>{game.course}</div>}
+            </div>
+            <div style={{textAlign:'right'}}>
+              <span className="badge badge-green">{signupList.length} signed up</span>
+              {game.teetime && <div style={{fontSize:12, color:'var(--text-muted)', marginTop:4}}>First tee: {game.teetime}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!game && (
+        <div className="empty-state">
+          {Icons.golf}
+          <div className="empty-title">No game scheduled</div>
+          <p>Check back soon or ask the admin to post this week's game.</p>
+        </div>
+      )}
+
+      {game && (
+        <>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
+            <div style={{fontSize:14, fontWeight:600}}>Who's playing</div>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+              {Icons.plus} Sign up
+            </button>
+          </div>
+
+          {signupList.length === 0 && (
+            <div style={{textAlign:'center', padding:'20px', color:'var(--text-muted)', fontSize:14}}>
+              No sign-ups yet — be the first!
+            </div>
+          )}
+
+          <div className="card" style={{padding:0}}>
+            {signupList.map(([key, s]) => (
+              <div key={key} className="signup-item">
+                <div style={{display:'flex', alignItems:'center', gap:8}}>
+                  <div className="player-avatar" style={{width:30,height:30,fontSize:11}}>
+                    {initials(s.name)}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:500, fontSize:13}}>{s.name} {s.isGuest && <span className="badge badge-gray">Guest</span>}</div>
+                    <div style={{fontSize:11, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4}}>
+                      <span className="tee-dot" style={{background: TEE_COLORS[s.tee] || '#ccc'}}></span>
+                      {s.tee} · HCP {s.handicap}
+                    </div>
+                  </div>
+                </div>
+                {isAdmin && (
+                  <button className="btn btn-sm" style={{color:'var(--danger)', border:'none', padding:'4px 6px'}} onClick={() => onRemove(key)}>
+                    {Icons.trash}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Sign Up Modal */}
+      {showForm && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowForm(false)}>
+          <div className="modal">
+            <button className="modal-close" onClick={() => setShowForm(false)}>{Icons.x}</button>
+            <div className="modal-title">Sign up for {game?.day}</div>
+
+            <div className="pill-toggle" style={{marginBottom:14}}>
+              <button className={`pill-opt ${!isGuest ? 'active' : ''}`} onClick={() => setIsGuest(false)}>Member</button>
+              <button className={`pill-opt ${isGuest ? 'active' : ''}`} onClick={() => setIsGuest(true)}>Guest</button>
+            </div>
+
+            {!isGuest ? (
+              <div className="form-group">
+                <label className="form-label">Your name</label>
+                <div className="search-wrap">
+                  <span className="search-icon">{Icons.search}</span>
+                  <input className="search-input" placeholder="Search name..." value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+                <div style={{maxHeight:180, overflowY:'auto', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)'}}>
+                  {available.slice(0,20).map(p => (
+                    <div key={p.id} className={`player-item ${selectedPlayer == p.id ? 'selected' : ''}`}
+                      style={{margin:0, borderRadius:0, borderLeft:'none', borderRight:'none', borderTop:'none'}}
+                      onClick={() => { setSelectedPlayer(p.id); setSearch(''); }}>
+                      <div className="player-avatar" style={{width:28,height:28,fontSize:10}}>{initials(p.name)}</div>
+                      <span className="player-name" style={{fontSize:13}}>{p.name}</span>
+                      {selectedPlayer == p.id && <span style={{color:'var(--green)'}}>{Icons.check}</span>}
+                    </div>
+                  ))}
+                  {available.length === 0 && <div style={{padding:'12px', fontSize:13, color:'var(--text-muted)', textAlign:'center'}}>No matches</div>}
+                </div>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label">Guest name</label>
+                <input className="form-input" placeholder="Full name" value={guestName} onChange={e => setGuestName(e.target.value)} />
+              </div>
+            )}
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Tees</label>
+                <select className="form-select" value={tee} onChange={e => setTee(e.target.value)}>
+                  {TEES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Handicap</label>
+                <input className="form-input" type="number" placeholder="e.g. 14" value={handicap} onChange={e => setHandicap(e.target.value)} />
+              </div>
+            </div>
+
+            <button className="btn btn-primary btn-full" onClick={handleSubmit}
+              disabled={(!selectedPlayer && !guestName) || !handicap}>
+              Confirm sign-up
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── TEAMS VIEW ────────────────────────────────────────────────────────────────
+function TeamsView({ game, teams, signups, isAdmin, onSaveTeams, onPublish }) {
+  const [editMode, setEditMode] = useState(false);
+  const [localTeams, setLocalTeams] = useState(null);
+  const [dragPlayer, setDragPlayer] = useState(null);
+
+  const displayTeams = localTeams || teams;
+
+  function generate() {
+    const players = Object.values(signups || {});
+    if (players.length < 3) return;
+    const generated = buildTeams(players);
+    setLocalTeams(generated);
+    setEditMode(true);
+  }
+
+  function movePlayer(fromTeam, fromIdx, toTeam, toIdx) {
+    const updated = localTeams.map(t => ({...t, players: [...t.players]}));
+    const player = updated[fromTeam].players[fromIdx];
+    updated[fromTeam].players.splice(fromIdx, 1);
+    updated[toTeam].players.splice(toIdx, 0, player);
+    // recalc slots and hcp
+    updated.forEach(team => {
+      team.players.forEach((p, i) => { p.slot = ['A','B','C','D'][i] || 'D'; });
+      team.totalHcp = team.players.reduce((s, p) => s + parseFloat(p.handicap || 0), 0);
+    });
+    setLocalTeams(updated);
+  }
+
+  function save() {
+    onSaveTeams(localTeams);
+    setEditMode(false);
+    setLocalTeams(null);
+  }
+
+  const signupCount = Object.keys(signups || {}).length;
+
+  if (!game) return (
+    <div className="empty-state">
+      {Icons.users}
+      <div className="empty-title">No active game</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="stat-grid">
+        <div className="stat-card"><div className="stat-num">{signupCount}</div><div className="stat-label">Players</div></div>
+        <div className="stat-card"><div className="stat-num">{(displayTeams || []).length}</div><div className="stat-label">Teams</div></div>
+        <div className="stat-card"><div className="stat-num" style={{fontSize:16}}>{game.teamsPublished ? '✓ Live' : 'Pending'}</div><div className="stat-label">Status</div></div>
+      </div>
+
+      {isAdmin && (
+        <div className="admin-section">
+          <div className="admin-section-title">Admin — team builder</div>
+          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+            <button className="btn btn-primary btn-sm" onClick={generate} disabled={signupCount < 3}>
+              {Icons.users} Auto-generate teams
+            </button>
+            {editMode && localTeams && (
+              <>
+                <button className="btn btn-gold btn-sm" onClick={save}>Save teams</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setLocalTeams(null); setEditMode(false); }}>Cancel</button>
+              </>
+            )}
+            {!editMode && displayTeams?.length > 0 && !game.teamsPublished && (
+              <button className="btn btn-gold btn-sm" onClick={onPublish}>Publish to group</button>
+            )}
+          </div>
+          {editMode && <div className="warning-box" style={{marginTop:10, marginBottom:0}}>Drag players between teams to rebalance, then save.</div>}
+        </div>
+      )}
+
+      {!displayTeams?.length && (
+        <div className="empty-state">
+          {Icons.users}
+          <div className="empty-title">Teams not set yet</div>
+          <p>The admin will generate and publish teams before the round.</p>
+        </div>
+      )}
+
+      {displayTeams?.map((team, ti) => (
+        <div key={team.id} className="team-card">
+          <div className="team-header">
+            <span className="team-name">{team.name}</span>
+            <span className="team-hcp">Total HCP: {team.totalHcp.toFixed(1)}</span>
+          </div>
+          <div className="team-body">
+            {team.players.map((p, pi) => (
+              <div key={pi} className="team-player"
+                draggable={editMode}
+                onDragStart={() => setDragPlayer({ti, pi})}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => { if (dragPlayer) movePlayer(dragPlayer.ti, dragPlayer.pi, ti, pi); setDragPlayer(null); }}>
+                {editMode && <span className="drag-handle">⋮⋮</span>}
+                <span className="slot-label">{p.slot}</span>
+                <div className="player-avatar" style={{width:28, height:28, fontSize:10}}>{initials(p.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13, fontWeight:500}}>{p.name}</div>
+                  <div style={{fontSize:11, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4}}>
+                    <span className="tee-dot" style={{background: TEE_COLORS[p.tee] || '#ccc'}}></span>
+                    {p.tee} · {p.handicap}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── SCORING VIEW ──────────────────────────────────────────────────────────────
+function ScoringView({ game, teams, scores, onSaveScores, isAdmin }) {
+  const [localScores, setLocalScores] = useState(scores || {});
+  const [skinCounts, setSkinCounts] = useState({});
+  const [frontPlaces, setFrontPlaces] = useState(2);
+  const [backPlaces, setBackPlaces] = useState(2);
+  const [overallPlaces, setOverallPlaces] = useState(2);
+  const [frontPot, setFrontPot] = useState('');
+  const [backPot, setBackPot] = useState('');
+  const [overallPot, setOverallPot] = useState('');
+  const [skinsPot, setSkinsPot] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (scores) {
+      setLocalScores(scores.teamScores || {});
+      setSkinCounts(scores.skinCounts || {});
+      setFrontPot(scores.frontPot || '');
+      setBackPot(scores.backPot || '');
+      setOverallPot(scores.overallPot || '');
+      setSkinsPot(scores.skinsPot || '');
+      setFrontPlaces(scores.frontPlaces || 2);
+      setBackPlaces(scores.backPlaces || 2);
+      setOverallPlaces(scores.overallPlaces || 2);
+    }
+  }, [scores]);
+
+  const playerCount = game ? Object.keys(game.signups || {}).length : 0;
+  const tournFund = playerCount;
+  const skinsNet = parseFloat(skinsPot || 0) - tournFund;
+  const totalPot = playerCount * 25;
+  const totalAllocated = parseFloat(frontPot||0) + parseFloat(backPot||0) + parseFloat(overallPot||0) + parseFloat(skinsPot||0);
+  const potMatch = Math.abs(totalAllocated - totalPot) < 0.01;
+
+  function tapSkin(teamId) {
+    setSkinCounts(prev => ({...prev, [teamId]: (prev[teamId] || 0) + 1}));
+  }
+  function untapSkin(teamId) {
+    setSkinCounts(prev => ({...prev, [teamId]: Math.max(0, (prev[teamId] || 0) - 1)}));
+  }
+
+  const totalSkins = Object.values(skinCounts).reduce((s,c) => s+c, 0);
+  const perSkin = totalSkins > 0 ? skinsNet / totalSkins : 0;
+
+  function calcPayouts(pot, places, section) {
+    if (!pot || parseFloat(pot) === 0) return [];
+    const p = parseFloat(pot);
+    if (places === 1) return [{label:'1st', amount: p}];
+    return [{label:'1st', amount: p * 0.6}, {label:'2nd', amount: p * 0.4}];
+  }
+
+  function save() {
+    onSaveScores({
+      teamScores: localScores,
+      skinCounts,
+      frontPot, backPot, overallPot, skinsPot,
+      frontPlaces, backPlaces, overallPlaces,
+      tournFund, playerCount,
+      savedAt: Date.now()
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  if (!game) return <div className="empty-state">{Icons.trophy}<div className="empty-title">No active game</div></div>;
+  if (!teams?.length) return <div className="empty-state">{Icons.trophy}<div className="empty-title">Teams not published yet</div></div>;
+
+  return (
+    <div>
+      {/* Pot Setup */}
+      {isAdmin && (
+        <div className="admin-section">
+          <div className="admin-section-title">Pot setup ({playerCount} players · {fmt$(totalPot)} total)</div>
+          <div className="form-row" style={{marginBottom:8}}>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label className="form-label">Front 9 pot</label>
+              <input className="form-input" type="number" placeholder="$0" value={frontPot} onChange={e => setFrontPot(e.target.value)} />
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label className="form-label">Back 9 pot</label>
+              <input className="form-input" type="number" placeholder="$0" value={backPot} onChange={e => setBackPot(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group" style={{marginBottom:0}}>
+              <label className="form-label">Overall pot</label>
+              <input className="form-input" type="number" placeholder="$0" value={overallPot} onChange={e => setOverallPot(e.target.value)} />
+            </div>
+            <div className="form-group" style={{marginBottom:0}}>
+              <label className="form-label">Skins pot</label>
+              <input className="form-input" type="number" placeholder="$0" value={skinsPot} onChange={e => setSkinsPot(e.target.value)} />
+            </div>
+          </div>
+          {totalAllocated > 0 && (
+            <div style={{marginTop:8, fontSize:12, color: potMatch ? 'var(--green)' : 'var(--danger)'}}>
+              {potMatch ? '✓ Pot balanced' : `⚠ ${fmt$(totalAllocated)} allocated vs ${fmt$(totalPot)} total`}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Places toggle per section */}
+      {isAdmin && (
+        <div className="card">
+          <div className="card-title" style={{marginBottom:10}}>Places paid per section</div>
+          {[
+            {label:'Front 9', val:frontPlaces, set:setFrontPlaces},
+            {label:'Back 9', val:backPlaces, set:setBackPlaces},
+            {label:'Overall', val:overallPlaces, set:setOverallPlaces},
+          ].map(({label,val,set}) => (
+            <div key={label} style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
+              <span style={{fontSize:13}}>{label}</span>
+              <div className="pill-toggle" style={{width:140}}>
+                <button className={`pill-opt ${val===1?'active':''}`} onClick={() => set(1)}>1st only</button>
+                <button className={`pill-opt ${val===2?'active':''}`} onClick={() => set(2)}>1st + 2nd</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Scores per team */}
+      <div className="card">
+        <div className="card-title" style={{marginBottom:12}}>Team scores</div>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 80px 80px 80px', gap:'6px 8px', alignItems:'center'}}>
+          <div style={{fontSize:11, color:'var(--text-muted)'}}>Team</div>
+          <div style={{fontSize:11, color:'var(--text-muted)', textAlign:'center'}}>Front</div>
+          <div style={{fontSize:11, color:'var(--text-muted)', textAlign:'center'}}>Back</div>
+          <div style={{fontSize:11, color:'var(--text-muted)', textAlign:'center'}}>Overall</div>
+          {teams.map(team => (
+            <React.Fragment key={team.id}>
+              <div style={{fontSize:13, fontWeight:500}}>{team.name}</div>
+              {['front','back','overall'].map(seg => (
+                <input key={seg} className="score-input"
+                  style={{width:'100%', padding:'6px 4px'}}
+                  type="number" placeholder="—"
+                  value={(localScores[team.id] || {})[seg] || ''}
+                  onChange={e => setLocalScores(prev => ({
+                    ...prev,
+                    [team.id]: {...(prev[team.id]||{}), [seg]: e.target.value}
+                  }))}
+                  readOnly={!isAdmin}
+                />
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* Skin Tapper */}
+      <div className="card">
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+          <div className="card-title">Skins tapper</div>
+          <div style={{fontSize:13, color:'var(--text-muted)'}}>
+            {totalSkins} skin{totalSkins !== 1 ? 's' : ''} · {skinsPot ? fmt$(skinsNet > 0 ? skinsNet : 0) + ' pot' : 'enter pot above'}
+          </div>
+        </div>
+        <div className="skin-grid">
+          {teams.map(team => (
+            <div key={team.id} className={`skin-btn ${(skinCounts[team.id]||0) > 0 ? 'has-skins' : ''}`}
+              onClick={() => isAdmin && tapSkin(team.id)}>
+              <div className="skin-btn-name">{team.name}</div>
+              <div className="skin-btn-count">{skinCounts[team.id] || 0}</div>
+              <div className="skin-btn-label">skin{(skinCounts[team.id]||0) !== 1 ? 's' : ''}</div>
+              {isAdmin && (skinCounts[team.id]||0) > 0 && (
+                <div className="skin-undo" onClick={e => { e.stopPropagation(); untapSkin(team.id); }}>
+                  undo last
+                </div>
+              )}
+              {!isAdmin && <div style={{fontSize:11, color:'var(--text-muted)', marginTop:4}}>view only</div>}
+            </div>
+          ))}
+        </div>
+        {skinsPot && totalSkins > 0 && skinsNet > 0 && (
+          <div className="success-box" style={{marginBottom:0}}>
+            {fmt$(perSkin.toFixed(2))} per skin · tournament fund: {fmt$(tournFund)}
+          </div>
+        )}
+      </div>
+
+      {/* Payout Breakdown */}
+      {(frontPot || backPot || overallPot || skinsPot) && (
+        <div className="card">
+          <div className="card-title" style={{marginBottom:12}}>Payout breakdown</div>
+
+          {[
+            {label:'Front 9', pot:frontPot, places:frontPlaces, type:'gross/net'},
+            {label:'Back 9', pot:backPot, places:backPlaces, type:'net'},
+            {label:'Overall', pot:overallPot, places:overallPlaces, type:'net'},
+          ].map(({label,pot,places,type}) => pot && parseFloat(pot) > 0 ? (
+            <div key={label} style={{marginBottom:12}}>
+              <div style={{fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:4}}>{label} <span className="badge badge-gray">{type}</span></div>
+              {calcPayouts(pot, places).map(({label:pl, amount}) => (
+                <div key={pl} className="payout-row">
+                  <span className="payout-label">{pl}</span>
+                  <span className="payout-amount">{fmt$(amount)}</span>
+                </div>
+              ))}
+            </div>
+          ) : null)}
+
+          {skinsPot && parseFloat(skinsPot) > 0 && (
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:4}}>Skins</div>
+              <div className="payout-row">
+                <span className="payout-label">Net skins pot ({totalSkins} skins)</span>
+                <span className="payout-amount">{fmt$(Math.max(0,skinsNet))}</span>
+              </div>
+              {totalSkins > 0 && skinsNet > 0 && (
+                <div className="payout-row">
+                  <span className="payout-label">Per skin</span>
+                  <span className="payout-amount">{fmt$(perSkin)}</span>
+                </div>
+              )}
+              <div className="payout-row">
+                <span className="payout-label" style={{color:'var(--gold)'}}>→ Tournament fund</span>
+                <span className="payout-amount tournament">{fmt$(tournFund)}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="total-row">
+            <span>Total pot</span>
+            <span style={{color:'var(--green)'}}>{fmt$(totalPot)}</span>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <button className="btn btn-primary btn-full" onClick={save} style={{marginTop:8}}>
+          {saved ? '✓ Saved!' : 'Save scores & payouts'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── HISTORY VIEW ──────────────────────────────────────────────────────────────
+function HistoryView({ history }) {
+  const [expanded, setExpanded] = useState(null);
+
+  const rounds = Object.entries(history || {})
+    .sort((a,b) => (b[1].date || '').localeCompare(a[1].date || ''));
+
+  if (!rounds.length) return (
+    <div className="empty-state">
+      {Icons.history}
+      <div className="empty-title">No rounds yet</div>
+      <p>Completed rounds will appear here.</p>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{fontSize:14, color:'var(--text-muted)', marginBottom:12}}>{rounds.length} round{rounds.length !== 1 ? 's' : ''} on record</div>
+      {rounds.map(([key, round]) => (
+        <div key={key} className="history-item">
+          <div className="history-header" onClick={() => setExpanded(expanded === key ? null : key)}>
+            <div>
+              <div className="history-date">{round.day} · {fmtDate(round.date)}</div>
+              <div className="history-meta">{round.playerCount || 0} players · {fmt$(round.playerCount * 25)} pot</div>
+            </div>
+            <span style={{color:'var(--text-muted)', transform: expanded===key ? 'rotate(180deg)' : 'none', display:'inline-block', transition:'transform 0.2s'}}>{Icons.chevron}</span>
+          </div>
+          {expanded === key && (
+            <div className="history-body">
+              {/* Teams */}
+              {round.teams?.map(team => (
+                <div key={team.id} style={{marginBottom:10}}>
+                  <div style={{fontSize:13, fontWeight:600, color:'var(--green)', marginBottom:4}}>
+                    {team.name} <span style={{fontWeight:400, color:'var(--text-muted)'}}>HCP {team.totalHcp?.toFixed(1)}</span>
+                  </div>
+                  {team.players?.map((p,i) => (
+                    <div key={i} style={{fontSize:12, color:'var(--text-mid)', paddingLeft:8, marginBottom:2}}>
+                      <span className="badge badge-gold" style={{marginRight:4, fontSize:10}}>{p.slot}</span>
+                      {p.name} · {p.tee} {p.handicap}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {/* Scores */}
+              {round.scores && (
+                <div style={{marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)'}}>
+                  <div style={{fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:6}}>Results</div>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr repeat(3,60px)', gap:'4px 8px', fontSize:12}}>
+                    <div style={{color:'var(--text-muted)'}}>Team</div>
+                    <div style={{color:'var(--text-muted)', textAlign:'center'}}>Front</div>
+                    <div style={{color:'var(--text-muted)', textAlign:'center'}}>Back</div>
+                    <div style={{color:'var(--text-muted)', textAlign:'center'}}>Ovr</div>
+                    {round.teams?.map(team => (
+                      <React.Fragment key={team.id}>
+                        <div style={{fontWeight:500}}>{team.name}</div>
+                        <div style={{textAlign:'center'}}>{(round.scores.teamScores?.[team.id]?.front) || '—'}</div>
+                        <div style={{textAlign:'center'}}>{(round.scores.teamScores?.[team.id]?.back) || '—'}</div>
+                        <div style={{textAlign:'center'}}>{(round.scores.teamScores?.[team.id]?.overall) || '—'}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                  {round.scores.skinCounts && (
+                    <div style={{marginTop:8, fontSize:12}}>
+                      <span style={{color:'var(--text-muted)'}}>Skins: </span>
+                      {Object.entries(round.scores.skinCounts).filter(([,c])=>c>0).map(([tid,c]) => {
+                        const team = round.teams?.find(t => t.id == tid);
+                        return <span key={tid} style={{marginRight:8}}>{team?.name || `Team ${tid}`}: {c}</span>;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── ADMIN VIEW ────────────────────────────────────────────────────────────────
+function AdminView({ isAdmin, onLogin, onLogout, gameData, db, onCreateGame, onArchiveRound, onAddPlayer, rosterWithGuests }) {
+  const [password, setPassword] = useState('');
+  const [newGame, setNewGame] = useState({day:'Saturday', date: today(), course:'', teetime:''});
+  const [newPlayer, setNewPlayer] = useState({name:'', email:''});
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [showCreateGame, setShowCreateGame] = useState(false);
+
+  if (!isAdmin) return (
+    <div>
+      <div className="card">
+        <div className="card-title" style={{marginBottom:12}}>Admin login</div>
+        <div className="form-group">
+          <label className="form-label">Password</label>
+          <input className="form-input" type="password" placeholder="Enter admin password"
+            value={password} onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && onLogin(password)} />
+        </div>
+        <button className="btn btn-primary btn-full" onClick={() => onLogin(password)}>Sign in as admin</button>
+      </div>
+      <div style={{textAlign:'center', fontSize:12, color:'var(--text-muted)', marginTop:12}}>
+        Contact Clark for the admin password.
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
+          <span className="admin-badge">ADMIN</span>
+          <span style={{fontSize:14, fontWeight:500}}>Control panel</span>
+        </div>
+        <button className="btn btn-secondary btn-sm" onClick={onLogout}>Sign out</button>
+      </div>
+
+      {/* Current game */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Current game</div>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowCreateGame(!showCreateGame)}>
+            {Icons.plus} New game
+          </button>
+        </div>
+        {showCreateGame && (
+          <div style={{borderTop:'1px solid var(--border)', paddingTop:12}}>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Day</label>
+                <select className="form-select" value={newGame.day} onChange={e => setNewGame({...newGame, day:e.target.value})}>
+                  <option>Friday</option><option>Saturday</option><option>Sunday</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Date</label>
+                <input className="form-input" type="date" value={newGame.date} onChange={e => setNewGame({...newGame, date:e.target.value})} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Course (optional)</label>
+                <input className="form-input" placeholder="e.g. Laytonsville" value={newGame.course} onChange={e => setNewGame({...newGame, course:e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">First tee time</label>
+                <input className="form-input" placeholder="e.g. 7:30 AM" value={newGame.teetime} onChange={e => setNewGame({...newGame, teetime:e.target.value})} />
+              </div>
+            </div>
+            <div style={{display:'flex', gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={() => { onCreateGame(newGame); setShowCreateGame(false); }}>Create game</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowCreateGame(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {gameData && !showCreateGame && (
+          <div style={{fontSize:14}}>
+            <div style={{fontWeight:500, color:'var(--green)'}}>{gameData.day} · {fmtDate(gameData.date)}</div>
+            {gameData.course && <div style={{fontSize:12, color:'var(--text-muted)', marginTop:2}}>{gameData.course}</div>}
+            <div style={{marginTop:10}}>
+              <button className="btn btn-danger btn-sm" onClick={onArchiveRound} style={{marginRight:8}}>
+                Archive & close round
+              </button>
+            </div>
+          </div>
+        )}
+        {!gameData && !showCreateGame && (
+          <div style={{fontSize:13, color:'var(--text-muted)'}}>No active game. Create one above.</div>
+        )}
+      </div>
+
+      {/* Roster management */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Roster ({rosterWithGuests.filter(p=>!p.isGuest).length} members)</div>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowAddPlayer(!showAddPlayer)}>
+            {Icons.plus} Add player
+          </button>
+        </div>
+        {showAddPlayer && (
+          <div style={{borderTop:'1px solid var(--border)', paddingTop:12}}>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Name</label>
+                <input className="form-input" placeholder="Full name" value={newPlayer.name} onChange={e => setNewPlayer({...newPlayer, name:e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email (optional)</label>
+                <input className="form-input" placeholder="email" value={newPlayer.email} onChange={e => setNewPlayer({...newPlayer, email:e.target.value})} />
+              </div>
+            </div>
+            <div style={{display:'flex', gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={() => { if(newPlayer.name) { onAddPlayer(newPlayer); setNewPlayer({name:'',email:''}); setShowAddPlayer(false); }}}>Add to roster</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowAddPlayer(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+        <div style={{maxHeight:200, overflowY:'auto', marginTop: showAddPlayer ? 8 : 0}}>
+          {rosterWithGuests.filter(p => !p.isGuest).map(p => (
+            <div key={p.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid var(--border)', fontSize:13}}>
+              <span>{p.name}</span>
+              {p.id > 96 && <span className="badge badge-green">New</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState('signup');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [gameData, setGameData] = useState(null);
+  const [signups, setSignups] = useState({});
+  const [teams, setTeams] = useState([]);
+  const [scores, setScores] = useState(null);
+  const [history, setHistory] = useState({});
+  const [extraPlayers, setExtraPlayers] = useState([]);
+  const { ready, read, write, push, remove } = useDB();
+
+  const rosterWithGuests = [...ROSTER, ...extraPlayers];
+
+  // ── Load data ──
+  useEffect(() => {
+    if (!ready) return;
+    const unsubs = [];
+    unsubs.push(read('currentGame', val => setGameData(val)));
+    unsubs.push(read('signups', val => setSignups(val || {})));
+    unsubs.push(read('teams', val => setTeams(val || [])));
+    unsubs.push(read('scores', val => setScores(val)));
+    unsubs.push(read('history', val => setHistory(val || {})));
+    unsubs.push(read('extraPlayers', val => setExtraPlayers(val || [])));
+    return () => unsubs.forEach(u => typeof u === 'function' && u());
+  }, [ready]);
+
+  // ── Auth ──
+  function handleLogin(pw) {
+    if (pw === ADMIN_PASSWORD) { setIsAdmin(true); }
+    else alert('Wrong password');
+  }
+
+  // ── Game management ──
+  function createGame(g) {
+    write('currentGame', {...g, teamsPublished: false, createdAt: Date.now()});
+    write('signups', {});
+    write('teams', []);
+    write('scores', null);
+  }
+
+  function archiveRound() {
+    if (!gameData) return;
+    if (!window.confirm('Archive this round? It will be saved to history and the game will close.')) return;
+    const roundData = {
+      ...gameData,
+      teams,
+      scores,
+      playerCount: Object.keys(signups).length,
+      archivedAt: Date.now()
+    };
+    push('history', roundData);
+    write('currentGame', null);
+    write('signups', {});
+    write('teams', []);
+    write('scores', null);
+  }
+
+  function handleSignup(data) {
+    push('signups', data);
+  }
+  function removeSignup(key) {
+    remove(`signups/${key}`);
+  }
+  function saveTeams(t) {
+    write('teams', t);
+  }
+  function publishTeams() {
+    write('teams', teams);
+    write('currentGame', {...gameData, teamsPublished: true});
+  }
+  function saveScores(s) {
+    write('scores', s);
+  }
+  function addPlayer(p) {
+    const newP = {...p, id: 100 + extraPlayers.length + 1};
+    write('extraPlayers', [...extraPlayers, newP]);
+  }
+
+  if (!ready) return (
+    <div className="app">
+      <div className="header"><div className="header-top"><h1>Clark Golf</h1></div></div>
+      <div style={{padding:40, textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>
+    </div>
+  );
+
+  const tabs = [
+    {id:'signup', label:'Sign Up', icon: Icons.golf},
+    {id:'teams', label:'Teams', icon: Icons.users},
+    {id:'scoring', label:'Scoring', icon: Icons.trophy},
+    {id:'history', label:'History', icon: Icons.history},
+    {id:'admin', label:'Admin', icon: Icons.settings},
+  ];
+
+  return (
+    <div className="app">
+      <div className="header">
+        <div className="header-top">
+          <h1>Clark Golf Group</h1>
+          {isAdmin && <span className="admin-badge">ADMIN</span>}
+        </div>
+        <div className="header-sub">
+          {gameData ? `${gameData.day} · ${fmtDate(gameData.date)}` : 'No game scheduled'}
+        </div>
+      </div>
+      <nav className="nav">
+        {tabs.map(t => (
+          <button key={t.id} className={`nav-btn ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </nav>
+      <div className="content">
+        {tab === 'signup' && <SignupView game={gameData} signups={signups} onSignup={handleSignup} onRemove={removeSignup} isAdmin={isAdmin} rosterWithGuests={rosterWithGuests} />}
+        {tab === 'teams' && <TeamsView game={gameData ? {...gameData, signups} : null} teams={teams} signups={signups} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublish={publishTeams} />}
+        {tab === 'scoring' && <ScoringView game={gameData ? {...gameData, signups} : null} teams={teams} scores={scores} onSaveScores={saveScores} isAdmin={isAdmin} />}
+        {tab === 'history' && <HistoryView history={history} />}
+        {tab === 'admin' && <AdminView isAdmin={isAdmin} onLogin={handleLogin} onLogout={() => setIsAdmin(false)} gameData={gameData} onCreateGame={createGame} onArchiveRound={archiveRound} onAddPlayer={addPlayer} rosterWithGuests={rosterWithGuests} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
