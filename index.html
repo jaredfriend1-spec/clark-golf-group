@@ -1179,7 +1179,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
         <div className="slbl" style={{marginBottom:0}}>{rounds.length} round{rounds.length!==1?'s':''} on record</div>
-        {isAdmin&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={()=>{if(window.confirm('Delete ALL history?'))onClearAll();}}>Clear all</button>}
+        {isAdmin&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={onClearAll}>Clear all</button>}
       </div>
       {rounds.map(([k,r])=>(
         <div key={k} className="hi">
@@ -1190,7 +1190,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
             </div>
             <div style={{display:'flex',alignItems:'center',gap:6}}>
               {isAdmin&&<button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEditRound(k,r);}}>Edit</button>}
-              {isAdmin&&<button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();if(window.confirm('Delete this round?'))onDelete(k);}}>Delete</button>}
+              {isAdmin&&<button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();onDelete(k);}}>Delete</button>}
               <svg style={{width:15,height:15,color:'#94a3b8',transition:'transform 0.2s',transform:open===k?'rotate(180deg)':'none',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
@@ -1261,7 +1261,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
 }
 
 // ── ADMIN VIEW ───────────────────────────────────────────────────────────────
-function AdminView({isAdmin,onLogout,week,onCreate,onAddDay,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onArchiveDay,onUpdateTeeTime}){
+function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onArchiveDay,onUpdateTeeTime}){
   const [showCreate,setShowCreate]=useState(!(week&&week.activeDays&&week.activeDays.length>0));
   const [selDays,setSelDays]=useState({Friday:true,Saturday:true,Sunday:true});
   const [teeTimes,setTeeTimes]=useState({Friday:'',Saturday:'',Sunday:''});
@@ -1293,7 +1293,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddDay,onAddPlayer,onRemove
     setShowCreate(false);
   }
 
-  function addDay(){
+  function _unused(){
     if(!newDay||activeDays.includes(newDay))return;
     const newWeek={...week,activeDays:[...activeDays,newDay],dates:{...(week.dates||{}),[newDay]:wd[newDay]}};
     onCreate(newWeek);
@@ -1495,14 +1495,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddDay,onAddPlayer,onRemove
             {DAYS_OF_WEEK.filter(d=>!activeDays.includes(d)).length===0&&(
               <div className="alert alert-blue">All three days are already active.</div>
             )}
-            <button className="btn btn-green btn-full" onClick={()=>{
-              const day=newDay.split(' ')[0];
-              if(!activeDays.includes(day)){
-                const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};
-                onCreate(newWeek);
-              }
-              setAddDayModal(false);
-            }}>Add Day</button>
+            <button className="btn btn-green btn-full" onClick={()=>{const day=newDay.split(' ')[0];if(!activeDays.includes(day)){const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};onCreate(newWeek);}setAddDayModal(false);}}>Add Day</button>
           </div>
         </div>
       )}
@@ -1611,7 +1604,7 @@ function App(){
   function startDemo(){
     const d=makeDemoData();
     const wd=getWeekDates();
-    setWeek({activeDays:['Saturday'],dates:{Saturday:wd.Saturday},signups:d.signups,teams:{Saturday:d.teams},scores:{Saturday:d.scores},complete:{Saturday:false},teamsPublished:{Saturday:true},teeTimes:{Saturday:{time:'08:30',lottery:false}},locked:{},locked:{}});
+    setWeek({activeDays:['Saturday'],dates:{Saturday:wd.Saturday},signups:d.signups,teams:{Saturday:d.teams},scores:{Saturday:d.scores},complete:{Saturday:false},teamsPublished:{Saturday:true},teeTimes:{Saturday:{time:'08:30',lottery:false}},locked:{}});
     setHistory({});
     setIsDemo(true);setIsAdmin(true);setRole('admin');setTab('home');
   }
