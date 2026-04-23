@@ -380,41 +380,39 @@ function buildPayouts(pot,places,teams,scores,seg){
 
 function makeDemoData(){
   const DEMO_PLAYERS=[
-    {name:"Chris Allen",hcp:5},{name:"Robert Chase",hcp:15},{name:"Jon Rucker",hcp:23},
-    {name:"Jeff Sarris",hcp:6},{name:"Duane Robins",hcp:11},{name:"Jim Weiskopf",hcp:14},
-    {name:"Bob Latos",hcp:9},{name:"Clark Kunkle",hcp:11},{name:"Frank McGuire",hcp:22},
-    {name:"Brian Grimes",hcp:5},{name:"Tim Marose",hcp:9},{name:"Tom Watson",hcp:19},
-    {name:"Cesar Rodriguez",hcp:7},{name:"John McCarthy",hcp:12},{name:"George Divver",hcp:19},
+    {name:"Chris Allen",hcp:5},{name:"Robert Chase",hcp:15},{name:"Jon Rucker",hcp:23},{name:"Mike Barry",hcp:8},
+    {name:"Jeff Sarris",hcp:6},{name:"Duane Robins",hcp:11},{name:"Jim Weiskopf",hcp:14},{name:"Clark Kunkle",hcp:11},
+    {name:"Bob Latos",hcp:9},{name:"Frank McGuire",hcp:22},{name:"Brian Grimes",hcp:5},{name:"Tim Marose",hcp:9},
+    {name:"Tom Watson",hcp:19},{name:"Cesar Rodriguez",hcp:7},{name:"John McCarthy",hcp:12},{name:"George Divver",hcp:19},
   ];
   const signups={};
   DEMO_PLAYERS.forEach((p,i)=>{
     signups['d'+i]={playerId:i+1,name:p.name,tee:'Whites',handicap:p.hcp,day:'Saturday',signedUpAt:Date.now()+i};
   });
   const demoTeams=[
-    {id:1,name:'Team One',totalHcp:43,players:[
+    {id:1,name:'Team One',totalHcp:51,players:[
       {name:'Chris Allen',tee:'Whites',handicap:5,slot:'A'},
-      {name:'Robert Chase',tee:'Whites',handicap:15,slot:'B'},
-      {name:'Jon Rucker',tee:'Whites',handicap:23,slot:'C'},
-    ]},
-    {id:2,name:'Team Two',totalHcp:31,players:[
-      {name:'Jeff Sarris',tee:'Whites',handicap:6,slot:'A'},
-      {name:'Duane Robins',tee:'Whites',handicap:11,slot:'B'},
-      {name:'Jim Weiskopf',tee:'Whites',handicap:14,slot:'C'},
-    ]},
-    {id:3,name:'Team Three',totalHcp:42,players:[
-      {name:'Bob Latos',tee:'Whites',handicap:9,slot:'A'},
-      {name:'Clark Kunkle',tee:'Whites',handicap:11,slot:'B'},
-      {name:'Frank McGuire',tee:'Whites',handicap:22,slot:'C'},
-    ]},
-    {id:4,name:'Team Four',totalHcp:33,players:[
-      {name:'Brian Grimes',tee:'Whites',handicap:5,slot:'A'},
-      {name:'Tim Marose',tee:'Whites',handicap:9,slot:'B'},
-      {name:'Tom Watson',tee:'Whites',handicap:19,slot:'C'},
-    ]},
-    {id:5,name:'Team Five',totalHcp:38,players:[
-      {name:'Cesar Rodriguez',tee:'Whites',handicap:7,slot:'A'},
-      {name:'John McCarthy',tee:'Whites',handicap:12,slot:'B'},
+      {name:'Jeff Sarris',tee:'Whites',handicap:6,slot:'B'},
       {name:'George Divver',tee:'Whites',handicap:19,slot:'C'},
+      {name:'Jon Rucker',tee:'Whites',handicap:23,slot:'D'},
+    ]},
+    {id:2,name:'Team Two',totalHcp:47,players:[
+      {name:'Brian Grimes',tee:'Whites',handicap:5,slot:'A'},
+      {name:'Cesar Rodriguez',tee:'Whites',handicap:7,slot:'B'},
+      {name:'Mike Barry',tee:'Whites',handicap:8,slot:'C'},
+      {name:'Tom Watson',tee:'Whites',handicap:19,slot:'D'},
+    ]},
+    {id:3,name:'Team Three',totalHcp:44,players:[
+      {name:'Bob Latos',tee:'Whites',handicap:9,slot:'A'},
+      {name:'Tim Marose',tee:'Whites',handicap:9,slot:'B'},
+      {name:'Duane Robins',tee:'Whites',handicap:11,slot:'C'},
+      {name:'Robert Chase',tee:'Whites',handicap:15,slot:'D'},
+    ]},
+    {id:4,name:'Team Four',totalHcp:56,players:[
+      {name:'Clark Kunkle',tee:'Whites',handicap:11,slot:'A'},
+      {name:'John McCarthy',tee:'Whites',handicap:12,slot:'B'},
+      {name:'Jim Weiskopf',tee:'Whites',handicap:14,slot:'C'},
+      {name:'Frank McGuire',tee:'Whites',handicap:22,slot:'D'},
     ]},
   ];
   const pc=DEMO_PLAYERS.length;
@@ -940,7 +938,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw}){
                   <div style={{fontSize:13,fontWeight:600,color:'#15803d'}}>{blindDraw.name} <span style={{fontWeight:400,color:'#64748b',fontSize:11}}>(added from draw)</span></div>
                   <div style={{fontSize:11,color:'#64748b',marginTop:1}}>{blindDraw.tee} HCP {blindDraw.handicap}</div>
                 </div>
-                {isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>{const u=(editTeams||savedTeams).map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);}}>Clear</button>}
+                {isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);setEditTeams(u);}}>Clear</button>}
               </div>
             )}
           </div>
@@ -961,8 +959,10 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw}){
                   <div key={pi} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f8fafc'}}>
                     <span style={{fontSize:13,fontWeight:500}}>{p.name} <span style={{color:'#94a3b8',fontSize:11}}>HCP {p.handicap}</span></span>
                     <button className="btn btn-green btn-xs" onClick={()=>{
-                      const u=(editTeams||savedTeams).map((team,i)=>i===blindModal.teamIdx?{...team,blindDraw:{...p,fromDraw:true}}:team);
+                      const base=editTeams||savedTeams;
+                      const u=base.map((team,i)=>i===blindModal.teamIdx?{...team,blindDraw:{...p,fromDraw:true}}:team);
                       onSaveTeams(activeDay,u);
+                      setEditTeams(u);
                       setBlindModal(null);
                     }}>Assign</button>
                   </div>
