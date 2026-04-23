@@ -9,187 +9,193 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:15px}
 #root{min-height:100%}
 .app{max-width:430px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
 
 /* LANDING */
 .land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px}
-.land-title{font-family:'Syne',sans-serif;font-size:38px;font-weight:800;color:#fff;text-align:center;line-height:1;margin-bottom:6px}
-.land-title em{color:#10b981;font-style:italic}
-.land-week{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:40px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase}
-.land-btn{width:100%;padding:18px 20px;border-radius:14px;border:none;font-family:'Inter',sans-serif;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:14px;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em;font-style:italic;transition:all 0.15s}
-.land-btn-player{background:#10b981;color:#0f172a;border-bottom:4px solid #059669}
-.land-btn-admin{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);border-bottom:3px solid rgba(0,0,0,0.3)}
-.land-btn-demo{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.25);border-bottom:3px solid rgba(0,0,0,0.3);margin-top:6px}
-.land-btn-icon{width:38px;height:38px;border-radius:10px;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.land-btn-icon svg{width:18px;height:18px}
-.land-btn-label{flex:1;text-align:left}
-.land-btn-main{font-size:15px;font-weight:900;display:block}
-.land-btn-sub{font-size:10px;font-weight:500;opacity:0.6;font-style:normal;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;display:block}
-.land-arrow{font-size:20px;opacity:0.4}
-.pw-box{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:20px}
-.pw-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-align:center;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px}
-.pw-input{width:100%;padding:14px;border-radius:10px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:18px;font-family:'Inter',sans-serif;outline:none;text-align:center;letter-spacing:0.15em;margin-bottom:10px}
-.pw-input.err{border-color:#ef4444}
-.pw-err{color:#f87171;font-size:12px;text-align:center;font-weight:700;margin-bottom:8px}
+.land-title{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:#fff;text-align:center;line-height:1.05;margin-bottom:4px}
+.land-title em{color:#10b981;font-style:normal}
+.land-week{font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:36px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase}
+.land-btn{width:100%;padding:16px 18px;border-radius:12px;border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all 0.15s;text-align:left}
+.land-btn:active{transform:scale(0.98)}
+.land-btn-player{background:#10b981;color:#0f172a;border-bottom:3px solid #059669}
+.land-btn-admin{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15)}
+.land-btn-demo{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);margin-top:4px}
+.land-btn-icon{width:36px;height:36px;border-radius:8px;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.land-btn-icon svg{width:17px;height:17px}
+.land-btn-text{flex:1}
+.land-btn-main{font-size:14px;font-weight:700;display:block}
+.land-btn-sub{font-size:11px;font-weight:500;opacity:0.55;display:block;margin-top:1px}
+.land-arrow{font-size:18px;opacity:0.35}
+.pw-box{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px}
+.pw-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-align:center;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px}
+.pw-input{width:100%;padding:13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;font-family:'Inter',sans-serif;outline:none;text-align:center;letter-spacing:0.12em;margin-bottom:10px}
+.pw-input.err{border-color:#f87171}
+.pw-err{color:#f87171;font-size:12px;font-weight:600;text-align:center;margin-bottom:8px}
 .pw-row{display:flex;gap:8px}
-.pw-go{flex:1;padding:13px;background:#10b981;color:#0f172a;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;font-style:italic}
-.pw-back{padding:13px 16px;background:none;border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:rgba(255,255,255,0.5);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.pw-go{flex:1;padding:12px;background:#10b981;color:#0f172a;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.pw-back{padding:12px 14px;background:none;border:1px solid rgba(255,255,255,0.14);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
 
 /* HEADER */
-.hdr{background:#0f172a;padding:22px 16px 0;position:relative;overflow:hidden}
-.hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:20px;background:#fff;border-radius:20px 20px 0 0}
-.hdr-inner{position:relative;z-index:1;padding-bottom:24px}
-.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
-.hdr-brand{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;line-height:1.1}
-.hdr-brand em{color:#10b981;font-style:italic}
-.hdr-week{font-size:9px;font-weight:700;letter-spacing:0.14em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-top:3px}
-.hdr-right{display:flex;align-items:center;gap:6px}
-.admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:900;padding:3px 9px;border-radius:20px;font-style:italic}
-.switch-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;font-family:'Inter',sans-serif}
-.hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.hdr-stat{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 8px;text-align:center}
-.hdr-stat-n{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#10b981;font-style:italic}
-.hdr-stat-l{font-size:9px;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-top:2px}
-.hdr-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.7)}
-.hdr-dot{width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0}
+.hdr{background:#0f172a;padding:20px 16px 0;position:relative;overflow:hidden}
+.hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:18px;background:#fff;border-radius:18px 18px 0 0}
+.hdr-inner{position:relative;z-index:1;padding-bottom:22px}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.hdr-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1.1}
+.hdr-brand em{color:#10b981;font-style:normal}
+.hdr-week{font-size:9px;font-weight:600;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:3px}
+.hdr-right{display:flex;align-items:center;gap:5px}
+.admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.demo-tag{background:#10b981;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 6px;text-align:center}
+.hdr-stat-n{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#10b981}
+.hdr-stat-l{font-size:9px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:2px}
+.hdr-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.65)}
+.hdr-dot{width:5px;height:5px;border-radius:50%;background:#10b981;flex-shrink:0}
 
 /* NAV */
-.nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0;padding:0 4px}
-.nb{flex:1;padding:11px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'Inter',sans-serif;font-size:9px;font-weight:900;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.08em;text-transform:uppercase;position:relative}
-.nb svg{width:18px;height:18px;flex-shrink:0}
+.nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0}
+.nb{flex:1;padding:10px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
+.nb svg{width:17px;height:17px;flex-shrink:0}
 .nb.on{color:#0f172a}
-.nb.on::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2.5px;background:#f59e0b;border-radius:2px 2px 0 0}
-.nb.locked{opacity:0.35;cursor:not-allowed}
-.content{flex:1;padding:16px 12px 40px}
+.nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
+.nb.locked{opacity:0.3;cursor:not-allowed}
+.content{flex:1;padding:16px 13px 48px}
 
 /* CARDS */
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-.card-body{padding:14px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.card-pad{padding:14px}
 
 /* DAY CARDS */
-.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-.day-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;-webkit-user-select:none;gap:8px}
+.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.day-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;user-select:none;-webkit-user-select:none}
 .day-hdr:active{background:#f8fafc}
 .day-left{flex:1;min-width:0}
-.day-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#0f172a;font-style:italic}
-.day-date{font-size:11px;color:#94a3b8;font-weight:600;margin-top:1px}
+.day-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#0f172a}
+.day-sub{font-size:11px;color:#94a3b8;font-weight:500;margin-top:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tee-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
+.tee-tag.lottery{background:#fef3c7;color:#d97706}
+.tee-tag.set{background:#dcfce7;color:#15803d}
+.tee-tag.done{background:#dbeafe;color:#1d4ed8}
 .day-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.day-count{font-size:10px;font-weight:900;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;font-style:italic;white-space:nowrap}
-.day-count.active{background:#10b981;color:#fff}
-.day-count.zero{background:#f1f5f9;color:#94a3b8}
-.day-chev{color:#cbd5e1;transition:transform 0.2s;flex-shrink:0;width:16px;height:16px}
+.day-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.day-pill.has{background:#10b981;color:#fff}
+.day-pill.none{background:#f1f5f9;color:#94a3b8}
+.day-chev{width:15px;height:15px;color:#cbd5e1;transition:transform 0.2s;flex-shrink:0}
 .day-chev.open{transform:rotate(180deg)}
-.day-body{border-top:1px solid #f1f5f9;background:#f8fafc}
-.day-empty{padding:14px;text-align:center;font-size:13px;color:#94a3b8;font-style:italic}
-.tee-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;font-style:italic}
-.tee-badge.lottery{background:#fef3c7;color:#d97706;border:1px solid #fde68a}
-.tee-badge.set{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
-.tee-badge.complete{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
-.lottery-bar{background:#fffbeb;border-bottom:1px solid #fde68a;padding:7px 14px;display:flex;align-items:center;justify-content:space-between}
-.lottery-txt{font-size:11px;font-weight:800;color:#d97706;font-style:italic;display:flex;align-items:center;gap:5px}
+.day-body{border-top:1px solid #f1f5f9}
 
 /* PLAYER ROWS */
-.p-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f1f5f9}
+.p-row{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid #f8fafc;gap:9px}
 .p-row:last-child{border-bottom:none}
-.p-info{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
-.avi{width:32px;height:32px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Syne',sans-serif;font-style:italic}
-.p-name{font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.p-meta{display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap}
-.tee-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.p-meta-txt{font-size:10px;color:#94a3b8;font-weight:600}
-.edit-link{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:700;padding:0 2px;font-family:'Inter',sans-serif}
-.rm-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:5px;display:flex;flex-shrink:0;margin-left:6px}
+.avi{width:30px;height:30px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Syne',sans-serif}
+.p-name{font-size:13px;font-weight:600;color:#0f172a}
+.p-meta{font-size:11px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:1px}
+.tee-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.edit-btn{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:600;padding:0 2px;font-family:'Inter',sans-serif}
+.rm-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:4px;display:flex;flex-shrink:0;margin-left:auto}
 .rm-btn:hover{color:#ef4444}
-.rm-btn svg{width:15px;height:15px}
-.signup-area{padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:6px;align-items:center}
+.rm-btn svg{width:14px;height:14px}
+.guest-tag{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:10px;font-weight:600;margin-left:4px}
 
 /* INLINE EDIT */
-.inline-edit{display:flex;align-items:center;gap:5px;margin-top:4px}
-.inline-edit input{width:55px;padding:3px 7px;border:1.5px solid #10b981;border-radius:6px;font-size:13px;font-weight:700;outline:none;font-family:'Inter',sans-serif}
-.inline-edit select{padding:3px 5px;border:1.5px solid #10b981;border-radius:6px;font-size:11px;outline:none;font-family:'Inter',sans-serif}
-.inline-edit .save{font-size:11px;font-weight:800;color:#15803d;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
-.inline-edit .cancel{font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.ie{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}
+.ie input{width:52px;padding:3px 6px;border:1.5px solid #10b981;border-radius:6px;font-size:12px;font-weight:600;outline:none;font-family:'Inter',sans-serif}
+.ie select{padding:3px 5px;border:1.5px solid #10b981;border-radius:6px;font-size:11px;font-weight:500;outline:none;font-family:'Inter',sans-serif}
+.ie-save{font-size:11px;font-weight:700;color:#15803d;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.ie-cancel{font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
 
-/* STATS BOX */
+/* SIGNUP BUTTON AREA */
+.day-actions{padding:10px 14px;display:flex;gap:7px;align-items:center;border-top:1px solid #f1f5f9}
+.signup-btn{padding:8px 14px;background:#10b981;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.teeadd-btn{padding:8px 12px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;color:#475569}
+
+/* STATS ROW */
 .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.stat-box{background:#0f172a;border-radius:12px;padding:12px 8px;text-align:center}
-.stat-n{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#10b981;font-style:italic}
-.stat-l{font-size:9px;color:rgba(255,255,255,0.35);margin-top:2px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}
+.stat-box{background:#0f172a;border-radius:10px;padding:11px 6px;text-align:center}
+.stat-n{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#10b981}
+.stat-l{font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
 
 /* TEAM CARDS */
-.team-card{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-.team-hdr{padding:11px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a}
-.team-nm{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;font-style:italic}
-.team-hcp{font-size:11px;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.08);padding:3px 9px;border-radius:20px;font-weight:700}
-.team-row{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid #f1f5f9}
+.team-card{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.team-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a}
+.team-nm{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff}
+.team-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600}
+.team-row{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid #f8fafc}
 .team-row:last-child{border-bottom:none}
-.slot{font-size:10px;font-weight:900;font-style:italic;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:20px;text-align:center}
+.slot{font-size:10px;font-weight:700;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:20px;text-align:center}
 
 /* SCORE PICKER */
-.sc-grid{display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;align-items:center}
-.sc-hd{font-size:9px;font-weight:900;color:#94a3b8;text-align:center;letter-spacing:0.08em;text-transform:uppercase}
-.score-picker{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#f8fafc}
-.score-picker button{background:none;border:none;cursor:pointer;font-size:16px;font-weight:900;color:#475569;padding:6px 8px;font-family:'Inter',sans-serif;flex-shrink:0;line-height:1}
-.score-picker button:hover{background:#e2e8f0}
-.score-val{flex:1;text-align:center;font-size:14px;font-weight:800;font-family:'Syne',sans-serif;min-width:28px}
-.score-val.neg{color:#15803d}
-.score-val.pos{color:#dc2626}
-.score-val.zero{color:#94a3b8}
+.sc-grid{display:grid;grid-template-columns:1fr 78px 78px 78px;gap:7px;align-items:center}
+.sc-hd{font-size:9px;font-weight:700;color:#94a3b8;text-align:center;letter-spacing:0.07em;text-transform:uppercase}
+.sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:7px;overflow:hidden;background:#f8fafc}
+.sp button{background:none;border:none;cursor:pointer;font-size:16px;font-weight:700;color:#475569;padding:5px 8px;font-family:'Inter',sans-serif;line-height:1;flex-shrink:0}
+.sp button:hover{background:#e2e8f0}
+.sp-val{flex:1;text-align:center;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;min-width:26px}
+.sp-val.neg{color:#15803d}
+.sp-val.pos{color:#dc2626}
+.sp-val.zero{color:#94a3b8}
 
 /* SKINS */
-.skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
-.skin-btn{padding:18px 10px;border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;text-align:center;user-select:none;-webkit-user-select:none;transition:all 0.12s}
-.skin-btn:active{transform:scale(0.93)}
+.skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:12px}
+.skin-btn{padding:16px 8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;text-align:center;user-select:none;-webkit-user-select:none;transition:border-color 0.12s}
+.skin-btn:active{transform:scale(0.94)}
 .skin-btn.on{border-color:#10b981;background:#ecfdf5}
-.skin-team{font-size:11px;font-weight:900;color:#64748b;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-style:italic}
-.skin-num{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:#0f172a;line-height:1;font-style:italic}
-.skin-lbl{font-size:11px;color:#94a3b8;margin-top:4px}
-.skin-undo{font-size:11px;color:#ef4444;margin-top:5px;cursor:pointer;font-weight:800;text-transform:uppercase;letter-spacing:0.04em}
+.skin-team{font-size:11px;font-weight:700;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em}
+.skin-num{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;color:#0f172a;line-height:1}
+.skin-lbl{font-size:10px;color:#94a3b8;margin-top:3px}
+.skin-undo{font-size:10px;color:#ef4444;margin-top:4px;cursor:pointer;font-weight:700;text-transform:uppercase}
 
 /* PAYOUTS */
-.pay-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.pay-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:13px}
 .pay-row:last-child{border-bottom:none}
 .pay-lbl{color:#475569;font-weight:500}
-.pay-amt{font-weight:900;color:#15803d;font-family:'Syne',sans-serif;font-size:14px;font-style:italic}
-.pay-amt.gold{color:#f59e0b}
-.pay-total{display:flex;justify-content:space-between;padding:10px 0 0;font-size:16px;font-weight:900;border-top:2px solid #0f172a;margin-top:4px;font-family:'Syne',sans-serif;font-style:italic}
+.pay-amt{font-weight:700;font-family:'Inter',sans-serif;font-size:14px}
+.pay-amt.win{color:#15803d}
+.pay-amt.tie{color:#f59e0b}
+.pay-amt.fund{color:#f59e0b}
+.pay-total{display:flex;justify-content:space-between;padding:10px 0 0;font-size:15px;font-weight:700;border-top:2px solid #0f172a;margin-top:4px}
 
 /* HISTORY */
-.hi{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden}
-.hi-hdr{padding:13px 14px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-.hi-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;font-style:italic}
-.hi-meta{font-size:11px;color:#94a3b8;margin-top:2px;font-weight:600}
-.hi-body{padding:14px;border-top:1px solid #f1f5f9}
+.hi{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:9px;overflow:hidden}
+.hi-hdr{padding:12px 14px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.hi-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#0f172a}
+.hi-meta{font-size:11px;color:#94a3b8;font-weight:500;margin-top:2px}
+.hi-body{padding:13px 14px;border-top:1px solid #f1f5f9}
 
-/* ADMIN BAR */
-.admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:14px;margin-bottom:10px}
-.admin-bar-lbl{font-size:10px;font-weight:900;letter-spacing:0.1em;color:#92400e;text-transform:uppercase;margin-bottom:10px;font-style:italic}
+/* ADMIN */
+.admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;margin-bottom:10px}
+.admin-lbl{font-size:10px;font-weight:700;letter-spacing:0.08em;color:#92400e;text-transform:uppercase;margin-bottom:9px}
 
 /* FORMS */
 .fg{margin-bottom:12px}
-.fl{font-size:10px;font-weight:900;color:#64748b;margin-bottom:5px;display:block;letter-spacing:0.1em;text-transform:uppercase}
-.fi{width:100%;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
+.fl{font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px;display:block;letter-spacing:0.08em;text-transform:uppercase}
+.fi{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
 .fi:focus{border-color:#10b981}
-.fs{width:100%;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;appearance:none}
+.fs{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;appearance:none}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sw{position:relative;margin-bottom:8px}
-.si-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#94a3b8;width:14px;height:14px}
-.si{width:100%;padding:10px 12px 10px 33px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;background:#f8fafc}
+.sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
+.si{width:100%;padding:10px 12px 10px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Inter',sans-serif;outline:none;background:#f8fafc}
 .si:focus{border-color:#10b981;background:#fff}
 
 /* TOGGLE */
-.tog-wrap{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;margin-bottom:12px}
-.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.04em;font-style:italic}
+.tog{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;margin-bottom:12px}
+.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.04em}
 .tog-opt.on{background:#0f172a;color:#fff}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:900;cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.03em;text-transform:uppercase;font-style:italic;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 15px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap}
 .btn svg{width:14px;height:14px;flex-shrink:0}
+.btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
 .btn-green{background:#10b981;color:#0f172a}
 .btn-green:hover{background:#34d399}
 .btn-dark{background:#0f172a;color:#fff}
@@ -198,51 +204,52 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .btn-gold:hover{background:#fbbf24}
 .btn-red{background:#ef4444;color:#fff}
 .btn-red:hover{background:#f87171}
-.btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;font-style:italic}
+.btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569}
 .btn-outline:hover{background:#f8fafc}
-.btn-sm{padding:7px 12px;font-size:11px}
+.btn-sm{padding:6px 11px;font-size:11px}
 .btn-xs{padding:4px 9px;font-size:10px}
 .btn-full{width:100%}
-.btn:disabled{opacity:0.35;cursor:not-allowed}
 
 /* ALERTS */
-.alert{border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:600}
+.alert{border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:500}
 .alert-ok{background:#ecfdf5;border:1px solid #bbf7d0;color:#15803d}
 .alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
 .alert-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
 
 /* MODAL */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;z-index:200}
-.modal{background:#fff;border-radius:20px 20px 0 0;padding:18px 16px 40px;width:100%;max-height:90vh;overflow-y:auto}
-.modal-handle{width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 16px}
-.modal-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:#0f172a;margin-bottom:14px;font-style:italic}
-.p-pick{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200}
+.modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:88vh;overflow-y:auto}
+.modal-handle{width:34px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
+.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#0f172a;margin-bottom:13px}
+.p-pick{display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #f1f5f9;cursor:pointer}
 .p-pick:last-child{border-bottom:none}
 .p-pick:hover{background:#f8fafc}
 .p-pick.sel{background:#ecfdf5}
 
 /* MISC */
-.slbl{font-size:10px;font-weight:900;letter-spacing:0.12em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px;font-style:italic}
-.demo-bar{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-.demo-lbl{font-size:11px;font-weight:900;color:#b45309;text-transform:uppercase;letter-spacing:0.08em;font-style:italic}
-.empty{text-align:center;padding:48px 16px}
-.empty svg{width:40px;height:40px;opacity:0.2;margin-bottom:12px}
-.empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px;font-style:italic}
-.empty-sub{font-size:13px;color:#64748b;line-height:1.6}
-.pill-gray{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:#f1f5f9;color:#64748b}
-.pill-green{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:#dcfce7;color:#15803d}
-.complete-bar{background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.complete-txt{font-size:12px;font-weight:800;color:#15803d;text-transform:uppercase;letter-spacing:0.06em;font-style:italic}
-.card-section{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:10px}
-.section-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer}
-.section-hdr-title{font-weight:800;font-size:14px;font-style:italic}
-.section-body{border-top:1px solid #f1f5f9;padding:14px}
+.slbl{font-size:10px;font-weight:700;letter-spacing:0.1em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
+.demo-bar{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.demo-lbl{font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.07em}
+.empty{text-align:center;padding:44px 16px}
+.empty svg{width:38px;height:38px;opacity:0.18;margin-bottom:11px}
+.empty-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px}
+.empty-sub{font-size:13px;color:#64748b;line-height:1.55}
+.pill-gray{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:10px;font-weight:600}
+.pill-green{display:inline-block;padding:1px 6px;background:#dcfce7;color:#15803d;border-radius:20px;font-size:10px;font-weight:600}
+.section-btn{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.section-title{font-size:14px;font-weight:700;color:#0f172a}
+.section-body{padding:13px}
+/* checkbox */
+.cb-row{display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer}
+.cb-row input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
+.cb-label{font-size:14px;font-weight:500;color:#0f172a}
+.cb-sub{font-size:11px;color:#94a3b8;font-weight:500}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useCallback}=React;
+const {useState,useEffect,useCallback,useMemo}=React;
 
 const ROSTER=[
   {id:1,name:"Stephen Abbundi"},{id:2,name:"Chris Allen"},{id:3,name:"Bill Balster"},
@@ -281,6 +288,7 @@ const ROSTER=[
 const TEES=['Blends','Whites','Golds','SGA'];
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const ADMIN_PW='clark';
+const DAYS_OF_WEEK=['Friday','Saturday','Sunday'];
 const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
@@ -301,16 +309,24 @@ function useDB(){
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2));};
 const td=()=>new Date().toISOString().split('T')[0];
-const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return MONTHS[parseInt(m)-1]+' '+parseInt(dy);};
-const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return MONTHS[parseInt(m)-1]+' '+parseInt(dy)+', '+y;};
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy);};
+const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy)+', '+y;};
 
-function getWeekLabel(){
+function getWeekDates(){
   const now=new Date();
   const day=now.getDay();
   const mon=new Date(now);mon.setDate(now.getDate()-day+(day===0?-6:1));
+  const fri=new Date(mon);fri.setDate(mon.getDate()+4);
+  const sat=new Date(mon);sat.setDate(mon.getDate()+5);
   const sun=new Date(mon);sun.setDate(mon.getDate()+6);
-  return MONTHS[mon.getMonth()]+' '+mon.getDate()+' - '+MONTHS[sun.getMonth()]+' '+sun.getDate()+', '+sun.getFullYear();
+  const fmt=d=>d.toISOString().split('T')[0];
+  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun)};
+}
+
+function getWeekLabel(){
+  const wd=getWeekDates();
+  return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);
 }
 
 function buildTeams(players){
@@ -323,11 +339,43 @@ function buildTeams(players){
     const round=Math.floor(idx/nt);
     const pos=idx%nt;
     const ti=round%2===0?pos:nt-1-pos;
-    const slot=['A','B','C','D'][Math.min(round,3)];
-    teams[ti].players.push({...p,slot});
+    teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});
     teams[ti].totalHcp+=parseFloat(p.handicap)||0;
   });
   return teams;
+}
+
+function calcPot(playerCount){
+  const skins=playerCount*10;
+  const side=playerCount*5;
+  return{skins,front:side,back:side,overall:side,total:skins+side*3};
+}
+
+function getWinners(teams,scores,seg){
+  if(!teams||!teams.length)return null;
+  const sc=teams.map(t=>({...t,score:parseFloat((scores[t.id]||{})[seg])})).filter(t=>!isNaN(t.score));
+  if(!sc.length)return null;
+  sc.sort((a,b)=>a.score-b.score);
+  const best=sc[0].score;
+  const tied=sc.filter(t=>t.score===best);
+  const second=sc.find(t=>t.score!==best);
+  return{best,tied,second};
+}
+
+function buildPayouts(pot,places,teams,scores,seg){
+  const p=parseFloat(pot||0);
+  if(!p)return[];
+  const w=getWinners(teams,scores,seg);
+  if(!w)return places===1?[{label:'1st place',amt:p,teams:[],isTie:false}]:[{label:'1st place',amt:p*0.6,teams:[],isTie:false},{label:'2nd place',amt:p*0.4,teams:[],isTie:false}];
+  const rows=[];
+  if(w.tied.length>1){
+    const split=places===1?p/w.tied.length:(p*0.6+p*0.4)/w.tied.length;
+    rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});
+  } else {
+    rows.push({label:'1st',amt:places===1?p:p*0.6,teams:w.tied,isTie:false});
+    if(places===2&&w.second)rows.push({label:'2nd',amt:p*0.4,teams:[w.second],isTie:false});
+  }
+  return rows;
 }
 
 function makeDemoData(){
@@ -335,27 +383,23 @@ function makeDemoData(){
   const hcps=[2,4,5,6,7,8,9,10,11,12,13,14,15,16,18,20];
   const tees=['Whites','Whites','Whites','Golds','Golds','SGA'];
   const signups={};
-  picks.forEach((p,i)=>{
-    signups['d'+i]={playerId:p.id,name:p.name,tee:tees[i%tees.length],handicap:hcps[i],day:'Saturday',signedUpAt:Date.now()+i};
-  });
-  return{signups,teams:buildTeams(Object.values(signups))};
+  picks.forEach((p,i)=>{signups['d'+i]={playerId:p.id,name:p.name,tee:tees[i%tees.length],handicap:hcps[i],day:'Saturday',signedUpAt:Date.now()+i};});
+  const teams=buildTeams(Object.values(signups));
+  const pc=picks.length;
+  const pot=calcPot(pc);
+  const scores={teamScores:{},skinCounts:{},frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,frontPlaces:2,backPlaces:2,overallPlaces:2,playerCount:pc,savedAt:Date.now(),complete:false};
+  return{signups,teams,scores};
 }
 
 function ScorePicker({value,onChange,readOnly}){
   const v=(value===''||value===undefined||value===null)?null:parseInt(value);
   const display=v===null?'--':(v>0?'+'+v:String(v));
   const cls=v===null?'zero':v<0?'neg':v>0?'pos':'zero';
-  if(readOnly){
-    return(
-      <div style={{textAlign:'center',padding:'8px 4px',fontSize:15,fontWeight:800,fontFamily:"'Syne',sans-serif"}} className={'score-val '+cls}>
-        {display}
-      </div>
-    );
-  }
+  if(readOnly)return<div style={{textAlign:'center',padding:'7px 3px',fontSize:14,fontWeight:700}} className={'sp-val '+cls}>{display}</div>;
   return(
-    <div className="score-picker">
+    <div className="sp">
       <button onClick={()=>onChange(Math.max(-30,(v===null?0:v)-1))}>-</button>
-      <div className={'score-val '+cls}>{display}</div>
+      <div className={'sp-val '+cls}>{display}</div>
       <button onClick={()=>onChange(Math.min(30,(v===null?0:v)+1))}>+</button>
     </div>
   );
@@ -377,25 +421,25 @@ function TimePicker({onChange}){
         {mins.map(x=><option key={x}>{x}</option>)}
       </select>
       <select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}>
-        <option>AM</option>
-        <option>PM</option>
+        <option>AM</option><option>PM</option>
       </select>
     </div>
   );
 }
 
+// ── LANDING ──────────────────────────────────────────────────────────────────
 function Landing({onPlayer,onAdmin,onDemo}){
   const [showPw,setShowPw]=useState(false);
   const [pw,setPw]=useState('');
   const [err,setErr]=useState(false);
   function tryAdmin(){
-    if(pw.toLowerCase()==='clark'){onAdmin();}
+    if(pw.toLowerCase()===ADMIN_PW){onAdmin();}
     else{setErr(true);setTimeout(()=>setErr(false),1500);}
   }
   return(
     <div className="land">
       <div style={{width:'100%',maxWidth:360}}>
-        <div className="land-title">Clark <em>Golf</em><br/>Group</div>
+        <div className="land-title">Clark <em>Golf</em> Group</div>
         <div className="land-week">{getWeekLabel()}</div>
         {!showPw?(
           <div>
@@ -403,29 +447,29 @@ function Landing({onPlayer,onAdmin,onDemo}){
               <div className="land-btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </div>
-              <div className="land-btn-label"><span className="land-btn-main">I am a Player</span><span className="land-btn-sub">Sign up, view teams, see results</span></div>
+              <div className="land-btn-text"><span className="land-btn-main">I am a Player</span><span className="land-btn-sub">Sign up, view teams, see results</span></div>
               <span className="land-arrow">›</span>
             </button>
-            <button className="land-btn land-btn-admin" onClick={()=>setShowPw(true)}>
+            <button className="land-btn land-btn-admin" onClick={()=>{setShowPw(true);setPw('');}}>
               <div className="land-btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <div className="land-btn-label"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
+              <div className="land-btn-text"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
               <span className="land-arrow">›</span>
             </button>
             <button className="land-btn land-btn-demo" onClick={onDemo}>
               <div className="land-btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               </div>
-              <div className="land-btn-label"><span className="land-btn-main">Demo Mode</span><span className="land-btn-sub">See how it works with sample data</span></div>
+              <div className="land-btn-text"><span className="land-btn-main">Demo Mode</span><span className="land-btn-sub">Try the app with sample data</span></div>
               <span className="land-arrow">›</span>
             </button>
           </div>
         ):(
           <div className="pw-box">
-            <div className="pw-label">Enter Admin Password</div>
+            <div className="pw-label">Admin Password</div>
             <input autoFocus type="password" className={'pw-input'+(err?' err':'')} placeholder="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryAdmin()}/>
-            {err&&<div className="pw-err">Wrong password</div>}
+            {err&&<div className="pw-err">Wrong password — try again</div>}
             <div className="pw-row">
               <button className="pw-go" onClick={tryAdmin}>Sign In</button>
               <button className="pw-back" onClick={()=>{setShowPw(false);setPw('');}}>Back</button>
@@ -437,9 +481,8 @@ function Landing({onPlayer,onAdmin,onDemo}){
   );
 }
 
-function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopen}){
-  const DAYS=['Friday','Saturday','Sunday'];
-  const [exp,setExp]=useState({Friday:true,Saturday:true,Sunday:true});
+// ── THIS WEEK VIEW ─────────────────────────────────────────────────────────
+function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay}){
   const [signModal,setSignModal]=useState(null);
   const [teeModal,setTeeModal]=useState(null);
   const [editTeeModal,setEditTeeModal]=useState(null);
@@ -454,13 +497,21 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [myName,setMyName]=useState(null);
+  const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
 
-  const byDay={};
-  DAYS.forEach(d=>{byDay[d]=Object.entries(signups||{}).filter(([,s])=>s.day===d).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);});
-  const total=Object.keys(signups||{}).length;
-  const signedNames=Object.values(signups||{}).map(s=>s.name);
-  const signedIds=Object.values(signups||{}).map(s=>s.playerId);
-  const avail=ROSTER.filter(p=>!signedIds.includes(p.id)&&p.name.toLowerCase().includes(q.toLowerCase()));
+  if(!week||!week.activeDays||week.activeDays.length===0){
+    return(
+      <div className="empty" style={{paddingTop:50}}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <div className="empty-title">No games this week</div>
+        <div className="empty-sub">Admin will set up this week's games.</div>
+      </div>
+    );
+  }
+
+  const activeDays=(week.activeDays||[]).filter(d=>DAYS_OF_WEEK.includes(d));
+  const allSignups=week.signups||{};
+  const totalSignups=Object.keys(allSignups).length;
 
   function openSignup(day){
     setSignModal(day);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
@@ -469,139 +520,119 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
   function doSignup(){
     const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
     if(!name||!hcp||!signModal)return;
-    const dup=Object.values(signups||{}).some(s=>s.day===signModal&&s.name===name);
-    if(dup){alert(name+' is already signed up for '+signModal);return;}
+    const dup=Object.values(allSignups).some(s=>s.day===signModal&&s.name===name);
+    if(dup){alert(name+' is already signed up for '+signModal+'.');return;}
     if(!isGuest&&sel)setMyName(name);
     if(isGuest&&gname)setMyName(gname.trim());
     onSignup({playerId:isGuest?'g_'+Date.now():parseInt(sel),name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),day:signModal,signedUpAt:Date.now()});
     setSignModal(null);
   }
 
-  function saveTeeTime(day){
-    onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});
-    setTeeModal(null);setIsLottery(false);setNewTime('');
-  }
-
-  function saveEditTime(day){
-    onUpdateTeeTime(day,{time:newTime,lottery:false});
-    setEditTeeModal(null);setNewTime('');
-  }
-
-  if(!game&&!isDemo){
-    return(
-      <div className="empty" style={{paddingTop:60}}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-        <div className="empty-title">No game this week</div>
-        <div className="empty-sub">Check back soon — admin will post the weekly game.</div>
-      </div>
-    );
-  }
+  const signedIds=Object.values(allSignups).map(s=>s.playerId);
+  const avail=ROSTER.filter(p=>!signedIds.includes(p.id)&&p.name.toLowerCase().includes(q.toLowerCase()));
 
   return(
     <div>
       {isDemo&&<div className="demo-bar"><span className="demo-lbl">Demo Mode — Sample Data</span></div>}
 
       <div className="stat-row">
-        <div className="stat-box"><div className="stat-n">{total}</div><div className="stat-l">Signed Up</div></div>
-        <div className="stat-box"><div className="stat-n">{DAYS.filter(d=>byDay[d].length>0).length}</div><div className="stat-l">Active Days</div></div>
-        <div className="stat-box"><div className="stat-n" style={{fontSize:12,paddingTop:6,color:game&&game.complete?'#10b981':'rgba(255,255,255,0.4)'}}>{game&&game.complete?'Done':game&&game.teamsPublished?'Live':'Open'}</div><div className="stat-l">Status</div></div>
+        {activeDays.map(day=>{
+          const cnt=Object.values(allSignups).filter(s=>s.day===day).length;
+          return(
+            <div key={day} className="stat-box">
+              <div className="stat-n">{cnt}</div>
+              <div className="stat-l">{day.slice(0,3)}</div>
+            </div>
+          );
+        })}
+        {activeDays.length<3&&<div className="stat-box"><div className="stat-n">{totalSignups}</div><div className="stat-l">Total</div></div>}
       </div>
 
-      {isAdmin&&!isDemo&&game&&game.teamsPublished&&!game.complete&&(
-        <button className="btn btn-dark btn-full" style={{marginBottom:10,fontSize:12}} onClick={onMarkComplete}>
-          Mark Round Complete — Unlock Scoring
-        </button>
-      )}
-      {isAdmin&&!isDemo&&game&&game.complete&&(
-        <div className="complete-bar">
-          <span className="complete-txt">Round complete — scoring unlocked</span>
-          <button className="btn btn-outline btn-xs" onClick={onReopen}>Reopen</button>
-        </div>
-      )}
+      {activeDays.map(day=>{
+        const daySignups=Object.entries(allSignups).filter(([,s])=>s.day===day).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);
+        const cnt=daySignups.length;
+        const teeInfo=week.teeTimes&&week.teeTimes[day];
+        const dayTeams=week.teams&&week.teams[day];
+        const dayScores=week.scores&&week.scores[day];
+        const dayComplete=week.complete&&week.complete[day];
+        const isOpen=expanded[day];
 
-      {DAYS.map(day=>{
-        const list=byDay[day];
-        const count=list.length;
-        const isOpen=exp[day];
-        const teeInfo=game&&game.teeTimes&&game.teeTimes[day];
-        const isLotteryDay=teeInfo&&teeInfo.lottery;
-        const hasTime=teeInfo&&!teeInfo.lottery;
         return(
           <div key={day} className="day-card">
-            {isAdmin&&isLotteryDay&&(
-              <div className="lottery-bar">
-                <span className="lottery-txt">
+            {isAdmin&&teeInfo&&teeInfo.lottery&&(
+              <div style={{background:'#fffbeb',borderBottom:'1px solid #fde68a',padding:'7px 13px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:11,fontWeight:700,color:'#d97706',display:'flex',alignItems:'center',gap:5}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   Waiting on lottery
                 </span>
-                <button className="btn btn-gold btn-xs" onClick={()=>setEditTeeModal(day)}>Set Time</button>
+                <button className="btn btn-gold btn-xs" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Set Time</button>
               </div>
             )}
-            <div className="day-hdr" onClick={()=>setExp(p=>({...p,[day]:!p[day]}))}>
+
+            <div className="day-hdr" onClick={()=>setExpanded(p=>({...p,[day]:!p[day]}))}>
               <div className="day-left">
-                <div className="day-name">{day}</div>
-                <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3,flexWrap:'wrap'}}>
-                  {game&&game.date&&<span className="day-date">{fmtD(game.date)}</span>}
-                  {isLotteryDay&&<span className="tee-badge lottery">Lottery</span>}
-                  {hasTime&&<span className="tee-badge set">First Tee: {teeInfo.time}</span>}
-                  {game&&game.complete&&count>0&&<span className="tee-badge complete">Done</span>}
+                <div className="day-title">{day}</div>
+                <div className="day-sub">
+                  {week.dates&&week.dates[day]&&<span>{fmtD(week.dates[day])}</span>}
+                  {teeInfo&&!teeInfo.lottery&&<span className="tee-tag set">First Tee: {teeInfo.time}</span>}
+                  {teeInfo&&teeInfo.lottery&&<span className="tee-tag lottery">Lottery</span>}
+                  {dayComplete&&<span className="tee-tag done">Complete</span>}
                 </div>
               </div>
               <div className="day-right">
-                <span className={'day-count '+(count>0?'active':'zero')}>{count} {count===1?'player':'players'}</span>
-                <svg className={'day-chev'+(isOpen?' open':'')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <span className={'day-pill '+(cnt>0?'has':'none')}>{cnt} {cnt===1?'player':'players'}</span>
+                <svg className={'day-chev'+(isOpen?' open':'')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
+
             {isOpen&&(
               <div className="day-body">
-                {count===0&&<div className="day-empty">No sign-ups yet for {day}</div>}
-                {list.map(([key,s])=>(
+                {isAdmin&&!isDemo&&dayTeams&&dayTeams.length>0&&!dayComplete&&(
+                  <div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#f8fafc'}}>
+                    <button className="btn btn-dark btn-sm btn-full" onClick={()=>onMarkComplete(day)}>
+                      Mark {day} Round Complete
+                    </button>
+                  </div>
+                )}
+                {dayComplete&&(
+                  <div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>
+                    {isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(day)}>Reopen</button>}
+                  </div>
+                )}
+
+                {cnt===0&&<div style={{padding:'13px 14px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No sign-ups yet for {day}</div>}
+
+                {daySignups.map(([key,s])=>(
                   <div key={key} className="p-row">
-                    <div className="p-info">
-                      <div className="avi">{ini(s.name)}</div>
-                      <div style={{minWidth:0,flex:1}}>
-                        <div className="p-name">
-                          {s.name}
-                          {s.isGuest&&<span className="pill-gray" style={{marginLeft:5}}>Guest</span>}
+                    <div className="avi">{ini(s.name)}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}</div>
+                      {editKey===key?(
+                        <div className="ie">
+                          <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
+                          <select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>
+                            {TEES.map(t=><option key={t}>{t}</option>)}
+                          </select>
+                          <button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button>
+                          <button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button>
                         </div>
-                        {editKey===key?(
-                          <div className="inline-edit">
-                            <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
-                            <select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>
-                              {TEES.map(t=><option key={t}>{t}</option>)}
-                            </select>
-                            <button className="save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button>
-                            <button className="cancel" onClick={()=>setEditKey(null)}>x</button>
-                          </div>
-                        ):(
-                          <div className="p-meta">
-                            <span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span>
-                            <span className="p-meta-txt">{s.tee} HCP {s.handicap}</span>
-                            {(isAdmin||myName===s.name)&&(
-                              <button className="edit-link" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      ):(
+                        <div className="p-meta">
+                          <span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span>
+                          <span>{s.tee} HCP {s.handicap}</span>
+                          {(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}
+                        </div>
+                      )}
                     </div>
-                    {isAdmin&&(
-                      <button className="rm-btn" onClick={()=>onRemove(key)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    )}
+                    {isAdmin&&<button className="rm-btn" onClick={()=>onRemove(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
                   </div>
                 ))}
-                <div className="signup-area">
-                  {!isDemo&&(
-                    <button onClick={()=>openSignup(day)} style={{padding:'8px 14px',background:'#10b981',color:'#0f172a',border:'none',borderRadius:8,fontSize:12,fontWeight:900,cursor:'pointer',fontFamily:"'Inter',sans-serif",fontStyle:'italic',textTransform:'uppercase',letterSpacing:'0.04em'}}>
-                      + Sign up for {day}
-                    </button>
-                  )}
-                  {isAdmin&&!isDemo&&!teeInfo&&(
-                    <button onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}} style={{padding:'8px 12px',background:'none',border:'1.5px solid #e2e8f0',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Inter',sans-serif",color:'#475569'}}>
-                      Tee time
-                    </button>
-                  )}
+
+                <div className="day-actions">
+                  {!isDemo&&<button className="signup-btn" onClick={()=>openSignup(day)}>+ Sign up for {day}</button>}
+                  {isAdmin&&!isDemo&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
+                  {isAdmin&&!isDemo&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
                 </div>
               </div>
             )}
@@ -614,28 +645,26 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
           <div className="modal">
             <div className="modal-handle"></div>
             <div className="modal-title">Sign up — {signModal}</div>
-            <div className="tog-wrap">
-              <button className={'tog-opt'+(isGuest?'':' on')} onClick={()=>setIsGuest(false)}>Member</button>
+            <div className="tog">
+              <button className={'tog-opt'+(!isGuest?' on':'')} onClick={()=>setIsGuest(false)}>Member</button>
               <button className={'tog-opt'+(isGuest?' on':'')} onClick={()=>setIsGuest(true)}>Guest</button>
             </div>
             {!isGuest?(
               <div className="fg">
                 <label className="fl">Your name</label>
                 <div className="sw">
-                  <span className="si-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  </span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input className="si" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
                 </div>
-                <div style={{maxHeight:210,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:10}}>
+                <div style={{maxHeight:200,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:9}}>
                   {avail.map(p=>(
                     <div key={p.id} className={'p-pick'+(sel==p.id?' sel':'')} onClick={()=>{setSel(p.id);setQ('');}}>
-                      <div className="avi" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
-                      <span style={{fontSize:13,fontWeight:600,flex:1}}>{p.name}</span>
+                      <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
+                      <span style={{fontSize:13,fontWeight:500,flex:1}}>{p.name}</span>
                       {sel==p.id&&<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>}
                     </div>
                   ))}
-                  {avail.length===0&&<div style={{padding:14,fontSize:13,color:'#94a3b8',textAlign:'center'}}>No matches</div>}
+                  {avail.length===0&&<div style={{padding:13,fontSize:13,color:'#94a3b8',textAlign:'center'}}>No matches</div>}
                 </div>
               </div>
             ):(
@@ -644,13 +673,11 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
                 <input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/>
               </div>
             )}
-            <div className="fr">
+            <div className="fr" style={{marginTop:4}}>
               <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
               <div className="fg"><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/></div>
             </div>
-            <button className="btn btn-green btn-full" onClick={doSignup} disabled={(!sel&&!gname)||!hcp} style={{opacity:(!sel&&!gname)||!hcp?0.4:1}}>
-              Confirm sign-up
-            </button>
+            <button className="btn btn-green btn-full" onClick={doSignup} disabled={(!sel&&!gname)||!hcp} style={{opacity:(!sel&&!gname)||!hcp?0.4:1}}>Confirm sign-up</button>
           </div>
         </div>
       )}
@@ -660,22 +687,16 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
           <div className="modal">
             <div className="modal-handle"></div>
             <div className="modal-title">Add tee time — {teeModal}</div>
-            <div className="fg">
-              <div style={{display:'flex',alignItems:'center',gap:10,padding:'11px 12px',background:'#f8fafc',borderRadius:10,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0'),cursor:'pointer',marginBottom:12}} onClick={()=>setIsLottery(!isLottery)}>
-                <div style={{width:20,height:20,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  {isLottery&&<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+            <div className="fg" style={{marginBottom:14}}>
+              <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#f8fafc',borderRadius:9,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0'),cursor:'pointer'}} onClick={()=>setIsLottery(!isLottery)}>
+                <div style={{width:19,height:19,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  {isLottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
                 </div>
-                <div>
-                  <div style={{fontSize:13,fontWeight:800,color:'#0f172a',fontStyle:'italic'}}>Waiting on lottery</div>
-                  <div style={{fontSize:11,color:'#64748b',marginTop:1}}>Check if tee time not yet confirmed</div>
-                </div>
+                <div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Waiting on lottery</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>Check if time not yet confirmed</div></div>
               </div>
             </div>
-            <div className="fg">
-              <label className="fl">{isLottery?'Requested time':'Tee time'}</label>
-              <TimePicker onChange={setNewTime}/>
-            </div>
-            <button className="btn btn-green btn-full" onClick={()=>saveTeeTime(teeModal)}>Save</button>
+            <div className="fg"><label className="fl">{isLottery?'Requested time':'Tee time'}</label><TimePicker onChange={setNewTime}/></div>
+            <button className="btn btn-green btn-full" onClick={()=>{onUpdateTeeTime(teeModal,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setTeeModal(null);}}>Save</button>
           </div>
         </div>
       )}
@@ -684,10 +705,10 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setEditTeeModal(null);}}>
           <div className="modal">
             <div className="modal-handle"></div>
-            <div className="modal-title">Set confirmed time — {editTeeModal}</div>
-            <div className="alert alert-blue" style={{marginBottom:14}}>Enter the actual tee time received.</div>
-            <div className="fg"><label className="fl">Confirmed tee time</label><TimePicker onChange={setNewTime}/></div>
-            <button className="btn btn-gold btn-full" onClick={()=>saveEditTime(editTeeModal)}>Update tee sheet</button>
+            <div className="modal-title">Update tee time — {editTeeModal}</div>
+            <div className="alert alert-blue" style={{marginBottom:12}}>Enter the confirmed tee time.</div>
+            <div className="fg"><label className="fl">Confirmed time</label><TimePicker onChange={setNewTime}/></div>
+            <button className="btn btn-gold btn-full" onClick={()=>{onUpdateTeeTime(editTeeModal,{time:newTime,lottery:false});setEditTeeModal(null);}}>Update</button>
           </div>
         </div>
       )}
@@ -695,83 +716,89 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
   );
 }
 
-function TeamsView({game,teams,signups,isAdmin,onSave,onPublish,onUpdateTeams}){
+// ── TEAMS VIEW (per day) ─────────────────────────────────────────────────────
+function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams}){
+  const [activeDay,setActiveDay]=useState(null);
   const [editTeams,setEditTeams]=useState(null);
   const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
-  const display=editTeams||teams;
-  const cnt=Object.keys(signups||{}).length;
+
+  const activeDays=(week&&week.activeDays)||[];
+
+  useEffect(()=>{
+    if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
+  },[activeDays.join(',')]);
+
+  if(!week||activeDays.length===0){
+    return<div className="empty"><div className="empty-title">No active games</div></div>;
+  }
+
+  const daySignups=Object.entries((week.signups)||{}).filter(([,s])=>s.day===activeDay).map(([,s])=>s);
+  const savedTeams=(week.teams&&week.teams[activeDay])||[];
+  const display=editTeams||savedTeams;
+  const cnt=daySignups.length;
+  const published=(week.teamsPublished&&week.teamsPublished[activeDay])||false;
 
   function gen(){
-    const p=Object.values(signups||{});
-    if(p.length<3)return;
-    setEditTeams(buildTeams(p));
+    if(daySignups.length<3)return;
+    setEditTeams(buildTeams(daySignups));
   }
 
   function drop(ti,pi){
-    if(!drag||!isAdmin)return;
+    if(!drag||!isAdmin||!editTeams)return;
     const u=editTeams.map(t=>({...t,players:[...t.players]}));
     const p=u[drag.ti].players[drag.pi];
     u[drag.ti].players.splice(drag.pi,1);
     u[ti].players.splice(pi,0,p);
-    u.forEach(t=>{
-      t.players.forEach((pp,i)=>{pp.slot=['A','B','C','D'][i]||'D';});
-      t.totalHcp=t.players.reduce((s,pp)=>s+parseFloat(pp.handicap||0),0);
-    });
-    setEditTeams(u);
-    setDrag(null);
+    u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});
+    setEditTeams(u);setDrag(null);
   }
 
   function savePlayerEdit(ti,pi){
-    const u=(editTeams||teams).map(t=>({...t,players:[...t.players]}));
-    const p=u[ti].players[pi];
-    if(editVal.hcp!=='')p.handicap=parseFloat(editVal.hcp);
-    p.tee=editVal.tee;
-    u[ti].totalHcp=u[ti].players.reduce((s,pp)=>s+parseFloat(pp.handicap||0),0);
-    if(editTeams)setEditTeams(u);else onUpdateTeams(u);
+    const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));
+    if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);
+    u[ti].players[pi].tee=editVal.tee;
+    u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);
+    if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);
     setEditKey(null);
-  }
-
-  if(!game){
-    return(
-      <div className="empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-        <div className="empty-title">No active game</div>
-      </div>
-    );
   }
 
   return(
     <div>
+      {activeDays.length>1&&(
+        <div className="tog" style={{marginBottom:12}}>
+          {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>{setActiveDay(d);setEditTeams(null);setEditKey(null);}}>{d.slice(0,3)}</button>)}
+        </div>
+      )}
+
       <div className="stat-row">
         <div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div>
-        <div className="stat-box"><div className="stat-n">{(display||[]).length}</div><div className="stat-l">Teams</div></div>
-        <div className="stat-box"><div className="stat-n" style={{fontSize:12,paddingTop:6,color:'rgba(255,255,255,0.5)'}}>{game.teamsPublished?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
+        <div className="stat-box"><div className="stat-n">{display.length}</div><div className="stat-l">Teams</div></div>
+        <div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
       </div>
 
       {isAdmin&&(
         <div className="admin-bar">
-          <div className="admin-bar-lbl">Team builder</div>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-            <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{display&&display.length>0?'Regenerate teams':'Auto-generate teams'}</button>
-            {editTeams&&<button className="btn btn-gold btn-sm" onClick={()=>{onSave(editTeams);setEditTeams(null);}}>Save teams</button>}
+          <div className="admin-lbl">Team builder — {activeDay}</div>
+          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
+            <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{display.length?'Regenerate':'Auto-generate'}</button>
+            {editTeams&&<button className="btn btn-gold btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save</button>}
             {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>setEditTeams(null)}>Cancel</button>}
-            {!editTeams&&display&&display.length>0&&!game.teamsPublished&&<button className="btn btn-gold btn-sm" onClick={onPublish}>Publish to group</button>}
+            {!editTeams&&display.length>0&&!published&&<button className="btn btn-gold btn-sm" onClick={()=>onPublishTeams(activeDay)}>Publish</button>}
           </div>
-          {editTeams&&<div className="alert alert-warn" style={{marginTop:10,marginBottom:0}}>Drag players to rebalance (admin only). Anyone can edit tee/handicap inline.</div>}
+          {editTeams&&<div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>Drag to rebalance. Anyone can edit tee/handicap inline.</div>}
         </div>
       )}
 
-      {(!display||display.length===0)&&(
+      {display.length===0&&(
         <div className="empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          <div className="empty-title">Teams not set yet</div>
-          <div className="empty-sub">Admin will generate and publish teams before the round.</div>
+          <div className="empty-title">No teams yet for {activeDay}</div>
+          <div className="empty-sub">{cnt>0?'Admin will generate teams shortly.':'No sign-ups yet for this day.'}</div>
         </div>
       )}
 
-      {(editTeams||teams||[]).map((team,ti)=>(
+      {display.map((team,ti)=>(
         <div key={team.id} className="team-card">
           <div className="team-hdr">
             <span className="team-nm">{team.name}</span>
@@ -783,25 +810,25 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish,onUpdateTeams}){
               onDragStart={()=>{if(isAdmin)setDrag({ti,pi});}}
               onDragOver={e=>e.preventDefault()}
               onDrop={()=>drop(ti,pi)}>
-              {editTeams&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:14,flexShrink:0}}>⠿</span>}
+              {editTeams&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:13,flexShrink:0}}>⠿</span>}
               <span className="slot">{p.slot}</span>
-              <div className="avi" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
+              <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:13,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
                 {editKey===ti+'-'+pi?(
-                  <div className="inline-edit">
+                  <div className="ie">
                     <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
                     <select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>
                       {TEES.map(t=><option key={t}>{t}</option>)}
                     </select>
-                    <button className="save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button>
-                    <button className="cancel" onClick={()=>setEditKey(null)}>x</button>
+                    <button className="ie-save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button>
+                    <button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button>
                   </div>
                 ):(
                   <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
                     <span className="tee-dot" style={{background:TC[p.tee]||'#ccc'}}></span>
                     {p.tee} HCP {p.handicap}
-                    <button className="edit-link" onClick={()=>{setEditKey(ti+'-'+pi);setEditVal({hcp:String(p.handicap),tee:p.tee});}}>edit</button>
+                    <button className="edit-btn" onClick={()=>{setEditKey(ti+'-'+pi);setEditVal({hcp:String(p.handicap),tee:p.tee});}}>edit</button>
                   </div>
                 )}
               </div>
@@ -813,110 +840,105 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish,onUpdateTeams}){
   );
 }
 
-function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}){
+// ── SCORING VIEW (per day) ───────────────────────────────────────────────────
+function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory}){
+  const [activeDay,setActiveDay]=useState(null);
   const [ts,setTs]=useState({});
   const [sk,setSk]=useState({});
   const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
   const [saved,setSaved]=useState(false);
 
-  useEffect(()=>{
-    if(scores){
-      setTs(scores.teamScores||{});setSk(scores.skinCounts||{});
-      setFv(scores.frontPot||'');setBv(scores.backPot||'');setOv(scores.overallPot||'');setSv(scores.skinsPot||'');
-      setFp(scores.frontPlaces||2);setBp(scores.backPlaces||2);setOp(scores.overallPlaces||2);
-    }
-  },[scores]);
+  const activeDays=(week&&week.activeDays)||[];
 
-  const pc=Object.keys((game&&game.signups)||{}).length||0;
-  const total=pc*25;
-  const fund=pc;
-  const snet=Math.max(0,parseFloat(sv||0)-fund);
+  useEffect(()=>{
+    if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
+  },[activeDays.join(',')]);
+
+  useEffect(()=>{
+    if(!activeDay)return;
+    const sc=(week&&week.scores&&week.scores[activeDay])||{};
+    setTs(sc.teamScores||{});setSk(sc.skinCounts||{});
+    setFv(sc.frontPot!==undefined?String(sc.frontPot):'');
+    setBv(sc.backPot!==undefined?String(sc.backPot):'');
+    setOv(sc.overallPot!==undefined?String(sc.overallPot):'');
+    setSv(sc.skinsPot!==undefined?String(sc.skinsPot):'');
+    setFp(sc.frontPlaces||2);setBp(sc.backPlaces||2);setOp(sc.overallPlaces||2);
+    setSaved(false);
+  },[activeDay]);
+
+  if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
+
+  const dayTeams=(week.teams&&week.teams[activeDay])||[];
+  const daySignups=Object.values(week.signups||{}).filter(s=>s.day===activeDay);
+  const pc=daySignups.length;
+  const pot=calcPot(pc);
+  const dayComplete=week.complete&&week.complete[activeDay];
+  const scoresExist=!!(week.scores&&week.scores[activeDay]&&week.scores[activeDay].savedAt);
+
+  const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);
+  const ok=pc>0&&Math.abs(alloc-pot.total)<0.01;
+  const snet=Math.max(0,parseFloat(sv||0)-pc);
   const tsk=Object.values(sk).reduce((s,c)=>s+c,0);
   const perSk=tsk>0?snet/tsk:0;
-  const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);
-  const ok=Math.abs(alloc-total)<0.01;
 
   function tap(id){if(!isAdmin)return;setSk(p=>({...p,[id]:(p[id]||0)+1}));}
   function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}));}
 
-  function getWinner(seg){
-    if(!teams||!teams.length)return null;
-    const scored=teams.map(t=>({...t,score:parseFloat(((ts[t.id]||{})[seg]))})).filter(t=>!isNaN(t.score));
-    if(!scored.length)return null;
-    scored.sort((a,b)=>a.score-b.score);
-    const best=scored[0].score;
-    const tied=scored.filter(t=>t.score===best);
-    const second=scored.find(t=>t.score!==best);
-    return{best,tied,second};
-  }
-
-  function buildPayouts(pot,places,seg){
-    const p=parseFloat(pot||0);
-    if(!p)return[];
-    const w=getWinner(seg);
-    if(!w){
-      return places===1?[{label:'1st place',amt:p,teams:[]}]:[{label:'1st place',amt:p*0.6,teams:[]},{label:'2nd place',amt:p*0.4,teams:[]}];
-    }
-    const rows=[];
-    if(w.tied.length>1){
-      const split=places===1?p/w.tied.length:(p*0.6+p*0.4)/w.tied.length;
-      rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});
-    } else {
-      rows.push({label:'1st',amt:places===1?p:p*0.6,teams:[w.tied[0]],isTie:false});
-      if(places===2&&w.second){
-        rows.push({label:'2nd',amt:p*0.4,teams:[w.second],isTie:false});
-      }
-    }
-    return rows;
-  }
-
   function save(){
-    onSave({teamScores:ts,skinCounts:sk,frontPot:fv,backPot:bv,overallPot:ov,skinsPot:sv,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:fund,playerCount:pc,savedAt:Date.now()});
+    onSaveScores(activeDay,{teamScores:ts,skinCounts:sk,frontPot:parseFloat(fv)||0,backPot:parseFloat(bv)||0,overallPot:parseFloat(ov)||0,skinsPot:parseFloat(sv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:pc,playerCount:pc,savedAt:Date.now()});
     setSaved(true);
-    setTimeout(()=>setSaved(false),2500);
   }
 
-  if(!game){return<div className="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg><div className="empty-title">No active game</div></div>;}
-  if(!teams||!teams.length){return<div className="empty"><div className="empty-title">Teams not published yet</div></div>;}
-  if(!unlocked){
+  function autoPot(){
+    setFv(String(pot.front));setBv(String(pot.back));setOv(String(pot.overall));setSv(String(pot.skins));
+  }
+
+  if(!dayTeams.length&&!scoresExist){
     return(
-      <div className="empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>
-        <div className="empty-title">Round in progress</div>
-        <div className="empty-sub">Scoring unlocks when the admin marks the round complete.</div>
+      <div>
+        {activeDays.length>1&&<div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}</div>}
+        <div className="empty"><div className="empty-title">Teams not published yet for {activeDay}</div></div>
       </div>
     );
   }
 
   return(
     <div>
-      {game&&game.complete&&<div className="alert alert-blue" style={{marginBottom:10}}>Round complete — enter results below.</div>}
+      {activeDays.length>1&&(
+        <div className="tog" style={{marginBottom:12}}>
+          {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
+        </div>
+      )}
+
+      {dayComplete&&<div className="alert alert-ok" style={{marginBottom:10}}>{activeDay} round complete — final results below.</div>}
+      {!dayComplete&&scoresExist&&<div className="alert alert-blue" style={{marginBottom:10}}>Scores saved — players can see this live. Mark complete to finalize payouts.</div>}
 
       {isAdmin&&(
         <div className="admin-bar">
-          <div className="admin-bar-lbl">Pot setup — {pc} players — {f$(total)} total</div>
-          <div className="fr" style={{marginBottom:10}}>
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Front 9</label><input className="fi" type="number" placeholder="$0" value={fv} onChange={e=>setFv(e.target.value)}/></div>
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Back 9</label><input className="fi" type="number" placeholder="$0" value={bv} onChange={e=>setBv(e.target.value)}/></div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <div className="admin-lbl" style={{marginBottom:0}}>Pot — {pc} players — {f$(pot.total)} total</div>
+            {!fv&&!bv&&!ov&&!sv&&<button className="btn btn-outline btn-xs" onClick={autoPot}>Auto-fill ($10 skins / $5 sides)</button>}
+          </div>
+          <div className="fr" style={{marginBottom:8}}>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Front 9</label><input className="fi" type="number" value={fv} onChange={e=>setFv(e.target.value)} placeholder={'$'+pot.front}/></div>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Back 9</label><input className="fi" type="number" value={bv} onChange={e=>setBv(e.target.value)} placeholder={'$'+pot.back}/></div>
           </div>
           <div className="fr">
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" placeholder="$0" value={ov} onChange={e=>setOv(e.target.value)}/></div>
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" placeholder="$0" value={sv} onChange={e=>setSv(e.target.value)}/></div>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" value={ov} onChange={e=>setOv(e.target.value)} placeholder={'$'+pot.overall}/></div>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)} placeholder={'$'+pot.skins}/></div>
           </div>
-          <div style={{marginTop:8,fontSize:12,fontWeight:800,color:ok?'#15803d':'#dc2626',fontStyle:'italic'}}>
-            {ok?'Pot balanced — '+f$(total):'Allocated '+f$(alloc)+' of '+f$(total)}
-          </div>
+          {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:700,color:ok?'#15803d':'#dc2626'}}>{ok?'Pot balanced — '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
         </div>
       )}
 
       {isAdmin&&(
-        <div className="card card-body" style={{marginBottom:10}}>
+        <div className="card card-pad" style={{marginBottom:10}}>
           <div className="slbl">Places paid</div>
           {[{l:'Front 9',v:fp,s:setFp},{l:'Back 9',v:bp,s:setBp},{l:'Overall',v:op,s:setOp}].map(({l,v,s})=>(
             <div key={l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-              <span style={{fontSize:13,fontWeight:600}}>{l}</span>
-              <div className="tog-wrap" style={{width:160,marginBottom:0}}>
+              <span style={{fontSize:13,fontWeight:500}}>{l}</span>
+              <div className="tog" style={{width:155,marginBottom:0}}>
                 <button className={'tog-opt'+(v===1?' on':'')} onClick={()=>s(1)}>1st only</button>
                 <button className={'tog-opt'+(v===2?' on':'')} onClick={()=>s(2)}>1st + 2nd</button>
               </div>
@@ -925,117 +947,88 @@ function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}
         </div>
       )}
 
-      <div className="card card-body" style={{marginBottom:10}}>
-        <div className="slbl">Team scores</div>
+      <div className="card card-pad" style={{marginBottom:10}}>
+        <div className="slbl">Team scores — {activeDay}</div>
         <div className="sc-grid" style={{marginBottom:8}}>
           <div></div>
           <div className="sc-hd">Front</div>
           <div className="sc-hd">Back</div>
           <div className="sc-hd">Overall</div>
         </div>
-        {teams.map(t=>(
+        {dayTeams.map(t=>(
           <div key={t.id} className="sc-grid" style={{marginBottom:8,alignItems:'center'}}>
-            <div style={{fontSize:12,fontWeight:800,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4,fontStyle:'italic'}}>{t.name}</div>
+            <div style={{fontSize:12,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}>{t.name}</div>
             {['front','back','overall'].map(seg=>(
-              <ScorePicker key={seg}
-                value={ts[t.id]?ts[t.id][seg]:undefined}
-                readOnly={!isAdmin}
-                onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>
+              <ScorePicker key={seg} value={ts[t.id]?ts[t.id][seg]:undefined} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>
             ))}
           </div>
         ))}
       </div>
 
-      <div className="card card-body" style={{marginBottom:10}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <div className="card card-pad" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}>
           <div className="slbl" style={{marginBottom:0}}>Skins tapper</div>
-          <div style={{fontSize:11,color:'#94a3b8',fontWeight:700}}>{tsk} skin{tsk!==1?'s':''}{sv?' — '+f$(snet)+' net':''}</div>
+          <div style={{fontSize:11,color:'#94a3b8',fontWeight:600}}>{tsk} skin{tsk!==1?'s':''}{sv?' — '+f$(snet)+' net':''}</div>
         </div>
         <div className="skin-grid">
-          {teams.map(t=>(
-            <div key={t.id} className={'skin-btn'+(((sk[t.id]||0)>0)?' on':'')} onClick={()=>tap(t.id)}>
+          {dayTeams.map(t=>(
+            <div key={t.id} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}>
               <div className="skin-team">{t.name}</div>
               <div className="skin-num">{sk[t.id]||0}</div>
               <div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>
-              {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>undo</div>}
+              {(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}
             </div>
           ))}
         </div>
-        {sv&&snet>0&&(
-          <div className="alert alert-ok">Tournament fund: {f$(fund)} — Net skins: {f$(snet)}{tsk>0?' — '+f$(perSk.toFixed(2))+' per skin':''}</div>
-        )}
+        {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} — Net skins: {f$(snet)}{tsk>0?' — '+f$(perSk.toFixed(2))+' per skin':''}</div>}
       </div>
 
       {(fv||bv||ov||sv)&&(
-        <div className="card card-body" style={{marginBottom:10}}>
-          <div className="slbl">Payout breakdown</div>
+        <div className="card card-pad" style={{marginBottom:10}}>
+          <div className="slbl">Payout breakdown{!dayComplete?<span style={{fontWeight:400,color:'#94a3b8',fontSize:9,marginLeft:6,textTransform:'none',letterSpacing:0}}>(final when round is complete)</span>:''}</div>
           {[{l:'Front 9',pot:fv,pl:fp,seg:'front'},{l:'Back 9',pot:bv,pl:bp,seg:'back'},{l:'Overall',pot:ov,pl:op,seg:'overall'}].map(({l,pot,pl,seg})=>{
-            const rows=buildPayouts(pot,pl,seg);
+            const rows=buildPayouts(pot,pl,dayTeams,ts,seg);
             if(!rows.length)return null;
             return(
-              <div key={l} style={{marginBottom:14}}>
-                <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.1em',fontStyle:'italic'}}>{l}</div>
+              <div key={l} style={{marginBottom:13}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
                 {rows.map((row,i)=>(
                   <div key={i} className="pay-row">
-                    <span className="pay-lbl">
-                      {row.label}{row.teams&&row.teams.length>0?' — '+row.teams.map(t=>t.name).join(' & '):''}
-                      {row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:800}}>SPLIT</span>}
-                    </span>
-                    <span className="pay-amt" style={{color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
+                    <span className="pay-lbl">{row.label}{row.teams.length>0?' — '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie?<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>:''}</span>
+                    <span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span>
                   </div>
                 ))}
               </div>
             );
           })}
           {parseFloat(sv||0)>0&&(
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.1em',fontStyle:'italic'}}>Skins</div>
-              <div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt">{f$(snet)}</span></div>
-              {tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt">{f$(perSk.toFixed(2))}</span></div>}
-              {Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{
-                const t=teams.find(t=>String(t.id)===String(tid));
-                return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} — {c} skin{c!==1?'s':''}</span><span className="pay-amt">{f$(c*perSk)}</span></div>:null;
-              })}
-              <div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt gold">{f$(fund)}</span></div>
+            <div style={{marginBottom:13}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div>
+              <div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt win">{f$(snet)}</span></div>
+              {tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(perSk.toFixed(2))}</span></div>}
+              {Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{const t=dayTeams.find(t=>String(t.id)===String(tid));return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} — {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*perSk)}</span></div>:null;})}
+              <div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt fund">{f$(pc)}</span></div>
             </div>
           )}
-          <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(total)}</span></div>
+          <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(pc*25)}</span></div>
         </div>
       )}
 
       {isAdmin&&(
-        <div style={{display:'flex',gap:8,marginTop:8}}>
-          <button className="btn btn-dark" style={{flex:1}} onClick={save}>{saved?'Saved!':'Save scores & payouts'}</button>
-          {saved&&<button className="btn btn-green btn-sm" onClick={onMoveToHistory}>Move to history</button>}
+        <div style={{display:'flex',gap:8,marginTop:4}}>
+          <button className="btn btn-dark" style={{flex:1}} onClick={save}>Save scores &amp; payouts</button>
+          {saved&&<button className="btn btn-green btn-sm" onClick={()=>{if(window.confirm('Move '+activeDay+' to history?'))onMoveToHistory(activeDay);}}>Move to history</button>}
         </div>
       )}
+      {saved&&<div className="alert alert-ok" style={{marginTop:8}}>Saved — players can see scores now.</div>}
     </div>
   );
 }
 
-function HistoryView({history}){
+// ── HISTORY VIEW ─────────────────────────────────────────────────────────────
+function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
   const [open,setOpen]=useState(null);
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
-
-  function calcPay(scores,teams,pot,places,seg){
-    const p=parseFloat(pot||0);
-    if(!p||!teams)return[];
-    const scored=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]&&scores.teamScores[t.id][seg])||NaN)})).filter(t=>!isNaN(t.score));
-    if(!scored.length)return places===1?[{label:'1st',amt:p,teams:[]}]:[{label:'1st',amt:p*0.6,teams:[]},{label:'2nd',amt:p*0.4,teams:[]}];
-    scored.sort((a,b)=>a.score-b.score);
-    const best=scored[0].score;
-    const tied=scored.filter(t=>t.score===best);
-    const second=scored.find(t=>t.score!==best);
-    const rows=[];
-    if(tied.length>1){
-      const split=places===1?p/tied.length:(p*0.6+p*0.4)/tied.length;
-      rows.push({label:'1st Tie',amt:split,names:tied.map(t=>t.name).join(' & '),isTie:true});
-    } else {
-      rows.push({label:'1st',amt:places===1?p:p*0.6,names:tied[0]?tied[0].name:'',isTie:false});
-      if(places===2&&second)rows.push({label:'2nd',amt:p*0.4,names:second.name,isTie:false});
-    }
-    return rows;
-  }
 
   if(!rounds.length){
     return(
@@ -1047,9 +1040,24 @@ function HistoryView({history}){
     );
   }
 
+  function calcHistPay(scores,teams,pot,places,seg){
+    const p=parseFloat(pot||0);if(!p||!teams)return[];
+    const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+    if(!sc.length)return[];
+    sc.sort((a,b)=>a.score-b.score);
+    const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
+    const rows=[];
+    if(tied.length>1){const split=places===1?p/tied.length:(p*0.6+p*0.4)/tied.length;rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}
+    else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:places===1?p:p*0.6,isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:p*0.4,isTie:false});}
+    return rows;
+  }
+
   return(
     <div>
-      <div className="slbl">{rounds.length} round{rounds.length!==1?'s':''} on record</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <div className="slbl" style={{marginBottom:0}}>{rounds.length} round{rounds.length!==1?'s':''} on record</div>
+        {isAdmin&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={()=>{if(window.confirm('Delete ALL history?'))onClearAll();}}>Clear all</button>}
+      </div>
       {rounds.map(([k,r])=>(
         <div key={k} className="hi">
           <div className="hi-hdr" onClick={()=>setOpen(open===k?null:k)}>
@@ -1057,77 +1065,67 @@ function HistoryView({history}){
               <div className="hi-title">{r.day} — {fmtDFull(r.date)}</div>
               <div className="hi-meta">{r.playerCount||0} players — {f$((r.playerCount||0)*25)} pot</div>
             </div>
-            <svg style={{color:'#94a3b8',width:16,height:16,transition:'transform 0.2s',transform:open===k?'rotate(180deg)':'none',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              {isAdmin&&<button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEditRound(k,r);}}>Edit</button>}
+              {isAdmin&&<button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();if(window.confirm('Delete this round?'))onDelete(k);}}>Delete</button>}
+              <svg style={{width:15,height:15,color:'#94a3b8',transition:'transform 0.2s',transform:open===k?'rotate(180deg)':'none',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
           {open===k&&(
             <div className="hi-body">
               {r.teams&&r.teams.map(t=>(
-                <div key={t.id} style={{marginBottom:10}}>
-                  <div style={{fontSize:13,fontWeight:800,color:'#10b981',fontStyle:'italic',marginBottom:3}}>{t.name} <span style={{fontWeight:500,color:'#94a3b8',fontSize:11,fontStyle:'normal'}}>HCP {t.totalHcp&&t.totalHcp.toFixed(1)}</span></div>
+                <div key={t.id} style={{marginBottom:9}}>
+                  <div style={{fontSize:13,fontWeight:700,color:'#10b981',marginBottom:3}}>{t.name} <span style={{fontWeight:500,color:'#94a3b8',fontSize:11}}>HCP {t.totalHcp&&t.totalHcp.toFixed(1)}</span></div>
                   <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                    {t.players&&t.players.map((p,i)=>(
-                      <span key={i} style={{fontSize:11,color:'#475569',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}>
-                        <span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}
-                      </span>
-                    ))}
+                    {t.players&&t.players.map((p,i)=><span key={i} style={{fontSize:11,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}><span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}</span>)}
                   </div>
                 </div>
               ))}
               {r.scores&&r.teams&&(
                 <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}>
                   <div className="slbl">Scores</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,46px)',gap:'3px 6px',fontSize:12,marginBottom:12}}>
-                    <div style={{color:'#94a3b8',fontWeight:700}}>Team</div>
-                    {['Front','Back','Ovr'].map(h=><div key={h} style={{color:'#94a3b8',textAlign:'center',fontWeight:700}}>{h}</div>)}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,44px)',gap:'3px 5px',fontSize:12,marginBottom:11}}>
+                    <div style={{color:'#94a3b8',fontWeight:600}}>Team</div>
+                    {['Front','Back','Ovr'].map(h=><div key={h} style={{color:'#94a3b8',textAlign:'center',fontWeight:600}}>{h}</div>)}
                     {r.teams.map(t=>{
-                      const sc=r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id]:{};
+                      const sc=(r.scores.teamScores&&r.scores.teamScores[t.id])||{};
                       return(
                         <React.Fragment key={t.id}>
-                          <div style={{fontWeight:700,fontStyle:'italic'}}>{t.name}</div>
-                          {['front','back','overall'].map(s=>{
-                            const val=sc[s];
-                            const color=typeof val==='number'?val<0?'#15803d':val>0?'#dc2626':'#0f172a':'#94a3b8';
-                            return<div key={s} style={{textAlign:'center',fontWeight:700,color}}>{typeof val==='number'?(val>0?'+'+val:val):'--'}</div>;
-                          })}
+                          <div style={{fontWeight:600}}>{t.name}</div>
+                          {['front','back','overall'].map(s=>{const v=sc[s];return<div key={s} style={{textAlign:'center',fontWeight:600,color:typeof v==='number'?v<0?'#15803d':v>0?'#dc2626':'#0f172a':'#94a3b8'}}>{typeof v==='number'?(v>0?'+'+v:v):'--'}</div>;})}
                         </React.Fragment>
                       );
                     })}
                   </div>
                   <div className="slbl">Payouts</div>
                   {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||2,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||2,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||2,seg:'overall'}].map(({l,pot,pl,seg})=>{
-                    const rows=calcPay(r.scores,r.teams,pot,pl,seg);
+                    const rows=calcHistPay(r.scores,r.teams,pot,pl,seg);
                     if(!rows.length)return null;
                     return(
-                      <div key={l} style={{marginBottom:10}}>
-                        <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{l}</div>
+                      <div key={l} style={{marginBottom:9}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{l}</div>
                         {rows.map((row,i)=>(
                           <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}>
                             <span style={{color:'#475569'}}>{row.label}{row.names?' — '+row.names:''}</span>
-                            <span style={{fontWeight:900,color:row.isTie?'#f59e0b':'#15803d',fontFamily:"'Syne',sans-serif",fontStyle:'italic'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
+                            <span style={{fontWeight:700,color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
                           </div>
                         ))}
                       </div>
                     );
                   })}
                   {parseFloat(r.scores.skinsPot||0)>0&&(
-                    <div style={{marginBottom:10}}>
-                      <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>Skins</div>
+                    <div style={{marginBottom:9}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div>
                       {Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{
                         const t=r.teams.find(t=>String(t.id)===String(tid));
                         const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
-                        const tskTotal=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
-                        return t?(
-                          <div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}>
-                            <span style={{color:'#475569'}}>{t.name} — {c} skin{c!==1?'s':''}</span>
-                            <span style={{fontWeight:900,color:'#15803d',fontFamily:"'Syne',sans-serif",fontStyle:'italic'}}>{f$(tskTotal>0?(net/tskTotal)*c:0)}</span>
-                          </div>
-                        ):null;
+                        const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+                        return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} — {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(total>0?(net/total)*c:0)}</span></div>:null;
                       })}
                     </div>
                   )}
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:900,borderTop:'2px solid #0f172a',paddingTop:8,fontFamily:"'Syne',sans-serif",fontStyle:'italic'}}>
-                    <span>Total pot</span>
-                    <span style={{color:'#15803d'}}>{f$((r.playerCount||0)*25)}</span>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,borderTop:'2px solid #0f172a',paddingTop:8}}>
+                    <span>Total pot</span><span style={{color:'#15803d'}}>{f$((r.playerCount||0)*25)}</span>
                   </div>
                 </div>
               )}
@@ -1139,142 +1137,145 @@ function HistoryView({history}){
   );
 }
 
-function AdminView({isAdmin,onLogout,gameData,onCreate,onArchive,onAddPlayer,onRemovePlayer,roster,signups,onRemoveSignup,onAddSignup}){
-  const [g,setG]=useState({day:'Saturday',date:td()});
-  const [np,setNp]=useState({name:'',email:''});
-  const [showG,setShowG]=useState(false);
-  const [showP,setShowP]=useState(false);
+// ── ADMIN VIEW ───────────────────────────────────────────────────────────────
+function AdminView({isAdmin,onLogout,week,onCreate,onArchiveDay,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup}){
+  const [showCreate,setShowCreate]=useState(!(week&&week.activeDays&&week.activeDays.length>0));
+  const [selDays,setSelDays]=useState({Friday:true,Saturday:true,Sunday:true});
   const [addQ,setAddQ]=useState('');
   const [addDay,setAddDay]=useState('Saturday');
+  const [showRoster,setShowRoster]=useState(false);
+  const [np,setNp]=useState({name:'',email:''});
+  const wd=getWeekDates();
   const rosterSearch=ROSTER.filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
-  const signupList=Object.entries(signups||{}).sort((a,b)=>a[1].day.localeCompare(b[1].day));
+  const activeDays=(week&&week.activeDays)||[];
+  const allSignups=week&&week.signups?Object.entries(week.signups):[]; 
+
+  function createWeek(){
+    const days=DAYS_OF_WEEK.filter(d=>selDays[d]);
+    if(!days.length){alert('Select at least one day.');return;}
+    const dates={};
+    days.forEach(d=>{dates[d]=wd[d];});
+    onCreate({activeDays:days,dates,createdAt:Date.now()});
+    setShowCreate(false);
+  }
 
   return(
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:7}}>
           <span className="admin-tag">Admin</span>
-          <span style={{fontSize:14,fontWeight:800,fontStyle:'italic'}}>Control panel</span>
+          <span style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>Control Panel</span>
         </div>
         <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
       </div>
 
-      <div className="card-section" style={{marginBottom:10}}>
-        <div className="section-hdr" onClick={()=>setShowG(!showG)}>
-          <div className="section-hdr-title">
-            {gameData?'Current game — '+gameData.day:'Create this week\'s game'}
-          </div>
-          <svg style={{width:16,height:16,color:'#94a3b8',transform:showG?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+      {/* Create/manage week */}
+      <div className="card" style={{marginBottom:10}}>
+        <div className="section-btn" onClick={()=>setShowCreate(!showCreate)}>
+          <div className="section-title">{activeDays.length?'This week — '+activeDays.join(', '):'Set up this week'}</div>
+          <svg style={{width:15,height:15,color:'#94a3b8',transform:showCreate?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        {showG&&(
+        {showCreate&&(
           <div className="section-body">
-            {gameData&&(
-              <div style={{marginBottom:12,padding:'10px 12px',background:'#f8fafc',borderRadius:10}}>
-                <div style={{fontWeight:800,color:'#10b981',fontSize:14,fontStyle:'italic'}}>{gameData.day} — {fmtDFull(gameData.date)}</div>
-                <div style={{fontSize:11,color:'#94a3b8',marginTop:3}}>
-                  {gameData.complete?'Complete':gameData.teamsPublished?'Teams published':'Sign-ups open'}
+            <div style={{fontSize:12,fontWeight:600,color:'#64748b',marginBottom:10}}>Select days for {getWeekLabel()}</div>
+            {DAYS_OF_WEEK.map(d=>(
+              <label key={d} className="cb-row">
+                <input type="checkbox" checked={selDays[d]||false} onChange={e=>setSelDays(p=>({...p,[d]:e.target.checked}))}/>
+                <div>
+                  <div className="cb-label">{d}</div>
+                  <div className="cb-sub">{fmtDFull(wd[d])}</div>
                 </div>
-                <button className="btn btn-red btn-sm" style={{marginTop:10}} onClick={onArchive}>Archive and close round</button>
+              </label>
+            ))}
+            <button className="btn btn-green btn-full btn-sm" style={{marginTop:10}} onClick={createWeek}>{activeDays.length?'Reset week':'Create week'}</button>
+            {activeDays.length>0&&(
+              <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid #f1f5f9'}}>
+                <div style={{fontSize:12,fontWeight:600,color:'#64748b',marginBottom:8}}>Close out a day</div>
+                {activeDays.map(d=>(
+                  <button key={d} className="btn btn-red btn-sm" style={{marginRight:6,marginBottom:6}} onClick={()=>{if(window.confirm('Archive '+d+' and move to history?'))onArchiveDay(d);}}>Archive {d}</button>
+                ))}
               </div>
             )}
-            <div className="fr">
-              <div className="fg"><label className="fl">Day</label><select className="fs" value={g.day} onChange={e=>setG({...g,day:e.target.value})}><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
-              <div className="fg"><label className="fl">Date</label><input className="fi" type="date" value={g.date} onChange={e=>setG({...g,date:e.target.value})}/></div>
-            </div>
-            <button className="btn btn-green btn-full btn-sm" onClick={()=>{onCreate(g);setShowG(false);}}>
-              {gameData?'Create new game':'Create game'}
-            </button>
           </div>
         )}
       </div>
 
-      {gameData&&(
-        <div className="card card-body" style={{marginBottom:10}}>
+      {/* Manage sign-ups */}
+      {activeDays.length>0&&(
+        <div className="card card-pad" style={{marginBottom:10}}>
           <div className="slbl">Manage sign-ups</div>
           <div style={{display:'flex',gap:8,marginBottom:10,alignItems:'center'}}>
             <select className="fs" style={{flex:1}} value={addDay} onChange={e=>setAddDay(e.target.value)}>
-              <option>Friday</option><option>Saturday</option><option>Sunday</option>
+              {activeDays.map(d=><option key={d}>{d}</option>)}
             </select>
-            <span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{signupList.length} signed up</span>
+            <span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{allSignups.filter(([,s])=>s.day===addDay).length} in</span>
           </div>
           <div className="sw" style={{marginBottom:8}}>
-            <span className="si-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/>
           </div>
           {addQ.length>0&&(
-            <div style={{border:'1px solid #e2e8f0',borderRadius:10,marginBottom:10,maxHeight:160,overflowY:'auto'}}>
+            <div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:150,overflowY:'auto'}}>
               {rosterSearch.map(p=>{
-                const inDay=Object.values(signups||{}).some(s=>s.day===addDay&&s.name===p.name);
+                const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);
                 return(
-                  <div key={p.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',borderBottom:'1px solid #f1f5f9'}}>
-                    <span style={{fontSize:13,fontWeight:600,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (already in '+addDay+')':''}</span>
+                  <div key={p.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px',borderBottom:'1px solid #f1f5f9'}}>
+                    <span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>
                     {!inDay&&<button className="btn btn-green btn-xs" onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:'Whites',handicap:10,day:addDay,signedUpAt:Date.now()});setAddQ('');}}>Add</button>}
                   </div>
                 );
               })}
             </div>
           )}
-          <div style={{maxHeight:200,overflowY:'auto'}}>
-            {signupList.map(([key,s])=>(
+          <div style={{maxHeight:190,overflowY:'auto'}}>
+            {allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(
               <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
-                <div>
-                  <span style={{fontSize:13,fontWeight:600}}>{s.name}</span>
-                  <span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.day} {s.tee} {s.handicap}</span>
-                  {s.isGuest&&<span className="pill-gray" style={{marginLeft:4}}>Guest</span>}
-                </div>
-                <button className="rm-btn" onClick={()=>onRemoveSignup(key)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-                </button>
+                <div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>{s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</div>
+                <button className="rm-btn" onClick={()=>onRemoveSignup(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>
               </div>
             ))}
-            {signupList.length===0&&<div style={{fontSize:13,color:'#94a3b8',textAlign:'center',padding:12}}>No sign-ups yet</div>}
           </div>
         </div>
       )}
 
-      <div className="card card-body">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showP?12:0}}>
-          <div style={{fontWeight:800,fontSize:14,fontStyle:'italic'}}>Roster <span style={{fontWeight:400,fontSize:12,color:'#94a3b8',fontStyle:'normal'}}>({roster.length})</span></div>
-          <button className="btn btn-outline btn-sm" onClick={()=>setShowP(!showP)}>+ Add player</button>
+      {/* Roster */}
+      <div className="card" style={{marginBottom:10}}>
+        <div className="section-btn" onClick={()=>setShowRoster(!showRoster)}>
+          <div className="section-title">Roster ({roster.length} members)</div>
+          <svg style={{width:15,height:15,color:'#94a3b8',transform:showRoster?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        {showP&&(
-          <div style={{borderTop:'1px solid #f1f5f9',paddingTop:12,marginBottom:12}}>
-            <div className="fr">
-              <div className="fg"><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
-              <div className="fg"><label className="fl">Email (opt)</label><input className="fi" placeholder="email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/></div>
+        {showRoster&&(
+          <div className="section-body">
+            <div className="fr" style={{marginBottom:8}}>
+              <div className="fg" style={{marginBottom:0}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
+              <div className="fg" style={{marginBottom:0}}><label className="fl">Email (opt)</label><input className="fi" placeholder="email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/></div>
             </div>
-            <button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer(np);setNp({name:'',email:''});}}}>Add to roster</button>
+            <button className="btn btn-green btn-sm" style={{marginBottom:12}} onClick={()=>{if(np.name){onAddPlayer(np);setNp({name:'',email:''});}}}>Add player</button>
+            <div style={{maxHeight:220,overflowY:'auto'}}>
+              {roster.map(p=>(
+                <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
+                  <span style={{fontWeight:500}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</span>
+                  <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                    {p.id>96&&<span className="pill-green">New</span>}
+                    {p.id>96&&<button className="rm-btn" onClick={()=>onRemovePlayer(p.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-        <div style={{maxHeight:260,overflowY:'auto',marginTop:showP?4:0}}>
-          {roster.map(p=>(
-            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
-              <span style={{fontWeight:600}}>{p.name}{p.isGuest?<span className="pill-gray" style={{marginLeft:4}}>Guest</span>:''}</span>
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                {p.id>96&&<span className="pill-green">New</span>}
-                {p.id>96&&<button className="rm-btn" onClick={()=>onRemovePlayer(p.id)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-                </button>}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
 }
 
+// ── APP ───────────────────────────────────────────────────────────────────────
 function App(){
   const [role,setRole]=useState(null);
   const [tab,setTab]=useState('home');
   const [isAdmin,setIsAdmin]=useState(false);
   const [isDemo,setIsDemo]=useState(false);
-  const [game,setGame]=useState(null);
-  const [signups,setSignups]=useState({});
-  const [teams,setTeams]=useState([]);
-  const [scores,setScores]=useState(null);
+  const [week,setWeek]=useState(null);
   const [history,setHistory]=useState({});
   const [extra,setExtra]=useState([]);
   const {ready,read,write,push,del}=useDB();
@@ -1283,65 +1284,110 @@ function App(){
   useEffect(()=>{
     if(!ready||isDemo)return;
     const u=[];
-    u.push(read('currentGame',v=>setGame(v)));
-    u.push(read('signups',v=>setSignups(v||{})));
-    u.push(read('teams',v=>setTeams(v||[])));
-    u.push(read('scores',v=>setScores(v)));
+    u.push(read('week',v=>setWeek(v)));
     u.push(read('history',v=>setHistory(v||{})));
     u.push(read('extraPlayers',v=>setExtra(v||[])));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
-  function createGame(g){
-    write('currentGame',{...g,teamsPublished:false,complete:false,createdAt:Date.now()});
-    write('signups',{});write('teams',[]);write('scores',null);
+  function createWeek(data){
+    write('week',{...data,signups:{},teams:{},scores:{},complete:{},teaTimes:{},teamsPublished:{}});
   }
-  function archive(){
-    if(!game||!window.confirm('Archive this round and move to history?'))return;
-    push('history',{...game,teams,scores,playerCount:Object.keys(signups).length,archivedAt:Date.now()});
-    write('currentGame',null);write('signups',{});write('teams',[]);write('scores',null);
+
+  function archiveDay(day){
+    if(!week)return;
+    const daySignups=Object.values(week.signups||{}).filter(s=>s.day===day);
+    const dayTeams=(week.teams&&week.teams[day])||[];
+    const dayScores=(week.scores&&week.scores[day])||null;
+    const dayDate=(week.dates&&week.dates[day])||td();
+    push('history',{day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()});
+    const newWeek={...week};
+    newWeek.activeDays=(newWeek.activeDays||[]).filter(d=>d!==day);
+    const newSignups={};
+    Object.entries(week.signups||{}).forEach(([k,s])=>{if(s.day!==day)newSignups[k]=s;});
+    newWeek.signups=newSignups;
+    if(newWeek.teams)delete newWeek.teams[day];
+    if(newWeek.scores)delete newWeek.scores[day];
+    if(newWeek.complete)delete newWeek.complete[day];
+    write('week',newWeek);
   }
-  function markComplete(){write('currentGame',{...game,complete:true});setTab('scoring');}
-  function reopen(){write('currentGame',{...game,complete:false});}
+
+  function saveTeams(day,teams){
+    const newWeek={...week,teams:{...(week.teams||{}),[day]:teams}};
+    write('week',newWeek);
+  }
+
+  function publishTeams(day){
+    const newWeek={...week,teamsPublished:{...(week.teamsPublished||{}),[day]:true}};
+    write('week',newWeek);
+  }
+
+  function markComplete(day){
+    const newWeek={...week,complete:{...(week.complete||{}),[day]:true}};
+    write('week',newWeek);
+    setTab('scoring');
+  }
+
+  function reopenDay(day){
+    const newWeek={...week,complete:{...(week.complete||{}),[day]:false}};
+    write('week',newWeek);
+  }
+
   function updateTeeTime(day,data){
-    const tt=Object.assign({},(game&&game.teeTimes)||{});
-    tt[day]=data;
-    write('currentGame',{...game,teeTimes:tt});
+    const newWeek={...week,teeTimes:{...(week.teeTimes||{}),[day]:data}};
+    write('week',newWeek);
   }
-  function moveToHistory(){
-    if(!game)return;
-    push('history',{...game,teams,scores,playerCount:Object.keys(signups).length,archivedAt:Date.now()});
-    write('currentGame',null);write('signups',{});write('teams',[]);write('scores',null);
+
+  function saveScores(day,scores){
+    const newWeek={...week,scores:{...(week.scores||{}),[day]:scores}};
+    write('week',newWeek);
+  }
+
+  function moveToHistory(day){
+    archiveDay(day);
     setTab('history');
   }
-  function addPlayer(p){write('extraPlayers',[...extra,{...p,id:1000+extra.length+1}]);}
-  function removePlayer(id){write('extraPlayers',extra.filter(p=>p.id!==id));}
+
+  function updateSignup(key,vals){
+    const s=week&&week.signups&&week.signups[key];
+    if(s)write('week/signups/'+key,{...s,...vals});
+  }
 
   function startDemo(){
     const d=makeDemoData();
-    setGame({day:'Saturday',date:td(),teamsPublished:true,complete:true,createdAt:Date.now()});
-    setSignups(d.signups);setTeams(d.teams);setScores(null);
+    const wd=getWeekDates();
+    setWeek({activeDays:['Saturday'],dates:{Saturday:wd.Saturday},signups:d.signups,teams:{Saturday:d.teams},scores:{Saturday:d.scores},complete:{Saturday:false},teamsPublished:{Saturday:true},teeTimes:{Saturday:{time:'08:30',lottery:false}}});
     setIsDemo(true);setIsAdmin(true);setRole('admin');setTab('home');
   }
 
-  if(!role){
-    return(
-      <Landing
-        onPlayer={()=>{setRole('player');setTab('home');}}
-        onAdmin={()=>{setRole('admin');setIsAdmin(true);setTab('home');}}
-        onDemo={startDemo}
-      />
-    );
+  function editHistoryRound(key,round){
+    if(window.confirm('Reopen this round for editing? It will be removed from history and restored as the active round for '+round.day+'.')){
+      del('history/'+key);
+      const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};
+      if(!newWeek.activeDays.includes(round.day))newWeek.activeDays=[...(newWeek.activeDays||[]),round.day];
+      if(newWeek.dates)newWeek.dates[round.day]=round.date;
+      if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};
+      if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};
+      newWeek.complete={...(newWeek.complete||{}),[round.day]:true};
+      newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};
+      write('week',newWeek);
+      setTab('scoring');
+    }
   }
 
-  const totalSignups=Object.keys(signups||{}).length;
-  const activeDays=['Friday','Saturday','Sunday'].filter(d=>Object.values(signups||{}).some(s=>s.day===d)).length;
-  const scoringUnlocked=!!(game&&game.complete)||isDemo;
+  if(!role){
+    return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');setIsAdmin(true);setTab('home');}} onDemo={startDemo}/>;
+  }
+
+  const activeDays=(week&&week.activeDays)||[];
+  const totalSignups=Object.keys((week&&week.signups)||{}).length;
+  const hasScores=activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].savedAt);
+  const scoringVisible=isAdmin||hasScores;
 
   const PTABS=[
     {id:'home',label:'This Week',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>},
     {id:'teams',label:'Teams',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
-    {id:'scoring',label:'Scoring',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,locked:!scoringUnlocked},
+    {id:'scoring',label:'Scoring',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,locked:!scoringVisible},
     {id:'history',label:'History',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   ];
   const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>}];
@@ -1359,20 +1405,21 @@ function App(){
             </div>
             <div className="hdr-right">
               {isAdmin&&<span className="admin-tag">Admin</span>}
-              {isDemo&&<span className="admin-tag" style={{background:'#10b981'}}>Demo</span>}
+              {isDemo&&<span className="demo-tag">Demo</span>}
               <button className="switch-btn" onClick={()=>{setRole(null);setIsAdmin(false);setIsDemo(false);}}>Switch</button>
             </div>
           </div>
           <div className="hdr-stats">
-            <div className="hdr-stat"><div className="hdr-stat-n">{totalSignups}</div><div className="hdr-stat-l">Signed Up</div></div>
-            <div className="hdr-stat"><div className="hdr-stat-n">{activeDays}</div><div className="hdr-stat-l">Active Days</div></div>
-            <div className="hdr-stat"><div className="hdr-stat-n">{(teams||[]).length}</div><div className="hdr-stat-l">Teams</div></div>
+            {activeDays.length>0?activeDays.map(d=>{
+              const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;
+              return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;
+            }):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">{totalSignups}</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}
           </div>
-          <div style={{marginTop:8}}>
-            {game?(
-              <div className="hdr-pill"><span className="hdr-dot"></span>{game.day}{game.date?' — '+fmtD(game.date):''}{game.complete?' — Done':''}</div>
+          <div style={{marginTop:7}}>
+            {activeDays.length>0?(
+              <div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>
             ):(
-              <div className="hdr-pill" style={{opacity:0.4}}>No game scheduled</div>
+              <div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>
             )}
           </div>
         </div>
@@ -1381,60 +1428,17 @@ function App(){
       <nav className="nav">
         {TABS.map(t=>(
           <button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>
-            {t.icon}
-            {t.label}
-            {t.locked&&<span style={{fontSize:7,opacity:0.5}}>lock</span>}
+            {t.icon}{t.label}
           </button>
         ))}
       </nav>
 
       <div className="content">
-        {tab==='home'&&(
-          <WeekView
-            game={game} signups={signups} isAdmin={isAdmin} isDemo={isDemo}
-            onSignup={d=>push('signups',d)}
-            onRemove={k=>del('signups/'+k)}
-            onUpdateSignup={(k,v)=>{const s=signups[k];if(s)write('signups/'+k,{...s,...v});}}
-            onUpdateTeeTime={updateTeeTime}
-            onMarkComplete={markComplete}
-            onReopen={reopen}
-          />
-        )}
-        {tab==='teams'&&(
-          <TeamsView
-            game={game?{...game,signups}:null}
-            teams={teams} signups={signups} isAdmin={isAdmin}
-            onSave={t=>write('teams',t)}
-            onPublish={()=>{write('teams',teams);write('currentGame',{...game,teamsPublished:true});}}
-            onUpdateTeams={t=>write('teams',t)}
-          />
-        )}
-        {tab==='scoring'&&(
-          <ScoringView
-            game={game?{...game,signups}:null}
-            teams={teams} scores={scores}
-            onSave={s=>write('scores',s)}
-            onMoveToHistory={moveToHistory}
-            isAdmin={isAdmin}
-            unlocked={scoringUnlocked}
-          />
-        )}
-        {tab==='history'&&<HistoryView history={history}/>}
-        {tab==='admin'&&(
-          <AdminView
-            isAdmin={isAdmin}
-            onLogout={()=>{setIsAdmin(false);setRole(null);}}
-            gameData={game}
-            onCreate={createGame}
-            onArchive={archive}
-            onAddPlayer={addPlayer}
-            onRemovePlayer={removePlayer}
-            roster={fullRoster}
-            signups={signups}
-            onRemoveSignup={k=>del('signups/'+k)}
-            onAddSignup={d=>push('signups',d)}
-          />
-        )}
+        {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} onSignup={d=>write('week/signups/'+Date.now(),d)} onRemove={k=>del('week/signups/'+k)} onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay}/>}
+        {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishTeams={publishTeams}/>}
+        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} onSaveScores={saveScores} onMoveToHistory={moveToHistory}/>}
+        {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={k=>del('history/'+k)} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setIsAdmin(false);setRole(null);}} week={week} onCreate={createWeek} onArchiveDay={archiveDay} onAddPlayer={p=>write('extraPlayers',[...extra,{...p,id:1000+extra.length+1}])} onRemovePlayer={id=>write('extraPlayers',extra.filter(p=>p.id!==id))} roster={fullRoster} onRemoveSignup={k=>del('week/signups/'+k)} onAddSignup={d=>write('week/signups/'+Date.now(),d)}/>}
       </div>
     </div>
   );
