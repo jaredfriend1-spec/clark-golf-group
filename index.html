@@ -178,6 +178,12 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .sc-hd{font-size:9px;font-weight:900;color:#94a3b8;text-align:center;letter-spacing:0.1em;text-transform:uppercase}
 .sc-in{width:100%;padding:8px 4px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:16px;font-weight:800;text-align:center;font-family:'Syne',sans-serif;color:#0f172a;outline:none;background:#f8fafc}
 .sc-in:focus{border-color:#34d399;background:#fff}
+.sp-wrap{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#f8fafc}
+.sp-btn{background:none;border:none;cursor:pointer;font-size:16px;font-weight:900;color:#475569;padding:6px 10px;transition:background 0.1s;flex-shrink:0;font-family:'Inter',sans-serif}
+.sp-btn:hover{background:#e2e8f0;color:#0f172a}
+.sp-val{flex:1;text-align:center;font-size:16px;font-weight:800;font-family:'Syne',sans-serif;color:#0f172a;min-width:38px}
+.sp-val.neg{color:#dc2626}
+.sp-val.pos{color:#15803d}
 .skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
 .skin-btn{padding:18px 10px;border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all 0.12s;user-select:none;-webkit-user-select:none}
 .skin-btn:active{transform:scale(0.93)}
@@ -240,6 +246,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 <body>
 <div id="root"></div>
 <script type="text/babel">
+
 const {useState,useEffect,useCallback,useRef}=React;
 
 const ROSTER=[
@@ -277,9 +284,9 @@ const ROSTER=[
   {id:94,name:"Bruce Yoo"},{id:95,name:"Gary Zgorski"},{id:96,name:"Geoff Zgorski"}
 ];
 const TEES=['Blends','Whites','Golds','SGA'];
-const TEE_COLORS={Blends:'#1e40af',Whites:'#94a3b8',Golds:'#c9a84c',SGA:'#ef4444'};
-const ADMIN_PW='golf2025';
-const FB={apiKey:"AIzaSyDwrlQyxkHRn0Xp5O-bCODz98oCHuj8xTY",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
+const TEE_COLORS={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
+const ADMIN_PW='clark';
+const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
 function useDB(){
@@ -293,229 +300,289 @@ function useDB(){
 }
 
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-const f$=n=>{const v=parseFloat(n||0);return'$'+(Number.isInteger(v)?v:v.toFixed(2))};
+const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2))};
 const td=()=>new Date().toISOString().split('T')[0];
 const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+parseInt(dy)};
 const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+parseInt(dy)+', '+y};
+const fmt12=t=>{if(!t||t==='LOTTERY')return t==='LOTTERY'?'⏳ Lottery':'';const[h,m]=t.split(':');const hi=parseInt(h);const ap=hi>=12?'PM':'AM';const h12=hi===0?12:hi>12?hi-12:hi;return`${h12}:${m} ${ap}`};
 
+function getWeekLabel(){
+  const now=new Date();
+  const day=now.getDay();
+  const diff=now.getDate()-day+(day===0?-6:1);
+  const mon=new Date(now.setDate(diff));
+  const sun=new Date(mon);sun.setDate(sun.getDate()+6);
+  const fmt=d=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getDate();
+  return`Week of ${fmt(mon)} – ${fmt(sun)}`;
+}
+
+// Build balanced teams — always prefer groups of 4, max 4 per team
 function buildTeams(players){
   const s=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
-  const n=s.length;if(n<3)return[];
-  const rem=n%4;const nt=rem===1?Math.ceil(n/4):Math.max(1,Math.floor(n/4)||Math.ceil(n/4));
+  const n=s.length;
+  if(n<3)return[];
+  // Max 4 per team. num teams = ceil(n/4)
+  const nt=Math.ceil(n/4);
   const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:`Team ${i+1}`,players:[],totalHcp:0}));
-  s.forEach((p,idx)=>{const r2=Math.floor(idx/nt);const pos=idx%nt;const ti=r2%2===0?pos:nt-1-pos;teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(r2,3)]});teams[ti].totalHcp+=parseFloat(p.handicap)||0});
+  s.forEach((p,idx)=>{
+    const round=Math.floor(idx/nt);
+    const pos=idx%nt;
+    const ti=round%2===0?pos:nt-1-pos;
+    teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});
+    teams[ti].totalHcp+=parseFloat(p.handicap)||0;
+  });
   return teams;
 }
 
-// Demo data generator
 function makeDemoData(){
   const shuffled=[...ROSTER].sort(()=>Math.random()-0.5).slice(0,16);
-  const teeOpts=['Whites','Whites','Whites','Golds','Golds','Blends'];
+  const hcps=[2,4,5,6,7,8,9,10,11,12,13,14,15,16,18,20];
+  const teeOpts=['Whites','Whites','Whites','Golds','Golds','SGA'];
   const signups={};
-  shuffled.forEach((p,i)=>{
-    const hcp=Math.floor(Math.random()*28)+2;
-    const tee=teeOpts[Math.floor(Math.random()*teeOpts.length)];
-    signups[`demo_${i}`]={playerId:p.id,name:p.name,tee,handicap:hcp,day:'Saturday',signedUpAt:Date.now()+i};
-  });
-  const teams=buildTeams(Object.values(signups));
-  return{signups,teams};
+  shuffled.forEach((p,i)=>{signups[`d${i}`]={playerId:p.id,name:p.name,tee:teeOpts[i%teeOpts.length],handicap:hcps[i],day:'Saturday',signedUpAt:Date.now()+i}});
+  return{signups,teams:buildTeams(Object.values(signups))};
 }
 
-// Time picker component
+// Icons
+const Ic={
+  flag:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  users:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  trophy:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
+  clock:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  gear:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+  plus:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  check:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>,
+  x:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  search:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  trash:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
+  chev:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
+  edit:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  refresh:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>,
+  undo:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>,
+};
+
+// TimePicker component
 function TimePicker({value,onChange}){
-  // value is "HH:MM" 24h
-  const [h,setH]=useState('8');const [m,setM]=useState('00');const [ap,setAp]=useState('AM');
-  useEffect(()=>{
-    const[hh,mm]=value.split(':');const hInt=parseInt(hh);
-    setAp(hInt>=12?'PM':'AM');
-    const h12=hInt===0?12:hInt>12?hInt-12:hInt;
-    setH(String(h12));setM(mm);
-  },[]);
-  function update(nh,nm,nap){
-    let h24=parseInt(nh);
-    if(nap==='PM'&&h24!==12)h24+=12;
-    if(nap==='AM'&&h24===12)h24=0;
-    onChange(`${String(h24).padStart(2,'0')}:${nm}`);
-  }
   const hours=Array.from({length:12},(_,i)=>String(i+1));
-  const mins=['00','05','10','15','20','25','30','35','40','45','50','55'];
+  const mins=['00','15','30','45'];
+  const [h,setH]=useState('7');const [m,setM]=useState('00');const [ap,setAp]=useState('AM');
+  function update(nh,nm,nap){onChange(`${nh.padStart(2,'0')}:${nm} ${nap}`);}
   return(
-    <div className="time-picker">
-      <select className="time-sel" value={h} onChange={e=>{setH(e.target.value);update(e.target.value,m,ap)}}>
-        {hours.map(v=><option key={v} value={v}>{v}</option>)}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+      <select className="fs" value={h} onChange={e=>{setH(e.target.value);update(e.target.value,m,ap);}}>
+        {hours.map(x=><option key={x}>{x}</option>)}
       </select>
-      <select className="time-sel" value={m} onChange={e=>{setM(e.target.value);update(h,e.target.value,ap)}}>
-        {mins.map(v=><option key={v} value={v}>{v}</option>)}
+      <select className="fs" value={m} onChange={e=>{setM(e.target.value);update(h,e.target.value,ap);}}>
+        {mins.map(x=><option key={x}>{x}</option>)}
       </select>
-      <select className="time-sel" value={ap} onChange={e=>{setAp(e.target.value);update(h,m,e.target.value)}}>
+      <select className="fs" value={ap} onChange={e=>{setAp(e.target.value);update(h,m,e.target.value);}}>
         <option>AM</option><option>PM</option>
       </select>
     </div>
   );
 }
 
-function fmt12(t){if(!t)return'';const[h,m]=t.split(':');const hi=parseInt(h);const ap=hi>=12?'PM':'AM';const h12=hi===0?12:hi>12?hi-12:hi;return`${h12}:${m} ${ap}`}
+// Score stepper -30 to +30
+function ScorePicker({value,onChange,readOnly}){
+  const v=value===''||value===undefined?null:parseInt(value);
+  const display=v===null?'—':(v>0?'+'+v:String(v));
+  function adj(d){const cur=v===null?0:v;onChange(Math.max(-30,Math.min(30,cur+d)));}
+  if(readOnly)return(
+    <div style={{textAlign:'center',padding:'8px 4px',fontSize:16,fontWeight:800,fontFamily:'Syne, sans-serif',color:v===null?'#94a3b8':v<0?'#15803d':v>0?'#dc2626':'#0f172a'}}>
+      {display}
+    </div>
+  );
+  return(
+    <div style={{display:'flex',alignItems:'center',border:'1.5px solid #e2e8f0',borderRadius:8,overflow:'hidden',background:'#f8fafc'}}>
+      <button style={{background:'none',border:'none',cursor:'pointer',fontSize:18,fontWeight:900,color:'#475569',padding:'6px 9px',flexShrink:0,fontFamily:'Inter,sans-serif'}} onClick={()=>adj(-1)}>−</button>
+      <div style={{flex:1,textAlign:'center',fontSize:15,fontWeight:800,fontFamily:'Syne, sans-serif',color:v===null?'#94a3b8':v<0?'#15803d':v>0?'#dc2626':'#0f172a',minWidth:34}}>
+        {display}
+      </div>
+      <button style={{background:'none',border:'none',cursor:'pointer',fontSize:18,fontWeight:900,color:'#475569',padding:'6px 9px',flexShrink:0,fontFamily:'Inter,sans-serif'}} onClick={()=>adj(1)}>+</button>
+    </div>
+  );
+}
 
-// SVG Icons
-const Ic={
-  flag:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
-  users:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
-  trophy:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
-  clock:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  gear:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-  plus:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  check:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>,
-  x:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  search:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  trash:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
-  chev:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
-  edit:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-  star:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  play:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-  check2:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>,
-};
-
-// ── LANDING ───────────────────────────────────────────────────────────────────
+// ── LANDING ──────────────────────────────────────────────────────────────────
 function Landing({onPlayer,onAdmin,onDemo}){
+  const [adminPw,setAdminPw]=useState('');
+  const [showAdminPw,setShowAdminPw]=useState(false);
+  const [pwErr,setPwErr]=useState(false);
+  function tryAdmin(){
+    if(adminPw.toLowerCase()==='clark'){onAdmin();return;}
+    setPwErr(true);setTimeout(()=>setPwErr(false),1500);
+  }
   return(
     <div className="land">
-      <div className="land-bg1"/><div className="land-bg2"/>
-      <div className="land-inner">
+      <div className="land-glow"/>
+      <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:380}}>
         <div className="land-eyebrow">Clark Golf Group</div>
         <div className="land-title">Who are<br/>you <em>today?</em></div>
-        <div className="land-sub">Select your role to get started</div>
-        <button className="land-btn land-btn-player" onClick={onPlayer}>
-          <div className="land-btn-icon">{Ic.flag}</div>
-          <div style={{flex:1}}>
-            <div className="land-btn-text-main">I'm a Player</div>
-            <div className="land-btn-text-sub">Sign up · view teams · see results</div>
+        <div className="land-sub">{getWeekLabel()}</div>
+
+        {!showAdminPw?(
+          <>
+            <button className="land-btn land-btn-player" onClick={onPlayer}>
+              <div className="land-btn-icon">{Ic.flag}</div>
+              <div style={{flex:1}}><div className="land-btn-text-main">I'm a Player</div><div className="land-btn-text-sub">Sign up · view teams · see results</div></div>
+              <span className="land-btn-arrow">›</span>
+            </button>
+            <button className="land-btn land-btn-admin" onClick={()=>setShowAdminPw(true)}>
+              <div className="land-btn-icon">{Ic.gear}</div>
+              <div style={{flex:1}}><div className="land-btn-text-main">I'm an Admin</div><div className="land-btn-text-sub">Manage games · teams · scoring</div></div>
+              <span className="land-btn-arrow">›</span>
+            </button>
+            <button className="land-btn land-btn-demo" onClick={onDemo}>
+              <div className="land-btn-icon">{Ic.trophy}</div>
+              <div style={{flex:1}}><div className="land-btn-text-main">Demo Mode</div><div className="land-btn-text-sub">See how the app works with sample data</div></div>
+              <span className="land-btn-arrow">›</span>
+            </button>
+          </>
+        ):(
+          <div style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:16,padding:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.7)',marginBottom:12,textAlign:'center',textTransform:'uppercase',letterSpacing:'0.1em'}}>Enter Admin Password</div>
+            <input
+              autoFocus
+              type="password"
+              placeholder="Password"
+              value={adminPw}
+              onChange={e=>setAdminPw(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&tryAdmin()}
+              style={{width:'100%',padding:'13px 16px',borderRadius:12,border:`2px solid ${pwErr?'#ef4444':'rgba(255,255,255,0.2)'}`,background:'rgba(255,255,255,0.08)',color:'#fff',fontSize:16,fontFamily:'Inter,sans-serif',outline:'none',textAlign:'center',letterSpacing:'0.1em',marginBottom:10,transition:'border-color 0.2s'}}
+            />
+            {pwErr&&<div style={{color:'#f87171',fontSize:12,textAlign:'center',marginBottom:8,fontWeight:700}}>Wrong password</div>}
+            <div style={{display:'flex',gap:8}}>
+              <button className="land-btn land-btn-admin" style={{flex:1,padding:'13px 16px',margin:0,justifyContent:'center'}} onClick={tryAdmin}>Sign In</button>
+              <button style={{padding:'13px 16px',borderRadius:12,border:'1px solid rgba(255,255,255,0.15)',background:'none',color:'rgba(255,255,255,0.5)',cursor:'pointer',fontFamily:'Inter,sans-serif',fontWeight:700,fontSize:13}} onClick={()=>{setShowAdminPw(false);setAdminPw('');}}>Back</button>
+            </div>
           </div>
-          <span className="land-btn-arrow">›</span>
-        </button>
-        <button className="land-btn land-btn-admin" onClick={onAdmin}>
-          <div className="land-btn-icon">{Ic.gear}</div>
-          <div style={{flex:1}}>
-            <div className="land-btn-text-main">I'm an Admin</div>
-            <div className="land-btn-text-sub">Manage games · teams · scoring</div>
-          </div>
-          <span className="land-btn-arrow">›</span>
-        </button>
-        <button className="land-btn land-btn-demo" onClick={onDemo}>
-          <div className="land-btn-icon" style={{background:'rgba(251,191,36,0.15)'}}>{Ic.play}</div>
-          <div style={{flex:1}}>
-            <div className="land-btn-text-main" style={{color:'#fbbf24'}}>Demo Mode</div>
-            <div className="land-btn-text-sub" style={{color:'rgba(251,191,36,0.5)'}}>See how the app works with sample data</div>
-          </div>
-          <span className="land-btn-arrow">›</span>
-        </button>
+        )}
       </div>
     </div>
   );
 }
 
-// ── WEEK DASHBOARD ────────────────────────────────────────────────────────────
-function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateTeeTime,onMarkComplete}){
-  const [expanded,setExpanded]=useState({Saturday:true});
+// ── WEEK VIEW ────────────────────────────────────────────────────────────────
+function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenRound}){
+  const DAYS=['Friday','Saturday','Sunday'];
+  const [exp,setExp]=useState({Friday:true,Saturday:true,Sunday:true});
   const [signModal,setSignModal]=useState(null);
-  const [lotteryModal,setLotteryModal]=useState(null); // {day, existing}
-  const [editTimeModal,setEditTimeModal]=useState(null); // {day}
+  const [teeModal,setTeeModal]=useState(null);
+  const [editTeeModal,setEditTeeModal]=useState(null);
   const [isGuest,setIsGuest]=useState(false);
   const [sel,setSel]=useState('');
   const [gname,setGname]=useState('');
   const [tee,setTee]=useState('Whites');
   const [hcp,setHcp]=useState('');
   const [q,setQ]=useState('');
-  const [newTime,setNewTime]=useState('08:00');
+  const [newTime,setNewTime]=useState('');
   const [isLottery,setIsLottery]=useState(false);
-  const [lotteryTime,setLotteryTime]=useState('08:00');
+  const [lotteryTarget,setLotteryTarget]=useState('');
+  const [editHcpKey,setEditHcpKey]=useState(null);
+  const [editHcpVal,setEditHcpVal]=useState('');
+  const [editTeeKey,setEditTeeKey]=useState(null);
+  const [myName,setMyName]=useState(null);
 
-  const DAYS=['Friday','Saturday','Sunday'];
   const byDay={};
-  DAYS.forEach(d=>{byDay[d]=Object.entries(signups||{}).filter(([,s])=>s.day===d)});
-  const totalPlayers=Object.keys(signups||{}).length;
-  const activeDays=DAYS.filter(d=>byDay[d].length>0).length;
+  DAYS.forEach(d=>{byDay[d]=Object.entries(signups||{}).filter(([,s])=>s.day===d).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt)});
+  const total=Object.keys(signups||{}).length;
+
+  const signedNames=Object.values(signups||{}).map(s=>s.name);
   const signedIds=Object.values(signups||{}).map(s=>s.playerId);
   const avail=ROSTER.filter(p=>!signedIds.includes(p.id)&&p.name.toLowerCase().includes(q.toLowerCase()));
+
+  function openSignup(day){
+    setSignModal(day);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
+  }
 
   function submitSignup(){
     const name=isGuest?gname.trim():ROSTER.find(p=>p.id==sel)?.name;
     if(!name||!hcp||!signModal)return;
+    const dupDay=Object.values(signups||{}).some(s=>s.day===signModal&&s.name===name);
+    if(dupDay){alert(`${name} is already signed up for ${signModal}.`);return;}
+    if(!isGuest&&sel)setMyName(name);
+    if(isGuest&&gname)setMyName(gname.trim());
     onSignup({playerId:isGuest?`g_${Date.now()}`:parseInt(sel),name,isGuest,tee,handicap:parseFloat(hcp),day:signModal,signedUpAt:Date.now()});
-    setSignModal(null);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
+    setSignModal(null);
   }
 
   function saveTeeTime(day){
-    const timeToSave=isLottery?'LOTTERY':newTime;
-    onUpdateTeeTime(day,{time:timeToSave,lottery:isLottery,requestedTime:isLottery?lotteryTime:null});
-    setLotteryModal(null);setIsLottery(false);setNewTime('08:00');setLotteryTime('08:00');
+    onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery,lotteryTarget:isLottery?lotteryTarget:null});
+    setTeeModal(null);setIsLottery(false);setNewTime('');setLotteryTarget('');
   }
 
   function saveEditTime(day){
-    onUpdateTeeTime(day,{time:newTime,lottery:false,requestedTime:null});
-    setEditTimeModal(null);setNewTime('08:00');
+    onUpdateTeeTime(day,{time:newTime,lottery:false,lotteryTarget:null});
+    setEditTeeModal(null);setNewTime('');
   }
 
-  if(!game)return(
-    <div className="empty">
+  if(!game&&!isDemo)return(
+    <div className="empty" style={{paddingTop:60}}>
       <div>{Ic.flag}</div>
       <div className="empty-title">No game this week</div>
-      <div className="empty-sub">Check back soon — admin will post the weekly games.</div>
+      <div className="empty-sub">Check back soon — the admin will post this week's game.</div>
     </div>
   );
 
   return(
     <div>
-      {isDemo&&<div className="demo-bar"><span className="demo-label">⚡ Demo Mode — Sample Data</span><button className="btn btn-xs btn-sec" onClick={()=>window.location.reload()}>Exit</button></div>}
+      {isDemo&&<div className="demo-bar"><span className="demo-label">⚡ Demo Mode — Sample Data</span></div>}
 
       {/* Stats */}
-      <div className="stat-row">
-        <div className="stat-box"><div className="stat-n">{totalPlayers}</div><div className="stat-l">Signed Up</div></div>
-        <div className="stat-box"><div className="stat-n">{activeDays}</div><div className="stat-l">Active Days</div></div>
-        <div className="stat-box"><div className="stat-n" style={{fontSize:13,paddingTop:7,color:game.complete?'#34d399':'rgba(255,255,255,0.4)'}}>{game.complete?'Done':game.teamsPublished?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
+      <div className="hdr-stats" style={{marginBottom:14}}>
+        <div className="hdr-stat"><div className="hdr-stat-n">{total}</div><div className="hdr-stat-l">Signed Up</div></div>
+        <div className="hdr-stat"><div className="hdr-stat-n">{DAYS.filter(d=>byDay[d].length>0).length}</div><div className="hdr-stat-l">Active Days</div></div>
+        <div className="hdr-stat"><div className="hdr-stat-n" style={{fontSize:12,paddingTop:6,color:game?.complete?'#34d399':'rgba(255,255,255,0.5)'}}>{game?.complete?'Complete':game?.teamsPublished?'Live':'Pending'}</div><div className="hdr-stat-l">Status</div></div>
       </div>
 
-      {/* Mark complete banner */}
-      {game.teamsPublished&&!game.complete&&isAdmin&&(
-        <div style={{marginBottom:10}}>
-          <button className="btn btn-full" style={{background:'#1d4ed8',color:'#fff',borderBottom:'3px solid #1e3a8a',fontSize:13,padding:'13px'}} onClick={onMarkComplete}>
-            <span style={{marginRight:6}}>⛳</span> Mark Round Complete — Unlock Scoring
-          </button>
+      {/* Admin: mark complete / reopen */}
+      {isAdmin&&!isDemo&&game&&!game.complete&&game.teamsPublished&&(
+        <button className="btn btn-emerald btn-full" style={{marginBottom:10,fontSize:13}} onClick={onMarkComplete}>
+          {Ic.trophy} Mark Round Complete — Unlock Scoring
+        </button>
+      )}
+      {isAdmin&&!isDemo&&game?.complete&&(
+        <div style={{display:'flex',gap:8,marginBottom:10}}>
+          <div style={{flex:1,background:'#dcfce7',border:'1px solid #bbf7d0',borderRadius:12,padding:'10px 13px',fontSize:12,fontWeight:700,color:'#15803d',display:'flex',alignItems:'center',gap:6}}>
+            {Ic.check} Round complete — scoring unlocked
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={onReopenRound} title="Reopen for scoring">{Ic.undo}</button>
         </div>
       )}
-      {game.complete&&(
-        <div className="complete-banner" style={{marginBottom:10,background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:12,padding:'11px 14px',display:'flex',alignItems:'center',gap:9}}>
-          <span style={{fontSize:18}}>✅</span>
-          <div>
-            <div style={{fontSize:12,fontWeight:900,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em'}}>Round Complete</div>
-            <div style={{fontSize:11,color:'#3b82f6',fontWeight:600,marginTop:1}}>Head to Scoring tab to enter results</div>
-          </div>
-        </div>
+
+      {/* Admin: create game if none */}
+      {isAdmin&&!isDemo&&!game&&(
+        <div className="alert alert-blue" style={{marginBottom:12}}>No game this week. Go to Admin tab to create one.</div>
       )}
 
       {/* Day cards */}
       {DAYS.map(day=>{
         const list=byDay[day];
         const count=list.length;
-        const isOpen=expanded[day];
-        const teeInfo=game.teeTimes?.[day];
+        const isOpen=exp[day];
+        const teeInfo=game?.teeTimes?.[day];
         const isLotteryDay=teeInfo?.lottery;
-        const hasTime=teeInfo&&!isLotteryDay;
-
+        const hasTime=teeInfo&&!teeInfo.lottery;
         return(
           <div key={day} className="day-card">
-            <div className="day-hdr" onClick={()=>setExpanded(p=>({...p,[day]:!p[day]}))}>
-              <div style={{minWidth:0,flex:1}}>
+            {/* Lottery update bar */}
+            {isAdmin&&isLotteryDay&&(
+              <div style={{background:'#fffbeb',borderBottom:'1px solid #fde68a',padding:'8px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:11,fontWeight:800,color:'#d97706',display:'flex',alignItems:'center',gap:5,fontStyle:'italic'}}>
+                  ⏳ Waiting on lottery{teeInfo.lotteryTarget?' · Target: '+teeInfo.lotteryTarget:''}
+                </span>
+                <button className="btn btn-amber btn-xs" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Set Time</button>
+              </div>
+            )}
+
+            <div className="day-hdr" onClick={()=>setExp(p=>({...p,[day]:!p[day]}))}>
+              <div style={{flex:1,minWidth:0}}>
                 <div className="day-name">{day}</div>
                 <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3,flexWrap:'wrap'}}>
-                  {game.date&&<span className="day-date">{fmtD(game.date)}</span>}
-                  {isLotteryDay&&(
-                    <span className="tee-badge tee-badge-lottery">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                      Waiting on lottery{teeInfo.requestedTime?' · Req: '+fmt12(teeInfo.requestedTime):''}
-                    </span>
-                  )}
-                  {hasTime&&<span className="tee-badge tee-badge-set">⛳ {fmt12(teeInfo.time)}</span>}
-                  {game.complete&&count>0&&<span className="tee-badge tee-badge-complete">Complete</span>}
+                  {game?.date&&<span className="day-date">{fmtD(game.date)}</span>}
+                  {isLotteryDay&&<span className="tee-badge tee-badge-lottery">⏳ Lottery</span>}
+                  {hasTime&&<span className="tee-badge tee-badge-set">⛳ {teeInfo.time}</span>}
+                  {game?.complete&&count>0&&<span className="tee-badge tee-badge-complete">Complete</span>}
                 </div>
               </div>
               <div className="day-right">
@@ -526,119 +593,141 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateTeeTime
 
             {isOpen&&(
               <div className="day-body">
-                {/* Admin tee time controls */}
-                {isAdmin&&!isDemo&&(
-                  <div style={{padding:'10px 14px',borderBottom:'1px solid #f1f5f9',display:'flex',gap:7,flexWrap:'wrap'}}>
-                    {!teeInfo&&<button className="btn btn-sm btn-primary" onClick={()=>{setLotteryModal({day});setNewTime('08:00');setIsLottery(false);setLotteryTime('08:00')}}>{Ic.plus} Set tee time</button>}
-                    {isLotteryDay&&<button className="btn btn-sm btn-gold" onClick={()=>{setEditTimeModal({day});setNewTime('08:00')}}>{Ic.edit} Assign real time</button>}
-                    {teeInfo&&!isLotteryDay&&<button className="btn btn-sm btn-sec" onClick={()=>{setEditTimeModal({day});setNewTime(teeInfo.time||'08:00')}}>{Ic.edit} Edit time</button>}
-                    {teeInfo&&<button className="btn btn-sm btn-sec" style={{color:'#ef4444'}} onClick={()=>onUpdateTeeTime(day,null)}>Remove</button>}
-                  </div>
-                )}
-
                 {count===0&&<div className="day-empty">No sign-ups yet for {day}</div>}
+
                 {list.map(([key,s])=>(
                   <div key={key} className="p-row">
                     <div className="p-info">
                       <div className="avatar">{ini(s.name)}</div>
-                      <div style={{minWidth:0}}>
-                        <div className="p-name">{s.name}{s.isGuest&&<span className="pill pill-gray" style={{marginLeft:5,fontSize:9}}>Guest</span>}</div>
-                        <div className="p-meta">
-                          <span className="tee-dot" style={{background:TEE_COLORS[s.tee]||'#ccc'}}></span>
-                          <span className="p-meta-txt">{s.tee} · HCP {s.handicap}</span>
+                      <div style={{minWidth:0,flex:1}}>
+                        <div className="p-name">
+                          {s.name}
+                          {s.isGuest&&<span className="pill pill-gray" style={{marginLeft:5,fontSize:9,padding:'1px 6px'}}>Guest</span>}
                         </div>
+                        {editHcpKey===key?(
+                          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
+                            <input autoFocus style={{width:58,padding:'3px 7px',border:'1.5px solid #34d399',borderRadius:6,fontSize:13,fontWeight:700,outline:'none'}} type="number" value={editHcpVal} onChange={e=>setEditHcpVal(e.target.value)}/>
+                            <select style={{padding:'3px 6px',border:'1.5px solid #34d399',borderRadius:6,fontSize:12,fontWeight:600,outline:'none'}} value={editTeeKey||s.tee} onChange={e=>setEditTeeKey(e.target.value)}>
+                              {TEES.map(t=><option key={t}>{t}</option>)}
+                            </select>
+                            <button style={{fontSize:11,fontWeight:800,color:'#15803d',background:'none',border:'none',cursor:'pointer'}} onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editHcpVal),tee:editTeeKey||s.tee});setEditHcpKey(null);setEditTeeKey(null);}}>Save</button>
+                            <button style={{fontSize:11,color:'#94a3b8',background:'none',border:'none',cursor:'pointer'}} onClick={()=>{setEditHcpKey(null);setEditTeeKey(null);}}>✕</button>
+                          </div>
+                        ):(
+                          <div className="p-meta">
+                            <span className="tee-dot" style={{background:TEE_COLORS[s.tee]||'#ccc'}}></span>
+                            <span className="p-meta-txt">{s.tee} · HCP {s.handicap}</span>
+                            {(isAdmin||myName===s.name)&&(
+                              <button style={{marginLeft:4,fontSize:10,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',padding:'0 2px',fontWeight:700}} onClick={()=>{setEditHcpKey(key);setEditHcpVal(String(s.handicap));setEditTeeKey(s.tee);}}>edit</button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {isAdmin&&<button className="remove-btn" onClick={()=>onRemove(key)}>{Ic.x}</button>}
+                    <div style={{display:'flex',gap:4,flexShrink:0}}>
+                      {isAdmin&&<button className="remove-btn" onClick={()=>onRemove(key)}>{Ic.x}</button>}
+                    </div>
                   </div>
                 ))}
-                {!isDemo&&(
-                  <div className="signup-area">
-                    <button className="btn btn-emerald btn-full btn-sm" onClick={()=>setSignModal(day)}>
-                      {Ic.plus} Sign up for {day}
+
+                <div className="signup-area" style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  {!isDemo&&(
+                    <button className="btn btn-emerald btn-sm" style={{flex:1,fontSize:12,padding:'8px 12px'}} onClick={()=>openSignup(day)}>
+                      {Ic.plus} Sign up
                     </button>
-                  </div>
-                )}
+                  )}
+                  {isAdmin&&!isDemo&&!teeInfo&&(
+                    <button className="btn btn-outline btn-sm" style={{fontSize:12,padding:'8px 12px'}} onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>
+                      ⛳ Add tee time
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
         );
       })}
 
-      {/* Signup modal */}
+      {/* Sign up modal */}
       {signModal&&(
         <div className="overlay" onClick={e=>e.target===e.currentTarget&&setSignModal(null)}>
           <div className="modal">
             <div className="modal-handle"/>
-            <div className="modal-title">Sign up for {signModal}</div>
-            <div className="tog-wrap" style={{marginBottom:14}}>
+            <div className="modal-title">Sign up — {signModal}</div>
+            <div className="tog-wrap">
               <button className={`tog-opt${!isGuest?' on':''}`} onClick={()=>setIsGuest(false)}>Member</button>
               <button className={`tog-opt${isGuest?' on':''}`} onClick={()=>setIsGuest(true)}>Guest</button>
             </div>
             {!isGuest?(
               <div className="fg">
                 <label className="fl">Your name</label>
-                <div className="sw"><span className="si-ico">{Ic.search}</span><input className="si" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/></div>
-                <div style={{maxHeight:180,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:10}}>
-                  {avail.slice(0,25).map(p=>(
-                    <div key={p.id} className={`pp${sel==p.id?' sel':''}`} onClick={()=>{setSel(p.id);setQ('')}}>
+                <div className="sw" style={{marginBottom:8}}>
+                  <span className="si-icon">{Ic.search}</span>
+                  <input className="si" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
+                </div>
+                <div style={{maxHeight:220,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:10}}>
+                  {avail.map(p=>(
+                    <div key={p.id} className={`p-pick${sel==p.id?' sel':''}`} onClick={()=>{setSel(p.id);setQ('');}}>
                       <div className="avatar" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
                       <span style={{fontSize:13,fontWeight:600,flex:1}}>{p.name}</span>
-                      {sel==p.id&&<span style={{color:'#15803d',width:16}}>{Ic.check}</span>}
+                      {sel==p.id&&<span style={{color:'#34d399',width:16}}>{Ic.check}</span>}
                     </div>
                   ))}
                   {avail.length===0&&<div style={{padding:14,fontSize:13,color:'#94a3b8',textAlign:'center'}}>No matches</div>}
                 </div>
               </div>
             ):(
-              <div className="fg"><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/></div>
+              <div className="fg">
+                <label className="fl">Guest name</label>
+                <input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/>
+              </div>
             )}
             <div className="fr">
               <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
               <div className="fg"><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/></div>
             </div>
-            <button className="btn btn-primary btn-full" onClick={submitSignup} disabled={(!sel&&!gname)||!hcp}>Confirm sign-up</button>
+            <button className="btn btn-emerald btn-full" onClick={submitSignup} disabled={(!sel&&!gname)||!hcp} style={{opacity:(!sel&&!gname)||!hcp?0.4:1}}>
+              Confirm sign-up
+            </button>
           </div>
         </div>
       )}
 
-      {/* Set tee time modal */}
-      {lotteryModal&&(
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setLotteryModal(null)}>
+      {/* Add tee time modal */}
+      {teeModal&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setTeeModal(null)}>
           <div className="modal">
             <div className="modal-handle"/>
-            <div className="modal-title">Set tee time — {lotteryModal.day}</div>
-            <div style={{background:'#fef9c3',border:'1px solid #fde68a',borderRadius:10,padding:'10px 13px',marginBottom:14,display:'flex',gap:8,alignItems:'flex-start'}}>
-              <input type="checkbox" id="lot" checked={isLottery} onChange={e=>setIsLottery(e.target.checked)} style={{marginTop:2,width:15,height:15,accentColor:'#c9a84c'}}/>
-              <label htmlFor="lot" style={{fontSize:13,fontWeight:700,color:'#a16207',cursor:'pointer'}}>Waiting on lottery tee time<br/><span style={{fontWeight:500,fontSize:11}}>Check this if you don't have a confirmed time yet</span></label>
+            <div className="modal-title">Add tee time — {teeModal}</div>
+            <div className="fg">
+              <div style={{display:'flex',alignItems:'center',gap:10,padding:'11px 13px',background:'#f8fafc',borderRadius:10,border:`2px solid ${isLottery?'#f59e0b':'#e2e8f0'}`,cursor:'pointer',marginBottom:12}} onClick={()=>setIsLottery(!isLottery)}>
+                <div style={{width:20,height:20,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  {isLottery&&<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                </div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:800,color:'#0f172a'}}>Waiting on lottery</div>
+                  <div style={{fontSize:11,color:'#64748b',marginTop:1}}>Check if tee time not yet confirmed</div>
+                </div>
+              </div>
             </div>
             <div className="fg">
-              <label className="fl">{isLottery?'Requested time (best guess)':'Confirmed tee time'}</label>
-              <TimePicker value={isLottery?lotteryTime:newTime} onChange={v=>isLottery?setLotteryTime(v):setNewTime(v)}/>
-            </div>
-            <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveTeeTime(lotteryModal.day)}>Save</button>
-              <button className="btn btn-sec" onClick={()=>setLotteryModal(null)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit/assign real time modal */}
-      {editTimeModal&&(
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setEditTimeModal(null)}>
-          <div className="modal">
-            <div className="modal-handle"/>
-            <div className="modal-title">Assign tee time — {editTimeModal.day}</div>
-            <div className="alert alert-ok" style={{marginBottom:14}}>Replacing the lottery placeholder with the real confirmed time.</div>
-            <div className="fg">
-              <label className="fl">Confirmed tee time</label>
+              <label className="fl">{isLottery?'Requested time (target)':'Tee time'}</label>
               <TimePicker value={newTime} onChange={setNewTime}/>
             </div>
-            <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveEditTime(editTimeModal.day)}>Confirm time</button>
-              <button className="btn btn-sec" onClick={()=>setEditTimeModal(null)}>Cancel</button>
-            </div>
+            <button className="btn btn-emerald btn-full" onClick={()=>saveTeeTime(teeModal)}>Save</button>
+          </div>
+        </div>
+      )}
+
+      {/* Update lottery tee time */}
+      {editTeeModal&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setEditTeeModal(null)}>
+          <div className="modal">
+            <div className="modal-handle"/>
+            <div className="modal-title">Set confirmed time — {editTeeModal}</div>
+            <div className="alert alert-blue" style={{marginBottom:14}}>Enter the actual tee time you received.</div>
+            <div className="fg"><label className="fl">Confirmed tee time</label><TimePicker value={newTime} onChange={setNewTime}/></div>
+            <button className="btn btn-emerald btn-full" onClick={()=>saveEditTime(editTeeModal)}>Update tee sheet</button>
           </div>
         </div>
       )}
@@ -646,56 +735,103 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateTeeTime
   );
 }
 
-// ── TEAMS VIEW ────────────────────────────────────────────────────────────────
-function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
-  const [edit,setEdit]=useState(null);const [drag,setDrag]=useState(null);
-  const display=edit||teams;const cnt=Object.keys(signups||{}).length;
-  function gen(){const p=Object.values(signups||{});if(p.length<3)return;setEdit(buildTeams(p))}
+// ── TEAMS VIEW ───────────────────────────────────────────────────────────────
+function TeamsView({game,teams,signups,isAdmin,onSave,onPublish,onUpdatePlayer}){
+  const [edit,setEdit]=useState(null);
+  const [drag,setDrag]=useState(null);
+  const [editPlayerKey,setEditPlayerKey]=useState(null);
+  const [editPlayerVal,setEditPlayerVal]=useState({tee:'',hcp:''});
+  const display=edit||teams;
+  const cnt=Object.keys(signups||{}).length;
+
+  function gen(){
+    const p=Object.values(signups||{});
+    if(p.length<3)return;
+    setEdit(buildTeams(p));
+  }
+
   function drop(ti,pi){
-    if(!drag)return;
+    if(!drag||!isAdmin)return;
     const u=edit.map(t=>({...t,players:[...t.players]}));
     const p=u[drag.ti].players[drag.pi];
-    u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);
-    u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D'});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0)});
+    u[drag.ti].players.splice(drag.pi,1);
+    u[ti].players.splice(pi,0,p);
+    u.forEach(t=>{
+      t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D'});
+      t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);
+    });
     setEdit(u);setDrag(null);
   }
+
+  function savePlayerEdit(teamIdx,playerIdx){
+    const u=(edit||teams).map(t=>({...t,players:[...t.players]}));
+    const p=u[teamIdx].players[playerIdx];
+    if(editPlayerVal.hcp!=='')p.handicap=parseFloat(editPlayerVal.hcp);
+    if(editPlayerVal.tee!=='')p.tee=editPlayerVal.tee;
+    u[teamIdx].totalHcp=u[teamIdx].players.reduce((s,pp)=>s+parseFloat(pp.handicap||0),0);
+    if(edit)setEdit(u);else onUpdatePlayer(u);
+    setEditPlayerKey(null);
+  }
+
   if(!game)return<div className="empty"><div>{Ic.users}</div><div className="empty-title">No active game</div></div>;
+
   return(
     <div>
-      <div className="stat-row">
-        <div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div>
-        <div className="stat-box"><div className="stat-n">{(display||[]).length}</div><div className="stat-l">Teams</div></div>
-        <div className="stat-box"><div className="stat-n" style={{fontSize:12,paddingTop:7,color:game.teamsPublished?'#34d399':'rgba(255,255,255,0.4)'}}>{game.teamsPublished?'Published':'Pending'}</div><div className="stat-l">Status</div></div>
+      <div className="hdr-stats" style={{marginBottom:14}}>
+        <div className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">Players</div></div>
+        <div className="hdr-stat"><div className="hdr-stat-n">{(display||[]).length}</div><div className="hdr-stat-l">Teams</div></div>
+        <div className="hdr-stat"><div className="hdr-stat-n" style={{fontSize:12,paddingTop:6,color:'rgba(255,255,255,0.5)'}}>{game.teamsPublished?'Live':'Pending'}</div><div className="hdr-stat-l">Status</div></div>
       </div>
+
       {isAdmin&&(
         <div className="admin-bar">
           <div className="admin-bar-lbl">Team builder</div>
-          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-            <button className="btn btn-primary btn-sm" onClick={gen} disabled={cnt<3}>{Ic.users} Auto-generate</button>
-            {edit&&<button className="btn btn-gold btn-sm" onClick={()=>{onSave(edit);setEdit(null)}}>Save teams</button>}
-            {edit&&<button className="btn btn-sec btn-sm" onClick={()=>setEdit(null)}>Cancel</button>}
-            {!edit&&display?.length>0&&!game.teamsPublished&&<button className="btn btn-gold btn-sm" onClick={onPublish}>Publish to group</button>}
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            <button className="btn btn-primary btn-sm" onClick={gen} disabled={cnt<3}>{Ic.refresh} {display?.length?'Regenerate':'Auto-generate'}</button>
+            {edit&&<button className="btn btn-amber btn-sm" onClick={()=>{onSave(edit);setEdit(null);}}>Save teams</button>}
+            {edit&&<button className="btn btn-outline btn-sm" onClick={()=>setEdit(null)}>Cancel</button>}
+            {!edit&&display?.length>0&&!game.teamsPublished&&<button className="btn btn-amber btn-sm" onClick={onPublish}>Publish to group</button>}
           </div>
-          {edit&&<div className="alert alert-warn" style={{marginTop:10,marginBottom:0}}>Drag players between teams to rebalance, then save.</div>}
+          {edit&&<div className="alert alert-warn" style={{marginTop:10,marginBottom:0}}>Admin: drag players between teams. Anyone can edit tee/HCP inline.</div>}
+          {!edit&&display?.length>0&&<div className="alert alert-blue" style={{marginTop:10,marginBottom:0,fontSize:11}}>Tap any player's edit button to update their tee or handicap. Only admins can move players between teams.</div>}
         </div>
       )}
+
       {!display?.length&&<div className="empty"><div>{Ic.users}</div><div className="empty-title">Teams not set yet</div><div className="empty-sub">Admin will generate and publish teams before the round.</div></div>}
+
       {(edit||teams||[]).map((team,ti)=>(
         <div key={team.id} className="team-card">
           <div className="team-hdr">
-            <span className="team-hdr-name">{team.name}</span>
-            <span className="team-hdr-hcp">HCP {team.totalHcp.toFixed(1)}</span>
+            <span className="team-nm">{team.name}</span>
+            <span className="team-hcp">HCP {team.totalHcp.toFixed(1)}</span>
           </div>
           {team.players.map((p,pi)=>(
-            <div key={pi} className="team-row" draggable={!!edit} onDragStart={()=>setDrag({ti,pi})} onDragOver={e=>e.preventDefault()} onDrop={()=>drop(ti,pi)}>
-              {edit&&<span style={{color:'#94a3b8',cursor:'grab',fontSize:16}}>⠿</span>}
+            <div key={pi} className="team-row"
+              draggable={!!edit&&isAdmin}
+              onDragStart={()=>{if(isAdmin)setDrag({ti,pi})}}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={()=>drop(ti,pi)}>
+              {edit&&isAdmin&&<span style={{color:'#cbd5e1',fontSize:14,cursor:'grab',flexShrink:0}}>⠿</span>}
               <span className="slot">{p.slot}</span>
-              <div className="avatar" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
+              <div className="avatar" style={{width:30,height:30,fontSize:10}}>{ini(p.name)}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:13,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
-                <div style={{fontSize:10,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
-                  <span className="tee-dot" style={{background:TEE_COLORS[p.tee]||'#ccc'}}></span>{p.tee} · {p.handicap}
-                </div>
+                {editPlayerKey===`${ti}-${pi}`?(
+                  <div style={{display:'flex',alignItems:'center',gap:5,marginTop:3}}>
+                    <input autoFocus style={{width:52,padding:'3px 6px',border:'1.5px solid #34d399',borderRadius:6,fontSize:12,fontWeight:700,outline:'none'}} type="number" placeholder={String(p.handicap)} value={editPlayerVal.hcp} onChange={e=>setEditPlayerVal(v=>({...v,hcp:e.target.value}))}/>
+                    <select style={{padding:'3px 5px',border:'1.5px solid #34d399',borderRadius:6,fontSize:11,outline:'none'}} value={editPlayerVal.tee||p.tee} onChange={e=>setEditPlayerVal(v=>({...v,tee:e.target.value}))}>
+                      {TEES.map(t=><option key={t}>{t}</option>)}
+                    </select>
+                    <button style={{fontSize:11,fontWeight:800,color:'#15803d',background:'none',border:'none',cursor:'pointer'}} onClick={()=>savePlayerEdit(ti,pi)}>Save</button>
+                    <button style={{fontSize:11,color:'#94a3b8',background:'none',border:'none',cursor:'pointer'}} onClick={()=>setEditPlayerKey(null)}>✕</button>
+                  </div>
+                ):(
+                  <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
+                    <span className="tee-dot" style={{background:TEE_COLORS[p.tee]||'#ccc'}}></span>
+                    {p.tee} · HCP {p.handicap}
+                    <button style={{fontSize:10,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',padding:'0 2px',fontWeight:700}} onClick={()=>{setEditPlayerKey(`${ti}-${pi}`);setEditPlayerVal({tee:p.tee,hcp:String(p.handicap)});}}>edit</button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -705,36 +841,93 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
   );
 }
 
-// ── SCORING VIEW ──────────────────────────────────────────────────────────────
-function ScoringView({game,teams,scores,onSave,isAdmin,unlocked}){
+// ── SCORING VIEW ─────────────────────────────────────────────────────────────
+function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}){
   const [ts,setTs]=useState({});const [sk,setSk]=useState({});
   const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
   const [saved,setSaved]=useState(false);
-  useEffect(()=>{if(scores){setTs(scores.teamScores||{});setSk(scores.skinCounts||{});setFv(scores.frontPot||'');setBv(scores.backPot||'');setOv(scores.overallPot||'');setSv(scores.skinsPot||'');setFp(scores.frontPlaces||2);setBp(scores.backPlaces||2);setOp(scores.overallPlaces||2)}},[scores]);
+
+  useEffect(()=>{
+    if(scores){
+      setTs(scores.teamScores||{});setSk(scores.skinCounts||{});
+      setFv(scores.frontPot||'');setBv(scores.backPot||'');setOv(scores.overallPot||'');setSv(scores.skinsPot||'');
+      setFp(scores.frontPlaces||2);setBp(scores.backPlaces||2);setOp(scores.overallPlaces||2);
+    }
+  },[scores]);
+
   const pc=Object.keys(game?.signups||{}).length||0;
-  const total=pc*25;const fund=pc;
+  const total=pc*25;
+  const fund=pc;
   const snet=Math.max(0,parseFloat(sv||0)-fund);
   const tsk=Object.values(sk).reduce((s,c)=>s+c,0);
   const perSk=tsk>0?snet/tsk:0;
   const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);
   const ok=Math.abs(alloc-total)<0.01;
-  function tap(id){if(!isAdmin&&!unlocked)return;setSk(p=>({...p,[id]:(p[id]||0)+1}))}
-  function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}))}
-  function pay(pot,places){const p=parseFloat(pot||0);if(!p)return[];return places===1?[{l:'1st place',a:p}]:[{l:'1st place',a:p*0.6},{l:'2nd place',a:p*0.4}]}
-  function save(){onSave({teamScores:ts,skinCounts:sk,frontPot:fv,backPot:bv,overallPot:ov,skinsPot:sv,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:fund,playerCount:pc,savedAt:Date.now()});setSaved(true);setTimeout(()=>setSaved(false),2500)}
+
+  function tap(id){if(!isAdmin)return;setSk(p=>({...p,[id]:(p[id]||0)+1}));}
+  function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}));}
+
+  // Auto-balance pot: if total doesn't match, show warning and allow admin to auto-split
+  function autoBalance(){
+    const remaining=total-parseFloat(sv||0);
+    const third=remaining/3;
+    setFv(Math.round(third*100)/100);setBv(Math.round(third*100)/100);setOv(total-parseFloat(sv||0)-(Math.round(third*100)/100)*2);
+  }
+
+  // Determine winners for each segment
+  function getWinners(seg){
+    if(!teams?.length)return[];
+    const scored=teams.map(t=>({...t,score:parseFloat((ts[t.id]||{})[seg])})).filter(t=>!isNaN(t.score));
+    if(!scored.length)return[];
+    scored.sort((a,b)=>a.score-b.score);
+    const best=scored[0].score;
+    const tied=scored.filter(t=>t.score===best);
+    return{best,tied,second:scored.find(t=>t.score!==best)};
+  }
+
+  function paySection(pot,places,seg){
+    const p=parseFloat(pot||0);if(!p)return[];
+    const w=getWinners(seg);
+    if(!w||!w.tied)return places===1?[{label:'1st place',amt:p}]:[{label:'1st place',amt:p*0.6},{label:'2nd place',amt:p*0.4}];
+    const results=[];
+    if(w.tied.length>1){
+      // Tie for first — split 1st (and 2nd if places=2) pot among tied teams
+      const splitAmt=places===1?p:(p*0.6+p*0.4)/w.tied.length;
+      const perTeam=places===1?p/w.tied.length:(p*0.6+p*0.4)/w.tied.length;
+      results.push({label:`1st — TIE (${w.tied.map(t=>t.name).join(' & ')})`,amt:perTeam,split:true,teams:w.tied});
+      if(places===2&&w.tied.length===1&&w.second){
+        results.push({label:`2nd — ${w.second.name}`,amt:p*0.4,teams:[w.second]});
+      }
+    } else {
+      results.push({label:`1st — ${w.tied[0].name}`,amt:p*(places===1?1:0.6),teams:[w.tied[0]]});
+      if(places===2&&w.second){
+        results.push({label:`2nd — ${w.second.name}`,amt:p*0.4,teams:[w.second]});
+      }
+    }
+    return results;
+  }
+
+  function save(){
+    onSave({teamScores:ts,skinCounts:sk,frontPot:fv,backPot:bv,overallPot:ov,skinsPot:sv,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:fund,playerCount:pc,savedAt:Date.now()});
+    setSaved(true);setTimeout(()=>setSaved(false),2500);
+  }
+
   if(!game)return<div className="empty"><div>{Ic.trophy}</div><div className="empty-title">No active game</div></div>;
   if(!teams?.length)return<div className="empty"><div>{Ic.trophy}</div><div className="empty-title">Teams not published yet</div></div>;
-  if(!unlocked&&!isAdmin)return(
+  if(!unlocked)return(
     <div className="empty">
       <div>{Ic.trophy}</div>
       <div className="empty-title">Round in progress</div>
       <div className="empty-sub">Scoring unlocks when the admin marks the round complete.</div>
     </div>
   );
+
   return(
     <div>
-      {game.complete&&<div className="alert alert-blue">Round marked complete. Enter scores and payouts below.</div>}
+      {game.complete&&<div className="alert alert-blue" style={{marginBottom:10}}>Round complete — enter results below.</div>}
+
+      {/* Pot setup — admin only */}
       {isAdmin&&(
         <div className="admin-bar">
           <div className="admin-bar-lbl">Pot setup — {pc} players · {f$(total)} total</div>
@@ -746,16 +939,21 @@ function ScoringView({game,teams,scores,onSave,isAdmin,unlocked}){
             <div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" placeholder="$0" value={ov} onChange={e=>setOv(e.target.value)}/></div>
             <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" placeholder="$0" value={sv} onChange={e=>setSv(e.target.value)}/></div>
           </div>
-          {alloc>0&&<div style={{marginTop:8,fontSize:12,fontWeight:800,color:ok?'#15803d':'#ef4444'}}>{ok?'✓ Pot balanced — '+f$(total):'⚠ '+f$(alloc)+' of '+f$(total)+' allocated'}</div>}
+          <div style={{marginTop:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span style={{fontSize:12,fontWeight:800,color:ok?'#15803d':'#dc2626'}}>{ok?'✓ Pot balanced — '+f$(total):'⚠ '+f$(alloc)+' of '+f$(total)}</span>
+            {!ok&&alloc<total&&<button className="btn btn-outline btn-xs" onClick={autoBalance}>Auto-split sides</button>}
+          </div>
         </div>
       )}
+
+      {/* Places per section — admin only */}
       {isAdmin&&(
         <div className="card card-body" style={{marginBottom:10}}>
-          <div className="slbl">Places paid per section</div>
+          <div className="slbl">Places paid</div>
           {[{l:'Front 9',v:fp,s:setFp},{l:'Back 9',v:bp,s:setBp},{l:'Overall',v:op,s:setOp}].map(({l,v,s})=>(
-            <div key={l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:9}}>
+            <div key={l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
               <span style={{fontSize:13,fontWeight:600}}>{l}</span>
-              <div className="tog-wrap" style={{width:160}}>
+              <div className="tog-wrap" style={{width:158,marginBottom:0}}>
                 <button className={`tog-opt${v===1?' on':''}`} onClick={()=>s(1)}>1st only</button>
                 <button className={`tog-opt${v===2?' on':''}`} onClick={()=>s(2)}>1st + 2nd</button>
               </div>
@@ -763,23 +961,27 @@ function ScoringView({game,teams,scores,onSave,isAdmin,unlocked}){
           ))}
         </div>
       )}
+
+      {/* Team scores */}
       <div className="card card-body" style={{marginBottom:10}}>
         <div className="slbl">Team scores</div>
         <div className="sc-grid" style={{marginBottom:8}}>
-          <div/><div className="sc-hd">Front</div><div className="sc-hd">Back</div><div className="sc-hd">Ovr</div>
+          <div/><div className="sc-hd">Front</div><div className="sc-hd">Back</div><div className="sc-hd">Overall</div>
         </div>
         {teams.map(t=>(
-          <div key={t.id} className="sc-grid" style={{marginBottom:8}}>
-            <div style={{fontSize:12,fontWeight:800,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.name}</div>
+          <div key={t.id} className="sc-grid" style={{marginBottom:8,alignItems:'center'}}>
+            <div style={{fontSize:12,fontWeight:800,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}>{t.name}</div>
             {['front','back','overall'].map(seg=>(
-              <input key={seg} className="sc-in" type="number" placeholder="—"
-                value={(ts[t.id]||{})[seg]||''}
-                onChange={e=>isAdmin&&setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:e.target.value}}))}
-                readOnly={!isAdmin}/>
+              <ScorePicker key={seg}
+                value={(ts[t.id]||{})[seg]}
+                readOnly={!isAdmin}
+                onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>
             ))}
           </div>
         ))}
       </div>
+
+      {/* Skins tapper */}
       <div className="card card-body" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <div className="slbl" style={{marginBottom:0}}>Skins tapper</div>
@@ -791,72 +993,165 @@ function ScoringView({game,teams,scores,onSave,isAdmin,unlocked}){
               <div className="skin-team">{t.name}</div>
               <div className="skin-num">{sk[t.id]||0}</div>
               <div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>
-              {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id)}}>undo</div>}
+              {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>undo</div>}
+              {!isAdmin&&<div style={{fontSize:10,color:'#94a3b8',marginTop:4}}>live</div>}
             </div>
           ))}
         </div>
-        {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(fund)} · Net skins: {f$(snet)}{tsk>0?' · '+f$(perSk.toFixed(2))+' per skin':''}</div>}
+        {sv&&snet>0&&(
+          <div className="alert alert-ok">
+            Tournament fund: {f$(fund)} · Net skins: {f$(snet)}{tsk>0?' · '+f$(perSk.toFixed(2))+' per skin':''}
+          </div>
+        )}
       </div>
+
+      {/* Payout breakdown with winners */}
       {(fv||bv||ov||sv)&&(
         <div className="card card-body" style={{marginBottom:10}}>
           <div className="slbl">Payout breakdown</div>
-          {[{l:'Front 9',pot:fv,pl:fp,tag:'gross + net'},{l:'Back 9',pot:bv,pl:bp,tag:'net'},{l:'Overall',pot:ov,pl:op,tag:'net'}].map(({l,pot,pl,tag})=>
+          {[{l:'Front 9',pot:fv,pl:fp,seg:'front'},{l:'Back 9',pot:bv,pl:bp,seg:'back'},{l:'Overall',pot:ov,pl:op,seg:'overall'}].map(({l,pot,pl,seg})=>
             parseFloat(pot||0)>0?(
-              <div key={l} style={{marginBottom:12}}>
-                <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.1em'}}>{l} <span className="pill pill-gray">{tag}</span></div>
-                {pay(pot,pl).map(({l:pl,a})=><div key={pl} className="pay-row"><span className="pay-lbl">{pl}</span><span className="pay-amt">{f$(a)}</span></div>)}
+              <div key={l} style={{marginBottom:14}}>
+                <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.1em'}}>{l}</div>
+                {paySection(pot,pl,seg).map(({label,amt,split},i)=>(
+                  <div key={i} className="pay-row">
+                    <span className="pay-lbl" style={{fontStyle:split?'italic':undefined}}>{label}</span>
+                    <span className="pay-amt" style={{color:split?'#f59e0b':'#15803d'}}>{f$(amt)}{split?' ea':''}</span>
+                  </div>
+                ))}
               </div>
             ):null
           )}
           {parseFloat(sv||0)>0&&(
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.1em'}}>Skins</div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.1em'}}>Skins</div>
               <div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt">{f$(snet)}</span></div>
-              {tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt">{f$(perSk.toFixed(2))}</span></div>}
-              <div className="pay-row"><span className="pay-lbl" style={{color:'#c9a84c'}}>Tournament fund</span><span className="pay-amt gold">{f$(fund)}</span></div>
+              {tsk>0&&(
+                <>
+                  <div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt">{f$(perSk.toFixed(2))}</span></div>
+                  {Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{
+                    const t=teams.find(t=>String(t.id)===String(tid));
+                    return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:10}}>↳ {t.name} ({c} skin{c!==1?'s':''})</span><span className="pay-amt">{f$(c*perSk)}</span></div>:null;
+                  })}
+                </>
+              )}
+              <div className="pay-row"><span className="pay-lbl" style={{color:'#c9a84c'}}>Tournament fund</span><span className="pay-amt" style={{color:'#c9a84c'}}>{f$(fund)}</span></div>
             </div>
           )}
           <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(total)}</span></div>
         </div>
       )}
-      {isAdmin&&<button className="btn btn-primary btn-full" style={{marginTop:8}} onClick={save}>{saved?'✓ Saved!':'Save scores & payouts'}</button>}
+
+      {isAdmin&&(
+        <div style={{display:'flex',gap:8,marginTop:8}}>
+          <button className="btn btn-primary" style={{flex:1}} onClick={save}>{saved?'✓ Saved!':'Save scores & payouts'}</button>
+          {saved&&<button className="btn btn-emerald btn-sm" onClick={onMoveToHistory}>Move to history →</button>}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── HISTORY VIEW ──────────────────────────────────────────────────────────────
+// ── HISTORY VIEW ─────────────────────────────────────────────────────────────
 function HistoryView({history}){
   const [open,setOpen]=useState(null);
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
   if(!rounds.length)return<div className="empty"><div>{Ic.clock}</div><div className="empty-title">No rounds yet</div><div className="empty-sub">Completed rounds appear here.</div></div>;
+
+  function paySection(scores,teams,pot,places,seg){
+    if(!parseFloat(pot||0)||!teams?.length)return[];
+    const scored=teams.map(t=>({...t,score:parseFloat((scores.teamScores?.[t.id]||{})[seg])})).filter(t=>!isNaN(t.score));
+    if(!scored.length)return[];
+    scored.sort((a,b)=>a.score-b.score);
+    const best=scored[0].score;
+    const tied=scored.filter(t=>t.score===best);
+    const second=scored.find(t=>t.score!==best);
+    const results=[];
+    const p=parseFloat(pot);
+    if(tied.length>1){
+      const perTeam=places===1?p/tied.length:(p*0.6+p*0.4)/tied.length;
+      results.push({label:`1st TIE`,teams:tied,amt:perTeam,split:true});
+    } else {
+      results.push({label:'1st',teams:[tied[0]],amt:p*(places===1?1:0.6)});
+      if(places===2&&second)results.push({label:'2nd',teams:[second],amt:p*0.4});
+    }
+    return results;
+  }
+
   return(
     <div>
       <div className="slbl">{rounds.length} round{rounds.length!==1?'s':''} on record</div>
       {rounds.map(([k,r])=>(
-        <div key={k} className="hist-item">
-          <div className="hist-hdr" onClick={()=>setOpen(open===k?null:k)}>
-            <div><div className="hist-title">{r.day} · {fmtDFull(r.date)}</div><div className="hist-meta">{r.playerCount||0} players · {f$((r.playerCount||0)*25)} pot</div></div>
-            <svg style={{color:'#94a3b8',transform:open===k?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <div key={k} className="hi">
+          <div className="hi-hdr" onClick={()=>setOpen(open===k?null:k)}>
+            <div><div className="hi-title">{r.day} · {fmtDFull(r.date)}</div><div className="hi-meta">{r.playerCount||0} players · {f$((r.playerCount||0)*25)} pot</div></div>
+            <span style={{color:'#94a3b8',display:'flex',transform:open===k?'rotate(180deg)':'none',transition:'transform 0.2s'}}>{Ic.chev}</span>
           </div>
           {open===k&&(
-            <div className="hist-body">
+            <div className="hi-body">
+              {/* Teams */}
               {r.teams?.map(t=>(
                 <div key={t.id} style={{marginBottom:10}}>
-                  <div style={{fontSize:13,fontWeight:800,color:'#15803d',marginBottom:3}}>{t.name} <span style={{fontWeight:600,color:'#94a3b8',fontSize:11}}>HCP {t.totalHcp?.toFixed(1)}</span></div>
-                  {t.players?.map((p,i)=><div key={i} style={{fontSize:12,color:'#475569',paddingLeft:8,marginBottom:2,display:'flex',alignItems:'center',gap:5}}><span className="slot" style={{fontSize:9}}>{p.slot}</span>{p.name} · {p.tee} {p.handicap}</div>)}
+                  <div style={{fontSize:13,fontWeight:800,color:'#34d399',fontFamily:'Syne',marginBottom:3,fontStyle:'italic'}}>{t.name} <span style={{fontWeight:400,color:'#94a3b8',fontSize:11,fontStyle:'normal'}}>HCP {t.totalHcp?.toFixed(1)}</span></div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                    {t.players?.map((p,i)=><span key={i} style={{fontSize:11,color:'#475569',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}><span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}</span>)}
+                  </div>
                 </div>
               ))}
-              {r.scores&&(
+
+              {/* Scores table */}
+              {r.scores&&r.teams&&(
                 <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}>
-                  <div className="slbl">Results</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,48px)',gap:'3px 6px',fontSize:12}}>
-                    {['','Front','Back','Ovr'].map((h,i)=><div key={i} style={{color:'#94a3b8',fontWeight:700,textAlign:i>0?'center':'left'}}>{h}</div>)}
-                    {r.teams?.map(t=>(
+                  <div className="slbl">Scores</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,48px)',gap:'3px 6px',fontSize:12,marginBottom:10}}>
+                    <div style={{color:'#94a3b8',fontWeight:700}}>Team</div>
+                    {['Front','Back','Ovr'].map(h=><div key={h} style={{color:'#94a3b8',textAlign:'center',fontWeight:700}}>{h}</div>)}
+                    {r.teams.map(t=>(
                       <React.Fragment key={t.id}>
-                        <div style={{fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.name}</div>
-                        {['front','back','overall'].map(s=><div key={s} style={{textAlign:'center'}}>{r.scores.teamScores?.[t.id]?.[s]||'—'}</div>)}
+                        <div style={{fontWeight:700}}>{t.name}</div>
+                        {['front','back','overall'].map(s=>{
+                          const v=r.scores.teamScores?.[t.id]?.[s];
+                          return<div key={s} style={{textAlign:'center',fontWeight:600,color:typeof v==='number'?v<0?'#15803d':v>0?'#dc2626':'#0f172a':'#94a3b8'}}>{typeof v==='number'?(v>0?'+'+v:v):'—'}</div>;
+                        })}
                       </React.Fragment>
                     ))}
+                  </div>
+
+                  {/* Payouts */}
+                  <div className="slbl">Payouts</div>
+                  {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||2,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||2,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||2,seg:'overall'}].map(({l,pot,pl,seg})=>
+                    parseFloat(pot||0)>0?(
+                      <div key={l} style={{marginBottom:8}}>
+                        <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{l}</div>
+                        {paySection(r.scores,r.teams,pot,pl,seg).map(({label,teams:wt,amt,split},i)=>(
+                          <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}>
+                            <span style={{color:'#475569'}}>{label} — {wt.map(t=>t.name).join(' & ')}</span>
+                            <span style={{fontWeight:800,color:split?'#f59e0b':'#15803d',fontFamily:'Syne'}}>{f$(amt)}{split?' ea':''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ):null
+                  )}
+                  {parseFloat(r.scores.skinsPot||0)>0&&(
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>Skins</div>
+                      {Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{
+                        const t=r.teams.find(t=>String(t.id)===String(tid));
+                        const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
+                        const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+                        return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}>
+                          <span style={{color:'#475569'}}>{t.name} — {c} skin{c!==1?'s':''}</span>
+                          <span style={{fontWeight:800,color:'#15803d',fontFamily:'Syne'}}>{f$(tsk>0?(net/tsk)*c:0)}</span>
+                        </div>:null;
+                      })}
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0'}}>
+                        <span style={{color:'#c9a84c'}}>Tournament fund</span>
+                        <span style={{fontWeight:800,color:'#c9a84c',fontFamily:'Syne'}}>{f$(r.scores.tournFund||0)}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:900,borderTop:'2px solid #0f172a',paddingTop:8,fontFamily:'Syne',fontStyle:'italic'}}>
+                    <span>Total pot</span><span style={{color:'#15803d'}}>{f$((r.playerCount||0)*25)}</span>
                   </div>
                 </div>
               )}
@@ -868,77 +1163,120 @@ function HistoryView({history}){
   );
 }
 
-// ── ADMIN VIEW ────────────────────────────────────────────────────────────────
-function AdminView({isAdmin,onLogin,onLogout,gameData,onCreate,onArchive,onAddPlayer,roster}){
-  const [pw,setPw]=useState('');
-  const [g,setG]=useState({day:'Saturday',date:td(),course:'',teetime:''});
+// ── ADMIN VIEW ───────────────────────────────────────────────────────────────
+function AdminView({isAdmin,onLogout,gameData,onCreate,onArchive,onAddPlayer,onRemovePlayer,roster,signups,onRemoveSignup,onAddSignup}){
+  const [g,setG]=useState({day:'Saturday',date:td()});
   const [np,setNp]=useState({name:'',email:''});
-  const [showG,setShowG]=useState(false);const [showP,setShowP]=useState(false);
-  if(!isAdmin)return(
-    <div>
-      <div className="card card-body">
-        <div style={{fontFamily:'Syne',fontSize:19,fontWeight:800,color:'#0f172a',marginBottom:14}}>Admin login</div>
-        <div className="fg"><label className="fl">Password</label><input className="fi" type="password" placeholder="Enter admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onLogin(pw)}/></div>
-        <button className="btn btn-primary btn-full" onClick={()=>onLogin(pw)}>Sign in as admin</button>
-      </div>
-      <div style={{textAlign:'center',fontSize:11,color:'#94a3b8',marginTop:10,fontWeight:600}}>Contact Clark for the admin password.</div>
-    </div>
-  );
+  const [showG,setShowG]=useState(!gameData);
+  const [showP,setShowP]=useState(false);
+  const [addQ,setAddQ]=useState('');
+  const [addDay,setAddDay]=useState('Saturday');
+
+  const rosterFiltered=ROSTER.filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,15);
+  const signupList=Object.entries(signups||{}).sort((a,b)=>a[1].day.localeCompare(b[1].day));
+
   return(
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-        <div style={{display:'flex',alignItems:'center',gap:8}}><span className="admin-tag">Admin</span><span style={{fontSize:14,fontWeight:800,color:'#0f172a'}}>Control panel</span></div>
-        <button className="btn btn-sec btn-sm" onClick={onLogout}>Sign out</button>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span className="admin-tag">Admin</span><span style={{fontSize:14,fontWeight:800,fontStyle:'italic'}}>Control panel</span></div>
+        <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
       </div>
-      <div className="card card-body" style={{marginBottom:10}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showG?13:0}}>
-          <div style={{fontWeight:800,fontSize:14,color:'#0f172a'}}>Current game</div>
-          <button className="btn btn-primary btn-sm" onClick={()=>setShowG(!showG)}>{Ic.plus} New game</button>
+
+      {/* Create game */}
+      <div className="card card-hdr-section" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',cursor:'pointer'}} onClick={()=>setShowG(!showG)}>
+          <div style={{fontWeight:800,fontSize:14,fontStyle:'italic'}}>
+            {gameData?`Current game — ${gameData.day}`:'Create this week\'s game'}
+          </div>
+          <svg style={{width:16,height:16,color:'#94a3b8',transform:showG?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         {showG&&(
-          <div style={{borderTop:'1px solid #f1f5f9',paddingTop:13}}>
-            <div className="fr">
+          <div style={{padding:'0 14px 14px',borderTop:'1px solid #f1f5f9'}}>
+            {gameData&&(
+              <div style={{marginBottom:12,padding:'10px 12px',background:'#f8fafc',borderRadius:10}}>
+                <div style={{fontWeight:700,color:'#34d399',fontSize:14,fontStyle:'italic'}}>{gameData.day} · {fmtDFull(gameData.date)}</div>
+                <div style={{fontSize:11,color:'#94a3b8',marginTop:3}}>Status: {gameData.complete?'Complete':gameData.teamsPublished?'Teams published':'Sign-ups open'}</div>
+                <button className="btn btn-danger btn-sm" style={{marginTop:10}} onClick={onArchive}>Archive &amp; close round</button>
+              </div>
+            )}
+            <div className="fr" style={{marginTop:gameData?8:0}}>
               <div className="fg"><label className="fl">Day</label><select className="fs" value={g.day} onChange={e=>setG({...g,day:e.target.value})}><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
               <div className="fg"><label className="fl">Date</label><input className="fi" type="date" value={g.date} onChange={e=>setG({...g,date:e.target.value})}/></div>
             </div>
-            <div className="fg"><label className="fl">Course (optional)</label><input className="fi" placeholder="e.g. Laytonsville" value={g.course} onChange={e=>setG({...g,course:e.target.value})}/></div>
-            <div style={{display:'flex',gap:7}}>
-              <button className="btn btn-primary btn-sm" onClick={()=>{onCreate(g);setShowG(false)}}>Create game</button>
-              <button className="btn btn-sec btn-sm" onClick={()=>setShowG(false)}>Cancel</button>
-            </div>
+            <button className="btn btn-emerald btn-full btn-sm" onClick={()=>{onCreate(g);setShowG(false);}}>
+              {gameData?'Create new game (clears current)':'Create game'}
+            </button>
           </div>
         )}
-        {gameData&&!showG&&(
-          <div style={{marginTop:11,paddingTop:11,borderTop:'1px solid #f1f5f9'}}>
-            <div style={{fontFamily:'Syne',fontWeight:800,color:'#15803d',fontSize:15}}>{gameData.day} · {fmtDFull(gameData.date)}</div>
-            {gameData.course&&<div style={{fontSize:11,color:'#94a3b8',marginTop:2,fontWeight:600}}>{gameData.course}</div>}
-            <button className="btn btn-danger btn-sm" style={{marginTop:11}} onClick={onArchive}>Archive &amp; close round</button>
-          </div>
-        )}
-        {!gameData&&!showG&&<div style={{fontSize:12,color:'#94a3b8',marginTop:8,fontWeight:600}}>No active game. Create one above.</div>}
       </div>
-      <div className="card card-body">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showP?13:0}}>
-          <div style={{fontWeight:800,fontSize:14,color:'#0f172a'}}>Roster <span style={{fontWeight:500,fontSize:12,color:'#94a3b8'}}>({roster.filter(p=>!p.isGuest).length})</span></div>
-          <button className="btn btn-sec btn-sm" onClick={()=>setShowP(!showP)}>{Ic.plus} Add player</button>
+
+      {/* Manage sign-ups */}
+      {gameData&&(
+        <div className="card card-body" style={{marginBottom:10}}>
+          <div className="slbl">Manage sign-ups</div>
+          <div style={{display:'flex',gap:8,marginBottom:10}}>
+            <select className="fs" style={{flex:1}} value={addDay} onChange={e=>setAddDay(e.target.value)}>
+              <option>Friday</option><option>Saturday</option><option>Sunday</option>
+            </select>
+            <span style={{fontSize:12,color:'#94a3b8',alignSelf:'center',whiteSpace:'nowrap'}}>{signupList.length} total</span>
+          </div>
+          <div className="sw" style={{marginBottom:8}}>
+            <span className="si-icon">{Ic.search}</span>
+            <input className="si" placeholder="Search to quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/>
+          </div>
+          {addQ&&(
+            <div style={{border:'1px solid #e2e8f0',borderRadius:10,marginBottom:10,maxHeight:160,overflowY:'auto'}}>
+              {rosterFiltered.map(p=>{
+                const alreadyDay=Object.values(signups||{}).some(s=>s.day===addDay&&s.name===p.name);
+                return(
+                  <div key={p.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',borderBottom:'1px solid #f1f5f9'}}>
+                    <span style={{fontSize:13,fontWeight:600,color:alreadyDay?'#94a3b8':'#0f172a'}}>{p.name}{alreadyDay?` (in ${addDay})`:''}</span>
+                    {!alreadyDay&&<button className="btn btn-emerald btn-xs" onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:'Whites',handicap:10,day:addDay,signedUpAt:Date.now()});setAddQ('');}}>Add</button>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Current sign-up list with remove */}
+          <div style={{maxHeight:200,overflowY:'auto'}}>
+            {signupList.map(([key,s])=>(
+              <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
+                <div>
+                  <span style={{fontSize:13,fontWeight:600}}>{s.name}</span>
+                  <span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.day} · {s.tee} {s.handicap}</span>
+                  {s.isGuest&&<span className="pill pill-gray" style={{marginLeft:4,fontSize:9}}>Guest</span>}
+                </div>
+                <button className="remove-btn" onClick={()=>onRemoveSignup(key)}>{Ic.trash}</button>
+              </div>
+            ))}
+            {signupList.length===0&&<div style={{fontSize:13,color:'#94a3b8',textAlign:'center',padding:12}}>No sign-ups yet</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Roster management */}
+      <div className="card card-body" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showP?12:0}}>
+          <div style={{fontWeight:800,fontSize:14,fontStyle:'italic'}}>Roster <span style={{fontWeight:400,fontSize:12,color:'#94a3b8',fontStyle:'normal'}}>({roster.length} members)</span></div>
+          <button className="btn btn-outline btn-sm" onClick={()=>setShowP(!showP)}>{showP?'Done':'+ Add player'}</button>
         </div>
         {showP&&(
-          <div style={{borderTop:'1px solid #f1f5f9',paddingTop:13}}>
+          <div style={{borderTop:'1px solid #f1f5f9',paddingTop:12,marginBottom:12}}>
             <div className="fr">
               <div className="fg"><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
               <div className="fg"><label className="fl">Email (opt)</label><input className="fi" placeholder="email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/></div>
             </div>
-            <div style={{display:'flex',gap:7}}>
-              <button className="btn btn-primary btn-sm" onClick={()=>{if(np.name){onAddPlayer(np);setNp({name:'',email:''});setShowP(false)}}}>Add to roster</button>
-              <button className="btn btn-sec btn-sm" onClick={()=>setShowP(false)}>Cancel</button>
-            </div>
+            <button className="btn btn-emerald btn-sm" onClick={()=>{if(np.name){onAddPlayer(np);setNp({name:'',email:''});}}}>Add to roster</button>
           </div>
         )}
-        <div style={{maxHeight:210,overflowY:'auto',marginTop:showP?8:4}}>
-          {roster.filter(p=>!p.isGuest).map(p=>(
+        <div style={{maxHeight:240,overflowY:'auto'}}>
+          {roster.map(p=>(
             <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
-              <span style={{fontWeight:600,color:'#0f172a'}}>{p.name}</span>
-              {p.id>96&&<span className="pill pill-green" style={{fontSize:9}}>New</span>}
+              <span style={{fontWeight:600}}>{p.name}{p.isGuest?<span className="pill pill-gray" style={{marginLeft:5,fontSize:9}}>Guest</span>:''}</span>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                {p.id>96&&<span className="pill pill-green" style={{fontSize:9}}>New</span>}
+                {p.id>96&&<button className="remove-btn" onClick={()=>onRemovePlayer(p.id)} title="Remove">{Ic.trash}</button>}
+              </div>
             </div>
           ))}
         </div>
@@ -947,7 +1285,7 @@ function AdminView({isAdmin,onLogin,onLogout,gameData,onCreate,onArchive,onAddPl
   );
 }
 
-// ── ROOT APP ──────────────────────────────────────────────────────────────────
+// ── APP ROOT ─────────────────────────────────────────────────────────────────
 function App(){
   const [role,setRole]=useState(null);
   const [tab,setTab]=useState('home');
@@ -960,7 +1298,9 @@ function App(){
   const [history,setHistory]=useState({});
   const [extra,setExtra]=useState([]);
   const {ready,read,write,push,del}=useDB();
-  const roster=[...ROSTER,...extra];
+
+  // Roster = base + extra players added by admin
+  const roster=extra.filter(p=>!p.isGuest);
 
   useEffect(()=>{
     if(!ready||isDemo)return;
@@ -974,27 +1314,45 @@ function App(){
     return()=>u.forEach(f=>typeof f==='function'&&f());
   },[ready,isDemo]);
 
-  function login(pw){if(pw===ADMIN_PW)setIsAdmin(true);else alert('Wrong password')}
-  function createGame(g){write('currentGame',{...g,teamsPublished:false,complete:false,createdAt:Date.now()});write('signups',{});write('teams',[]);write('scores',null)}
+  function createGame(g){
+    write('currentGame',{...g,teamsPublished:false,complete:false,createdAt:Date.now()});
+    write('signups',{});write('teams',[]);write('scores',null);
+  }
   function archive(){
-    if(!game||!window.confirm('Archive this round?'))return;
+    if(!game||!window.confirm('Archive this round and move to history?'))return;
     push('history',{...game,teams,scores,playerCount:Object.keys(signups).length,archivedAt:Date.now()});
     write('currentGame',null);write('signups',{});write('teams',[]);write('scores',null);
   }
-  function markComplete(){write('currentGame',{...game,complete:true})}
+  function markComplete(){write('currentGame',{...game,complete:true});setTab('scoring');}
+  function reopenRound(){write('currentGame',{...game,complete:false});}
   function updateTeeTime(day,data){
-    const teeTimes={...(game.teeTimes||{})};
-    if(data===null)delete teeTimes[day];else teeTimes[day]=data;
-    write('currentGame',{...game,teeTimes});
+    const tt={...(game.teeTimes||{})};
+    if(data===null)delete tt[day];else tt[day]=data;
+    write('currentGame',{...game,teeTimes:tt});
   }
+  function saveScores(s){write('scores',s);}
+  function moveToHistory(){
+    if(!game)return;
+    push('history',{...game,teams,scores,playerCount:Object.keys(signups).length,archivedAt:Date.now()});
+    write('currentGame',null);write('signups',{});write('teams',[]);write('scores',null);
+    setTab('history');
+  }
+  function addPlayer(p){
+    const newP={...p,id:1000+extra.length+1};
+    write('extraPlayers',[...extra,newP]);
+  }
+  function removePlayer(id){
+    write('extraPlayers',extra.filter(p=>p.id!==id));
+  }
+  function updateTeams(t){write('teams',t);}
 
   function startDemo(){
     const{signups:ds,teams:dt}=makeDemoData();
-    const demoGame={day:'Saturday',date:td(),course:'Demo Course',teamsPublished:true,complete:true,createdAt:Date.now(),teeTimes:{Saturday:{time:'08:30',lottery:false}}};
-    setGame(demoGame);setSignups(ds);setTeams(dt);setScores(null);setIsDemo(true);setIsAdmin(true);setRole('admin');setTab('home');
+    setGame({day:'Saturday',date:td(),teamsPublished:true,complete:true,createdAt:Date.now()});
+    setSignups(ds);setTeams(dt);setScores(null);setIsDemo(true);setIsAdmin(true);setRole('admin');setTab('home');
   }
 
-  if(!role)return <Landing onPlayer={()=>{setRole('player');setTab('home')}} onAdmin={()=>{setRole('admin');setTab('home')}} onDemo={startDemo}/>;
+  if(!role)return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');setIsAdmin(true);setTab('home');}} onDemo={startDemo}/>;
 
   const totalSignups=Object.keys(signups||{}).length;
   const activeDays=['Friday','Saturday','Sunday'].filter(d=>Object.values(signups||{}).some(s=>s.day===d)).length;
@@ -1014,6 +1372,7 @@ function App(){
     {id:'admin',label:'Admin',icon:Ic.gear},
   ];
   const TABS=role==='admin'?TABS_ADMIN:TABS_PLAYER;
+  const fullRoster=[...ROSTER,...extra];
 
   return(
     <div className="app">
@@ -1023,11 +1382,12 @@ function App(){
           <div className="hdr-top">
             <div>
               <div className="hdr-brand">Clark <em>Golf</em> Group</div>
-              <div className="hdr-sub">Weekly game</div>
+              <div className="hdr-sub">{getWeekLabel()}</div>
             </div>
             <div className="hdr-right">
               {isAdmin&&<span className="admin-tag">Admin</span>}
-              <button className="switch-btn" onClick={()=>{setRole(null);setIsAdmin(false);setIsDemo(false)}}>Switch</button>
+              {isDemo&&<span className="pill pill-amber" style={{fontSize:9}}>Demo</span>}
+              <button className="switch-btn" onClick={()=>{setRole(null);setIsAdmin(false);setIsDemo(false);}}>Switch</button>
             </div>
           </div>
           <div className="hdr-stats">
@@ -1037,35 +1397,79 @@ function App(){
           </div>
           <div style={{marginTop:10,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             {game?(
-              <div className="hdr-pill"><span className="hdr-dot"/>{game.day}{game.course?' · '+game.course:''}</div>
+              <div className="hdr-pill"><span className="hdr-dot"/>{game.day} · {fmtD(game.date)}{game.complete?' · Complete':''}</div>
             ):(
               <div className="hdr-pill" style={{opacity:0.5}}>No game scheduled</div>
             )}
-            {isDemo&&<span className="pill pill-amber" style={{fontSize:9}}>⚡ Demo</span>}
           </div>
         </div>
       </div>
+
       <nav className="nav">
         {TABS.map(t=>(
-          <button key={t.id} className={`nav-btn${tab===t.id?' on':''}${t.locked?' locked':''}`}
-            onClick={()=>!t.locked&&setTab(t.id)}>
-            {t.icon}
-            {t.label}
-            {t.locked&&<span style={{fontSize:7,opacity:0.6}}>🔒</span>}
+          <button key={t.id} className={`nav-btn${tab===t.id?' on':''}${t.locked?' locked':''}`} onClick={()=>!t.locked&&setTab(t.id)}>
+            {t.icon}{t.label}
+            {t.locked&&<span style={{fontSize:7,opacity:0.5}}>🔒</span>}
           </button>
         ))}
       </nav>
+
       <div className="content">
-        {tab==='home'&&<WeekView game={game} signups={signups} isAdmin={isAdmin} isDemo={isDemo} onSignup={d=>push('signups',d)} onRemove={k=>del('signups/'+k)} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete}/>}
-        {tab==='teams'&&<TeamsView game={game?{...game,signups}:null} teams={teams} signups={signups} isAdmin={isAdmin} onSave={t=>write('teams',t)} onPublish={()=>{write('teams',teams);write('currentGame',{...game,teamsPublished:true})}}/>}
-        {tab==='scoring'&&<ScoringView game={game?{...game,signups}:null} teams={teams} scores={scores} onSave={s=>write('scores',s)} isAdmin={isAdmin} unlocked={scoringUnlocked}/>}
+        {tab==='home'&&(
+          <WeekView
+            game={game} signups={signups} isAdmin={isAdmin} isDemo={isDemo}
+            onSignup={d=>push('signups',d)}
+            onRemove={k=>del('signups/'+k)}
+            onUpdateSignup={(k,v)=>{
+              const s=signups[k];
+              if(s)write('signups/'+k,{...s,...v});
+            }}
+            onUpdateTeeTime={updateTeeTime}
+            onMarkComplete={markComplete}
+            onReopenRound={reopenRound}
+          />
+        )}
+        {tab==='teams'&&(
+          <TeamsView
+            game={game?{...game,signups}:null}
+            teams={teams} signups={signups} isAdmin={isAdmin}
+            onSave={t=>write('teams',t)}
+            onPublish={()=>{write('teams',teams);write('currentGame',{...game,teamsPublished:true});}}
+            onUpdatePlayer={updateTeams}
+          />
+        )}
+        {tab==='scoring'&&(
+          <ScoringView
+            game={game?{...game,signups}:null}
+            teams={teams} scores={scores}
+            onSave={saveScores}
+            onMoveToHistory={moveToHistory}
+            isAdmin={isAdmin} unlocked={scoringUnlocked}
+          />
+        )}
         {tab==='history'&&<HistoryView history={history}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogin={login} onLogout={()=>setIsAdmin(false)} gameData={game} onCreate={createGame} onArchive={archive} onAddPlayer={p=>write('extraPlayers',[...extra,{...p,id:100+extra.length+1}])} roster={roster}/>}
+        {tab==='admin'&&(
+          <AdminView
+            isAdmin={isAdmin}
+            onLogout={()=>{setIsAdmin(false);setRole(null);}}
+            gameData={game}
+            onCreate={createGame}
+            onArchive={archive}
+            onAddPlayer={addPlayer}
+            onRemovePlayer={removePlayer}
+            roster={fullRoster}
+            signups={signups}
+            onRemoveSignup={k=>del('signups/'+k)}
+            onAddSignup={d=>push('signups',d)}
+          />
+        )}
       </div>
     </div>
   );
 }
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
 </script>
 </body>
 </html>
