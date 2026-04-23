@@ -527,7 +527,10 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   const [newTime,setNewTime]=useState('');
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
-  const [myName,setMyName]=useState(null);
+  const [myName,setMyName]=useState(()=>{
+    try{return localStorage.getItem('cgMyName')||null;}catch{return null;}
+  });
+  const setMyNamePersist=n=>{setMyName(n);try{if(n)localStorage.setItem('cgMyName',n);else localStorage.removeItem('cgMyName');}catch{}};
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
 
   if(!week||!week.activeDays||week.activeDays.length===0){
@@ -560,8 +563,8 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     if(!name||!hcp)return;
     const selectedDays=activeDays.filter(d=>signupDays[d]);
     if(!selectedDays.length)return;
-    if(!isGuest&&sel)setMyName(name);
-    if(isGuest&&gname)setMyName(gname.trim());
+    if(!isGuest&&sel)setMyNamePersist(name);
+    if(isGuest&&gname)setMyNamePersist(gname.trim());
     const pid=isGuest?'g_'+Date.now():parseInt(sel);
     selectedDays.forEach((day,i)=>{
       const dup=Object.values(allSignups).some(s=>s.day===day&&s.name===name);
@@ -1665,7 +1668,10 @@ function App(){
   function markComplete(day){write('week',{...week,complete:{...(week.complete||{}),[day]:true}});}
   function reopenDay(day){
     const sc=(week.scores&&week.scores[day])||{};
-    write('week',{...week,complete:{...(week.complete||{}),[day]:false},scores:{...(week.scores||{}),[day]:{...sc,payoutsCalculated:false}}});
+    write('week',{...week,
+      complete:{...(week.complete||{}),[day]:false},
+      scores:{...(week.scores||{}),[day]:{...sc,payoutsCalculated:false,savedAt:sc.savedAt||null}}
+    });
   }
   function updateTeeTime(day,data){
     const tt={...(week.teeTimes||{})};
