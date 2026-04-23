@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>Clark Golf Group</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -10,209 +10,237 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --dark:#0f1a0f;--dark2:#1a2a1a;--dark3:#243024;
-  --green:#2d6a27;--green-mid:#3d8a35;--green-accent:#4ec942;
-  --green-light:#e3f5e0;--green-pale:#f0faf0;
-  --gold:#c9a84c;--gold-light:#fdf8ed;--gold-dark:#a8841a;
-  --white:#ffffff;--off:#f7f9f6;
-  --text:#0d120d;--text-mid:#3a453a;--text-muted:#7a8a7a;
-  --border:#e0e8de;--border-mid:#cad6c8;
-  --danger:#d63031;--danger-light:#fef0ef;
-  --r:14px;--rs:9px;--rx:5px;
-}
-html,body{height:100%;font-family:'Inter',sans-serif;background:#e8ede6;color:var(--text);-webkit-font-smoothing:antialiased}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 #root{min-height:100%}
-.app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--white);display:flex;flex-direction:column}
+.app{max-width:430px;margin:0 auto;min-height:100vh;background:#f1f5f9;display:flex;flex-direction:column}
 
-/* ── HEADER ── */
-.hdr{background:var(--dark);padding:28px 20px 0;position:relative;overflow:hidden}
-.hdr::before{content:'';position:absolute;top:-40px;right:-30px;width:160px;height:160px;border-radius:50%;background:rgba(78,201,66,0.06)}
-.hdr::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:22px;background:var(--white);border-radius:22px 22px 0 0}
-.hdr-inner{position:relative;z-index:1;padding-bottom:28px}
-.hdr-eyebrow{font-size:9px;font-weight:700;letter-spacing:0.18em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:5px}
-.hdr-title{font-family:'Syne',sans-serif;font-size:27px;font-weight:800;color:var(--white);line-height:1.0;margin-bottom:2px;letter-spacing:-0.01em}
-.hdr-title span{color:var(--green-accent)}
-.hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
-.hdr-stat{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 8px;text-align:center}
-.hdr-stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green-accent)}
-.hdr-stat-lbl{font-size:9px;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-top:2px}
-.hdr-game-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-top:10px}
-.hdr-dot{width:6px;height:6px;border-radius:50%;background:var(--green-accent);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+/* LANDING */
+.land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;position:relative;overflow:hidden}
+.land-bg1{position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(52,211,153,0.06);pointer-events:none}
+.land-bg2{position:absolute;bottom:-80px;left:-40px;width:280px;height:280px;border-radius:50%;background:rgba(201,168,76,0.04);pointer-events:none}
+.land-inner{position:relative;z-index:1;width:100%;max-width:360px}
+.land-eyebrow{font-size:10px;font-weight:900;letter-spacing:0.22em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:10px;text-align:center}
+.land-title{font-family:'Syne',sans-serif;font-size:38px;font-weight:800;color:#fff;text-align:center;line-height:1.0;margin-bottom:6px;letter-spacing:-0.02em}
+.land-title em{color:#34d399;font-style:italic}
+.land-sub{font-size:13px;color:rgba(255,255,255,0.35);text-align:center;margin-bottom:44px;font-weight:500;line-height:1.5}
+.land-btn{width:100%;padding:18px 20px;border-radius:16px;border:none;font-family:'Inter',sans-serif;font-size:15px;font-weight:900;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:14px;margin-bottom:10px;letter-spacing:0.01em;text-align:left}
+.land-btn-player{background:#34d399;color:#0f172a;border-bottom:4px solid #059669}
+.land-btn-player:hover{background:#6ee7b7}
+.land-btn-admin{background:rgba(255,255,255,0.07);color:#fff;border:1px solid rgba(255,255,255,0.12);border-bottom:4px solid rgba(0,0,0,0.3)}
+.land-btn-admin:hover{background:rgba(255,255,255,0.12)}
+.land-btn-demo{background:rgba(201,168,76,0.15);color:#fbbf24;border:1px solid rgba(201,168,76,0.25);border-bottom:4px solid rgba(0,0,0,0.3);margin-top:6px}
+.land-btn-demo:hover{background:rgba(201,168,76,0.22)}
+.land-btn-icon{width:40px;height:40px;border-radius:12px;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.land-btn-icon svg{width:20px;height:20px}
+.land-btn-text-main{font-size:15px;font-weight:900;line-height:1.2}
+.land-btn-text-sub{font-size:11px;font-weight:500;opacity:0.6;margin-top:1px}
+.land-btn-arrow{margin-left:auto;font-size:22px;opacity:0.4;flex-shrink:0}
 
-/* ── NAV ── */
-.nav{display:flex;background:var(--white);border-bottom:1px solid var(--border);padding:0 4px}
-.nav-btn{flex:1;padding:12px 2px 10px;background:none;border:none;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color 0.15s;letter-spacing:0.04em;text-transform:uppercase;position:relative}
-.nav-btn svg{width:19px;height:19px;stroke-width:1.8}
-.nav-btn.active{color:var(--green)}
-.nav-btn.active::after{content:'';position:absolute;bottom:0;left:16%;right:16%;height:2.5px;background:var(--gold);border-radius:2px 2px 0 0}
-.content{flex:1;padding:20px 14px 40px}
+/* HEADER */
+.hdr{background:#0f172a;padding:24px 16px 0;position:relative;overflow:hidden}
+.hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:20px;background:#f1f5f9;border-radius:20px 20px 0 0}
+.hdr-inner{position:relative;z-index:1;padding-bottom:24px}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.hdr-brand{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.1}
+.hdr-brand em{color:#34d399;font-style:italic}
+.hdr-sub{font-size:9px;font-weight:900;letter-spacing:0.22em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:3px}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:10px;padding:9px 6px;text-align:center}
+.hdr-stat-n{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#34d399;line-height:1}
+.hdr-stat-l{font-size:8px;font-weight:900;letter-spacing:0.12em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-top:2px}
+.hdr-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.7)}
+.hdr-dot{width:6px;height:6px;border-radius:50%;background:#34d399;animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.switch-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase}
 
-/* ── LANDING ── */
-.landing{min-height:100vh;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;position:relative;overflow:hidden}
-.landing::before{content:'';position:absolute;top:-80px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(78,201,66,0.05)}
-.landing::after{content:'';position:absolute;bottom:-60px;left:-40px;width:200px;height:200px;border-radius:50%;background:rgba(201,168,76,0.05)}
-.land-logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.2em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:32px}
-.land-title{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--white);text-align:center;line-height:1.05;margin-bottom:6px}
-.land-title span{color:var(--green-accent)}
-.land-sub{font-size:13px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:48px;font-weight:500}
-.land-btn{width:100%;padding:18px 24px;border-radius:14px;border:none;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;letter-spacing:0.02em}
-.land-btn-primary{background:var(--green-accent);color:var(--dark)}
-.land-btn-primary:hover{background:#5de858}
-.land-btn-secondary{background:rgba(255,255,255,0.07);color:var(--white);border:1px solid rgba(255,255,255,0.15)}
-.land-btn-secondary:hover{background:rgba(255,255,255,0.12)}
-.land-btn-arrow{font-size:20px;opacity:0.6}
+/* NAV */
+.nav{display:flex;background:#fff;border-bottom:1px solid #e2e8f0}
+.nav-btn{flex:1;padding:11px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'Inter',sans-serif;font-size:9px;font-weight:900;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color 0.15s;letter-spacing:0.08em;text-transform:uppercase;position:relative}
+.nav-btn svg{width:19px;height:19px;stroke-width:2}
+.nav-btn.on{color:#0f172a}
+.nav-btn.on::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2.5px;background:#c9a84c;border-radius:2px 2px 0 0}
+.nav-btn.locked{opacity:0.35;cursor:not-allowed}
+.content{flex:1;padding:16px 12px 40px}
 
-/* ── CARDS ── */
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
-.card-flush{padding:0;overflow:hidden}
+/* CARDS */
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;margin-bottom:10px}
+.card-body{padding:14px}
+.card-hdr{background:#0f172a;padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+.card-hdr-title{font-size:10px;font-weight:900;letter-spacing:0.2em;color:#34d399;text-transform:uppercase;font-family:'Syne',sans-serif}
 
-/* ── DAY CARDS (week dashboard) ── */
-.day-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:box-shadow 0.15s}
-.day-card-hdr{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
-.day-card-hdr:hover{background:var(--off)}
-.day-left{display:flex;align-items:center;gap:10px}
-.day-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.01em}
-.day-date{font-size:12px;color:var(--text-muted);font-weight:500}
-.day-right{display:flex;align-items:center;gap:8px}
-.day-count{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;background:var(--green);color:var(--white);padding:3px 10px;border-radius:20px}
-.day-count.zero{background:var(--border);color:var(--text-muted)}
-.day-chevron{color:var(--text-muted);transition:transform 0.2s;width:18px;height:18px;flex-shrink:0}
-.day-chevron.open{transform:rotate(180deg)}
-.day-body{border-top:1px solid var(--border);background:var(--off)}
-.day-empty{padding:16px;text-align:center;font-size:13px;color:var(--text-muted);font-style:italic}
-.player-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)}
-.player-row:last-child{border-bottom:none}
-.player-info{display:flex;align-items:center;gap:9px}
-.avatar{width:32px;height:32px;border-radius:50%;background:var(--green-light);color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Syne',sans-serif}
-.player-name-text{font-size:13px;font-weight:600}
-.player-meta{display:flex;align-items:center;gap:5px;margin-top:2px}
-.tee-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
-.player-meta-text{font-size:11px;color:var(--text-muted)}
-.remove-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:5px;border-radius:6px;transition:color 0.15s;display:flex}
-.remove-btn:hover{color:var(--danger)}
+/* DAY CARDS */
+.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.day-hdr{padding:13px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;-webkit-user-select:none;gap:8px}
+.day-hdr:hover{background:#f8fafc}
+.day-left{flex:1;min-width:0}
+.day-name{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#0f172a;letter-spacing:-0.01em;font-style:italic}
+.day-date{font-size:11px;font-weight:600;color:#94a3b8;margin-top:1px}
+.day-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.day-count{font-size:10px;font-weight:900;letter-spacing:0.06em;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+.day-count-active{background:#dcfce7;color:#15803d}
+.day-count-zero{background:#f1f5f9;color:#94a3b8}
+.day-chev{color:#94a3b8;transition:transform 0.2s;flex-shrink:0}
+.day-chev.open{transform:rotate(180deg)}
+.day-body{border-top:1px solid #f1f5f9;background:#f8fafc}
+.day-empty{padding:14px 16px;font-size:13px;color:#94a3b8;text-align:center;font-style:italic}
 
-/* ── SIGNUP MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;z-index:200}
-.modal{background:var(--white);border-radius:22px 22px 0 0;padding:20px 18px 40px;width:100%;max-height:88vh;overflow-y:auto}
-.modal-handle{width:36px;height:4px;background:var(--border-mid);border-radius:2px;margin:0 auto 20px}
-.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:18px;letter-spacing:-0.01em}
+/* TEE TIME BADGE */
+.tee-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:900;letter-spacing:0.06em;text-transform:uppercase}
+.tee-badge-lottery{background:#fef9c3;color:#a16207;border:1px solid #fde68a}
+.tee-badge-set{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.tee-badge-complete{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
 
-/* ── FORMS ── */
-.form-group{margin-bottom:14px}
-.form-label{font-size:11px;font-weight:700;color:var(--text-mid);margin-bottom:5px;display:block;letter-spacing:0.06em;text-transform:uppercase}
-.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:'Inter',sans-serif;font-size:15px;color:var(--text);background:var(--white);outline:none;transition:border-color 0.15s}
-.form-input:focus{border-color:var(--green-accent)}
-.form-select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:'Inter',sans-serif;font-size:15px;color:var(--text);background:var(--white);outline:none;appearance:none}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.search-wrap{position:relative;margin-bottom:10px}
-.search-input{width:100%;padding:11px 14px 11px 36px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:'Inter',sans-serif;outline:none;background:var(--off)}
-.search-input:focus{border-color:var(--green-accent);background:var(--white)}
-.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:15px;height:15px}
-.player-pick{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
-.player-pick:last-child{border-bottom:none}
-.player-pick:hover{background:var(--off)}
-.player-pick.sel{background:var(--green-light)}
+/* PLAYER ROWS */
+.p-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f1f5f9}
+.p-row:last-child{border-bottom:none}
+.p-info{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.avatar{width:32px;height:32px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Syne',sans-serif}
+.p-name{font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-meta{display:flex;align-items:center;gap:4px;margin-top:1px}
+.tee-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.p-meta-txt{font-size:10px;font-weight:600;color:#94a3b8}
+.remove-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:5px;border-radius:8px;transition:color 0.15s;display:flex;flex-shrink:0;margin-left:8px}
+.remove-btn:hover{color:#ef4444}
 
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--rs);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.01em}
-.btn-primary{background:var(--green);color:white}
-.btn-primary:hover{background:var(--dark2)}
+/* SIGNUP AREA */
+.signup-area{padding:11px 14px;border-top:1px solid #f1f5f9}
+
+/* COMPLETE BANNER */
+.complete-banner{background:#dbeafe;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin:8px 14px;display:flex;align-items:center;gap:10px}
+.complete-banner-text{font-size:12px;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.06em}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;z-index:200}
+.modal{background:#fff;border-radius:22px 22px 0 0;padding:20px 16px 40px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#0f172a;margin-bottom:16px;letter-spacing:-0.01em}
+
+/* FORMS */
+.fg{margin-bottom:13px}
+.fl{font-size:9px;font-weight:900;color:#64748b;margin-bottom:5px;display:block;letter-spacing:0.14em;text-transform:uppercase}
+.fi{width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
+.fi:focus{border-color:#34d399}
+.fs{width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;color:#0f172a;background:#fff;outline:none;appearance:none}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw{position:relative;margin-bottom:10px}
+.si{width:100%;padding:10px 13px 10px 34px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;background:#f8fafc}
+.si:focus{border-color:#34d399;background:#fff}
+.si-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#94a3b8;width:15px;height:15px}
+.pp{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.1s}
+.pp:last-child{border-bottom:none}
+.pp:hover{background:#f8fafc}
+.pp.sel{background:#dcfce7}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:900;cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.02em;white-space:nowrap}
+.btn-primary{background:#15803d;color:#fff;border-bottom:3px solid #14532d}
+.btn-primary:hover{background:#16a34a}
 .btn-primary:active{transform:scale(0.97)}
-.btn-accent{background:var(--green-accent);color:var(--dark);font-family:'Syne',sans-serif;font-weight:800}
-.btn-accent:hover{background:#5de858}
-.btn-secondary{background:var(--white);border:1.5px solid var(--border-mid);color:var(--text-mid)}
-.btn-secondary:hover{background:var(--off)}
-.btn-gold{background:var(--gold);color:white}
-.btn-gold:hover{background:var(--gold-dark)}
-.btn-danger{background:var(--danger);color:white}
-.btn-ghost{background:none;border:none;cursor:pointer;padding:7px;color:var(--text-muted)}
-.btn-sm{padding:8px 14px;font-size:13px}
-.btn-xs{padding:5px 10px;font-size:12px}
+.btn-emerald{background:#34d399;color:#0f172a;border-bottom:3px solid #059669;font-weight:900}
+.btn-emerald:hover{background:#6ee7b7}
+.btn-gold{background:#c9a84c;color:#fff;border-bottom:3px solid #92400e}
+.btn-gold:hover{background:#d4b76a}
+.btn-danger{background:#ef4444;color:#fff;border-bottom:3px solid #991b1b}
+.btn-sec{background:#fff;border:1.5px solid #e2e8f0;color:#475569;font-weight:700}
+.btn-sec:hover{background:#f8fafc}
+.btn-ghost{background:none;border:none;cursor:pointer;padding:6px;color:#94a3b8}
+.btn-sm{padding:7px 13px;font-size:12px}
+.btn-xs{padding:4px 9px;font-size:11px}
 .btn-full{width:100%}
 .btn:disabled{opacity:0.35;cursor:not-allowed}
 
-/* ── SECTION LABEL ── */
-.slbl{font-size:10px;font-weight:700;letter-spacing:0.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px}
+/* TOGGLE */
+.tog-wrap{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;padding:3px;overflow:hidden}
+.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;white-space:nowrap}
+.tog-opt.on{background:#15803d;color:#fff}
 
-/* ── TEAM CARDS ── */
-.team-card{border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
-.team-hdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--dark)}
-.team-name-lbl{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:white}
-.team-hcp-lbl{font-size:12px;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);padding:3px 9px;border-radius:20px}
-.team-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border)}
+/* TEAMS */
+.team-card{border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:10px}
+.team-hdr{background:#0f172a;padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+.team-hdr-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.01em}
+.team-hdr-hcp{font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:20px}
+.team-row{display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid #f1f5f9}
 .team-row:last-child{border-bottom:none}
-.slot{font-size:10px;font-weight:800;font-family:'Syne',sans-serif;background:var(--gold);color:white;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:20px;text-align:center}
+.slot{font-size:9px;font-weight:900;background:#c9a84c;color:#fff;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:19px;text-align:center;letter-spacing:0.04em}
 
-/* ── STATS ROW ── */
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.stat-box{background:var(--dark);border-radius:var(--rs);padding:14px 8px;text-align:center}
-.stat-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green-accent)}
-.stat-lbl{font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
+/* STATS */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat-box{background:#0f172a;border-radius:12px;padding:13px 8px;text-align:center}
+.stat-n{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#34d399;line-height:1}
+.stat-l{font-size:9px;font-weight:900;letter-spacing:0.1em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-top:3px}
 
-/* ── SCORING ── */
-.score-grid{display:grid;grid-template-columns:1fr 68px 68px 68px;gap:8px;align-items:center}
-.score-hd{font-size:10px;font-weight:700;color:var(--text-muted);text-align:center;letter-spacing:0.06em;text-transform:uppercase}
-.score-input{width:100%;padding:9px 4px;border:1.5px solid var(--border);border-radius:var(--rx);font-size:16px;font-weight:700;text-align:center;font-family:'Syne',sans-serif;color:var(--text);outline:none;background:var(--off)}
-.score-input:focus{border-color:var(--green-accent);background:var(--white)}
-.skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
-.skin-btn{padding:20px 10px;border:2px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;text-align:center;transition:all 0.12s;user-select:none;-webkit-user-select:none}
+/* SCORING */
+.sc-grid{display:grid;grid-template-columns:1fr 64px 64px 64px;gap:7px;align-items:center}
+.sc-hd{font-size:9px;font-weight:900;color:#94a3b8;text-align:center;letter-spacing:0.1em;text-transform:uppercase}
+.sc-in{width:100%;padding:8px 4px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:16px;font-weight:800;text-align:center;font-family:'Syne',sans-serif;color:#0f172a;outline:none;background:#f8fafc}
+.sc-in:focus{border-color:#34d399;background:#fff}
+.skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.skin-btn{padding:18px 10px;border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;text-align:center;transition:all 0.12s;user-select:none;-webkit-user-select:none}
 .skin-btn:active{transform:scale(0.93)}
-.skin-btn.on{border-color:var(--green-accent);background:var(--green-pale)}
-.skin-team{font-size:11px;font-weight:700;color:var(--text-mid);margin-bottom:5px;letter-spacing:0.04em;text-transform:uppercase}
-.skin-num{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:var(--green);line-height:1}
-.skin-lbl{font-size:11px;color:var(--text-muted);margin-top:4px}
-.skin-undo{font-size:11px;color:var(--danger);margin-top:6px;cursor:pointer;font-weight:700}
-.payout-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px}
-.payout-row:last-child{border-bottom:none}
-.payout-lbl{color:var(--text-mid)}
-.payout-amt{font-weight:800;color:var(--green);font-family:'Syne',sans-serif;font-size:15px}
-.payout-amt.gold{color:var(--gold)}
-.payout-total{display:flex;justify-content:space-between;padding:12px 0 0;font-size:17px;font-weight:800;border-top:2px solid var(--green);margin-top:4px;font-family:'Syne',sans-serif}
+.skin-btn.on{border-color:#34d399;background:#f0fdf4}
+.skin-team{font-size:10px;font-weight:900;color:#475569;margin-bottom:4px;letter-spacing:0.08em;text-transform:uppercase}
+.skin-num{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:#15803d;line-height:1}
+.skin-lbl{font-size:10px;color:#94a3b8;margin-top:3px;font-weight:600}
+.skin-undo{font-size:10px;color:#ef4444;margin-top:5px;cursor:pointer;font-weight:700}
+.pay-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+.pay-row:last-child{border-bottom:none}
+.pay-lbl{color:#475569;font-weight:500}
+.pay-amt{font-weight:900;color:#15803d;font-family:'Syne',sans-serif;font-size:15px}
+.pay-amt.gold{color:#c9a84c}
+.pay-total{display:flex;justify-content:space-between;padding:11px 0 0;font-size:16px;font-weight:900;border-top:2px solid #0f172a;margin-top:4px;font-family:'Syne',sans-serif}
 
-/* ── HISTORY ── */
-.hist-item{border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
-.hist-hdr{padding:14px 16px;background:var(--off);display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-.hist-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800}
-.hist-meta{font-size:12px;color:var(--text-muted);margin-top:2px}
-.hist-body{padding:14px 16px;border-top:1px solid var(--border)}
+/* HISTORY */
+.hist-item{border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:8px}
+.hist-hdr{padding:13px 14px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.hist-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#0f172a}
+.hist-meta{font-size:11px;color:#94a3b8;margin-top:2px;font-weight:600}
+.hist-body{padding:13px 14px;border-top:1px solid #f1f5f9}
 
-/* ── ADMIN ── */
-.admin-bar{background:var(--gold-light);border:1.5px solid #e8d49a;border-radius:var(--r);padding:16px;margin-bottom:12px}
-.admin-bar-title{font-size:10px;font-weight:800;letter-spacing:0.12em;color:#7a5e10;text-transform:uppercase;margin-bottom:10px}
-.admin-tag{background:var(--gold);color:white;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:0.06em;font-family:'Syne',sans-serif}
+/* ADMIN BAR */
+.admin-bar{background:#fef9c3;border:1.5px solid #fde68a;border-radius:14px;padding:14px;margin-bottom:12px}
+.admin-bar-lbl{font-size:9px;font-weight:900;letter-spacing:0.14em;color:#a16207;text-transform:uppercase;margin-bottom:10px}
+.admin-tag{background:#c9a84c;color:#fff;font-size:9px;font-weight:900;padding:3px 9px;border-radius:20px;letter-spacing:0.08em;text-transform:uppercase;font-family:'Syne',sans-serif}
 
-/* ── TOGGLE ── */
-.toggle{display:flex;background:var(--off);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;padding:3px}
-.tog{flex:1;padding:7px 10px;border:none;background:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);border-radius:16px;transition:all 0.15s}
-.tog.on{background:var(--green);color:white}
+/* ALERTS */
+.alert{border-radius:10px;padding:10px 13px;font-size:12px;margin-bottom:10px;font-weight:600}
+.alert-warn{background:#fef9c3;border:1px solid #fde68a;color:#a16207}
+.alert-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+.alert-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
 
-/* ── ALERTS ── */
-.alert{border-radius:var(--rs);padding:11px 13px;font-size:13px;margin-bottom:12px;font-weight:500}
-.alert-warn{background:#fffbeb;border:1px solid #f0c040;color:#7a5c00}
-.alert-ok{background:var(--green-pale);border:1px solid var(--green-light);color:var(--green)}
-
-/* ── EMPTY ── */
+/* EMPTY */
 .empty{text-align:center;padding:48px 20px}
-.empty svg{width:42px;height:42px;opacity:0.18;margin-bottom:14px}
-.empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px}
-.empty-sub{font-size:14px;color:var(--text-muted);line-height:1.6}
-.divider{height:1px;background:var(--border);margin:14px 0}
-.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
-.pill-green{background:var(--green-light);color:var(--green)}
-.pill-gold{background:var(--gold-light);color:#7a5e10}
-.pill-gray{background:#f0f0ee;color:#555}
-.pill-dark{background:var(--dark);color:white}
+.empty svg{width:40px;height:40px;opacity:0.15;margin-bottom:14px}
+.empty-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px;color:#0f172a}
+.empty-sub{font-size:13px;color:#94a3b8;line-height:1.6;font-weight:500}
+
+/* DEMO BANNER */
+.demo-bar{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.demo-label{font-size:11px;font-weight:900;color:#b45309;text-transform:uppercase;letter-spacing:0.1em}
+
+/* TIME PICKER */
+.time-picker{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px}
+.time-sel{padding:10px 8px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;color:#0f172a;background:#fff;outline:none;appearance:none;text-align:center;font-weight:700}
+.time-sel:focus{border-color:#34d399}
+
+/* MISC */
+.divider{height:1px;background:#f1f5f9;margin:12px 0}
+.slbl{font-size:9px;font-weight:900;letter-spacing:0.14em;color:#64748b;text-transform:uppercase;margin-bottom:10px}
+.pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.pill-green{background:#dcfce7;color:#15803d}
+.pill-gray{background:#f1f5f9;color:#64748b}
+.pill-amber{background:#fef9c3;color:#a16207}
+.pill-blue{background:#dbeafe;color:#1d4ed8}
+.pill-dark{background:#0f172a;color:#fff}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useCallback}=React;
+const {useState,useEffect,useCallback,useRef}=React;
 
 const ROSTER=[
   {id:1,name:"Stephen Abbundi"},{id:2,name:"Chris Allen"},{id:3,name:"Bill Balster"},
@@ -249,22 +277,13 @@ const ROSTER=[
   {id:94,name:"Bruce Yoo"},{id:95,name:"Gary Zgorski"},{id:96,name:"Geoff Zgorski"}
 ];
 const TEES=['Blends','Whites','Golds','SGA'];
-const TEE_COLORS={Blends:'#1a3a8f',Whites:'#aaaaaa',Golds:'#c9a84c',SGA:'#d63031'};
+const TEE_COLORS={Blends:'#1e40af',Whites:'#94a3b8',Golds:'#c9a84c',SGA:'#ef4444'};
 const ADMIN_PW='golf2025';
-const FB={
-  apiKey:"AIzaSyDwrlQyxkHRn0Xp5O-bCODz98oCHuj8xTY",
-  authDomain:"clark-group-dd15e.firebaseapp.com",
-  databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",
-  projectId:"clark-group-dd15e",
-  storageBucket:"clark-group-dd15e.firebasestorage.app",
-  messagingSenderId:"92891899165",
-  appId:"1:92891899165:web:817f5f164f3fc50b506df4"
-};
+const FB={apiKey:"AIzaSyDwrlQyxkHRn0Xp5O-bCODz98oCHuj8xTY",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
 function useDB(){
-  const [db,setDb]=useState(null);
-  const [ready,setReady]=useState(false);
+  const [db,setDb]=useState(null);const [ready,setReady]=useState(false);
   useEffect(()=>{try{if(!firebase.apps.length)firebase.initializeApp(FB);setDb(firebase.database());setReady(true)}catch{setReady(true)}},[]);
   const read=useCallback((p,cb)=>{if(!db){cb(LS.g(p));return()=>{}}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off()},[db]);
   const write=useCallback((p,v)=>{if(!db){LS.s(p,v);return Promise.resolve()}return db.ref(p).set(v)},[db]);
@@ -274,7 +293,7 @@ function useDB(){
 }
 
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2))};
+const f$=n=>{const v=parseFloat(n||0);return'$'+(Number.isInteger(v)?v:v.toFixed(2))};
 const td=()=>new Date().toISOString().split('T')[0];
 const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+parseInt(dy)};
 const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+parseInt(dy)+', '+y};
@@ -282,60 +301,110 @@ const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return['Jan','Feb',
 function buildTeams(players){
   const s=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
   const n=s.length;if(n<3)return[];
-  const rem=n%4;
-  const nt=rem===1?Math.ceil(n/4):Math.max(1,Math.floor(n/4)||(Math.ceil(n/4)));
+  const rem=n%4;const nt=rem===1?Math.ceil(n/4):Math.max(1,Math.floor(n/4)||Math.ceil(n/4));
   const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:`Team ${i+1}`,players:[],totalHcp:0}));
-  s.forEach((p,idx)=>{const round=Math.floor(idx/nt);const pos=idx%nt;const ti=round%2===0?pos:nt-1-pos;teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});teams[ti].totalHcp+=parseFloat(p.handicap)||0});
+  s.forEach((p,idx)=>{const r2=Math.floor(idx/nt);const pos=idx%nt;const ti=r2%2===0?pos:nt-1-pos;teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(r2,3)]});teams[ti].totalHcp+=parseFloat(p.handicap)||0});
   return teams;
 }
 
+// Demo data generator
+function makeDemoData(){
+  const shuffled=[...ROSTER].sort(()=>Math.random()-0.5).slice(0,16);
+  const teeOpts=['Whites','Whites','Whites','Golds','Golds','Blends'];
+  const signups={};
+  shuffled.forEach((p,i)=>{
+    const hcp=Math.floor(Math.random()*28)+2;
+    const tee=teeOpts[Math.floor(Math.random()*teeOpts.length)];
+    signups[`demo_${i}`]={playerId:p.id,name:p.name,tee,handicap:hcp,day:'Saturday',signedUpAt:Date.now()+i};
+  });
+  const teams=buildTeams(Object.values(signups));
+  return{signups,teams};
+}
+
+// Time picker component
+function TimePicker({value,onChange}){
+  // value is "HH:MM" 24h
+  const [h,setH]=useState('8');const [m,setM]=useState('00');const [ap,setAp]=useState('AM');
+  useEffect(()=>{
+    const[hh,mm]=value.split(':');const hInt=parseInt(hh);
+    setAp(hInt>=12?'PM':'AM');
+    const h12=hInt===0?12:hInt>12?hInt-12:hInt;
+    setH(String(h12));setM(mm);
+  },[]);
+  function update(nh,nm,nap){
+    let h24=parseInt(nh);
+    if(nap==='PM'&&h24!==12)h24+=12;
+    if(nap==='AM'&&h24===12)h24=0;
+    onChange(`${String(h24).padStart(2,'0')}:${nm}`);
+  }
+  const hours=Array.from({length:12},(_,i)=>String(i+1));
+  const mins=['00','05','10','15','20','25','30','35','40','45','50','55'];
+  return(
+    <div className="time-picker">
+      <select className="time-sel" value={h} onChange={e=>{setH(e.target.value);update(e.target.value,m,ap)}}>
+        {hours.map(v=><option key={v} value={v}>{v}</option>)}
+      </select>
+      <select className="time-sel" value={m} onChange={e=>{setM(e.target.value);update(h,e.target.value,ap)}}>
+        {mins.map(v=><option key={v} value={v}>{v}</option>)}
+      </select>
+      <select className="time-sel" value={ap} onChange={e=>{setAp(e.target.value);update(h,m,e.target.value)}}>
+        <option>AM</option><option>PM</option>
+      </select>
+    </div>
+  );
+}
+
+function fmt12(t){if(!t)return'';const[h,m]=t.split(':');const hi=parseInt(h);const ap=hi>=12?'PM':'AM';const h12=hi===0?12:hi>12?hi-12:hi;return`${h12}:${m} ${ap}`}
+
 // SVG Icons
 const Ic={
-  flag:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
-  users:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
-  trophy:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
-  clock:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  gear:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+  flag:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  users:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  trophy:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
+  clock:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  gear:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
   plus:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
   check:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>,
   x:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   search:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  trash:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
+  trash:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
   chev:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
-  user:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  shield:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-  dollar:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
+  edit:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  star:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  play:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  check2:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>,
 };
 
-// ── LANDING SCREEN ────────────────────────────────────────────────────────────
-function Landing({onPlayer,onAdmin}){
+// ── LANDING ───────────────────────────────────────────────────────────────────
+function Landing({onPlayer,onAdmin,onDemo}){
   return(
-    <div className="landing">
-      <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:380}}>
-        <div className="land-logo">Clark Golf Group</div>
-        <div className="land-title">Who are<br/>you <span>today?</span></div>
+    <div className="land">
+      <div className="land-bg1"/><div className="land-bg2"/>
+      <div className="land-inner">
+        <div className="land-eyebrow">Clark Golf Group</div>
+        <div className="land-title">Who are<br/>you <em>today?</em></div>
         <div className="land-sub">Select your role to get started</div>
-        <button className="land-btn land-btn-primary" onClick={onPlayer}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{width:36,height:36,borderRadius:'50%',background:'rgba(0,0,0,0.15)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </span>
-            <div style={{textAlign:'left'}}>
-              <div>I'm a Player</div>
-              <div style={{fontSize:11,fontWeight:500,opacity:0.65,fontFamily:'Inter'}}>Sign up · view teams · see results</div>
-            </div>
+        <button className="land-btn land-btn-player" onClick={onPlayer}>
+          <div className="land-btn-icon">{Ic.flag}</div>
+          <div style={{flex:1}}>
+            <div className="land-btn-text-main">I'm a Player</div>
+            <div className="land-btn-text-sub">Sign up · view teams · see results</div>
           </div>
           <span className="land-btn-arrow">›</span>
         </button>
-        <button className="land-btn land-btn-secondary" onClick={onAdmin}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </span>
-            <div style={{textAlign:'left'}}>
-              <div>I'm an Admin</div>
-              <div style={{fontSize:11,fontWeight:500,opacity:0.5,fontFamily:'Inter'}}>Manage games · teams · scoring</div>
-            </div>
+        <button className="land-btn land-btn-admin" onClick={onAdmin}>
+          <div className="land-btn-icon">{Ic.gear}</div>
+          <div style={{flex:1}}>
+            <div className="land-btn-text-main">I'm an Admin</div>
+            <div className="land-btn-text-sub">Manage games · teams · scoring</div>
+          </div>
+          <span className="land-btn-arrow">›</span>
+        </button>
+        <button className="land-btn land-btn-demo" onClick={onDemo}>
+          <div className="land-btn-icon" style={{background:'rgba(251,191,36,0.15)'}}>{Ic.play}</div>
+          <div style={{flex:1}}>
+            <div className="land-btn-text-main" style={{color:'#fbbf24'}}>Demo Mode</div>
+            <div className="land-btn-text-sub" style={{color:'rgba(251,191,36,0.5)'}}>See how the app works with sample data</div>
           </div>
           <span className="land-btn-arrow">›</span>
         </button>
@@ -344,121 +413,150 @@ function Landing({onPlayer,onAdmin}){
   );
 }
 
-// ── WEEK DASHBOARD (shared by player + admin) ─────────────────────────────────
-function WeekDashboard({game,signups,currentUser,onSignup,onRemove,isAdmin}){
-  const [expanded,setExpanded]=useState({});
-  const [signModal,setSignModal]=useState(null); // day key
+// ── WEEK DASHBOARD ────────────────────────────────────────────────────────────
+function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateTeeTime,onMarkComplete}){
+  const [expanded,setExpanded]=useState({Saturday:true});
+  const [signModal,setSignModal]=useState(null);
+  const [lotteryModal,setLotteryModal]=useState(null); // {day, existing}
+  const [editTimeModal,setEditTimeModal]=useState(null); // {day}
   const [isGuest,setIsGuest]=useState(false);
   const [sel,setSel]=useState('');
   const [gname,setGname]=useState('');
   const [tee,setTee]=useState('Whites');
   const [hcp,setHcp]=useState('');
   const [q,setQ]=useState('');
+  const [newTime,setNewTime]=useState('08:00');
+  const [isLottery,setIsLottery]=useState(false);
+  const [lotteryTime,setLotteryTime]=useState('08:00');
 
   const DAYS=['Friday','Saturday','Sunday'];
-
-  // Group signups by day
   const byDay={};
   DAYS.forEach(d=>{byDay[d]=Object.entries(signups||{}).filter(([,s])=>s.day===d)});
-
   const totalPlayers=Object.keys(signups||{}).length;
-  const signedDays=DAYS.filter(d=>byDay[d].length>0).length;
-
-  function toggle(d){setExpanded(p=>({...p,[d]:!p[d]}))}
-
-  function openSignup(d){
-    setSignModal(d);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
-  }
-
-  function submit(){
-    const name=isGuest?gname.trim():ROSTER.find(p=>p.id==sel)?.name;
-    if(!name||!hcp||!signModal)return;
-    onSignup({playerId:isGuest?`g_${Date.now()}`:parseInt(sel),name,isGuest,tee,handicap:parseFloat(hcp),day:signModal,signedUpAt:Date.now()});
-    setSignModal(null);
-  }
-
+  const activeDays=DAYS.filter(d=>byDay[d].length>0).length;
   const signedIds=Object.values(signups||{}).map(s=>s.playerId);
   const avail=ROSTER.filter(p=>!signedIds.includes(p.id)&&p.name.toLowerCase().includes(q.toLowerCase()));
 
-  // Check if current user is signed up for a given day
-  const userSignup=(d)=>Object.entries(signups||{}).find(([,s])=>s.name===currentUser&&s.day===d);
+  function submitSignup(){
+    const name=isGuest?gname.trim():ROSTER.find(p=>p.id==sel)?.name;
+    if(!name||!hcp||!signModal)return;
+    onSignup({playerId:isGuest?`g_${Date.now()}`:parseInt(sel),name,isGuest,tee,handicap:parseFloat(hcp),day:signModal,signedUpAt:Date.now()});
+    setSignModal(null);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
+  }
 
-  if(!game) return(
-    <div className="empty" style={{paddingTop:60}}>
+  function saveTeeTime(day){
+    const timeToSave=isLottery?'LOTTERY':newTime;
+    onUpdateTeeTime(day,{time:timeToSave,lottery:isLottery,requestedTime:isLottery?lotteryTime:null});
+    setLotteryModal(null);setIsLottery(false);setNewTime('08:00');setLotteryTime('08:00');
+  }
+
+  function saveEditTime(day){
+    onUpdateTeeTime(day,{time:newTime,lottery:false,requestedTime:null});
+    setEditTimeModal(null);setNewTime('08:00');
+  }
+
+  if(!game)return(
+    <div className="empty">
       <div>{Ic.flag}</div>
       <div className="empty-title">No game this week</div>
-      <div className="empty-sub">Check back soon — the admin will post the weekly games.</div>
+      <div className="empty-sub">Check back soon — admin will post the weekly games.</div>
     </div>
   );
 
   return(
     <div>
-      {/* Mini stats */}
+      {isDemo&&<div className="demo-bar"><span className="demo-label">⚡ Demo Mode — Sample Data</span><button className="btn btn-xs btn-sec" onClick={()=>window.location.reload()}>Exit</button></div>}
+
+      {/* Stats */}
       <div className="stat-row">
-        <div className="stat-box"><div className="stat-num">{totalPlayers}</div><div className="stat-lbl">Signed Up</div></div>
-        <div className="stat-box"><div className="stat-num">{signedDays}</div><div className="stat-lbl">Active Days</div></div>
-        <div className="stat-box"><div className="stat-num" style={{fontSize:14,paddingTop:6,color:'rgba(255,255,255,0.7)'}}>{game.teamsPublished?'Live':'Pending'}</div><div className="stat-lbl">Teams</div></div>
+        <div className="stat-box"><div className="stat-n">{totalPlayers}</div><div className="stat-l">Signed Up</div></div>
+        <div className="stat-box"><div className="stat-n">{activeDays}</div><div className="stat-l">Active Days</div></div>
+        <div className="stat-box"><div className="stat-n" style={{fontSize:13,paddingTop:7,color:game.complete?'#34d399':'rgba(255,255,255,0.4)'}}>{game.complete?'Done':game.teamsPublished?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
       </div>
+
+      {/* Mark complete banner */}
+      {game.teamsPublished&&!game.complete&&isAdmin&&(
+        <div style={{marginBottom:10}}>
+          <button className="btn btn-full" style={{background:'#1d4ed8',color:'#fff',borderBottom:'3px solid #1e3a8a',fontSize:13,padding:'13px'}} onClick={onMarkComplete}>
+            <span style={{marginRight:6}}>⛳</span> Mark Round Complete — Unlock Scoring
+          </button>
+        </div>
+      )}
+      {game.complete&&(
+        <div className="complete-banner" style={{marginBottom:10,background:'#dbeafe',border:'1px solid #bfdbfe',borderRadius:12,padding:'11px 14px',display:'flex',alignItems:'center',gap:9}}>
+          <span style={{fontSize:18}}>✅</span>
+          <div>
+            <div style={{fontSize:12,fontWeight:900,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em'}}>Round Complete</div>
+            <div style={{fontSize:11,color:'#3b82f6',fontWeight:600,marginTop:1}}>Head to Scoring tab to enter results</div>
+          </div>
+        </div>
+      )}
 
       {/* Day cards */}
       {DAYS.map(day=>{
         const list=byDay[day];
         const count=list.length;
         const isOpen=expanded[day];
-        const myEntry=userSignup(day);
+        const teeInfo=game.teeTimes?.[day];
+        const isLotteryDay=teeInfo?.lottery;
+        const hasTime=teeInfo&&!isLotteryDay;
 
         return(
           <div key={day} className="day-card">
-            <div className="day-card-hdr" onClick={()=>toggle(day)}>
-              <div className="day-left">
-                <div>
-                  <div className="day-name">{day}</div>
-                  {game.date&&<div className="day-date">{fmtD(game.date)}</div>}
+            <div className="day-hdr" onClick={()=>setExpanded(p=>({...p,[day]:!p[day]}))}>
+              <div style={{minWidth:0,flex:1}}>
+                <div className="day-name">{day}</div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3,flexWrap:'wrap'}}>
+                  {game.date&&<span className="day-date">{fmtD(game.date)}</span>}
+                  {isLotteryDay&&(
+                    <span className="tee-badge tee-badge-lottery">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Waiting on lottery{teeInfo.requestedTime?' · Req: '+fmt12(teeInfo.requestedTime):''}
+                    </span>
+                  )}
+                  {hasTime&&<span className="tee-badge tee-badge-set">⛳ {fmt12(teeInfo.time)}</span>}
+                  {game.complete&&count>0&&<span className="tee-badge tee-badge-complete">Complete</span>}
                 </div>
               </div>
               <div className="day-right">
-                {myEntry&&(
-                  <span className="pill pill-green" style={{fontSize:10}}>You're in</span>
-                )}
-                <span className={`day-count${count===0?' zero':''}`}>{count} {count===1?'player':'players'}</span>
-                <svg className={`day-chevron${isOpen?' open':''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                <span className={`day-count ${count>0?'day-count-active':'day-count-zero'}`}>{count} {count===1?'player':'players'}</span>
+                <svg className={`day-chev${isOpen?' open':''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
 
             {isOpen&&(
               <div className="day-body">
+                {/* Admin tee time controls */}
+                {isAdmin&&!isDemo&&(
+                  <div style={{padding:'10px 14px',borderBottom:'1px solid #f1f5f9',display:'flex',gap:7,flexWrap:'wrap'}}>
+                    {!teeInfo&&<button className="btn btn-sm btn-primary" onClick={()=>{setLotteryModal({day});setNewTime('08:00');setIsLottery(false);setLotteryTime('08:00')}}>{Ic.plus} Set tee time</button>}
+                    {isLotteryDay&&<button className="btn btn-sm btn-gold" onClick={()=>{setEditTimeModal({day});setNewTime('08:00')}}>{Ic.edit} Assign real time</button>}
+                    {teeInfo&&!isLotteryDay&&<button className="btn btn-sm btn-sec" onClick={()=>{setEditTimeModal({day});setNewTime(teeInfo.time||'08:00')}}>{Ic.edit} Edit time</button>}
+                    {teeInfo&&<button className="btn btn-sm btn-sec" style={{color:'#ef4444'}} onClick={()=>onUpdateTeeTime(day,null)}>Remove</button>}
+                  </div>
+                )}
+
                 {count===0&&<div className="day-empty">No sign-ups yet for {day}</div>}
                 {list.map(([key,s])=>(
-                  <div key={key} className="player-row">
-                    <div className="player-info">
+                  <div key={key} className="p-row">
+                    <div className="p-info">
                       <div className="avatar">{ini(s.name)}</div>
-                      <div>
-                        <div className="player-name-text">{s.name}{s.isGuest&&<span className="pill pill-gray" style={{fontSize:10,marginLeft:5}}>Guest</span>}</div>
-                        <div className="player-meta">
+                      <div style={{minWidth:0}}>
+                        <div className="p-name">{s.name}{s.isGuest&&<span className="pill pill-gray" style={{marginLeft:5,fontSize:9}}>Guest</span>}</div>
+                        <div className="p-meta">
                           <span className="tee-dot" style={{background:TEE_COLORS[s.tee]||'#ccc'}}></span>
-                          <span className="player-meta-text">{s.tee} · HCP {s.handicap}</span>
+                          <span className="p-meta-txt">{s.tee} · HCP {s.handicap}</span>
                         </div>
                       </div>
                     </div>
-                    {(isAdmin||(currentUser&&s.name===currentUser))&&(
-                      <button className="remove-btn" onClick={()=>onRemove(key)} title="Remove">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    )}
+                    {isAdmin&&<button className="remove-btn" onClick={()=>onRemove(key)}>{Ic.x}</button>}
                   </div>
                 ))}
-                {/* Sign up CTA */}
-                {!myEntry&&(
-                  <div style={{padding:'12px 14px',borderTop:count>0?'1px solid var(--border)':'none'}}>
-                    <button className="btn btn-accent btn-full btn-sm" onClick={()=>openSignup(day)}>
+                {!isDemo&&(
+                  <div className="signup-area">
+                    <button className="btn btn-emerald btn-full btn-sm" onClick={()=>setSignModal(day)}>
                       {Ic.plus} Sign up for {day}
                     </button>
-                  </div>
-                )}
-                {myEntry&&(
-                  <div style={{padding:'10px 14px',borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <span style={{fontSize:12,color:'var(--green)',fontWeight:600}}>You're signed up for {day}</span>
-                    <button className="btn btn-secondary btn-xs" onClick={()=>onRemove(myEntry[0])}>Remove me</button>
                   </div>
                 )}
               </div>
@@ -467,51 +565,80 @@ function WeekDashboard({game,signups,currentUser,onSignup,onRemove,isAdmin}){
         );
       })}
 
-      {/* Sign up modal */}
+      {/* Signup modal */}
       {signModal&&(
-        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setSignModal(null)}>
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setSignModal(null)}>
           <div className="modal">
-            <div className="modal-handle"></div>
+            <div className="modal-handle"/>
             <div className="modal-title">Sign up for {signModal}</div>
-            <div className="toggle" style={{marginBottom:14}}>
-              <button className={`tog${!isGuest?' on':''}`} onClick={()=>setIsGuest(false)}>Member</button>
-              <button className={`tog${isGuest?' on':''}`} onClick={()=>setIsGuest(true)}>Guest</button>
+            <div className="tog-wrap" style={{marginBottom:14}}>
+              <button className={`tog-opt${!isGuest?' on':''}`} onClick={()=>setIsGuest(false)}>Member</button>
+              <button className={`tog-opt${isGuest?' on':''}`} onClick={()=>setIsGuest(true)}>Guest</button>
             </div>
             {!isGuest?(
-              <div className="form-group">
-                <label className="form-label">Your name</label>
-                <div className="search-wrap">
-                  <span className="search-icon">{Ic.search}</span>
-                  <input className="search-input" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
-                </div>
-                <div style={{maxHeight:190,overflowY:'auto',border:'1.5px solid var(--border)',borderRadius:'var(--rs)'}}>
+              <div className="fg">
+                <label className="fl">Your name</label>
+                <div className="sw"><span className="si-ico">{Ic.search}</span><input className="si" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/></div>
+                <div style={{maxHeight:180,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:10}}>
                   {avail.slice(0,25).map(p=>(
-                    <div key={p.id} className={`player-pick${sel==p.id?' sel':''}`} onClick={()=>{setSel(p.id);setQ('')}}>
+                    <div key={p.id} className={`pp${sel==p.id?' sel':''}`} onClick={()=>{setSel(p.id);setQ('')}}>
                       <div className="avatar" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
-                      <span style={{fontSize:13,fontWeight:500,flex:1}}>{p.name}</span>
-                      {sel==p.id&&<span style={{color:'var(--green-accent)',width:16}}>{Ic.check}</span>}
+                      <span style={{fontSize:13,fontWeight:600,flex:1}}>{p.name}</span>
+                      {sel==p.id&&<span style={{color:'#15803d',width:16}}>{Ic.check}</span>}
                     </div>
                   ))}
-                  {avail.length===0&&<div style={{padding:14,fontSize:13,color:'var(--text-muted)',textAlign:'center'}}>No matches</div>}
+                  {avail.length===0&&<div style={{padding:14,fontSize:13,color:'#94a3b8',textAlign:'center'}}>No matches</div>}
                 </div>
               </div>
             ):(
-              <div className="form-group">
-                <label className="form-label">Guest name</label>
-                <input className="form-input" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/>
-              </div>
+              <div className="fg"><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/></div>
             )}
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Tees</label>
-                <select className="form-select" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Handicap</label>
-                <input className="form-input" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
-              </div>
+            <div className="fr">
+              <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
+              <div className="fg"><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/></div>
             </div>
-            <button className="btn btn-primary btn-full" onClick={submit} disabled={(!sel&&!gname)||!hcp}>Confirm sign-up</button>
+            <button className="btn btn-primary btn-full" onClick={submitSignup} disabled={(!sel&&!gname)||!hcp}>Confirm sign-up</button>
+          </div>
+        </div>
+      )}
+
+      {/* Set tee time modal */}
+      {lotteryModal&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setLotteryModal(null)}>
+          <div className="modal">
+            <div className="modal-handle"/>
+            <div className="modal-title">Set tee time — {lotteryModal.day}</div>
+            <div style={{background:'#fef9c3',border:'1px solid #fde68a',borderRadius:10,padding:'10px 13px',marginBottom:14,display:'flex',gap:8,alignItems:'flex-start'}}>
+              <input type="checkbox" id="lot" checked={isLottery} onChange={e=>setIsLottery(e.target.checked)} style={{marginTop:2,width:15,height:15,accentColor:'#c9a84c'}}/>
+              <label htmlFor="lot" style={{fontSize:13,fontWeight:700,color:'#a16207',cursor:'pointer'}}>Waiting on lottery tee time<br/><span style={{fontWeight:500,fontSize:11}}>Check this if you don't have a confirmed time yet</span></label>
+            </div>
+            <div className="fg">
+              <label className="fl">{isLottery?'Requested time (best guess)':'Confirmed tee time'}</label>
+              <TimePicker value={isLottery?lotteryTime:newTime} onChange={v=>isLottery?setLotteryTime(v):setNewTime(v)}/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveTeeTime(lotteryModal.day)}>Save</button>
+              <button className="btn btn-sec" onClick={()=>setLotteryModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit/assign real time modal */}
+      {editTimeModal&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setEditTimeModal(null)}>
+          <div className="modal">
+            <div className="modal-handle"/>
+            <div className="modal-title">Assign tee time — {editTimeModal.day}</div>
+            <div className="alert alert-ok" style={{marginBottom:14}}>Replacing the lottery placeholder with the real confirmed time.</div>
+            <div className="fg">
+              <label className="fl">Confirmed tee time</label>
+              <TimePicker value={newTime} onChange={setNewTime}/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveEditTime(editTimeModal.day)}>Confirm time</button>
+              <button className="btn btn-sec" onClick={()=>setEditTimeModal(null)}>Cancel</button>
+            </div>
           </div>
         </div>
       )}
@@ -521,10 +648,8 @@ function WeekDashboard({game,signups,currentUser,onSignup,onRemove,isAdmin}){
 
 // ── TEAMS VIEW ────────────────────────────────────────────────────────────────
 function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
-  const [edit,setEdit]=useState(null);
-  const [drag,setDrag]=useState(null);
-  const display=edit||teams;
-  const cnt=Object.keys(signups||{}).length;
+  const [edit,setEdit]=useState(null);const [drag,setDrag]=useState(null);
+  const display=edit||teams;const cnt=Object.keys(signups||{}).length;
   function gen(){const p=Object.values(signups||{});if(p.length<3)return;setEdit(buildTeams(p))}
   function drop(ti,pi){
     if(!drag)return;
@@ -538,17 +663,17 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
   return(
     <div>
       <div className="stat-row">
-        <div className="stat-box"><div className="stat-num">{cnt}</div><div className="stat-lbl">Players</div></div>
-        <div className="stat-box"><div className="stat-num">{(display||[]).length}</div><div className="stat-lbl">Teams</div></div>
-        <div className="stat-box"><div className="stat-num" style={{fontSize:13,paddingTop:6,color:'rgba(255,255,255,0.7)'}}>{game.teamsPublished?'Live':'Pending'}</div><div className="stat-lbl">Status</div></div>
+        <div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div>
+        <div className="stat-box"><div className="stat-n">{(display||[]).length}</div><div className="stat-l">Teams</div></div>
+        <div className="stat-box"><div className="stat-n" style={{fontSize:12,paddingTop:7,color:game.teamsPublished?'#34d399':'rgba(255,255,255,0.4)'}}>{game.teamsPublished?'Published':'Pending'}</div><div className="stat-l">Status</div></div>
       </div>
       {isAdmin&&(
         <div className="admin-bar">
-          <div className="admin-bar-title">Team builder</div>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <div className="admin-bar-lbl">Team builder</div>
+          <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
             <button className="btn btn-primary btn-sm" onClick={gen} disabled={cnt<3}>{Ic.users} Auto-generate</button>
             {edit&&<button className="btn btn-gold btn-sm" onClick={()=>{onSave(edit);setEdit(null)}}>Save teams</button>}
-            {edit&&<button className="btn btn-secondary btn-sm" onClick={()=>setEdit(null)}>Cancel</button>}
+            {edit&&<button className="btn btn-sec btn-sm" onClick={()=>setEdit(null)}>Cancel</button>}
             {!edit&&display?.length>0&&!game.teamsPublished&&<button className="btn btn-gold btn-sm" onClick={onPublish}>Publish to group</button>}
           </div>
           {edit&&<div className="alert alert-warn" style={{marginTop:10,marginBottom:0}}>Drag players between teams to rebalance, then save.</div>}
@@ -558,17 +683,17 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
       {(edit||teams||[]).map((team,ti)=>(
         <div key={team.id} className="team-card">
           <div className="team-hdr">
-            <span className="team-name-lbl">{team.name}</span>
-            <span className="team-hcp-lbl">HCP {team.totalHcp.toFixed(1)}</span>
+            <span className="team-hdr-name">{team.name}</span>
+            <span className="team-hdr-hcp">HCP {team.totalHcp.toFixed(1)}</span>
           </div>
           {team.players.map((p,pi)=>(
             <div key={pi} className="team-row" draggable={!!edit} onDragStart={()=>setDrag({ti,pi})} onDragOver={e=>e.preventDefault()} onDrop={()=>drop(ti,pi)}>
-              {edit&&<span style={{color:'var(--text-muted)',fontSize:16,cursor:'grab'}}>⠿</span>}
+              {edit&&<span style={{color:'#94a3b8',cursor:'grab',fontSize:16}}>⠿</span>}
               <span className="slot">{p.slot}</span>
-              <div className="avatar" style={{width:30,height:30,fontSize:11}}>{ini(p.name)}</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600}}>{p.name}</div>
-                <div style={{fontSize:11,color:'var(--text-muted)',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
+              <div className="avatar" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                <div style={{fontSize:10,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
                   <span className="tee-dot" style={{background:TEE_COLORS[p.tee]||'#ccc'}}></span>{p.tee} · {p.handicap}
                 </div>
               </div>
@@ -581,7 +706,7 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
 }
 
 // ── SCORING VIEW ──────────────────────────────────────────────────────────────
-function ScoringView({game,teams,scores,onSave,isAdmin}){
+function ScoringView({game,teams,scores,onSave,isAdmin,unlocked}){
   const [ts,setTs]=useState({});const [sk,setSk]=useState({});
   const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
@@ -594,52 +719,60 @@ function ScoringView({game,teams,scores,onSave,isAdmin}){
   const perSk=tsk>0?snet/tsk:0;
   const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);
   const ok=Math.abs(alloc-total)<0.01;
-  function tap(id){if(!isAdmin)return;setSk(p=>({...p,[id]:(p[id]||0)+1}))}
+  function tap(id){if(!isAdmin&&!unlocked)return;setSk(p=>({...p,[id]:(p[id]||0)+1}))}
   function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}))}
   function pay(pot,places){const p=parseFloat(pot||0);if(!p)return[];return places===1?[{l:'1st place',a:p}]:[{l:'1st place',a:p*0.6},{l:'2nd place',a:p*0.4}]}
   function save(){onSave({teamScores:ts,skinCounts:sk,frontPot:fv,backPot:bv,overallPot:ov,skinsPot:sv,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:fund,playerCount:pc,savedAt:Date.now()});setSaved(true);setTimeout(()=>setSaved(false),2500)}
   if(!game)return<div className="empty"><div>{Ic.trophy}</div><div className="empty-title">No active game</div></div>;
   if(!teams?.length)return<div className="empty"><div>{Ic.trophy}</div><div className="empty-title">Teams not published yet</div></div>;
+  if(!unlocked&&!isAdmin)return(
+    <div className="empty">
+      <div>{Ic.trophy}</div>
+      <div className="empty-title">Round in progress</div>
+      <div className="empty-sub">Scoring unlocks when the admin marks the round complete.</div>
+    </div>
+  );
   return(
     <div>
+      {game.complete&&<div className="alert alert-blue">Round marked complete. Enter scores and payouts below.</div>}
       {isAdmin&&(
         <div className="admin-bar">
-          <div className="admin-bar-title">Pot setup — {pc} players · {f$(total)} total</div>
-          <div className="form-row" style={{marginBottom:10}}>
-            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Front 9</label><input className="form-input" type="number" placeholder="$0" value={fv} onChange={e=>setFv(e.target.value)}/></div>
-            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Back 9</label><input className="form-input" type="number" placeholder="$0" value={bv} onChange={e=>setBv(e.target.value)}/></div>
+          <div className="admin-bar-lbl">Pot setup — {pc} players · {f$(total)} total</div>
+          <div className="fr" style={{marginBottom:10}}>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Front 9</label><input className="fi" type="number" placeholder="$0" value={fv} onChange={e=>setFv(e.target.value)}/></div>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Back 9</label><input className="fi" type="number" placeholder="$0" value={bv} onChange={e=>setBv(e.target.value)}/></div>
           </div>
-          <div className="form-row">
-            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Overall</label><input className="form-input" type="number" placeholder="$0" value={ov} onChange={e=>setOv(e.target.value)}/></div>
-            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Skins</label><input className="form-input" type="number" placeholder="$0" value={sv} onChange={e=>setSv(e.target.value)}/></div>
+          <div className="fr">
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" placeholder="$0" value={ov} onChange={e=>setOv(e.target.value)}/></div>
+            <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" placeholder="$0" value={sv} onChange={e=>setSv(e.target.value)}/></div>
           </div>
-          {alloc>0&&<div style={{marginTop:8,fontSize:12,fontWeight:700,color:ok?'var(--green-accent)':'var(--danger)'}}>{ok?'✓ Pot balanced — '+f$(total):'⚠ '+f$(alloc)+' of '+f$(total)+' allocated'}</div>}
+          {alloc>0&&<div style={{marginTop:8,fontSize:12,fontWeight:800,color:ok?'#15803d':'#ef4444'}}>{ok?'✓ Pot balanced — '+f$(total):'⚠ '+f$(alloc)+' of '+f$(total)+' allocated'}</div>}
         </div>
       )}
       {isAdmin&&(
-        <div className="card">
+        <div className="card card-body" style={{marginBottom:10}}>
           <div className="slbl">Places paid per section</div>
           {[{l:'Front 9',v:fp,s:setFp},{l:'Back 9',v:bp,s:setBp},{l:'Overall',v:op,s:setOp}].map(({l,v,s})=>(
-            <div key={l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-              <span style={{fontSize:14,fontWeight:500}}>{l}</span>
-              <div className="toggle" style={{width:164}}>
-                <button className={`tog${v===1?' on':''}`} onClick={()=>s(1)}>1st only</button>
-                <button className={`tog${v===2?' on':''}`} onClick={()=>s(2)}>1st + 2nd</button>
+            <div key={l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:9}}>
+              <span style={{fontSize:13,fontWeight:600}}>{l}</span>
+              <div className="tog-wrap" style={{width:160}}>
+                <button className={`tog-opt${v===1?' on':''}`} onClick={()=>s(1)}>1st only</button>
+                <button className={`tog-opt${v===2?' on':''}`} onClick={()=>s(2)}>1st + 2nd</button>
               </div>
             </div>
           ))}
         </div>
       )}
-      <div className="card">
+      <div className="card card-body" style={{marginBottom:10}}>
         <div className="slbl">Team scores</div>
-        <div className="score-grid" style={{marginBottom:8}}>
-          <div></div><div className="score-hd">Front</div><div className="score-hd">Back</div><div className="score-hd">Ovr</div>
+        <div className="sc-grid" style={{marginBottom:8}}>
+          <div/><div className="sc-hd">Front</div><div className="sc-hd">Back</div><div className="sc-hd">Ovr</div>
         </div>
         {teams.map(t=>(
-          <div key={t.id} className="score-grid" style={{marginBottom:8}}>
-            <div style={{fontSize:13,fontWeight:700}}>{t.name}</div>
+          <div key={t.id} className="sc-grid" style={{marginBottom:8}}>
+            <div style={{fontSize:12,fontWeight:800,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.name}</div>
             {['front','back','overall'].map(seg=>(
-              <input key={seg} className="score-input" type="number" placeholder="—"
+              <input key={seg} className="sc-in" type="number" placeholder="—"
                 value={(ts[t.id]||{})[seg]||''}
                 onChange={e=>isAdmin&&setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:e.target.value}}))}
                 readOnly={!isAdmin}/>
@@ -647,10 +780,10 @@ function ScoringView({game,teams,scores,onSave,isAdmin}){
           </div>
         ))}
       </div>
-      <div className="card">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+      <div className="card card-body" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <div className="slbl" style={{marginBottom:0}}>Skins tapper</div>
-          <div style={{fontSize:12,color:'var(--text-muted)',fontWeight:600}}>{tsk} skin{tsk!==1?'s':''}{sv?' · '+f$(snet)+' net':''}</div>
+          <div style={{fontSize:11,color:'#94a3b8',fontWeight:700}}>{tsk} skin{tsk!==1?'s':''}{sv?' · '+f$(snet)+' net':''}</div>
         </div>
         <div className="skin-grid">
           {teams.map(t=>(
@@ -659,32 +792,31 @@ function ScoringView({game,teams,scores,onSave,isAdmin}){
               <div className="skin-num">{sk[t.id]||0}</div>
               <div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>
               {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id)}}>undo</div>}
-              {!isAdmin&&<div style={{fontSize:10,color:'var(--text-muted)',marginTop:4}}>view only</div>}
             </div>
           ))}
         </div>
         {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(fund)} · Net skins: {f$(snet)}{tsk>0?' · '+f$(perSk.toFixed(2))+' per skin':''}</div>}
       </div>
       {(fv||bv||ov||sv)&&(
-        <div className="card">
+        <div className="card card-body" style={{marginBottom:10}}>
           <div className="slbl">Payout breakdown</div>
           {[{l:'Front 9',pot:fv,pl:fp,tag:'gross + net'},{l:'Back 9',pot:bv,pl:bp,tag:'net'},{l:'Overall',pot:ov,pl:op,tag:'net'}].map(({l,pot,pl,tag})=>
             parseFloat(pot||0)>0?(
               <div key={l} style={{marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.06em'}}>{l} <span className="pill pill-gray" style={{fontSize:10}}>{tag}</span></div>
-                {pay(pot,pl).map(({l:pl,a})=><div key={pl} className="payout-row"><span className="payout-lbl">{pl}</span><span className="payout-amt">{f$(a)}</span></div>)}
+                <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.1em'}}>{l} <span className="pill pill-gray">{tag}</span></div>
+                {pay(pot,pl).map(({l:pl,a})=><div key={pl} className="pay-row"><span className="pay-lbl">{pl}</span><span className="pay-amt">{f$(a)}</span></div>)}
               </div>
             ):null
           )}
           {parseFloat(sv||0)>0&&(
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.06em'}}>Skins</div>
-              <div className="payout-row"><span className="payout-lbl">Net skins pot</span><span className="payout-amt">{f$(snet)}</span></div>
-              {tsk>0&&<div className="payout-row"><span className="payout-lbl">Per skin ({tsk} total)</span><span className="payout-amt">{f$(perSk.toFixed(2))}</span></div>}
-              <div className="payout-row"><span className="payout-lbl" style={{color:'var(--gold)'}}>Tournament fund</span><span className="payout-amt gold">{f$(fund)}</span></div>
+              <div style={{fontSize:10,fontWeight:900,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.1em'}}>Skins</div>
+              <div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt">{f$(snet)}</span></div>
+              {tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt">{f$(perSk.toFixed(2))}</span></div>}
+              <div className="pay-row"><span className="pay-lbl" style={{color:'#c9a84c'}}>Tournament fund</span><span className="pay-amt gold">{f$(fund)}</span></div>
             </div>
           )}
-          <div className="payout-total"><span>Total pot</span><span style={{color:'var(--green)'}}>{f$(total)}</span></div>
+          <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(total)}</span></div>
         </div>
       )}
       {isAdmin&&<button className="btn btn-primary btn-full" style={{marginTop:8}} onClick={save}>{saved?'✓ Saved!':'Save scores & payouts'}</button>}
@@ -704,32 +836,28 @@ function HistoryView({history}){
         <div key={k} className="hist-item">
           <div className="hist-hdr" onClick={()=>setOpen(open===k?null:k)}>
             <div><div className="hist-title">{r.day} · {fmtDFull(r.date)}</div><div className="hist-meta">{r.playerCount||0} players · {f$((r.playerCount||0)*25)} pot</div></div>
-            <span style={{color:'var(--text-muted)',display:'flex',transform:open===k?'rotate(180deg)':'none',transition:'transform 0.2s'}}>{Ic.chev}</span>
+            <svg style={{color:'#94a3b8',transform:open===k?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           {open===k&&(
             <div className="hist-body">
               {r.teams?.map(t=>(
-                <div key={t.id} style={{marginBottom:12}}>
-                  <div style={{fontSize:14,fontWeight:800,color:'var(--green)',fontFamily:'Syne',marginBottom:4}}>{t.name} <span style={{fontWeight:400,color:'var(--text-muted)',fontSize:12}}>HCP {t.totalHcp?.toFixed(1)}</span></div>
-                  {t.players?.map((p,i)=><div key={i} style={{fontSize:13,color:'var(--text-mid)',paddingLeft:8,marginBottom:3,display:'flex',alignItems:'center',gap:6}}><span className="slot" style={{fontSize:9}}>{p.slot}</span>{p.name} · {p.tee} {p.handicap}</div>)}
+                <div key={t.id} style={{marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:800,color:'#15803d',marginBottom:3}}>{t.name} <span style={{fontWeight:600,color:'#94a3b8',fontSize:11}}>HCP {t.totalHcp?.toFixed(1)}</span></div>
+                  {t.players?.map((p,i)=><div key={i} style={{fontSize:12,color:'#475569',paddingLeft:8,marginBottom:2,display:'flex',alignItems:'center',gap:5}}><span className="slot" style={{fontSize:9}}>{p.slot}</span>{p.name} · {p.tee} {p.handicap}</div>)}
                 </div>
               ))}
               {r.scores&&(
-                <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+                <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}>
                   <div className="slbl">Results</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,50px)',gap:'4px 6px',fontSize:12}}>
-                    <div style={{color:'var(--text-muted)'}}>Team</div>
-                    {['Front','Back','Ovr'].map(h=><div key={h} style={{color:'var(--text-muted)',textAlign:'center'}}>{h}</div>)}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,48px)',gap:'3px 6px',fontSize:12}}>
+                    {['','Front','Back','Ovr'].map((h,i)=><div key={i} style={{color:'#94a3b8',fontWeight:700,textAlign:i>0?'center':'left'}}>{h}</div>)}
                     {r.teams?.map(t=>(
                       <React.Fragment key={t.id}>
-                        <div style={{fontWeight:700}}>{t.name}</div>
+                        <div style={{fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.name}</div>
                         {['front','back','overall'].map(s=><div key={s} style={{textAlign:'center'}}>{r.scores.teamScores?.[t.id]?.[s]||'—'}</div>)}
                       </React.Fragment>
                     ))}
                   </div>
-                  {r.scores.skinCounts&&Object.entries(r.scores.skinCounts).some(([,c])=>c>0)&&(
-                    <div style={{marginTop:8,fontSize:12,color:'var(--text-mid)'}}>Skins: {Object.entries(r.scores.skinCounts).filter(([,c])=>c>0).map(([id,c])=>{const t=r.teams?.find(t=>String(t.id)===String(id));return<span key={id} style={{marginRight:10}}>{t?.name||'Team '+id}: {c}</span>})}</div>
-                  )}
                 </div>
               )}
             </div>
@@ -745,76 +873,72 @@ function AdminView({isAdmin,onLogin,onLogout,gameData,onCreate,onArchive,onAddPl
   const [pw,setPw]=useState('');
   const [g,setG]=useState({day:'Saturday',date:td(),course:'',teetime:''});
   const [np,setNp]=useState({name:'',email:''});
-  const [showG,setShowG]=useState(false);
-  const [showP,setShowP]=useState(false);
+  const [showG,setShowG]=useState(false);const [showP,setShowP]=useState(false);
   if(!isAdmin)return(
     <div>
-      <div className="card">
-        <div style={{fontFamily:'Syne',fontSize:20,fontWeight:800,marginBottom:16}}>Admin login</div>
-        <div className="form-group"><label className="form-label">Password</label><input className="form-input" type="password" placeholder="Enter admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onLogin(pw)}/></div>
+      <div className="card card-body">
+        <div style={{fontFamily:'Syne',fontSize:19,fontWeight:800,color:'#0f172a',marginBottom:14}}>Admin login</div>
+        <div className="fg"><label className="fl">Password</label><input className="fi" type="password" placeholder="Enter admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onLogin(pw)}/></div>
         <button className="btn btn-primary btn-full" onClick={()=>onLogin(pw)}>Sign in as admin</button>
       </div>
-      <div style={{textAlign:'center',fontSize:12,color:'var(--text-muted)',marginTop:10}}>Contact Clark for the admin password.</div>
+      <div style={{textAlign:'center',fontSize:11,color:'#94a3b8',marginTop:10,fontWeight:600}}>Contact Clark for the admin password.</div>
     </div>
   );
   return(
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-        <div style={{display:'flex',alignItems:'center',gap:8}}><span className="admin-tag">ADMIN</span><span style={{fontSize:15,fontWeight:700}}>Control panel</span></div>
-        <button className="btn btn-secondary btn-sm" onClick={onLogout}>Sign out</button>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span className="admin-tag">Admin</span><span style={{fontSize:14,fontWeight:800,color:'#0f172a'}}>Control panel</span></div>
+        <button className="btn btn-sec btn-sm" onClick={onLogout}>Sign out</button>
       </div>
-      <div className="card">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showG?14:0}}>
-          <div style={{fontWeight:700,fontSize:15}}>Current game</div>
+      <div className="card card-body" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showG?13:0}}>
+          <div style={{fontWeight:800,fontSize:14,color:'#0f172a'}}>Current game</div>
           <button className="btn btn-primary btn-sm" onClick={()=>setShowG(!showG)}>{Ic.plus} New game</button>
         </div>
         {showG&&(
-          <div style={{borderTop:'1px solid var(--border)',paddingTop:14}}>
-            <div className="form-row">
-              <div className="form-group"><label className="form-label">Day</label><select className="form-select" value={g.day} onChange={e=>setG({...g,day:e.target.value})}><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
-              <div className="form-group"><label className="form-label">Date</label><input className="form-input" type="date" value={g.date} onChange={e=>setG({...g,date:e.target.value})}/></div>
+          <div style={{borderTop:'1px solid #f1f5f9',paddingTop:13}}>
+            <div className="fr">
+              <div className="fg"><label className="fl">Day</label><select className="fs" value={g.day} onChange={e=>setG({...g,day:e.target.value})}><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+              <div className="fg"><label className="fl">Date</label><input className="fi" type="date" value={g.date} onChange={e=>setG({...g,date:e.target.value})}/></div>
             </div>
-            <div className="form-row">
-              <div className="form-group"><label className="form-label">Course</label><input className="form-input" placeholder="e.g. Laytonsville" value={g.course} onChange={e=>setG({...g,course:e.target.value})}/></div>
-              <div className="form-group"><label className="form-label">First tee time</label><input className="form-input" placeholder="e.g. 7:30 AM" value={g.teetime} onChange={e=>setG({...g,teetime:e.target.value})}/></div>
-            </div>
-            <div style={{display:'flex',gap:8}}>
+            <div className="fg"><label className="fl">Course (optional)</label><input className="fi" placeholder="e.g. Laytonsville" value={g.course} onChange={e=>setG({...g,course:e.target.value})}/></div>
+            <div style={{display:'flex',gap:7}}>
               <button className="btn btn-primary btn-sm" onClick={()=>{onCreate(g);setShowG(false)}}>Create game</button>
-              <button className="btn btn-secondary btn-sm" onClick={()=>setShowG(false)}>Cancel</button>
+              <button className="btn btn-sec btn-sm" onClick={()=>setShowG(false)}>Cancel</button>
             </div>
           </div>
         )}
         {gameData&&!showG&&(
-          <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
-            <div style={{fontFamily:'Syne',fontWeight:800,color:'var(--green)',fontSize:16}}>{gameData.day} · {fmtDFull(gameData.date)}</div>
-            {gameData.course&&<div style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>{gameData.course}</div>}
-            <button className="btn btn-danger btn-sm" style={{marginTop:12}} onClick={onArchive}>Archive &amp; close round</button>
+          <div style={{marginTop:11,paddingTop:11,borderTop:'1px solid #f1f5f9'}}>
+            <div style={{fontFamily:'Syne',fontWeight:800,color:'#15803d',fontSize:15}}>{gameData.day} · {fmtDFull(gameData.date)}</div>
+            {gameData.course&&<div style={{fontSize:11,color:'#94a3b8',marginTop:2,fontWeight:600}}>{gameData.course}</div>}
+            <button className="btn btn-danger btn-sm" style={{marginTop:11}} onClick={onArchive}>Archive &amp; close round</button>
           </div>
         )}
-        {!gameData&&!showG&&<div style={{fontSize:13,color:'var(--text-muted)',marginTop:8}}>No active game. Create one above.</div>}
+        {!gameData&&!showG&&<div style={{fontSize:12,color:'#94a3b8',marginTop:8,fontWeight:600}}>No active game. Create one above.</div>}
       </div>
-      <div className="card">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showP?14:0}}>
-          <div style={{fontWeight:700,fontSize:15}}>Roster <span style={{fontWeight:400,fontSize:13,color:'var(--text-muted)'}}>({roster.filter(p=>!p.isGuest).length})</span></div>
-          <button className="btn btn-secondary btn-sm" onClick={()=>setShowP(!showP)}>{Ic.plus} Add player</button>
+      <div className="card card-body">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showP?13:0}}>
+          <div style={{fontWeight:800,fontSize:14,color:'#0f172a'}}>Roster <span style={{fontWeight:500,fontSize:12,color:'#94a3b8'}}>({roster.filter(p=>!p.isGuest).length})</span></div>
+          <button className="btn btn-sec btn-sm" onClick={()=>setShowP(!showP)}>{Ic.plus} Add player</button>
         </div>
         {showP&&(
-          <div style={{borderTop:'1px solid var(--border)',paddingTop:14}}>
-            <div className="form-row">
-              <div className="form-group"><label className="form-label">Name</label><input className="form-input" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
-              <div className="form-group"><label className="form-label">Email (opt)</label><input className="form-input" placeholder="email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/></div>
+          <div style={{borderTop:'1px solid #f1f5f9',paddingTop:13}}>
+            <div className="fr">
+              <div className="fg"><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
+              <div className="fg"><label className="fl">Email (opt)</label><input className="fi" placeholder="email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/></div>
             </div>
-            <div style={{display:'flex',gap:8}}>
+            <div style={{display:'flex',gap:7}}>
               <button className="btn btn-primary btn-sm" onClick={()=>{if(np.name){onAddPlayer(np);setNp({name:'',email:''});setShowP(false)}}}>Add to roster</button>
-              <button className="btn btn-secondary btn-sm" onClick={()=>setShowP(false)}>Cancel</button>
+              <button className="btn btn-sec btn-sm" onClick={()=>setShowP(false)}>Cancel</button>
             </div>
           </div>
         )}
-        <div style={{maxHeight:220,overflowY:'auto',marginTop:showP?8:4}}>
+        <div style={{maxHeight:210,overflowY:'auto',marginTop:showP?8:4}}>
           {roster.filter(p=>!p.isGuest).map(p=>(
-            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
-              <span style={{fontWeight:500}}>{p.name}</span>
-              {p.id>96&&<span className="pill pill-green" style={{fontSize:10}}>New</span>}
+            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
+              <span style={{fontWeight:600,color:'#0f172a'}}>{p.name}</span>
+              {p.id>96&&<span className="pill pill-green" style={{fontSize:9}}>New</span>}
             </div>
           ))}
         </div>
@@ -825,10 +949,10 @@ function AdminView({isAdmin,onLogin,onLogout,gameData,onCreate,onArchive,onAddPl
 
 // ── ROOT APP ──────────────────────────────────────────────────────────────────
 function App(){
-  const [role,setRole]=useState(null); // null=landing, 'player', 'admin'
+  const [role,setRole]=useState(null);
   const [tab,setTab]=useState('home');
   const [isAdmin,setIsAdmin]=useState(false);
-  const [currentUser,setCurrentUser]=useState('');
+  const [isDemo,setIsDemo]=useState(false);
   const [game,setGame]=useState(null);
   const [signups,setSignups]=useState({});
   const [teams,setTeams]=useState([]);
@@ -839,7 +963,7 @@ function App(){
   const roster=[...ROSTER,...extra];
 
   useEffect(()=>{
-    if(!ready)return;
+    if(!ready||isDemo)return;
     const u=[];
     u.push(read('currentGame',v=>setGame(v)));
     u.push(read('signups',v=>setSignups(v||{})));
@@ -848,92 +972,99 @@ function App(){
     u.push(read('history',v=>setHistory(v||{})));
     u.push(read('extraPlayers',v=>setExtra(v||[])));
     return()=>u.forEach(f=>typeof f==='function'&&f());
-  },[ready]);
+  },[ready,isDemo]);
 
-  function login(pw){if(pw===ADMIN_PW){setIsAdmin(true);}else alert('Wrong password')}
-  function createGame(g){write('currentGame',{...g,teamsPublished:false,createdAt:Date.now()});write('signups',{});write('teams',[]);write('scores',null)}
+  function login(pw){if(pw===ADMIN_PW)setIsAdmin(true);else alert('Wrong password')}
+  function createGame(g){write('currentGame',{...g,teamsPublished:false,complete:false,createdAt:Date.now()});write('signups',{});write('teams',[]);write('scores',null)}
   function archive(){
-    if(!game||!window.confirm('Archive this round? Saves to history and closes the game.'))return;
+    if(!game||!window.confirm('Archive this round?'))return;
     push('history',{...game,teams,scores,playerCount:Object.keys(signups).length,archivedAt:Date.now()});
     write('currentGame',null);write('signups',{});write('teams',[]);write('scores',null);
   }
-
-  // Landing screen
-  if(!role){
-    return(
-      <Landing
-        onPlayer={()=>{setRole('player');setTab('home')}}
-        onAdmin={()=>{setRole('admin');setTab('home')}}
-      />
-    );
+  function markComplete(){write('currentGame',{...game,complete:true})}
+  function updateTeeTime(day,data){
+    const teeTimes={...(game.teeTimes||{})};
+    if(data===null)delete teeTimes[day];else teeTimes[day]=data;
+    write('currentGame',{...game,teeTimes});
   }
 
-  const playerTabs=[
+  function startDemo(){
+    const{signups:ds,teams:dt}=makeDemoData();
+    const demoGame={day:'Saturday',date:td(),course:'Demo Course',teamsPublished:true,complete:true,createdAt:Date.now(),teeTimes:{Saturday:{time:'08:30',lottery:false}}};
+    setGame(demoGame);setSignups(ds);setTeams(dt);setScores(null);setIsDemo(true);setIsAdmin(true);setRole('admin');setTab('home');
+  }
+
+  if(!role)return <Landing onPlayer={()=>{setRole('player');setTab('home')}} onAdmin={()=>{setRole('admin');setTab('home')}} onDemo={startDemo}/>;
+
+  const totalSignups=Object.keys(signups||{}).length;
+  const activeDays=['Friday','Saturday','Sunday'].filter(d=>Object.values(signups||{}).some(s=>s.day===d)).length;
+  const scoringUnlocked=!!game?.complete||isDemo;
+
+  const TABS_PLAYER=[
     {id:'home',label:'This Week',icon:Ic.flag},
     {id:'teams',label:'Teams',icon:Ic.users},
-    {id:'scoring',label:'Scoring',icon:Ic.trophy},
+    {id:'scoring',label:'Scoring',icon:Ic.trophy,locked:!scoringUnlocked},
     {id:'history',label:'History',icon:Ic.clock},
   ];
-  const adminTabs=[
+  const TABS_ADMIN=[
     {id:'home',label:'This Week',icon:Ic.flag},
     {id:'teams',label:'Teams',icon:Ic.users},
     {id:'scoring',label:'Scoring',icon:Ic.trophy},
     {id:'history',label:'History',icon:Ic.clock},
     {id:'admin',label:'Admin',icon:Ic.gear},
   ];
-  const TABS=role==='admin'?adminTabs:playerTabs;
-
-  // Total signups across all days for header
-  const totalSignups=Object.keys(signups||{}).length;
-  const activeDays=['Friday','Saturday','Sunday'].filter(d=>Object.values(signups||{}).some(s=>s.day===d)).length;
+  const TABS=role==='admin'?TABS_ADMIN:TABS_PLAYER;
 
   return(
     <div className="app">
       <div className="hdr">
+        <div className="hdr-curve"/>
         <div className="hdr-inner">
-          <div className="hdr-eyebrow">Weekly golf game</div>
-          <div className="hdr-title">Clark <span>Golf</span> Group</div>
-          <div className="hdr-stats">
-            <div className="hdr-stat"><div className="hdr-stat-num">{totalSignups}</div><div className="hdr-stat-lbl">Signed Up</div></div>
-            <div className="hdr-stat"><div className="hdr-stat-num">{activeDays}</div><div className="hdr-stat-lbl">Active Days</div></div>
-            <div className="hdr-stat"><div className="hdr-stat-num">{(teams||[]).length}</div><div className="hdr-stat-lbl">Teams</div></div>
+          <div className="hdr-top">
+            <div>
+              <div className="hdr-brand">Clark <em>Golf</em> Group</div>
+              <div className="hdr-sub">Weekly game</div>
+            </div>
+            <div className="hdr-right">
+              {isAdmin&&<span className="admin-tag">Admin</span>}
+              <button className="switch-btn" onClick={()=>{setRole(null);setIsAdmin(false);setIsDemo(false)}}>Switch</button>
+            </div>
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:2}}>
+          <div className="hdr-stats">
+            <div className="hdr-stat"><div className="hdr-stat-n">{totalSignups}</div><div className="hdr-stat-l">Signed Up</div></div>
+            <div className="hdr-stat"><div className="hdr-stat-n">{activeDays}</div><div className="hdr-stat-l">Active Days</div></div>
+            <div className="hdr-stat"><div className="hdr-stat-n">{(teams||[]).length}</div><div className="hdr-stat-l">Teams</div></div>
+          </div>
+          <div style={{marginTop:10,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             {game?(
-              <div className="hdr-game-pill"><span className="hdr-dot"></span>{game.day} · {fmtD(game.date)}{game.course?' · '+game.course:''}</div>
+              <div className="hdr-pill"><span className="hdr-dot"/>{game.day}{game.course?' · '+game.course:''}</div>
             ):(
-              <div className="hdr-game-pill" style={{opacity:0.5}}>No game scheduled</div>
+              <div className="hdr-pill" style={{opacity:0.5}}>No game scheduled</div>
             )}
-            {isAdmin&&<span className="admin-tag">ADMIN</span>}
-            <button onClick={()=>setRole(null)} style={{marginLeft:'auto',background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:20,padding:'4px 10px',color:'rgba(255,255,255,0.5)',fontSize:11,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em'}}>Switch</button>
+            {isDemo&&<span className="pill pill-amber" style={{fontSize:9}}>⚡ Demo</span>}
           </div>
         </div>
       </div>
-
       <nav className="nav">
-        {TABS.map(t=><button key={t.id} className={`nav-btn${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.icon}{t.label}</button>)}
+        {TABS.map(t=>(
+          <button key={t.id} className={`nav-btn${tab===t.id?' on':''}${t.locked?' locked':''}`}
+            onClick={()=>!t.locked&&setTab(t.id)}>
+            {t.icon}
+            {t.label}
+            {t.locked&&<span style={{fontSize:7,opacity:0.6}}>🔒</span>}
+          </button>
+        ))}
       </nav>
-
       <div className="content">
-        {tab==='home'&&(
-          <WeekDashboard
-            game={game}
-            signups={signups}
-            currentUser={currentUser}
-            onSignup={d=>push('signups',d)}
-            onRemove={k=>del('signups/'+k)}
-            isAdmin={isAdmin}
-          />
-        )}
+        {tab==='home'&&<WeekView game={game} signups={signups} isAdmin={isAdmin} isDemo={isDemo} onSignup={d=>push('signups',d)} onRemove={k=>del('signups/'+k)} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete}/>}
         {tab==='teams'&&<TeamsView game={game?{...game,signups}:null} teams={teams} signups={signups} isAdmin={isAdmin} onSave={t=>write('teams',t)} onPublish={()=>{write('teams',teams);write('currentGame',{...game,teamsPublished:true})}}/>}
-        {tab==='scoring'&&<ScoringView game={game?{...game,signups}:null} teams={teams} scores={scores} onSave={s=>write('scores',s)} isAdmin={isAdmin}/>}
+        {tab==='scoring'&&<ScoringView game={game?{...game,signups}:null} teams={teams} scores={scores} onSave={s=>write('scores',s)} isAdmin={isAdmin} unlocked={scoringUnlocked}/>}
         {tab==='history'&&<HistoryView history={history}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogin={login} onLogout={()=>{setIsAdmin(false)}} gameData={game} onCreate={createGame} onArchive={archive} onAddPlayer={p=>write('extraPlayers',[...extra,{...p,id:100+extra.length+1}])} roster={roster}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogin={login} onLogout={()=>setIsAdmin(false)} gameData={game} onCreate={createGame} onArchive={archive} onAddPlayer={p=>write('extraPlayers',[...extra,{...p,id:100+extra.length+1}])} roster={roster}/>}
       </div>
     </div>
   );
 }
-
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
