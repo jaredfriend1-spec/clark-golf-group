@@ -576,7 +576,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     const pid=isGuest?'g_'+Date.now():parseInt(sel);
     selectedDays.forEach((day,i)=>{
       const dup=Object.values(allSignups).some(s=>s.day===day&&s.name===name);
-      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),day,signedUpAt:Date.now()+i});
+      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),day,signedUpAt:Date.now()+(i*100)});
     });
     setShowSignup(false);
   }
@@ -1778,7 +1778,7 @@ function App(){
 
       <div className="content">
         {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo}
-          onSignup={d=>write('week/signups/'+Date.now(),d)}
+          onSignup={d=>push('week/signups',d)}
           onRemove={k=>del('week/signups/'+k)}
           onUpdateSignup={updateSignup}
           onUpdateTeeTime={updateTeeTime}
