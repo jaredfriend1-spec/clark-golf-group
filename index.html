@@ -9,19 +9,19 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:15px}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
 #root{min-height:100%}
 .app{max-width:430px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
 
 /* LANDING */
 .land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px}
-.land-title{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:#fff;text-align:center;line-height:1.05;margin-bottom:4px}
+.land-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#fff;text-align:center;line-height:1.1;margin-bottom:4px}
 .land-title em{color:#10b981;font-style:normal}
-.land-week{font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:36px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase}
-.land-btn{width:100%;padding:16px 18px;border-radius:12px;border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all 0.15s;text-align:left}
+.land-week{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:36px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
+.land-btn{width:100%;padding:16px 18px;border-radius:12px;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all 0.15s;text-align:left}
 .land-btn:active{transform:scale(0.98)}
 .land-btn-player{background:#10b981;color:#0f172a;border-bottom:3px solid #059669}
 .land-btn-admin{background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15)}
@@ -34,40 +34,40 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .land-arrow{font-size:18px;opacity:0.35}
 .pw-box{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px}
 .pw-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-align:center;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px}
-.pw-input{width:100%;padding:13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;font-family:'Inter',sans-serif;outline:none;text-align:center;letter-spacing:0.12em;margin-bottom:10px}
+.pw-input{width:100%;padding:13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;text-align:center;letter-spacing:0.12em;margin-bottom:10px}
 .pw-input.err{border-color:#f87171}
 .pw-err{color:#f87171;font-size:12px;font-weight:600;text-align:center;margin-bottom:8px}
 .pw-row{display:flex;gap:8px}
-.pw-go{flex:1;padding:12px;background:#10b981;color:#0f172a;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
-.pw-back{padding:12px 14px;background:none;border:1px solid rgba(255,255,255,0.14);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+.pw-go{flex:1;padding:12px;background:#10b981;color:#0f172a;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.pw-back{padding:12px 14px;background:none;border:1px solid rgba(255,255,255,0.14);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
 
 /* HEADER */
 .hdr{background:#0f172a;padding:20px 16px 0;position:relative;overflow:hidden}
 .hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:18px;background:#fff;border-radius:18px 18px 0 0}
 .hdr-inner{position:relative;z-index:1;padding-bottom:22px}
 .hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
-.hdr-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1.1}
+.hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:#fff;line-height:1.15}
 .hdr-brand em{color:#10b981;font-style:normal}
-.hdr-week{font-size:9px;font-weight:600;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:3px}
+.hdr-week{font-size:11px;font-weight:600;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:3px}
 .hdr-right{display:flex;align-items:center;gap:5px}
 .admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
 .demo-tag{background:#10b981;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
-.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 .hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
 .hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 6px;text-align:center}
-.hdr-stat-n{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#10b981}
-.hdr-stat-l{font-size:9px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:2px}
+.hdr-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#10b981}
+.hdr-stat-l{font-size:11px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:2px}
 .hdr-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.65)}
 .hdr-dot{width:5px;height:5px;border-radius:50%;background:#10b981;flex-shrink:0}
 
 /* NAV */
 .nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0}
-.nb{flex:1;padding:10px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'Inter',sans-serif;font-size:9px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
+.nb{flex:1;padding:10px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
 .nb svg{width:17px;height:17px;flex-shrink:0}
 .nb.on{color:#0f172a}
 .nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
 .nb.locked{opacity:0.3;cursor:not-allowed}
-.content{flex:1;padding:16px 13px 48px}
+.content{flex:1;padding:16px 13px 48px;line-height:1.5}
 
 /* CARDS */
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
@@ -78,7 +78,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .day-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;user-select:none;-webkit-user-select:none}
 .day-hdr:active{background:#f8fafc}
 .day-left{flex:1;min-width:0}
-.day-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#0f172a}
+.day-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
 .day-sub{font-size:11px;color:#94a3b8;font-weight:500;margin-top:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tee-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
 .tee-tag.lottery{background:#fef3c7;color:#d97706}
@@ -95,38 +95,38 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 /* PLAYER ROWS */
 .p-row{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid #f8fafc;gap:9px}
 .p-row:last-child{border-bottom:none}
-.avi{width:30px;height:30px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Syne',sans-serif}
+.avi{width:30px;height:30px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
 .p-name{font-size:13px;font-weight:600;color:#0f172a}
 .p-meta{font-size:11px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:1px}
 .tee-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.edit-btn{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:600;padding:0 2px;font-family:'Inter',sans-serif}
+.edit-btn{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:600;padding:0 2px;font-family:'DM Sans',sans-serif}
 .rm-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:4px;display:flex;flex-shrink:0;margin-left:auto}
 .rm-btn:hover{color:#ef4444}
 .rm-btn svg{width:14px;height:14px}
-.guest-tag{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:10px;font-weight:600;margin-left:4px}
+.guest-tag{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px}
 
 /* INLINE EDIT */
 .ie{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}
-.ie input{width:52px;padding:3px 6px;border:1.5px solid #10b981;border-radius:6px;font-size:12px;font-weight:600;outline:none;font-family:'Inter',sans-serif}
-.ie select{padding:3px 5px;border:1.5px solid #10b981;border-radius:6px;font-size:11px;font-weight:500;outline:none;font-family:'Inter',sans-serif}
-.ie-save{font-size:11px;font-weight:700;color:#15803d;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
-.ie-cancel{font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.ie input{width:52px;padding:3px 6px;border:1.5px solid #10b981;border-radius:6px;font-size:12px;font-weight:600;outline:none;font-family:'DM Sans',sans-serif}
+.ie select{padding:3px 5px;border:1.5px solid #10b981;border-radius:6px;font-size:11px;font-weight:500;outline:none;font-family:'DM Sans',sans-serif}
+.ie-save{font-size:11px;font-weight:700;color:#15803d;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ie-cancel{font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
 
 /* SIGNUP BUTTON AREA */
 .day-actions{padding:10px 14px;display:flex;gap:7px;align-items:center;border-top:1px solid #f1f5f9}
-.signup-btn{padding:8px 14px;background:#10b981;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
-.teeadd-btn{padding:8px 12px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;color:#475569}
+.signup-btn{padding:8px 14px;background:#10b981;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.teeadd-btn{padding:8px 12px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#475569}
 
 /* STATS ROW */
 .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .stat-box{background:#0f172a;border-radius:10px;padding:11px 6px;text-align:center}
-.stat-n{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#10b981}
-.stat-l{font-size:9px;color:rgba(255,255,255,0.3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
+.stat-n{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#10b981}
+.stat-l{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
 
 /* TEAM CARDS */
 .team-card{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
 .team-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a}
-.team-nm{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff}
+.team-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0.02em}
 .team-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600}
 .team-row{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid #f8fafc}
 .team-row:last-child{border-bottom:none}
@@ -134,11 +134,11 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 
 /* SCORE PICKER */
 .sc-grid{display:grid;grid-template-columns:1fr 78px 78px 78px;gap:7px;align-items:center}
-.sc-hd{font-size:9px;font-weight:700;color:#94a3b8;text-align:center;letter-spacing:0.07em;text-transform:uppercase}
+.sc-hd{font-size:11px;font-weight:700;color:#94a3b8;text-align:center;letter-spacing:0.07em;text-transform:uppercase}
 .sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:7px;overflow:hidden;background:#f8fafc}
-.sp button{background:none;border:none;cursor:pointer;font-size:16px;font-weight:700;color:#475569;padding:5px 8px;font-family:'Inter',sans-serif;line-height:1;flex-shrink:0}
+.sp button{background:none;border:none;cursor:pointer;font-size:16px;font-weight:700;color:#475569;padding:5px 8px;font-family:'DM Sans',sans-serif;line-height:1;flex-shrink:0}
 .sp button:hover{background:#e2e8f0}
-.sp-val{flex:1;text-align:center;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;min-width:26px}
+.sp-val{flex:1;text-align:center;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;min-width:26px}
 .sp-val.neg{color:#15803d}
 .sp-val.pos{color:#dc2626}
 .sp-val.zero{color:#94a3b8}
@@ -149,7 +149,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .skin-btn:active{transform:scale(0.94)}
 .skin-btn.on{border-color:#10b981;background:#ecfdf5}
 .skin-team{font-size:11px;font-weight:700;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em}
-.skin-num{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;color:#0f172a;line-height:1}
+.skin-num{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;color:#0f172a;line-height:1}
 .skin-lbl{font-size:10px;color:#94a3b8;margin-top:3px}
 .skin-undo{font-size:10px;color:#ef4444;margin-top:4px;cursor:pointer;font-weight:700;text-transform:uppercase}
 
@@ -157,42 +157,42 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .pay-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:13px}
 .pay-row:last-child{border-bottom:none}
 .pay-lbl{color:#475569;font-weight:500}
-.pay-amt{font-weight:700;font-family:'Inter',sans-serif;font-size:14px}
+.pay-amt{font-weight:600;font-family:'DM Sans',sans-serif;font-size:14px}
 .pay-amt.win{color:#15803d}
 .pay-amt.tie{color:#f59e0b}
 .pay-amt.fund{color:#f59e0b}
-.pay-total{display:flex;justify-content:space-between;padding:10px 0 0;font-size:15px;font-weight:700;border-top:2px solid #0f172a;margin-top:4px}
+.pay-total{display:flex;justify-content:space-between;padding:10px 0 0;font-size:15px;font-weight:600;border-top:2px solid #0f172a;margin-top:4px}
 
 /* HISTORY */
 .hi{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:9px;overflow:hidden}
 .hi-hdr{padding:12px 14px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-.hi-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#0f172a}
+.hi-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
 .hi-meta{font-size:11px;color:#94a3b8;font-weight:500;margin-top:2px}
 .hi-body{padding:13px 14px;border-top:1px solid #f1f5f9}
 
 /* ADMIN */
 .admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;margin-bottom:10px}
-.admin-lbl{font-size:10px;font-weight:700;letter-spacing:0.08em;color:#92400e;text-transform:uppercase;margin-bottom:9px}
+.admin-lbl{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px}
 
 /* FORMS */
 .fg{margin-bottom:12px}
-.fl{font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px;display:block;letter-spacing:0.08em;text-transform:uppercase}
-.fi{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
+.fl{font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block;letter-spacing:0.06em;text-transform:uppercase}
+.fi{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
 .fi:focus{border-color:#10b981}
-.fs{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;appearance:none}
+.fs{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;appearance:none}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sw{position:relative;margin-bottom:8px}
 .sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
-.si{width:100%;padding:10px 12px 10px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Inter',sans-serif;outline:none;background:#f8fafc}
+.si{width:100%;padding:10px 12px 10px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;background:#f8fafc}
 .si:focus{border-color:#10b981;background:#fff}
 
 /* TOGGLE */
 .tog{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;margin-bottom:12px}
-.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.04em}
+.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.03em}
 .tog-opt.on{background:#0f172a;color:#fff}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 15px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;letter-spacing:0.01em}
 .btn svg{width:14px;height:14px;flex-shrink:0}
 .btn:active{transform:scale(0.97)}
 .btn:disabled{opacity:0.35;cursor:not-allowed}
@@ -220,24 +220,24 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#f1f5f9;color:#0
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200}
 .modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:88vh;overflow-y:auto}
 .modal-handle{width:34px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
-.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#0f172a;margin-bottom:13px}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;margin-bottom:13px;letter-spacing:0.01em}
 .p-pick{display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #f1f5f9;cursor:pointer}
 .p-pick:last-child{border-bottom:none}
 .p-pick:hover{background:#f8fafc}
 .p-pick.sel{background:#ecfdf5}
 
 /* MISC */
-.slbl{font-size:10px;font-weight:700;letter-spacing:0.1em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
+.slbl{font-size:11px;font-weight:600;letter-spacing:0.07em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
 .demo-bar{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .demo-lbl{font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.07em}
 .empty{text-align:center;padding:44px 16px}
 .empty svg{width:38px;height:38px;opacity:0.18;margin-bottom:11px}
-.empty-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px}
+.empty-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px}
 .empty-sub{font-size:13px;color:#64748b;line-height:1.55}
 .pill-gray{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:10px;font-weight:600}
 .pill-green{display:inline-block;padding:1px 6px;background:#dcfce7;color:#15803d;border-radius:20px;font-size:10px;font-weight:600}
 .section-btn{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;cursor:pointer;border-bottom:1px solid #f1f5f9}
-.section-title{font-size:14px;font-weight:700;color:#0f172a}
+.section-title{font-size:14px;font-weight:600;color:#0f172a}
 .section-body{padding:13px}
 /* checkbox */
 .cb-row{display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer}
@@ -482,7 +482,7 @@ function Landing({onPlayer,onAdmin,onDemo}){
 }
 
 // ── THIS WEEK VIEW ─────────────────────────────────────────────────────────
-function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay}){
+function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
   const [signModal,setSignModal]=useState(null);
   const [teeModal,setTeeModal]=useState(null);
   const [editTeeModal,setEditTeeModal]=useState(null);
@@ -555,6 +555,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         const dayTeams=week.teams&&week.teams[day];
         const dayScores=week.scores&&week.scores[day];
         const dayComplete=week.complete&&week.complete[day];
+        const dayLocked=week.locked&&week.locked[day];
         const isOpen=expanded[day];
 
         return(
@@ -577,6 +578,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                   {teeInfo&&!teeInfo.lottery&&<span className="tee-tag set">First Tee: {teeInfo.time}</span>}
                   {teeInfo&&teeInfo.lottery&&<span className="tee-tag lottery">Lottery</span>}
                   {dayComplete&&<span className="tee-tag done">Complete</span>}
+                  {dayLocked&&<span className="tee-tag" style={{background:'#fef2f2',color:'#dc2626',border:'1px solid #fecaca'}}>Signups locked</span>}
                 </div>
               </div>
               <div className="day-right">
@@ -587,13 +589,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 
             {isOpen&&(
               <div className="day-body">
-                {isAdmin&&!isDemo&&dayTeams&&dayTeams.length>0&&!dayComplete&&(
-                  <div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#f8fafc'}}>
-                    <button className="btn btn-dark btn-sm btn-full" onClick={()=>onMarkComplete(day)}>
-                      Mark {day} Round Complete
-                    </button>
-                  </div>
-                )}
+
                 {dayComplete&&(
                   <div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     <span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>
@@ -630,9 +626,11 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                 ))}
 
                 <div className="day-actions">
-                  {!isDemo&&<button className="signup-btn" onClick={()=>openSignup(day)}>+ Sign up for {day}</button>}
+                  {!isDemo&&!dayLocked&&<button className="signup-btn" onClick={()=>openSignup(day)}>+ Sign up for {day}</button>}
+                  {!isDemo&&dayLocked&&!isAdmin&&<span style={{fontSize:12,color:'#94a3b8',fontWeight:600,padding:'8px 4px'}}>Sign-ups locked by admin</span>}
                   {isAdmin&&!isDemo&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
                   {isAdmin&&!isDemo&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
+                  {isAdmin&&!isDemo&&<button className="teeadd-btn" style={{marginLeft:'auto',color:dayLocked?'#15803d':'#94a3b8',borderColor:dayLocked?'#bbf7d0':'#e2e8f0',background:dayLocked?'#ecfdf5':'#fff'}} onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock signups':'Lock signups'}</button>}
                 </div>
               </div>
             )}
@@ -841,7 +839,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams}){
 }
 
 // ── SCORING VIEW (per day) ───────────────────────────────────────────────────
-function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory}){
+function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,onReopenDay}){
   const [activeDay,setActiveDay]=useState(null);
   const [ts,setTs]=useState({});
   const [sk,setSk]=useState({});
@@ -1015,9 +1013,22 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory}){
       )}
 
       {isAdmin&&(
-        <div style={{display:'flex',gap:8,marginTop:4}}>
-          <button className="btn btn-dark" style={{flex:1}} onClick={save}>Save scores &amp; payouts</button>
-          {saved&&<button className="btn btn-green btn-sm" onClick={()=>{if(window.confirm('Move '+activeDay+' to history?'))onMoveToHistory(activeDay);}}>Move to history</button>}
+        <div style={{marginTop:4}}>
+          {!dayComplete&&dayTeams.length>0&&(
+            <button className="btn btn-dark btn-full" style={{marginBottom:8}} onClick={()=>onMarkComplete(activeDay)}>
+              Mark {activeDay} Round Complete — Finalize Payouts
+            </button>
+          )}
+          {dayComplete&&(
+            <div style={{background:'#ecfdf5',border:'1px solid #bbf7d0',borderRadius:9,padding:'10px 12px',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{activeDay} round complete — payouts finalized</span>
+              <button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(activeDay)}>Reopen</button>
+            </div>
+          )}
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-dark" style={{flex:1}} onClick={save}>Save scores &amp; payouts</button>
+            {saved&&<button className="btn btn-green btn-sm" onClick={()=>{if(window.confirm('Move '+activeDay+' to history?'))onMoveToHistory(activeDay);}}>Move to history</button>}
+          </div>
         </div>
       )}
       {saved&&<div className="alert alert-ok" style={{marginTop:8}}>Saved — players can see scores now.</div>}
@@ -1328,6 +1339,10 @@ function App(){
     setTab('scoring');
   }
 
+  function toggleLock(day,locked){
+    const newWeek={...week,locked:{...(week.locked||{}),[day]:locked}};
+    write('week',newWeek);
+  }
   function reopenDay(day){
     const newWeek={...week,complete:{...(week.complete||{}),[day]:false}};
     write('week',newWeek);
@@ -1434,9 +1449,9 @@ function App(){
       </nav>
 
       <div className="content">
-        {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} onSignup={d=>write('week/signups/'+Date.now(),d)} onRemove={k=>del('week/signups/'+k)} onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay}/>}
+        {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} onSignup={d=>write('week/signups/'+Date.now(),d)} onRemove={k=>del('week/signups/'+k)} onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}/>}
         {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishTeams={publishTeams}/>}
-        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} onSaveScores={saveScores} onMoveToHistory={moveToHistory}/>}
+        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} onSaveScores={saveScores} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={k=>del('history/'+k)} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound}/>}
         {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setIsAdmin(false);setRole(null);}} week={week} onCreate={createWeek} onArchiveDay={archiveDay} onAddPlayer={p=>write('extraPlayers',[...extra,{...p,id:1000+extra.length+1}])} onRemovePlayer={id=>write('extraPlayers',extra.filter(p=>p.id!==id))} roster={fullRoster} onRemoveSignup={k=>del('week/signups/'+k)} onAddSignup={d=>write('week/signups/'+Date.now(),d)}/>}
       </div>
