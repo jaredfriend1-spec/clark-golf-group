@@ -333,13 +333,10 @@ function getWeekLabel(){
   const fmt=d=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getDate();
   return`Week of ${fmt(mon)} – ${fmt(sun)}`;
 }
-
-// Build balanced teams — always prefer groups of 4, max 4 per team
 function buildTeams(players){
   const s=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
   const n=s.length;
   if(n<3)return[];
-  // Max 4 per team. num teams = ceil(n/4)
   const nt=Math.ceil(n/4);
   const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:`Team ${i+1}`,players:[],totalHcp:0}));
   s.forEach((p,idx)=>{
@@ -360,8 +357,6 @@ function makeDemoData(){
   shuffled.forEach((p,i)=>{signups[`d${i}`]={playerId:p.id,name:p.name,tee:teeOpts[i%teeOpts.length],handicap:hcps[i],day:'Saturday',signedUpAt:Date.now()+i}});
   return{signups,teams:buildTeams(Object.values(signups))};
 }
-
-// Icons
 const Ic={
   flag:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
   users:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
@@ -378,8 +373,6 @@ const Ic={
   refresh:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>,
   undo:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>,
 };
-
-// TimePicker component
 function TimePicker({value,onChange}){
   const hours=Array.from({length:12},(_,i)=>String(i+1));
   const mins=['00','15','30','45'];
@@ -399,8 +392,6 @@ function TimePicker({value,onChange}){
     </div>
   );
 }
-
-// Score stepper -30 to +30
 function ScorePicker({value,onChange,readOnly}){
   const v=value===''||value===undefined?null:parseInt(value);
   const display=v===null?'—':(v>0?'+'+v:String(v));
@@ -420,8 +411,6 @@ function ScorePicker({value,onChange,readOnly}){
     </div>
   );
 }
-
-// ── LANDING ──────────────────────────────────────────────────────────────────
 function Landing({onPlayer,onAdmin,onDemo}){
   const [adminPw,setAdminPw]=useState('');
   const [showAdminPw,setShowAdminPw]=useState(false);
@@ -479,8 +468,6 @@ function Landing({onPlayer,onAdmin,onDemo}){
     </div>
   );
 }
-
-// ── WEEK VIEW ────────────────────────────────────────────────────────────────
 function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenRound}){
   const DAYS=['Friday','Saturday','Sunday'];
   const [exp,setExp]=useState({Friday:true,Saturday:true,Sunday:true});
@@ -752,8 +739,6 @@ function WeekView({game,signups,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,
     </div>
   );
 }
-
-// ── TEAMS VIEW ───────────────────────────────────────────────────────────────
 function TeamsView({game,teams,signups,isAdmin,onSave,onPublish,onUpdatePlayer}){
   const [edit,setEdit]=useState(null);
   const [drag,setDrag]=useState(null);
@@ -858,8 +843,6 @@ function TeamsView({game,teams,signups,isAdmin,onSave,onPublish,onUpdatePlayer})
     </div>
   );
 }
-
-// ── SCORING VIEW ─────────────────────────────────────────────────────────────
 function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}){
   const [ts,setTs]=useState({});const [sk,setSk]=useState({});
   const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
@@ -892,8 +875,6 @@ function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}
     const third=remaining/3;
     setFv(Math.round(third*100)/100);setBv(Math.round(third*100)/100);setOv(total-parseFloat(sv||0)-(Math.round(third*100)/100)*2);
   }
-
-  // Determine winners for each segment
   function getWinners(seg){
     if(!teams?.length)return[];
     const scored=teams.map(t=>({...t,score:parseFloat((ts[t.id]||{})[seg])})).filter(t=>!isNaN(t.score));
@@ -910,8 +891,6 @@ function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}
     if(!w||!w.tied)return places===1?[{label:'1st place',amt:p}]:[{label:'1st place',amt:p*0.6},{label:'2nd place',amt:p*0.4}];
     const results=[];
     if(w.tied.length>1){
-      // Tie for first — split 1st (and 2nd if places=2) pot among tied teams
-      const splitAmt=places===1?p:(p*0.6+p*0.4)/w.tied.length;
       const perTeam=places===1?p/w.tied.length:(p*0.6+p*0.4)/w.tied.length;
       results.push({label:`1st — TIE (${w.tied.map(t=>t.name).join(' & ')})`,amt:perTeam,split:true,teams:w.tied});
       if(places===2&&w.tied.length===1&&w.second){
@@ -1069,8 +1048,6 @@ function ScoringView({game,teams,scores,onSave,onMoveToHistory,isAdmin,unlocked}
     </div>
   );
 }
-
-// ── HISTORY VIEW ─────────────────────────────────────────────────────────────
 function HistoryView({history}){
   const [open,setOpen]=useState(null);
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
@@ -1180,8 +1157,6 @@ function HistoryView({history}){
     </div>
   );
 }
-
-// ── ADMIN VIEW ───────────────────────────────────────────────────────────────
 function AdminView({isAdmin,onLogout,gameData,onCreate,onArchive,onAddPlayer,onRemovePlayer,roster,signups,onRemoveSignup,onAddSignup}){
   const [g,setG]=useState({day:'Saturday',date:td()});
   const [np,setNp]=useState({name:'',email:''});
@@ -1302,8 +1277,6 @@ function AdminView({isAdmin,onLogout,gameData,onCreate,onArchive,onAddPlayer,onR
     </div>
   );
 }
-
-// ── APP ROOT ─────────────────────────────────────────────────────────────────
 function App(){
   const [role,setRole]=useState(null);
   const [tab,setTab]=useState('home');
@@ -1316,8 +1289,6 @@ function App(){
   const [history,setHistory]=useState({});
   const [extra,setExtra]=useState([]);
   const {ready,read,write,push,del}=useDB();
-
-  // Roster = base + extra players added by admin
   const roster=extra.filter(p=>!p.isGuest);
 
   useEffect(()=>{
@@ -1486,7 +1457,17 @@ function App(){
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById('root').innerHTML = '<div style="padding:20px;font-family:monospace;color:red;background:#fff;"><h2>App Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p><p>' + (err ? err.stack : '') + '</p></div>';
+  return false;
+};
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+} catch(e) {
+  document.getElementById('root').innerHTML = '<div style="padding:20px;font-family:monospace;color:red;background:#fff;"><h2>Render Error</h2><p>' + e.message + '</p><pre>' + e.stack + '</pre></div>';
+}
+
 
 </script>
 </body>
