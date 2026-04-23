@@ -511,6 +511,17 @@ function Landing({onPlayer,onAdmin,onDemo}){
   );
 }
 
+function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hcp,onConfirm}){
+  const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
+  const selectedDays=(activeDays||[]).filter(d=>signupDays[d]&&!Object.values(allSignups||{}).some(s=>s.day===d&&s.name===name));
+  const disabled=(!sel&&!gname)||!hcp||selectedDays.length===0;
+  return(
+    <button className="btn btn-green btn-full" onClick={onConfirm} disabled={disabled} style={{opacity:disabled?0.4:1}}>
+      {selectedDays.length>1?'Sign up for '+selectedDays.length+' days':'Confirm sign-up'}
+    </button>
+  );
+}
+
 // ── THIS WEEK VIEW ─────────────────────────────────────────────────────────
 function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
   const [showSignup,setShowSignup]=useState(false);
@@ -549,10 +560,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 
   function openSignup(){
     const init={};
-    activeDays.forEach(d=>{
-      const alreadyIn=Object.values(allSignups).some(s=>s.day===d&&(sel?(ROSTER.find(p=>p.id==sel)||{}).name===s.name:false));
-      init[d]=!alreadyIn;
-    });
+    activeDays.forEach(d=>{init[d]=false;});
     setSignupDays(init);
     setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
     setShowSignup(true);
@@ -752,16 +760,11 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
               <div className="fg"><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/></div>
             </div>
 
-            {(() => {
-              const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
-              const selectedDays=activeDays.filter(d=>signupDays[d]&&!Object.values(allSignups).some(s=>s.day===d&&s.name===name));
-              const disabled=(!sel&&!gname)||!hcp||selectedDays.length===0;
-              return(
-                <button className="btn btn-green btn-full" onClick={doSignup} disabled={disabled} style={{opacity:disabled?0.4:1}}>
-                  {selectedDays.length>1?'Sign up for '+selectedDays.length+' days':'Confirm sign-up'}
-                </button>
-              );
-            })()}
+            <SignupConfirmBtn
+              isGuest={isGuest} gname={gname} sel={sel}
+              activeDays={activeDays} signupDays={signupDays}
+              allSignups={allSignups} hcp={hcp}
+              onConfirm={doSignup}/>
           </div>
         </div>
       )}
