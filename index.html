@@ -7,181 +7,214 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --green: #2d5a27;
-    --green-mid: #3d7a35;
-    --green-light: #e8f5e3;
-    --green-pale: #f4faf2;
-    --gold: #c9a84c;
-    --gold-light: #fdf6e3;
-    --text: #1a1a1a;
-    --text-mid: #4a4a4a;
-    --text-muted: #888;
-    --border: #e2e8df;
-    --surface: #ffffff;
-    --surface-alt: #f7faf6;
-    --danger: #c0392b;
-    --danger-light: #fdf0ee;
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
-  html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--surface-alt); color: var(--text); }
-  #root { min-height: 100%; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --dark:#0f1a0f;--dark2:#1a2a1a;--dark3:#243024;
+  --green:#2d6a27;--green-mid:#3d8a35;--green-accent:#4ec942;
+  --green-light:#e3f5e0;--green-pale:#f0faf0;
+  --gold:#c9a84c;--gold-light:#fdf8ed;--gold-dark:#a8841a;
+  --white:#ffffff;--off:#f7f9f6;
+  --text:#0d120d;--text-mid:#3a453a;--text-muted:#7a8a7a;
+  --border:#e0e8de;--border-mid:#cad6c8;
+  --danger:#d63031;--danger-light:#fef0ef;
+  --r:14px;--rs:9px;--rx:5px;
+}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#e8ede6;color:var(--text);-webkit-font-smoothing:antialiased}
+#root{min-height:100%}
+.app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--white);display:flex;flex-direction:column}
 
-  /* Layout */
-  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--surface); display: flex; flex-direction: column; }
-  .header { background: var(--green); color: white; padding: 16px 20px 12px; }
-  .header-top { display: flex; align-items: center; justify-content: space-between; }
-  .header h1 { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; letter-spacing: 0.02em; }
-  .header-sub { font-size: 12px; opacity: 0.7; margin-top: 2px; }
-  .nav { display: flex; background: var(--green); border-top: 1px solid rgba(255,255,255,0.15); }
-  .nav-btn { flex: 1; padding: 10px 4px 8px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: color 0.15s; }
-  .nav-btn.active { color: white; border-bottom: 2px solid var(--gold); }
-  .nav-btn svg { width: 18px; height: 18px; }
-  .content { flex: 1; padding: 20px 16px; overflow-y: auto; }
+/* ── HEADER ── */
+.hdr{background:var(--dark);padding:28px 20px 0;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:-40px;right:-30px;width:160px;height:160px;border-radius:50%;background:rgba(78,201,66,0.06)}
+.hdr::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:22px;background:var(--white);border-radius:22px 22px 0 0}
+.hdr-inner{position:relative;z-index:1;padding-bottom:28px}
+.hdr-eyebrow{font-size:9px;font-weight:700;letter-spacing:0.18em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:5px}
+.hdr-title{font-family:'Syne',sans-serif;font-size:27px;font-weight:800;color:var(--white);line-height:1.0;margin-bottom:2px;letter-spacing:-0.01em}
+.hdr-title span{color:var(--green-accent)}
+.hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.hdr-stat{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 8px;text-align:center}
+.hdr-stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green-accent)}
+.hdr-stat-lbl{font-size:9px;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-top:2px}
+.hdr-game-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);margin-top:10px}
+.hdr-dot{width:6px;height:6px;border-radius:50%;background:var(--green-accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .card-title { font-size: 14px; font-weight: 600; color: var(--text); }
-  .card-sub { font-size: 12px; color: var(--text-muted); }
+/* ── NAV ── */
+.nav{display:flex;background:var(--white);border-bottom:1px solid var(--border);padding:0 4px}
+.nav-btn{flex:1;padding:12px 2px 10px;background:none;border:none;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color 0.15s;letter-spacing:0.04em;text-transform:uppercase;position:relative}
+.nav-btn svg{width:19px;height:19px;stroke-width:1.8}
+.nav-btn.active{color:var(--green)}
+.nav-btn.active::after{content:'';position:absolute;bottom:0;left:16%;right:16%;height:2.5px;background:var(--gold);border-radius:2px 2px 0 0}
+.content{flex:1;padding:20px 14px 40px}
 
-  /* Buttons */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
-  .btn-primary { background: var(--green); color: white; }
-  .btn-primary:hover { background: var(--green-mid); }
-  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
-  .btn-secondary:hover { background: var(--surface-alt); }
-  .btn-gold { background: var(--gold); color: white; }
-  .btn-danger { background: var(--danger); color: white; }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-  .btn-full { width: 100%; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+/* ── LANDING ── */
+.landing{min-height:100vh;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;position:relative;overflow:hidden}
+.landing::before{content:'';position:absolute;top:-80px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(78,201,66,0.05)}
+.landing::after{content:'';position:absolute;bottom:-60px;left:-40px;width:200px;height:200px;border-radius:50%;background:rgba(201,168,76,0.05)}
+.land-logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.2em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:32px}
+.land-title{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--white);text-align:center;line-height:1.05;margin-bottom:6px}
+.land-title span{color:var(--green-accent)}
+.land-sub{font-size:13px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:48px;font-weight:500}
+.land-btn{width:100%;padding:18px 24px;border-radius:14px;border:none;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;letter-spacing:0.02em}
+.land-btn-primary{background:var(--green-accent);color:var(--dark)}
+.land-btn-primary:hover{background:#5de858}
+.land-btn-secondary{background:rgba(255,255,255,0.07);color:var(--white);border:1px solid rgba(255,255,255,0.15)}
+.land-btn-secondary:hover{background:rgba(255,255,255,0.12)}
+.land-btn-arrow{font-size:20px;opacity:0.6}
 
-  /* Form */
-  .form-group { margin-bottom: 14px; }
-  .form-label { font-size: 12px; font-weight: 500; color: var(--text-mid); margin-bottom: 5px; display: block; }
-  .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface); outline: none; }
-  .form-input:focus { border-color: var(--green-mid); }
-  .form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface); outline: none; appearance: none; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* ── CARDS ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-flush{padding:0;overflow:hidden}
 
-  /* Badges */
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .badge-green { background: var(--green-light); color: var(--green); }
-  .badge-gold { background: var(--gold-light); color: #8a6a10; }
-  .badge-gray { background: #f0f0f0; color: #666; }
-  .badge-red { background: var(--danger-light); color: var(--danger); }
+/* ── DAY CARDS (week dashboard) ── */
+.day-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:box-shadow 0.15s}
+.day-card-hdr{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.day-card-hdr:hover{background:var(--off)}
+.day-left{display:flex;align-items:center;gap:10px}
+.day-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.01em}
+.day-date{font-size:12px;color:var(--text-muted);font-weight:500}
+.day-right{display:flex;align-items:center;gap:8px}
+.day-count{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;background:var(--green);color:var(--white);padding:3px 10px;border-radius:20px}
+.day-count.zero{background:var(--border);color:var(--text-muted)}
+.day-chevron{color:var(--text-muted);transition:transform 0.2s;width:18px;height:18px;flex-shrink:0}
+.day-chevron.open{transform:rotate(180deg)}
+.day-body{border-top:1px solid var(--border);background:var(--off)}
+.day-empty{padding:16px;text-align:center;font-size:13px;color:var(--text-muted);font-style:italic}
+.player-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)}
+.player-row:last-child{border-bottom:none}
+.player-info{display:flex;align-items:center;gap:9px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--green-light);color:var(--green);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Syne',sans-serif}
+.player-name-text{font-size:13px;font-weight:600}
+.player-meta{display:flex;align-items:center;gap:5px;margin-top:2px}
+.tee-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.player-meta-text{font-size:11px;color:var(--text-muted)}
+.remove-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:5px;border-radius:6px;transition:color 0.15s;display:flex}
+.remove-btn:hover{color:var(--danger)}
 
-  /* Player list */
-  .player-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--surface); cursor: pointer; transition: all 0.12s; }
-  .player-item:hover { border-color: var(--green-mid); background: var(--green-pale); }
-  .player-item.selected { border-color: var(--green); background: var(--green-light); }
-  .player-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--green-light); color: var(--green); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .player-name { font-size: 14px; font-weight: 500; flex: 1; }
-  .player-detail { font-size: 12px; color: var(--text-muted); }
+/* ── SIGNUP MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;z-index:200}
+.modal{background:var(--white);border-radius:22px 22px 0 0;padding:20px 18px 40px;width:100%;max-height:88vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border-mid);border-radius:2px;margin:0 auto 20px}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:18px;letter-spacing:-0.01em}
 
-  /* Team cards */
-  .team-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
-  .team-header { background: var(--green); color: white; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
-  .team-name { font-weight: 600; font-size: 14px; }
-  .team-hcp { font-size: 12px; opacity: 0.8; }
-  .team-body { padding: 0; }
-  .team-player { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); }
-  .team-player:last-child { border-bottom: none; }
-  .slot-label { font-size: 11px; font-weight: 600; color: var(--gold); background: var(--gold-light); padding: 2px 6px; border-radius: 4px; width: 22px; text-align: center; flex-shrink: 0; }
+/* ── FORMS ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:700;color:var(--text-mid);margin-bottom:5px;display:block;letter-spacing:0.06em;text-transform:uppercase}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:'Inter',sans-serif;font-size:15px;color:var(--text);background:var(--white);outline:none;transition:border-color 0.15s}
+.form-input:focus{border-color:var(--green-accent)}
+.form-select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:'Inter',sans-serif;font-size:15px;color:var(--text);background:var(--white);outline:none;appearance:none}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.search-wrap{position:relative;margin-bottom:10px}
+.search-input{width:100%;padding:11px 14px 11px 36px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:'Inter',sans-serif;outline:none;background:var(--off)}
+.search-input:focus{border-color:var(--green-accent);background:var(--white)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:15px;height:15px}
+.player-pick{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+.player-pick:last-child{border-bottom:none}
+.player-pick:hover{background:var(--off)}
+.player-pick.sel{background:var(--green-light)}
 
-  /* Scoring */
-  .score-section { margin-bottom: 20px; }
-  .score-title { font-size: 13px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
-  .score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .score-team-label { font-size: 13px; font-weight: 500; width: 70px; flex-shrink: 0; }
-  .score-input { width: 72px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; text-align: center; font-family: 'DM Sans', sans-serif; }
-  .score-input:focus { outline: none; border-color: var(--green); }
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--rs);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.01em}
+.btn-primary{background:var(--green);color:white}
+.btn-primary:hover{background:var(--dark2)}
+.btn-primary:active{transform:scale(0.97)}
+.btn-accent{background:var(--green-accent);color:var(--dark);font-family:'Syne',sans-serif;font-weight:800}
+.btn-accent:hover{background:#5de858}
+.btn-secondary{background:var(--white);border:1.5px solid var(--border-mid);color:var(--text-mid)}
+.btn-secondary:hover{background:var(--off)}
+.btn-gold{background:var(--gold);color:white}
+.btn-gold:hover{background:var(--gold-dark)}
+.btn-danger{background:var(--danger);color:white}
+.btn-ghost{background:none;border:none;cursor:pointer;padding:7px;color:var(--text-muted)}
+.btn-sm{padding:8px 14px;font-size:13px}
+.btn-xs{padding:5px 10px;font-size:12px}
+.btn-full{width:100%}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
 
-  /* Skin tapper */
-  .skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
-  .skin-btn { padding: 18px 12px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; text-align: center; transition: all 0.12s; font-family: 'DM Sans', sans-serif; }
-  .skin-btn:active { transform: scale(0.96); }
-  .skin-btn.has-skins { border-color: var(--green); background: var(--green-light); }
-  .skin-btn-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .skin-btn-count { font-size: 28px; font-weight: 600; color: var(--green); margin: 4px 0; }
-  .skin-btn-label { font-size: 11px; color: var(--text-muted); }
-  .skin-undo { font-size: 11px; color: var(--danger); margin-top: 4px; cursor: pointer; }
+/* ── SECTION LABEL ── */
+.slbl{font-size:10px;font-weight:700;letter-spacing:0.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px}
 
-  /* Payout */
-  .payout-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-  .payout-row:last-child { border-bottom: none; }
-  .payout-label { color: var(--text-mid); }
-  .payout-amount { font-weight: 600; color: var(--green); }
-  .payout-amount.tournament { color: var(--gold); }
-  .total-row { display: flex; justify-content: space-between; padding: 10px 0 0; font-size: 15px; font-weight: 600; border-top: 2px solid var(--green); margin-top: 4px; }
+/* ── TEAM CARDS ── */
+.team-card{border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.team-hdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--dark)}
+.team-name-lbl{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:white}
+.team-hcp-lbl{font-size:12px;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);padding:3px 9px;border-radius:20px}
+.team-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border)}
+.team-row:last-child{border-bottom:none}
+.slot{font-size:10px;font-weight:800;font-family:'Syne',sans-serif;background:var(--gold);color:white;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:20px;text-align:center}
 
-  /* History */
-  .history-item { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
-  .history-header { padding: 12px 14px; background: var(--surface-alt); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-  .history-date { font-size: 14px; font-weight: 600; }
-  .history-meta { font-size: 12px; color: var(--text-muted); }
-  .history-body { padding: 12px 14px; border-top: 1px solid var(--border); }
+/* ── STATS ROW ── */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.stat-box{background:var(--dark);border-radius:var(--rs);padding:14px 8px;text-align:center}
+.stat-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green-accent)}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
 
-  /* Admin */
-  .admin-badge { background: var(--gold); color: white; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-  .section-divider { height: 1px; background: var(--border); margin: 16px 0; }
+/* ── SCORING ── */
+.score-grid{display:grid;grid-template-columns:1fr 68px 68px 68px;gap:8px;align-items:center}
+.score-hd{font-size:10px;font-weight:700;color:var(--text-muted);text-align:center;letter-spacing:0.06em;text-transform:uppercase}
+.score-input{width:100%;padding:9px 4px;border:1.5px solid var(--border);border-radius:var(--rx);font-size:16px;font-weight:700;text-align:center;font-family:'Syne',sans-serif;color:var(--text);outline:none;background:var(--off)}
+.score-input:focus{border-color:var(--green-accent);background:var(--white)}
+.skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.skin-btn{padding:20px 10px;border:2px solid var(--border);border-radius:var(--r);background:var(--white);cursor:pointer;text-align:center;transition:all 0.12s;user-select:none;-webkit-user-select:none}
+.skin-btn:active{transform:scale(0.93)}
+.skin-btn.on{border-color:var(--green-accent);background:var(--green-pale)}
+.skin-team{font-size:11px;font-weight:700;color:var(--text-mid);margin-bottom:5px;letter-spacing:0.04em;text-transform:uppercase}
+.skin-num{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:var(--green);line-height:1}
+.skin-lbl{font-size:11px;color:var(--text-muted);margin-top:4px}
+.skin-undo{font-size:11px;color:var(--danger);margin-top:6px;cursor:pointer;font-weight:700}
+.payout-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px}
+.payout-row:last-child{border-bottom:none}
+.payout-lbl{color:var(--text-mid)}
+.payout-amt{font-weight:800;color:var(--green);font-family:'Syne',sans-serif;font-size:15px}
+.payout-amt.gold{color:var(--gold)}
+.payout-total{display:flex;justify-content:space-between;padding:12px 0 0;font-size:17px;font-weight:800;border-top:2px solid var(--green);margin-top:4px;font-family:'Syne',sans-serif}
 
-  /* Stat cards */
-  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-  .stat-card { background: var(--green-pale); border: 1px solid var(--green-light); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
-  .stat-num { font-size: 22px; font-weight: 600; color: var(--green); }
-  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+/* ── HISTORY ── */
+.hist-item{border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.hist-hdr{padding:14px 16px;background:var(--off);display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.hist-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800}
+.hist-meta{font-size:12px;color:var(--text-muted);margin-top:2px}
+.hist-body{padding:14px 16px;border-top:1px solid var(--border)}
 
-  /* Signup list */
-  .signup-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .signup-item:last-child { border-bottom: none; }
-  .tee-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-  .tee-blends { background: #1a3a8f; }
-  .tee-whites { background: #e8e8e8; border: 1px solid #ccc; }
-  .tee-golds { background: var(--gold); }
-  .tee-sga { background: #e74c3c; }
+/* ── ADMIN ── */
+.admin-bar{background:var(--gold-light);border:1.5px solid #e8d49a;border-radius:var(--r);padding:16px;margin-bottom:12px}
+.admin-bar-title{font-size:10px;font-weight:800;letter-spacing:0.12em;color:#7a5e10;text-transform:uppercase;margin-bottom:10px}
+.admin-tag{background:var(--gold);color:white;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:0.06em;font-family:'Syne',sans-serif}
 
-  /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; z-index: 100; }
-  .modal { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 16px 32px; width: 100%; max-height: 85vh; overflow-y: auto; }
-  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
-  .modal-close { float: right; background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
+/* ── TOGGLE ── */
+.toggle{display:flex;background:var(--off);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;padding:3px}
+.tog{flex:1;padding:7px 10px;border:none;background:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);border-radius:16px;transition:all 0.15s}
+.tog.on{background:var(--green);color:white}
 
-  /* Misc */
-  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
-  .empty-state svg { width: 48px; height: 48px; opacity: 0.3; margin-bottom: 12px; }
-  .empty-title { font-size: 16px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
-  .pill-toggle { display: flex; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
-  .pill-opt { flex: 1; padding: 7px 12px; border: none; background: none; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
-  .pill-opt.active { background: var(--green); color: white; border-radius: 20px; }
-  .warning-box { background: #fff8e1; border: 1px solid #f0c040; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: #7a5c00; margin-bottom: 12px; }
-  .success-box { background: var(--green-light); border: 1px solid var(--green-mid); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--green); margin-bottom: 12px; }
-  .drag-handle { color: var(--text-muted); cursor: grab; padding: 0 4px; font-size: 16px; }
-  .admin-section { background: var(--gold-light); border: 1px solid #e8d49a; border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
-  .admin-section-title { font-size: 12px; font-weight: 600; color: #8a6a10; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
-  .search-input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; background: var(--surface); }
-  .search-wrap { position: relative; margin-bottom: 12px; }
-  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; }
-  .places-count { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+/* ── ALERTS ── */
+.alert{border-radius:var(--rs);padding:11px 13px;font-size:13px;margin-bottom:12px;font-weight:500}
+.alert-warn{background:#fffbeb;border:1px solid #f0c040;color:#7a5c00}
+.alert-ok{background:var(--green-pale);border:1px solid var(--green-light);color:var(--green)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 20px}
+.empty svg{width:42px;height:42px;opacity:0.18;margin-bottom:14px}
+.empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px}
+.empty-sub{font-size:14px;color:var(--text-muted);line-height:1.6}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.pill-green{background:var(--green-light);color:var(--green)}
+.pill-gold{background:var(--gold-light);color:#7a5e10}
+.pill-gray{background:#f0f0ee;color:#555}
+.pill-dark{background:var(--dark);color:white}
 </style>
 </head>
 <body>
 <div id="root"></div>
-
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const {useState,useEffect,useCallback}=React;
 
-// ── ROSTER ────────────────────────────────────────────────────────────────────
-const ROSTER = [
+const ROSTER=[
   {id:1,name:"Stephen Abbundi"},{id:2,name:"Chris Allen"},{id:3,name:"Bill Balster"},
   {id:4,name:"Mike Barry"},{id:5,name:"Pete Bechtel"},{id:6,name:"Kyle Benjamin"},
   {id:7,name:"Brian Dunn"},{id:8,name:"Rodolfo Camacho"},{id:9,name:"Luis Cardenas"},
@@ -215,297 +248,270 @@ const ROSTER = [
   {id:91,name:"Rick Windon"},{id:92,name:"Bill Wood"},{id:93,name:"Jeff Yeakle"},
   {id:94,name:"Bruce Yoo"},{id:95,name:"Gary Zgorski"},{id:96,name:"Geoff Zgorski"}
 ];
-
-const TEES = ['Blends','Whites','Golds','SGA'];
-const TEE_COLORS = {Blends:'#1a3a8f',Whites:'#ccc',Golds:'#c9a84c',SGA:'#e74c3c'};
-const ADMIN_PASSWORD = 'golf2025';
-
-// ── FIREBASE CONFIG ─ Replace with your config after setup ───────────────────
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDwrlQyxkHRn0Xp5O-bCODz98oCHuj8xTY",
-  authDomain: "clark-group-dd15e.firebaseapp.com",
-  databaseURL: "https://clark-group-dd15e-default-rtdb.firebaseio.com",
-  projectId: "clark-group-dd15e",
-  storageBucket: "clark-group-dd15e.firebasestorage.app",
-  messagingSenderId: "92891899165",
-  appId: "1:92891899165:web:817f5f164f3fc50b506df4",
-  measurementId: "G-CWLX9F613Z"
+const TEES=['Blends','Whites','Golds','SGA'];
+const TEE_COLORS={Blends:'#1a3a8f',Whites:'#aaaaaa',Golds:'#c9a84c',SGA:'#d63031'};
+const ADMIN_PW='golf2025';
+const FB={
+  apiKey:"AIzaSyDwrlQyxkHRn0Xp5O-bCODz98oCHuj8xTY",
+  authDomain:"clark-group-dd15e.firebaseapp.com",
+  databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",
+  projectId:"clark-group-dd15e",
+  storageBucket:"clark-group-dd15e.firebasestorage.app",
+  messagingSenderId:"92891899165",
+  appId:"1:92891899165:web:817f5f164f3fc50b506df4"
 };
+const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
-// ── LOCAL STORAGE FALLBACK (works without Firebase) ──────────────────────────
-const LS = {
-  get: (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
-};
-
-// ── FIREBASE HOOK ─────────────────────────────────────────────────────────────
-function useDB() {
-  const [db, setDb] = useState(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (FIREBASE_CONFIG.apiKey === 'REPLACE_WITH_YOUR_API_KEY') {
-        setReady(true); // use local storage fallback
-        return;
-      }
-      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      const database = firebase.database();
-      setDb(database);
-      setReady(true);
-    } catch(e) {
-      setReady(true); // fallback to localStorage
-    }
-  }, []);
-
-  const read = useCallback((path, cb) => {
-    if (!db) {
-      const val = LS.get(path);
-      cb(val);
-      return () => {};
-    }
-    const ref = db.ref(path);
-    ref.on('value', snap => cb(snap.val()));
-    return () => ref.off();
-  }, [db]);
-
-  const write = useCallback((path, val) => {
-    if (!db) { LS.set(path, val); return Promise.resolve(); }
-    return db.ref(path).set(val);
-  }, [db]);
-
-  const push = useCallback((path, val) => {
-    if (!db) {
-      const existing = LS.get(path) || {};
-      const key = Date.now().toString();
-      existing[key] = val;
-      LS.set(path, existing);
-      return Promise.resolve(key);
-    }
-    return db.ref(path).push(val).then(r => r.key);
-  }, [db]);
-
-  const remove = useCallback((path) => {
-    if (!db) { localStorage.removeItem(path); return Promise.resolve(); }
-    return db.ref(path).remove();
-  }, [db]);
-
-  return { db, ready, read, write, push, remove };
+function useDB(){
+  const [db,setDb]=useState(null);
+  const [ready,setReady]=useState(false);
+  useEffect(()=>{try{if(!firebase.apps.length)firebase.initializeApp(FB);setDb(firebase.database());setReady(true)}catch{setReady(true)}},[]);
+  const read=useCallback((p,cb)=>{if(!db){cb(LS.g(p));return()=>{}}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off()},[db]);
+  const write=useCallback((p,v)=>{if(!db){LS.s(p,v);return Promise.resolve()}return db.ref(p).set(v)},[db]);
+  const push=useCallback((p,v)=>{if(!db){const e=LS.g(p)||{};const k=Date.now().toString();e[k]=v;LS.s(p,e);return Promise.resolve(k)}return db.ref(p).push(v).then(r=>r.key)},[db]);
+  const del=useCallback((p)=>{if(!db){localStorage.removeItem(p);return Promise.resolve()}return db.ref(p).remove()},[db]);
+  return{ready,read,write,push,del};
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function initials(name) {
-  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
-}
-function fmt$(n) {
-  return '$' + parseFloat(n || 0).toFixed(2).replace(/\.00$/, '');
-}
-function today() {
-  return new Date().toISOString().split('T')[0];
-}
-function fmtDate(d) {
-  if (!d) return '';
-  const [y,m,day] = d.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`;
-}
+const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2))};
+const td=()=>new Date().toISOString().split('T')[0];
+const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+parseInt(dy)};
+const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+parseInt(dy)+', '+y};
 
-// ── BUILD BALANCED TEAMS ──────────────────────────────────────────────────────
-function buildTeams(players) {
-  const sorted = [...players].sort((a,b) => parseFloat(a.handicap) - parseFloat(b.handicap));
-  const teamSize = sorted.length <= 12 ? 3 : 4;
-  const numTeams = Math.ceil(sorted.length / teamSize);
-  const teams = Array.from({length: numTeams}, (_,i) => ({
-    id: i+1, name: `Team ${i+1}`, players: [], totalHcp: 0
-  }));
-
-  // Snake draft: rank by handicap, distribute A/B/C/D
-  sorted.forEach((p, idx) => {
-    const round = Math.floor(idx / numTeams);
-    const pos = idx % numTeams;
-    const teamIdx = round % 2 === 0 ? pos : numTeams - 1 - pos;
-    teams[teamIdx].players.push({...p, slot: ['A','B','C','D'][Math.min(round,3)]});
-    teams[teamIdx].totalHcp += parseFloat(p.handicap) || 0;
-  });
-
+function buildTeams(players){
+  const s=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
+  const n=s.length;if(n<3)return[];
+  const rem=n%4;
+  const nt=rem===1?Math.ceil(n/4):Math.max(1,Math.floor(n/4)||(Math.ceil(n/4)));
+  const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:`Team ${i+1}`,players:[],totalHcp:0}));
+  s.forEach((p,idx)=>{const round=Math.floor(idx/nt);const pos=idx%nt;const ti=round%2===0?pos:nt-1-pos;teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});teams[ti].totalHcp+=parseFloat(p.handicap)||0});
   return teams;
 }
 
-// ── ICONS ─────────────────────────────────────────────────────────────────────
-const Icons = {
-  home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  users: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-  flag: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
-  trophy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
-  history: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 13 4 10"/></svg>,
-  x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-  trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
-  golf: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="18" r="3"/><line x1="12" y1="15" x2="12" y2="3"/><path d="M12 3l5 3-5 3"/></svg>,
-  dollar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
-  chevron: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
+// SVG Icons
+const Ic={
+  flag:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  users:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  trophy:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,
+  clock:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  gear:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+  plus:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  check:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>,
+  x:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  search:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  trash:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
+  chev:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
+  user:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  shield:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  dollar:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
 };
 
-// ── SIGNUP VIEW (Players) ─────────────────────────────────────────────────────
-function SignupView({ game, signups, onSignup, onRemove, isAdmin, rosterWithGuests }) {
-  const [showForm, setShowForm] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState('');
-  const [guestName, setGuestName] = useState('');
-  const [isGuest, setIsGuest] = useState(false);
-  const [tee, setTee] = useState('Whites');
-  const [handicap, setHandicap] = useState('');
-  const [search, setSearch] = useState('');
-
-  const signedUpIds = Object.values(signups || {}).map(s => s.playerId);
-  const available = rosterWithGuests.filter(p =>
-    !p.isGuest && !signedUpIds.includes(p.id) &&
-    p.name.toLowerCase().includes(search.toLowerCase())
+// ── LANDING SCREEN ────────────────────────────────────────────────────────────
+function Landing({onPlayer,onAdmin}){
+  return(
+    <div className="landing">
+      <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:380}}>
+        <div className="land-logo">Clark Golf Group</div>
+        <div className="land-title">Who are<br/>you <span>today?</span></div>
+        <div className="land-sub">Select your role to get started</div>
+        <button className="land-btn land-btn-primary" onClick={onPlayer}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <span style={{width:36,height:36,borderRadius:'50%',background:'rgba(0,0,0,0.15)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <div style={{textAlign:'left'}}>
+              <div>I'm a Player</div>
+              <div style={{fontSize:11,fontWeight:500,opacity:0.65,fontFamily:'Inter'}}>Sign up · view teams · see results</div>
+            </div>
+          </div>
+          <span className="land-btn-arrow">›</span>
+        </button>
+        <button className="land-btn land-btn-secondary" onClick={onAdmin}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <span style={{width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <div style={{textAlign:'left'}}>
+              <div>I'm an Admin</div>
+              <div style={{fontSize:11,fontWeight:500,opacity:0.5,fontFamily:'Inter'}}>Manage games · teams · scoring</div>
+            </div>
+          </div>
+          <span className="land-btn-arrow">›</span>
+        </button>
+      </div>
+    </div>
   );
+}
 
-  function handleSubmit() {
-    const name = isGuest ? guestName.trim() : rosterWithGuests.find(p => p.id == selectedPlayer)?.name;
-    if (!name || !handicap) return;
-    onSignup({
-      playerId: isGuest ? `guest_${Date.now()}` : parseInt(selectedPlayer),
-      name,
-      isGuest,
-      tee,
-      handicap: parseFloat(handicap),
-      signedUpAt: Date.now()
-    });
-    setShowForm(false);
-    setSelectedPlayer(''); setGuestName(''); setHandicap(''); setIsGuest(false); setTee('Whites');
+// ── WEEK DASHBOARD (shared by player + admin) ─────────────────────────────────
+function WeekDashboard({game,signups,currentUser,onSignup,onRemove,isAdmin}){
+  const [expanded,setExpanded]=useState({});
+  const [signModal,setSignModal]=useState(null); // day key
+  const [isGuest,setIsGuest]=useState(false);
+  const [sel,setSel]=useState('');
+  const [gname,setGname]=useState('');
+  const [tee,setTee]=useState('Whites');
+  const [hcp,setHcp]=useState('');
+  const [q,setQ]=useState('');
+
+  const DAYS=['Friday','Saturday','Sunday'];
+
+  // Group signups by day
+  const byDay={};
+  DAYS.forEach(d=>{byDay[d]=Object.entries(signups||{}).filter(([,s])=>s.day===d)});
+
+  const totalPlayers=Object.keys(signups||{}).length;
+  const signedDays=DAYS.filter(d=>byDay[d].length>0).length;
+
+  function toggle(d){setExpanded(p=>({...p,[d]:!p[d]}))}
+
+  function openSignup(d){
+    setSignModal(d);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
   }
 
-  const signupList = Object.entries(signups || {}).sort((a,b) => a[1].signedUpAt - b[1].signedUpAt);
+  function submit(){
+    const name=isGuest?gname.trim():ROSTER.find(p=>p.id==sel)?.name;
+    if(!name||!hcp||!signModal)return;
+    onSignup({playerId:isGuest?`g_${Date.now()}`:parseInt(sel),name,isGuest,tee,handicap:parseFloat(hcp),day:signModal,signedUpAt:Date.now()});
+    setSignModal(null);
+  }
 
-  return (
+  const signedIds=Object.values(signups||{}).map(s=>s.playerId);
+  const avail=ROSTER.filter(p=>!signedIds.includes(p.id)&&p.name.toLowerCase().includes(q.toLowerCase()));
+
+  // Check if current user is signed up for a given day
+  const userSignup=(d)=>Object.entries(signups||{}).find(([,s])=>s.name===currentUser&&s.day===d);
+
+  if(!game) return(
+    <div className="empty" style={{paddingTop:60}}>
+      <div>{Ic.flag}</div>
+      <div className="empty-title">No game this week</div>
+      <div className="empty-sub">Check back soon — the admin will post the weekly games.</div>
+    </div>
+  );
+
+  return(
     <div>
-      {game && (
-        <div className="card" style={{background:'var(--green-pale)', borderColor:'var(--green-light)'}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-            <div>
-              <div style={{fontSize:18, fontWeight:600, color:'var(--green)'}}>{game.day}</div>
-              <div style={{fontSize:14, color:'var(--text-mid)', marginTop:2}}>{fmtDate(game.date)}</div>
-              {game.course && <div style={{fontSize:13, color:'var(--text-muted)', marginTop:2}}>{game.course}</div>}
-            </div>
-            <div style={{textAlign:'right'}}>
-              <span className="badge badge-green">{signupList.length} signed up</span>
-              {game.teetime && <div style={{fontSize:12, color:'var(--text-muted)', marginTop:4}}>First tee: {game.teetime}</div>}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Mini stats */}
+      <div className="stat-row">
+        <div className="stat-box"><div className="stat-num">{totalPlayers}</div><div className="stat-lbl">Signed Up</div></div>
+        <div className="stat-box"><div className="stat-num">{signedDays}</div><div className="stat-lbl">Active Days</div></div>
+        <div className="stat-box"><div className="stat-num" style={{fontSize:14,paddingTop:6,color:'rgba(255,255,255,0.7)'}}>{game.teamsPublished?'Live':'Pending'}</div><div className="stat-lbl">Teams</div></div>
+      </div>
 
-      {!game && (
-        <div className="empty-state">
-          {Icons.golf}
-          <div className="empty-title">No game scheduled</div>
-          <p>Check back soon or ask the admin to post this week's game.</p>
-        </div>
-      )}
+      {/* Day cards */}
+      {DAYS.map(day=>{
+        const list=byDay[day];
+        const count=list.length;
+        const isOpen=expanded[day];
+        const myEntry=userSignup(day);
 
-      {game && (
-        <>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
-            <div style={{fontSize:14, fontWeight:600}}>Who's playing</div>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
-              {Icons.plus} Sign up
-            </button>
-          </div>
-
-          {signupList.length === 0 && (
-            <div style={{textAlign:'center', padding:'20px', color:'var(--text-muted)', fontSize:14}}>
-              No sign-ups yet — be the first!
-            </div>
-          )}
-
-          <div className="card" style={{padding:0}}>
-            {signupList.map(([key, s]) => (
-              <div key={key} className="signup-item">
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <div className="player-avatar" style={{width:30,height:30,fontSize:11}}>
-                    {initials(s.name)}
-                  </div>
-                  <div>
-                    <div style={{fontWeight:500, fontSize:13}}>{s.name} {s.isGuest && <span className="badge badge-gray">Guest</span>}</div>
-                    <div style={{fontSize:11, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4}}>
-                      <span className="tee-dot" style={{background: TEE_COLORS[s.tee] || '#ccc'}}></span>
-                      {s.tee} · HCP {s.handicap}
-                    </div>
-                  </div>
+        return(
+          <div key={day} className="day-card">
+            <div className="day-card-hdr" onClick={()=>toggle(day)}>
+              <div className="day-left">
+                <div>
+                  <div className="day-name">{day}</div>
+                  {game.date&&<div className="day-date">{fmtD(game.date)}</div>}
                 </div>
-                {isAdmin && (
-                  <button className="btn btn-sm" style={{color:'var(--danger)', border:'none', padding:'4px 6px'}} onClick={() => onRemove(key)}>
-                    {Icons.trash}
-                  </button>
+              </div>
+              <div className="day-right">
+                {myEntry&&(
+                  <span className="pill pill-green" style={{fontSize:10}}>You're in</span>
+                )}
+                <span className={`day-count${count===0?' zero':''}`}>{count} {count===1?'player':'players'}</span>
+                <svg className={`day-chevron${isOpen?' open':''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+
+            {isOpen&&(
+              <div className="day-body">
+                {count===0&&<div className="day-empty">No sign-ups yet for {day}</div>}
+                {list.map(([key,s])=>(
+                  <div key={key} className="player-row">
+                    <div className="player-info">
+                      <div className="avatar">{ini(s.name)}</div>
+                      <div>
+                        <div className="player-name-text">{s.name}{s.isGuest&&<span className="pill pill-gray" style={{fontSize:10,marginLeft:5}}>Guest</span>}</div>
+                        <div className="player-meta">
+                          <span className="tee-dot" style={{background:TEE_COLORS[s.tee]||'#ccc'}}></span>
+                          <span className="player-meta-text">{s.tee} · HCP {s.handicap}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {(isAdmin||(currentUser&&s.name===currentUser))&&(
+                      <button className="remove-btn" onClick={()=>onRemove(key)} title="Remove">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {/* Sign up CTA */}
+                {!myEntry&&(
+                  <div style={{padding:'12px 14px',borderTop:count>0?'1px solid var(--border)':'none'}}>
+                    <button className="btn btn-accent btn-full btn-sm" onClick={()=>openSignup(day)}>
+                      {Ic.plus} Sign up for {day}
+                    </button>
+                  </div>
+                )}
+                {myEntry&&(
+                  <div style={{padding:'10px 14px',borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontSize:12,color:'var(--green)',fontWeight:600}}>You're signed up for {day}</span>
+                    <button className="btn btn-secondary btn-xs" onClick={()=>onRemove(myEntry[0])}>Remove me</button>
+                  </div>
                 )}
               </div>
-            ))}
+            )}
           </div>
-        </>
-      )}
+        );
+      })}
 
-      {/* Sign Up Modal */}
-      {showForm && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowForm(false)}>
+      {/* Sign up modal */}
+      {signModal&&(
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setSignModal(null)}>
           <div className="modal">
-            <button className="modal-close" onClick={() => setShowForm(false)}>{Icons.x}</button>
-            <div className="modal-title">Sign up for {game?.day}</div>
-
-            <div className="pill-toggle" style={{marginBottom:14}}>
-              <button className={`pill-opt ${!isGuest ? 'active' : ''}`} onClick={() => setIsGuest(false)}>Member</button>
-              <button className={`pill-opt ${isGuest ? 'active' : ''}`} onClick={() => setIsGuest(true)}>Guest</button>
+            <div className="modal-handle"></div>
+            <div className="modal-title">Sign up for {signModal}</div>
+            <div className="toggle" style={{marginBottom:14}}>
+              <button className={`tog${!isGuest?' on':''}`} onClick={()=>setIsGuest(false)}>Member</button>
+              <button className={`tog${isGuest?' on':''}`} onClick={()=>setIsGuest(true)}>Guest</button>
             </div>
-
-            {!isGuest ? (
+            {!isGuest?(
               <div className="form-group">
                 <label className="form-label">Your name</label>
                 <div className="search-wrap">
-                  <span className="search-icon">{Icons.search}</span>
-                  <input className="search-input" placeholder="Search name..." value={search} onChange={e => setSearch(e.target.value)} />
+                  <span className="search-icon">{Ic.search}</span>
+                  <input className="search-input" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
                 </div>
-                <div style={{maxHeight:180, overflowY:'auto', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)'}}>
-                  {available.slice(0,20).map(p => (
-                    <div key={p.id} className={`player-item ${selectedPlayer == p.id ? 'selected' : ''}`}
-                      style={{margin:0, borderRadius:0, borderLeft:'none', borderRight:'none', borderTop:'none'}}
-                      onClick={() => { setSelectedPlayer(p.id); setSearch(''); }}>
-                      <div className="player-avatar" style={{width:28,height:28,fontSize:10}}>{initials(p.name)}</div>
-                      <span className="player-name" style={{fontSize:13}}>{p.name}</span>
-                      {selectedPlayer == p.id && <span style={{color:'var(--green)'}}>{Icons.check}</span>}
+                <div style={{maxHeight:190,overflowY:'auto',border:'1.5px solid var(--border)',borderRadius:'var(--rs)'}}>
+                  {avail.slice(0,25).map(p=>(
+                    <div key={p.id} className={`player-pick${sel==p.id?' sel':''}`} onClick={()=>{setSel(p.id);setQ('')}}>
+                      <div className="avatar" style={{width:28,height:28,fontSize:10}}>{ini(p.name)}</div>
+                      <span style={{fontSize:13,fontWeight:500,flex:1}}>{p.name}</span>
+                      {sel==p.id&&<span style={{color:'var(--green-accent)',width:16}}>{Ic.check}</span>}
                     </div>
                   ))}
-                  {available.length === 0 && <div style={{padding:'12px', fontSize:13, color:'var(--text-muted)', textAlign:'center'}}>No matches</div>}
+                  {avail.length===0&&<div style={{padding:14,fontSize:13,color:'var(--text-muted)',textAlign:'center'}}>No matches</div>}
                 </div>
               </div>
-            ) : (
+            ):(
               <div className="form-group">
                 <label className="form-label">Guest name</label>
-                <input className="form-input" placeholder="Full name" value={guestName} onChange={e => setGuestName(e.target.value)} />
+                <input className="form-input" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/>
               </div>
             )}
-
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Tees</label>
-                <select className="form-select" value={tee} onChange={e => setTee(e.target.value)}>
-                  {TEES.map(t => <option key={t}>{t}</option>)}
-                </select>
+                <select className="form-select" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
               </div>
               <div className="form-group">
                 <label className="form-label">Handicap</label>
-                <input className="form-input" type="number" placeholder="e.g. 14" value={handicap} onChange={e => setHandicap(e.target.value)} />
+                <input className="form-input" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
               </div>
             </div>
-
-            <button className="btn btn-primary btn-full" onClick={handleSubmit}
-              disabled={(!selectedPlayer && !guestName) || !handicap}>
-              Confirm sign-up
-            </button>
+            <button className="btn btn-primary btn-full" onClick={submit} disabled={(!sel&&!gname)||!hcp}>Confirm sign-up</button>
           </div>
         </div>
       )}
@@ -514,112 +520,60 @@ function SignupView({ game, signups, onSignup, onRemove, isAdmin, rosterWithGues
 }
 
 // ── TEAMS VIEW ────────────────────────────────────────────────────────────────
-function TeamsView({ game, teams, signups, isAdmin, onSaveTeams, onPublish }) {
-  const [editMode, setEditMode] = useState(false);
-  const [localTeams, setLocalTeams] = useState(null);
-  const [dragPlayer, setDragPlayer] = useState(null);
-
-  const displayTeams = localTeams || teams;
-
-  function generate() {
-    const players = Object.values(signups || {});
-    if (players.length < 3) return;
-    const generated = buildTeams(players);
-    setLocalTeams(generated);
-    setEditMode(true);
+function TeamsView({game,teams,signups,isAdmin,onSave,onPublish}){
+  const [edit,setEdit]=useState(null);
+  const [drag,setDrag]=useState(null);
+  const display=edit||teams;
+  const cnt=Object.keys(signups||{}).length;
+  function gen(){const p=Object.values(signups||{});if(p.length<3)return;setEdit(buildTeams(p))}
+  function drop(ti,pi){
+    if(!drag)return;
+    const u=edit.map(t=>({...t,players:[...t.players]}));
+    const p=u[drag.ti].players[drag.pi];
+    u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);
+    u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D'});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0)});
+    setEdit(u);setDrag(null);
   }
-
-  function movePlayer(fromTeam, fromIdx, toTeam, toIdx) {
-    const updated = localTeams.map(t => ({...t, players: [...t.players]}));
-    const player = updated[fromTeam].players[fromIdx];
-    updated[fromTeam].players.splice(fromIdx, 1);
-    updated[toTeam].players.splice(toIdx, 0, player);
-    // recalc slots and hcp
-    updated.forEach(team => {
-      team.players.forEach((p, i) => { p.slot = ['A','B','C','D'][i] || 'D'; });
-      team.totalHcp = team.players.reduce((s, p) => s + parseFloat(p.handicap || 0), 0);
-    });
-    setLocalTeams(updated);
-  }
-
-  function save() {
-    onSaveTeams(localTeams);
-    setEditMode(false);
-    setLocalTeams(null);
-  }
-
-  const signupCount = Object.keys(signups || {}).length;
-
-  if (!game) return (
-    <div className="empty-state">
-      {Icons.users}
-      <div className="empty-title">No active game</div>
-    </div>
-  );
-
-  return (
+  if(!game)return<div className="empty"><div>{Ic.users}</div><div className="empty-title">No active game</div></div>;
+  return(
     <div>
-      <div className="stat-grid">
-        <div className="stat-card"><div className="stat-num">{signupCount}</div><div className="stat-label">Players</div></div>
-        <div className="stat-card"><div className="stat-num">{(displayTeams || []).length}</div><div className="stat-label">Teams</div></div>
-        <div className="stat-card"><div className="stat-num" style={{fontSize:16}}>{game.teamsPublished ? '✓ Live' : 'Pending'}</div><div className="stat-label">Status</div></div>
+      <div className="stat-row">
+        <div className="stat-box"><div className="stat-num">{cnt}</div><div className="stat-lbl">Players</div></div>
+        <div className="stat-box"><div className="stat-num">{(display||[]).length}</div><div className="stat-lbl">Teams</div></div>
+        <div className="stat-box"><div className="stat-num" style={{fontSize:13,paddingTop:6,color:'rgba(255,255,255,0.7)'}}>{game.teamsPublished?'Live':'Pending'}</div><div className="stat-lbl">Status</div></div>
       </div>
-
-      {isAdmin && (
-        <div className="admin-section">
-          <div className="admin-section-title">Admin — team builder</div>
-          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
-            <button className="btn btn-primary btn-sm" onClick={generate} disabled={signupCount < 3}>
-              {Icons.users} Auto-generate teams
-            </button>
-            {editMode && localTeams && (
-              <>
-                <button className="btn btn-gold btn-sm" onClick={save}>Save teams</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => { setLocalTeams(null); setEditMode(false); }}>Cancel</button>
-              </>
-            )}
-            {!editMode && displayTeams?.length > 0 && !game.teamsPublished && (
-              <button className="btn btn-gold btn-sm" onClick={onPublish}>Publish to group</button>
-            )}
+      {isAdmin&&(
+        <div className="admin-bar">
+          <div className="admin-bar-title">Team builder</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            <button className="btn btn-primary btn-sm" onClick={gen} disabled={cnt<3}>{Ic.users} Auto-generate</button>
+            {edit&&<button className="btn btn-gold btn-sm" onClick={()=>{onSave(edit);setEdit(null)}}>Save teams</button>}
+            {edit&&<button className="btn btn-secondary btn-sm" onClick={()=>setEdit(null)}>Cancel</button>}
+            {!edit&&display?.length>0&&!game.teamsPublished&&<button className="btn btn-gold btn-sm" onClick={onPublish}>Publish to group</button>}
           </div>
-          {editMode && <div className="warning-box" style={{marginTop:10, marginBottom:0}}>Drag players between teams to rebalance, then save.</div>}
+          {edit&&<div className="alert alert-warn" style={{marginTop:10,marginBottom:0}}>Drag players between teams to rebalance, then save.</div>}
         </div>
       )}
-
-      {!displayTeams?.length && (
-        <div className="empty-state">
-          {Icons.users}
-          <div className="empty-title">Teams not set yet</div>
-          <p>The admin will generate and publish teams before the round.</p>
-        </div>
-      )}
-
-      {displayTeams?.map((team, ti) => (
+      {!display?.length&&<div className="empty"><div>{Ic.users}</div><div className="empty-title">Teams not set yet</div><div className="empty-sub">Admin will generate and publish teams before the round.</div></div>}
+      {(edit||teams||[]).map((team,ti)=>(
         <div key={team.id} className="team-card">
-          <div className="team-header">
-            <span className="team-name">{team.name}</span>
-            <span className="team-hcp">Total HCP: {team.totalHcp.toFixed(1)}</span>
+          <div className="team-hdr">
+            <span className="team-name-lbl">{team.name}</span>
+            <span className="team-hcp-lbl">HCP {team.totalHcp.toFixed(1)}</span>
           </div>
-          <div className="team-body">
-            {team.players.map((p, pi) => (
-              <div key={pi} className="team-player"
-                draggable={editMode}
-                onDragStart={() => setDragPlayer({ti, pi})}
-                onDragOver={e => e.preventDefault()}
-                onDrop={() => { if (dragPlayer) movePlayer(dragPlayer.ti, dragPlayer.pi, ti, pi); setDragPlayer(null); }}>
-                {editMode && <span className="drag-handle">⋮⋮</span>}
-                <span className="slot-label">{p.slot}</span>
-                <div className="player-avatar" style={{width:28, height:28, fontSize:10}}>{initials(p.name)}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13, fontWeight:500}}>{p.name}</div>
-                  <div style={{fontSize:11, color:'var(--text-muted)', display:'flex', alignItems:'center', gap:4}}>
-                    <span className="tee-dot" style={{background: TEE_COLORS[p.tee] || '#ccc'}}></span>
-                    {p.tee} · {p.handicap}
-                  </div>
+          {team.players.map((p,pi)=>(
+            <div key={pi} className="team-row" draggable={!!edit} onDragStart={()=>setDrag({ti,pi})} onDragOver={e=>e.preventDefault()} onDrop={()=>drop(ti,pi)}>
+              {edit&&<span style={{color:'var(--text-muted)',fontSize:16,cursor:'grab'}}>⠿</span>}
+              <span className="slot">{p.slot}</span>
+              <div className="avatar" style={{width:30,height:30,fontSize:11}}>{ini(p.name)}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600}}>{p.name}</div>
+                <div style={{fontSize:11,color:'var(--text-muted)',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
+                  <span className="tee-dot" style={{background:TEE_COLORS[p.tee]||'#ccc'}}></span>{p.tee} · {p.handicap}
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -627,311 +581,154 @@ function TeamsView({ game, teams, signups, isAdmin, onSaveTeams, onPublish }) {
 }
 
 // ── SCORING VIEW ──────────────────────────────────────────────────────────────
-function ScoringView({ game, teams, scores, onSaveScores, isAdmin }) {
-  const [localScores, setLocalScores] = useState(scores || {});
-  const [skinCounts, setSkinCounts] = useState({});
-  const [frontPlaces, setFrontPlaces] = useState(2);
-  const [backPlaces, setBackPlaces] = useState(2);
-  const [overallPlaces, setOverallPlaces] = useState(2);
-  const [frontPot, setFrontPot] = useState('');
-  const [backPot, setBackPot] = useState('');
-  const [overallPot, setOverallPot] = useState('');
-  const [skinsPot, setSkinsPot] = useState('');
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (scores) {
-      setLocalScores(scores.teamScores || {});
-      setSkinCounts(scores.skinCounts || {});
-      setFrontPot(scores.frontPot || '');
-      setBackPot(scores.backPot || '');
-      setOverallPot(scores.overallPot || '');
-      setSkinsPot(scores.skinsPot || '');
-      setFrontPlaces(scores.frontPlaces || 2);
-      setBackPlaces(scores.backPlaces || 2);
-      setOverallPlaces(scores.overallPlaces || 2);
-    }
-  }, [scores]);
-
-  const playerCount = game ? Object.keys(game.signups || {}).length : 0;
-  const tournFund = playerCount;
-  const skinsNet = parseFloat(skinsPot || 0) - tournFund;
-  const totalPot = playerCount * 25;
-  const totalAllocated = parseFloat(frontPot||0) + parseFloat(backPot||0) + parseFloat(overallPot||0) + parseFloat(skinsPot||0);
-  const potMatch = Math.abs(totalAllocated - totalPot) < 0.01;
-
-  function tapSkin(teamId) {
-    setSkinCounts(prev => ({...prev, [teamId]: (prev[teamId] || 0) + 1}));
-  }
-  function untapSkin(teamId) {
-    setSkinCounts(prev => ({...prev, [teamId]: Math.max(0, (prev[teamId] || 0) - 1)}));
-  }
-
-  const totalSkins = Object.values(skinCounts).reduce((s,c) => s+c, 0);
-  const perSkin = totalSkins > 0 ? skinsNet / totalSkins : 0;
-
-  function calcPayouts(pot, places, section) {
-    if (!pot || parseFloat(pot) === 0) return [];
-    const p = parseFloat(pot);
-    if (places === 1) return [{label:'1st', amount: p}];
-    return [{label:'1st', amount: p * 0.6}, {label:'2nd', amount: p * 0.4}];
-  }
-
-  function save() {
-    onSaveScores({
-      teamScores: localScores,
-      skinCounts,
-      frontPot, backPot, overallPot, skinsPot,
-      frontPlaces, backPlaces, overallPlaces,
-      tournFund, playerCount,
-      savedAt: Date.now()
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
-  if (!game) return <div className="empty-state">{Icons.trophy}<div className="empty-title">No active game</div></div>;
-  if (!teams?.length) return <div className="empty-state">{Icons.trophy}<div className="empty-title">Teams not published yet</div></div>;
-
-  return (
+function ScoringView({game,teams,scores,onSave,isAdmin}){
+  const [ts,setTs]=useState({});const [sk,setSk]=useState({});
+  const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
+  const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
+  const [saved,setSaved]=useState(false);
+  useEffect(()=>{if(scores){setTs(scores.teamScores||{});setSk(scores.skinCounts||{});setFv(scores.frontPot||'');setBv(scores.backPot||'');setOv(scores.overallPot||'');setSv(scores.skinsPot||'');setFp(scores.frontPlaces||2);setBp(scores.backPlaces||2);setOp(scores.overallPlaces||2)}},[scores]);
+  const pc=Object.keys(game?.signups||{}).length||0;
+  const total=pc*25;const fund=pc;
+  const snet=Math.max(0,parseFloat(sv||0)-fund);
+  const tsk=Object.values(sk).reduce((s,c)=>s+c,0);
+  const perSk=tsk>0?snet/tsk:0;
+  const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);
+  const ok=Math.abs(alloc-total)<0.01;
+  function tap(id){if(!isAdmin)return;setSk(p=>({...p,[id]:(p[id]||0)+1}))}
+  function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}))}
+  function pay(pot,places){const p=parseFloat(pot||0);if(!p)return[];return places===1?[{l:'1st place',a:p}]:[{l:'1st place',a:p*0.6},{l:'2nd place',a:p*0.4}]}
+  function save(){onSave({teamScores:ts,skinCounts:sk,frontPot:fv,backPot:bv,overallPot:ov,skinsPot:sv,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:fund,playerCount:pc,savedAt:Date.now()});setSaved(true);setTimeout(()=>setSaved(false),2500)}
+  if(!game)return<div className="empty"><div>{Ic.trophy}</div><div className="empty-title">No active game</div></div>;
+  if(!teams?.length)return<div className="empty"><div>{Ic.trophy}</div><div className="empty-title">Teams not published yet</div></div>;
+  return(
     <div>
-      {/* Pot Setup */}
-      {isAdmin && (
-        <div className="admin-section">
-          <div className="admin-section-title">Pot setup ({playerCount} players · {fmt$(totalPot)} total)</div>
-          <div className="form-row" style={{marginBottom:8}}>
-            <div className="form-group" style={{marginBottom:0}}>
-              <label className="form-label">Front 9 pot</label>
-              <input className="form-input" type="number" placeholder="$0" value={frontPot} onChange={e => setFrontPot(e.target.value)} />
-            </div>
-            <div className="form-group" style={{marginBottom:0}}>
-              <label className="form-label">Back 9 pot</label>
-              <input className="form-input" type="number" placeholder="$0" value={backPot} onChange={e => setBackPot(e.target.value)} />
-            </div>
+      {isAdmin&&(
+        <div className="admin-bar">
+          <div className="admin-bar-title">Pot setup — {pc} players · {f$(total)} total</div>
+          <div className="form-row" style={{marginBottom:10}}>
+            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Front 9</label><input className="form-input" type="number" placeholder="$0" value={fv} onChange={e=>setFv(e.target.value)}/></div>
+            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Back 9</label><input className="form-input" type="number" placeholder="$0" value={bv} onChange={e=>setBv(e.target.value)}/></div>
           </div>
           <div className="form-row">
-            <div className="form-group" style={{marginBottom:0}}>
-              <label className="form-label">Overall pot</label>
-              <input className="form-input" type="number" placeholder="$0" value={overallPot} onChange={e => setOverallPot(e.target.value)} />
-            </div>
-            <div className="form-group" style={{marginBottom:0}}>
-              <label className="form-label">Skins pot</label>
-              <input className="form-input" type="number" placeholder="$0" value={skinsPot} onChange={e => setSkinsPot(e.target.value)} />
-            </div>
+            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Overall</label><input className="form-input" type="number" placeholder="$0" value={ov} onChange={e=>setOv(e.target.value)}/></div>
+            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Skins</label><input className="form-input" type="number" placeholder="$0" value={sv} onChange={e=>setSv(e.target.value)}/></div>
           </div>
-          {totalAllocated > 0 && (
-            <div style={{marginTop:8, fontSize:12, color: potMatch ? 'var(--green)' : 'var(--danger)'}}>
-              {potMatch ? '✓ Pot balanced' : `⚠ ${fmt$(totalAllocated)} allocated vs ${fmt$(totalPot)} total`}
-            </div>
-          )}
+          {alloc>0&&<div style={{marginTop:8,fontSize:12,fontWeight:700,color:ok?'var(--green-accent)':'var(--danger)'}}>{ok?'✓ Pot balanced — '+f$(total):'⚠ '+f$(alloc)+' of '+f$(total)+' allocated'}</div>}
         </div>
       )}
-
-      {/* Places toggle per section */}
-      {isAdmin && (
+      {isAdmin&&(
         <div className="card">
-          <div className="card-title" style={{marginBottom:10}}>Places paid per section</div>
-          {[
-            {label:'Front 9', val:frontPlaces, set:setFrontPlaces},
-            {label:'Back 9', val:backPlaces, set:setBackPlaces},
-            {label:'Overall', val:overallPlaces, set:setOverallPlaces},
-          ].map(({label,val,set}) => (
-            <div key={label} style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
-              <span style={{fontSize:13}}>{label}</span>
-              <div className="pill-toggle" style={{width:140}}>
-                <button className={`pill-opt ${val===1?'active':''}`} onClick={() => set(1)}>1st only</button>
-                <button className={`pill-opt ${val===2?'active':''}`} onClick={() => set(2)}>1st + 2nd</button>
+          <div className="slbl">Places paid per section</div>
+          {[{l:'Front 9',v:fp,s:setFp},{l:'Back 9',v:bp,s:setBp},{l:'Overall',v:op,s:setOp}].map(({l,v,s})=>(
+            <div key={l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <span style={{fontSize:14,fontWeight:500}}>{l}</span>
+              <div className="toggle" style={{width:164}}>
+                <button className={`tog${v===1?' on':''}`} onClick={()=>s(1)}>1st only</button>
+                <button className={`tog${v===2?' on':''}`} onClick={()=>s(2)}>1st + 2nd</button>
               </div>
             </div>
           ))}
         </div>
       )}
-
-      {/* Scores per team */}
       <div className="card">
-        <div className="card-title" style={{marginBottom:12}}>Team scores</div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 80px 80px 80px', gap:'6px 8px', alignItems:'center'}}>
-          <div style={{fontSize:11, color:'var(--text-muted)'}}>Team</div>
-          <div style={{fontSize:11, color:'var(--text-muted)', textAlign:'center'}}>Front</div>
-          <div style={{fontSize:11, color:'var(--text-muted)', textAlign:'center'}}>Back</div>
-          <div style={{fontSize:11, color:'var(--text-muted)', textAlign:'center'}}>Overall</div>
-          {teams.map(team => (
-            <React.Fragment key={team.id}>
-              <div style={{fontSize:13, fontWeight:500}}>{team.name}</div>
-              {['front','back','overall'].map(seg => (
-                <input key={seg} className="score-input"
-                  style={{width:'100%', padding:'6px 4px'}}
-                  type="number" placeholder="—"
-                  value={(localScores[team.id] || {})[seg] || ''}
-                  onChange={e => setLocalScores(prev => ({
-                    ...prev,
-                    [team.id]: {...(prev[team.id]||{}), [seg]: e.target.value}
-                  }))}
-                  readOnly={!isAdmin}
-                />
-              ))}
-            </React.Fragment>
-          ))}
+        <div className="slbl">Team scores</div>
+        <div className="score-grid" style={{marginBottom:8}}>
+          <div></div><div className="score-hd">Front</div><div className="score-hd">Back</div><div className="score-hd">Ovr</div>
         </div>
-      </div>
-
-      {/* Skin Tapper */}
-      <div className="card">
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-          <div className="card-title">Skins tapper</div>
-          <div style={{fontSize:13, color:'var(--text-muted)'}}>
-            {totalSkins} skin{totalSkins !== 1 ? 's' : ''} · {skinsPot ? fmt$(skinsNet > 0 ? skinsNet : 0) + ' pot' : 'enter pot above'}
+        {teams.map(t=>(
+          <div key={t.id} className="score-grid" style={{marginBottom:8}}>
+            <div style={{fontSize:13,fontWeight:700}}>{t.name}</div>
+            {['front','back','overall'].map(seg=>(
+              <input key={seg} className="score-input" type="number" placeholder="—"
+                value={(ts[t.id]||{})[seg]||''}
+                onChange={e=>isAdmin&&setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:e.target.value}}))}
+                readOnly={!isAdmin}/>
+            ))}
           </div>
+        ))}
+      </div>
+      <div className="card">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <div className="slbl" style={{marginBottom:0}}>Skins tapper</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',fontWeight:600}}>{tsk} skin{tsk!==1?'s':''}{sv?' · '+f$(snet)+' net':''}</div>
         </div>
         <div className="skin-grid">
-          {teams.map(team => (
-            <div key={team.id} className={`skin-btn ${(skinCounts[team.id]||0) > 0 ? 'has-skins' : ''}`}
-              onClick={() => isAdmin && tapSkin(team.id)}>
-              <div className="skin-btn-name">{team.name}</div>
-              <div className="skin-btn-count">{skinCounts[team.id] || 0}</div>
-              <div className="skin-btn-label">skin{(skinCounts[team.id]||0) !== 1 ? 's' : ''}</div>
-              {isAdmin && (skinCounts[team.id]||0) > 0 && (
-                <div className="skin-undo" onClick={e => { e.stopPropagation(); untapSkin(team.id); }}>
-                  undo last
-                </div>
-              )}
-              {!isAdmin && <div style={{fontSize:11, color:'var(--text-muted)', marginTop:4}}>view only</div>}
+          {teams.map(t=>(
+            <div key={t.id} className={`skin-btn${(sk[t.id]||0)>0?' on':''}`} onClick={()=>tap(t.id)}>
+              <div className="skin-team">{t.name}</div>
+              <div className="skin-num">{sk[t.id]||0}</div>
+              <div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>
+              {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id)}}>undo</div>}
+              {!isAdmin&&<div style={{fontSize:10,color:'var(--text-muted)',marginTop:4}}>view only</div>}
             </div>
           ))}
         </div>
-        {skinsPot && totalSkins > 0 && skinsNet > 0 && (
-          <div className="success-box" style={{marginBottom:0}}>
-            {fmt$(perSkin.toFixed(2))} per skin · tournament fund: {fmt$(tournFund)}
-          </div>
-        )}
+        {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(fund)} · Net skins: {f$(snet)}{tsk>0?' · '+f$(perSk.toFixed(2))+' per skin':''}</div>}
       </div>
-
-      {/* Payout Breakdown */}
-      {(frontPot || backPot || overallPot || skinsPot) && (
+      {(fv||bv||ov||sv)&&(
         <div className="card">
-          <div className="card-title" style={{marginBottom:12}}>Payout breakdown</div>
-
-          {[
-            {label:'Front 9', pot:frontPot, places:frontPlaces, type:'gross/net'},
-            {label:'Back 9', pot:backPot, places:backPlaces, type:'net'},
-            {label:'Overall', pot:overallPot, places:overallPlaces, type:'net'},
-          ].map(({label,pot,places,type}) => pot && parseFloat(pot) > 0 ? (
-            <div key={label} style={{marginBottom:12}}>
-              <div style={{fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:4}}>{label} <span className="badge badge-gray">{type}</span></div>
-              {calcPayouts(pot, places).map(({label:pl, amount}) => (
-                <div key={pl} className="payout-row">
-                  <span className="payout-label">{pl}</span>
-                  <span className="payout-amount">{fmt$(amount)}</span>
-                </div>
-              ))}
-            </div>
-          ) : null)}
-
-          {skinsPot && parseFloat(skinsPot) > 0 && (
+          <div className="slbl">Payout breakdown</div>
+          {[{l:'Front 9',pot:fv,pl:fp,tag:'gross + net'},{l:'Back 9',pot:bv,pl:bp,tag:'net'},{l:'Overall',pot:ov,pl:op,tag:'net'}].map(({l,pot,pl,tag})=>
+            parseFloat(pot||0)>0?(
+              <div key={l} style={{marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.06em'}}>{l} <span className="pill pill-gray" style={{fontSize:10}}>{tag}</span></div>
+                {pay(pot,pl).map(({l:pl,a})=><div key={pl} className="payout-row"><span className="payout-lbl">{pl}</span><span className="payout-amt">{f$(a)}</span></div>)}
+              </div>
+            ):null
+          )}
+          {parseFloat(sv||0)>0&&(
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:4}}>Skins</div>
-              <div className="payout-row">
-                <span className="payout-label">Net skins pot ({totalSkins} skins)</span>
-                <span className="payout-amount">{fmt$(Math.max(0,skinsNet))}</span>
-              </div>
-              {totalSkins > 0 && skinsNet > 0 && (
-                <div className="payout-row">
-                  <span className="payout-label">Per skin</span>
-                  <span className="payout-amount">{fmt$(perSkin)}</span>
-                </div>
-              )}
-              <div className="payout-row">
-                <span className="payout-label" style={{color:'var(--gold)'}}>→ Tournament fund</span>
-                <span className="payout-amount tournament">{fmt$(tournFund)}</span>
-              </div>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.06em'}}>Skins</div>
+              <div className="payout-row"><span className="payout-lbl">Net skins pot</span><span className="payout-amt">{f$(snet)}</span></div>
+              {tsk>0&&<div className="payout-row"><span className="payout-lbl">Per skin ({tsk} total)</span><span className="payout-amt">{f$(perSk.toFixed(2))}</span></div>}
+              <div className="payout-row"><span className="payout-lbl" style={{color:'var(--gold)'}}>Tournament fund</span><span className="payout-amt gold">{f$(fund)}</span></div>
             </div>
           )}
-
-          <div className="total-row">
-            <span>Total pot</span>
-            <span style={{color:'var(--green)'}}>{fmt$(totalPot)}</span>
-          </div>
+          <div className="payout-total"><span>Total pot</span><span style={{color:'var(--green)'}}>{f$(total)}</span></div>
         </div>
       )}
-
-      {isAdmin && (
-        <button className="btn btn-primary btn-full" onClick={save} style={{marginTop:8}}>
-          {saved ? '✓ Saved!' : 'Save scores & payouts'}
-        </button>
-      )}
+      {isAdmin&&<button className="btn btn-primary btn-full" style={{marginTop:8}} onClick={save}>{saved?'✓ Saved!':'Save scores & payouts'}</button>}
     </div>
   );
 }
 
 // ── HISTORY VIEW ──────────────────────────────────────────────────────────────
-function HistoryView({ history }) {
-  const [expanded, setExpanded] = useState(null);
-
-  const rounds = Object.entries(history || {})
-    .sort((a,b) => (b[1].date || '').localeCompare(a[1].date || ''));
-
-  if (!rounds.length) return (
-    <div className="empty-state">
-      {Icons.history}
-      <div className="empty-title">No rounds yet</div>
-      <p>Completed rounds will appear here.</p>
-    </div>
-  );
-
-  return (
+function HistoryView({history}){
+  const [open,setOpen]=useState(null);
+  const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
+  if(!rounds.length)return<div className="empty"><div>{Ic.clock}</div><div className="empty-title">No rounds yet</div><div className="empty-sub">Completed rounds appear here.</div></div>;
+  return(
     <div>
-      <div style={{fontSize:14, color:'var(--text-muted)', marginBottom:12}}>{rounds.length} round{rounds.length !== 1 ? 's' : ''} on record</div>
-      {rounds.map(([key, round]) => (
-        <div key={key} className="history-item">
-          <div className="history-header" onClick={() => setExpanded(expanded === key ? null : key)}>
-            <div>
-              <div className="history-date">{round.day} · {fmtDate(round.date)}</div>
-              <div className="history-meta">{round.playerCount || 0} players · {fmt$(round.playerCount * 25)} pot</div>
-            </div>
-            <span style={{color:'var(--text-muted)', transform: expanded===key ? 'rotate(180deg)' : 'none', display:'inline-block', transition:'transform 0.2s'}}>{Icons.chevron}</span>
+      <div className="slbl">{rounds.length} round{rounds.length!==1?'s':''} on record</div>
+      {rounds.map(([k,r])=>(
+        <div key={k} className="hist-item">
+          <div className="hist-hdr" onClick={()=>setOpen(open===k?null:k)}>
+            <div><div className="hist-title">{r.day} · {fmtDFull(r.date)}</div><div className="hist-meta">{r.playerCount||0} players · {f$((r.playerCount||0)*25)} pot</div></div>
+            <span style={{color:'var(--text-muted)',display:'flex',transform:open===k?'rotate(180deg)':'none',transition:'transform 0.2s'}}>{Ic.chev}</span>
           </div>
-          {expanded === key && (
-            <div className="history-body">
-              {/* Teams */}
-              {round.teams?.map(team => (
-                <div key={team.id} style={{marginBottom:10}}>
-                  <div style={{fontSize:13, fontWeight:600, color:'var(--green)', marginBottom:4}}>
-                    {team.name} <span style={{fontWeight:400, color:'var(--text-muted)'}}>HCP {team.totalHcp?.toFixed(1)}</span>
-                  </div>
-                  {team.players?.map((p,i) => (
-                    <div key={i} style={{fontSize:12, color:'var(--text-mid)', paddingLeft:8, marginBottom:2}}>
-                      <span className="badge badge-gold" style={{marginRight:4, fontSize:10}}>{p.slot}</span>
-                      {p.name} · {p.tee} {p.handicap}
-                    </div>
-                  ))}
+          {open===k&&(
+            <div className="hist-body">
+              {r.teams?.map(t=>(
+                <div key={t.id} style={{marginBottom:12}}>
+                  <div style={{fontSize:14,fontWeight:800,color:'var(--green)',fontFamily:'Syne',marginBottom:4}}>{t.name} <span style={{fontWeight:400,color:'var(--text-muted)',fontSize:12}}>HCP {t.totalHcp?.toFixed(1)}</span></div>
+                  {t.players?.map((p,i)=><div key={i} style={{fontSize:13,color:'var(--text-mid)',paddingLeft:8,marginBottom:3,display:'flex',alignItems:'center',gap:6}}><span className="slot" style={{fontSize:9}}>{p.slot}</span>{p.name} · {p.tee} {p.handicap}</div>)}
                 </div>
               ))}
-              {/* Scores */}
-              {round.scores && (
-                <div style={{marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)'}}>
-                  <div style={{fontSize:12, fontWeight:600, color:'var(--text-muted)', marginBottom:6}}>Results</div>
-                  <div style={{display:'grid', gridTemplateColumns:'1fr repeat(3,60px)', gap:'4px 8px', fontSize:12}}>
+              {r.scores&&(
+                <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+                  <div className="slbl">Results</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,50px)',gap:'4px 6px',fontSize:12}}>
                     <div style={{color:'var(--text-muted)'}}>Team</div>
-                    <div style={{color:'var(--text-muted)', textAlign:'center'}}>Front</div>
-                    <div style={{color:'var(--text-muted)', textAlign:'center'}}>Back</div>
-                    <div style={{color:'var(--text-muted)', textAlign:'center'}}>Ovr</div>
-                    {round.teams?.map(team => (
-                      <React.Fragment key={team.id}>
-                        <div style={{fontWeight:500}}>{team.name}</div>
-                        <div style={{textAlign:'center'}}>{(round.scores.teamScores?.[team.id]?.front) || '—'}</div>
-                        <div style={{textAlign:'center'}}>{(round.scores.teamScores?.[team.id]?.back) || '—'}</div>
-                        <div style={{textAlign:'center'}}>{(round.scores.teamScores?.[team.id]?.overall) || '—'}</div>
+                    {['Front','Back','Ovr'].map(h=><div key={h} style={{color:'var(--text-muted)',textAlign:'center'}}>{h}</div>)}
+                    {r.teams?.map(t=>(
+                      <React.Fragment key={t.id}>
+                        <div style={{fontWeight:700}}>{t.name}</div>
+                        {['front','back','overall'].map(s=><div key={s} style={{textAlign:'center'}}>{r.scores.teamScores?.[t.id]?.[s]||'—'}</div>)}
                       </React.Fragment>
                     ))}
                   </div>
-                  {round.scores.skinCounts && (
-                    <div style={{marginTop:8, fontSize:12}}>
-                      <span style={{color:'var(--text-muted)'}}>Skins: </span>
-                      {Object.entries(round.scores.skinCounts).filter(([,c])=>c>0).map(([tid,c]) => {
-                        const team = round.teams?.find(t => t.id == tid);
-                        return <span key={tid} style={{marginRight:8}}>{team?.name || `Team ${tid}`}: {c}</span>;
-                      })}
-                    </div>
+                  {r.scores.skinCounts&&Object.entries(r.scores.skinCounts).some(([,c])=>c>0)&&(
+                    <div style={{marginTop:8,fontSize:12,color:'var(--text-mid)'}}>Skins: {Object.entries(r.scores.skinCounts).filter(([,c])=>c>0).map(([id,c])=>{const t=r.teams?.find(t=>String(t.id)===String(id));return<span key={id} style={{marginRight:10}}>{t?.name||'Team '+id}: {c}</span>})}</div>
                   )}
                 </div>
               )}
@@ -944,126 +741,80 @@ function HistoryView({ history }) {
 }
 
 // ── ADMIN VIEW ────────────────────────────────────────────────────────────────
-function AdminView({ isAdmin, onLogin, onLogout, gameData, db, onCreateGame, onArchiveRound, onAddPlayer, rosterWithGuests }) {
-  const [password, setPassword] = useState('');
-  const [newGame, setNewGame] = useState({day:'Saturday', date: today(), course:'', teetime:''});
-  const [newPlayer, setNewPlayer] = useState({name:'', email:''});
-  const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [showCreateGame, setShowCreateGame] = useState(false);
-
-  if (!isAdmin) return (
+function AdminView({isAdmin,onLogin,onLogout,gameData,onCreate,onArchive,onAddPlayer,roster}){
+  const [pw,setPw]=useState('');
+  const [g,setG]=useState({day:'Saturday',date:td(),course:'',teetime:''});
+  const [np,setNp]=useState({name:'',email:''});
+  const [showG,setShowG]=useState(false);
+  const [showP,setShowP]=useState(false);
+  if(!isAdmin)return(
     <div>
       <div className="card">
-        <div className="card-title" style={{marginBottom:12}}>Admin login</div>
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input className="form-input" type="password" placeholder="Enter admin password"
-            value={password} onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && onLogin(password)} />
-        </div>
-        <button className="btn btn-primary btn-full" onClick={() => onLogin(password)}>Sign in as admin</button>
+        <div style={{fontFamily:'Syne',fontSize:20,fontWeight:800,marginBottom:16}}>Admin login</div>
+        <div className="form-group"><label className="form-label">Password</label><input className="form-input" type="password" placeholder="Enter admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onLogin(pw)}/></div>
+        <button className="btn btn-primary btn-full" onClick={()=>onLogin(pw)}>Sign in as admin</button>
       </div>
-      <div style={{textAlign:'center', fontSize:12, color:'var(--text-muted)', marginTop:12}}>
-        Contact Clark for the admin password.
-      </div>
+      <div style={{textAlign:'center',fontSize:12,color:'var(--text-muted)',marginTop:10}}>Contact Clark for the admin password.</div>
     </div>
   );
-
-  return (
+  return(
     <div>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
-        <div style={{display:'flex', alignItems:'center', gap:8}}>
-          <span className="admin-badge">ADMIN</span>
-          <span style={{fontSize:14, fontWeight:500}}>Control panel</span>
-        </div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span className="admin-tag">ADMIN</span><span style={{fontSize:15,fontWeight:700}}>Control panel</span></div>
         <button className="btn btn-secondary btn-sm" onClick={onLogout}>Sign out</button>
       </div>
-
-      {/* Current game */}
       <div className="card">
-        <div className="card-header">
-          <div className="card-title">Current game</div>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowCreateGame(!showCreateGame)}>
-            {Icons.plus} New game
-          </button>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showG?14:0}}>
+          <div style={{fontWeight:700,fontSize:15}}>Current game</div>
+          <button className="btn btn-primary btn-sm" onClick={()=>setShowG(!showG)}>{Ic.plus} New game</button>
         </div>
-        {showCreateGame && (
-          <div style={{borderTop:'1px solid var(--border)', paddingTop:12}}>
+        {showG&&(
+          <div style={{borderTop:'1px solid var(--border)',paddingTop:14}}>
             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Day</label>
-                <select className="form-select" value={newGame.day} onChange={e => setNewGame({...newGame, day:e.target.value})}>
-                  <option>Friday</option><option>Saturday</option><option>Sunday</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Date</label>
-                <input className="form-input" type="date" value={newGame.date} onChange={e => setNewGame({...newGame, date:e.target.value})} />
-              </div>
+              <div className="form-group"><label className="form-label">Day</label><select className="form-select" value={g.day} onChange={e=>setG({...g,day:e.target.value})}><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+              <div className="form-group"><label className="form-label">Date</label><input className="form-input" type="date" value={g.date} onChange={e=>setG({...g,date:e.target.value})}/></div>
             </div>
             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Course (optional)</label>
-                <input className="form-input" placeholder="e.g. Laytonsville" value={newGame.course} onChange={e => setNewGame({...newGame, course:e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">First tee time</label>
-                <input className="form-input" placeholder="e.g. 7:30 AM" value={newGame.teetime} onChange={e => setNewGame({...newGame, teetime:e.target.value})} />
-              </div>
+              <div className="form-group"><label className="form-label">Course</label><input className="form-input" placeholder="e.g. Laytonsville" value={g.course} onChange={e=>setG({...g,course:e.target.value})}/></div>
+              <div className="form-group"><label className="form-label">First tee time</label><input className="form-input" placeholder="e.g. 7:30 AM" value={g.teetime} onChange={e=>setG({...g,teetime:e.target.value})}/></div>
             </div>
-            <div style={{display:'flex', gap:8}}>
-              <button className="btn btn-primary btn-sm" onClick={() => { onCreateGame(newGame); setShowCreateGame(false); }}>Create game</button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowCreateGame(false)}>Cancel</button>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={()=>{onCreate(g);setShowG(false)}}>Create game</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>setShowG(false)}>Cancel</button>
             </div>
           </div>
         )}
-        {gameData && !showCreateGame && (
-          <div style={{fontSize:14}}>
-            <div style={{fontWeight:500, color:'var(--green)'}}>{gameData.day} · {fmtDate(gameData.date)}</div>
-            {gameData.course && <div style={{fontSize:12, color:'var(--text-muted)', marginTop:2}}>{gameData.course}</div>}
-            <div style={{marginTop:10}}>
-              <button className="btn btn-danger btn-sm" onClick={onArchiveRound} style={{marginRight:8}}>
-                Archive & close round
-              </button>
-            </div>
+        {gameData&&!showG&&(
+          <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+            <div style={{fontFamily:'Syne',fontWeight:800,color:'var(--green)',fontSize:16}}>{gameData.day} · {fmtDFull(gameData.date)}</div>
+            {gameData.course&&<div style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>{gameData.course}</div>}
+            <button className="btn btn-danger btn-sm" style={{marginTop:12}} onClick={onArchive}>Archive &amp; close round</button>
           </div>
         )}
-        {!gameData && !showCreateGame && (
-          <div style={{fontSize:13, color:'var(--text-muted)'}}>No active game. Create one above.</div>
-        )}
+        {!gameData&&!showG&&<div style={{fontSize:13,color:'var(--text-muted)',marginTop:8}}>No active game. Create one above.</div>}
       </div>
-
-      {/* Roster management */}
       <div className="card">
-        <div className="card-header">
-          <div className="card-title">Roster ({rosterWithGuests.filter(p=>!p.isGuest).length} members)</div>
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowAddPlayer(!showAddPlayer)}>
-            {Icons.plus} Add player
-          </button>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showP?14:0}}>
+          <div style={{fontWeight:700,fontSize:15}}>Roster <span style={{fontWeight:400,fontSize:13,color:'var(--text-muted)'}}>({roster.filter(p=>!p.isGuest).length})</span></div>
+          <button className="btn btn-secondary btn-sm" onClick={()=>setShowP(!showP)}>{Ic.plus} Add player</button>
         </div>
-        {showAddPlayer && (
-          <div style={{borderTop:'1px solid var(--border)', paddingTop:12}}>
+        {showP&&(
+          <div style={{borderTop:'1px solid var(--border)',paddingTop:14}}>
             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Name</label>
-                <input className="form-input" placeholder="Full name" value={newPlayer.name} onChange={e => setNewPlayer({...newPlayer, name:e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Email (optional)</label>
-                <input className="form-input" placeholder="email" value={newPlayer.email} onChange={e => setNewPlayer({...newPlayer, email:e.target.value})} />
-              </div>
+              <div className="form-group"><label className="form-label">Name</label><input className="form-input" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
+              <div className="form-group"><label className="form-label">Email (opt)</label><input className="form-input" placeholder="email" value={np.email} onChange={e=>setNp({...np,email:e.target.value})}/></div>
             </div>
-            <div style={{display:'flex', gap:8}}>
-              <button className="btn btn-primary btn-sm" onClick={() => { if(newPlayer.name) { onAddPlayer(newPlayer); setNewPlayer({name:'',email:''}); setShowAddPlayer(false); }}}>Add to roster</button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowAddPlayer(false)}>Cancel</button>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={()=>{if(np.name){onAddPlayer(np);setNp({name:'',email:''});setShowP(false)}}}>Add to roster</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>setShowP(false)}>Cancel</button>
             </div>
           </div>
         )}
-        <div style={{maxHeight:200, overflowY:'auto', marginTop: showAddPlayer ? 8 : 0}}>
-          {rosterWithGuests.filter(p => !p.isGuest).map(p => (
-            <div key={p.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid var(--border)', fontSize:13}}>
-              <span>{p.name}</span>
-              {p.id > 96 && <span className="badge badge-green">New</span>}
+        <div style={{maxHeight:220,overflowY:'auto',marginTop:showP?8:4}}>
+          {roster.filter(p=>!p.isGuest).map(p=>(
+            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+              <span style={{fontWeight:500}}>{p.name}</span>
+              {p.id>96&&<span className="pill pill-green" style={{fontSize:10}}>New</span>}
             </div>
           ))}
         </div>
@@ -1072,124 +823,112 @@ function AdminView({ isAdmin, onLogin, onLogout, gameData, db, onCreateGame, onA
   );
 }
 
-// ── MAIN APP ──────────────────────────────────────────────────────────────────
-function App() {
-  const [tab, setTab] = useState('signup');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [gameData, setGameData] = useState(null);
-  const [signups, setSignups] = useState({});
-  const [teams, setTeams] = useState([]);
-  const [scores, setScores] = useState(null);
-  const [history, setHistory] = useState({});
-  const [extraPlayers, setExtraPlayers] = useState([]);
-  const { ready, read, write, push, remove } = useDB();
+// ── ROOT APP ──────────────────────────────────────────────────────────────────
+function App(){
+  const [role,setRole]=useState(null); // null=landing, 'player', 'admin'
+  const [tab,setTab]=useState('home');
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [currentUser,setCurrentUser]=useState('');
+  const [game,setGame]=useState(null);
+  const [signups,setSignups]=useState({});
+  const [teams,setTeams]=useState([]);
+  const [scores,setScores]=useState(null);
+  const [history,setHistory]=useState({});
+  const [extra,setExtra]=useState([]);
+  const {ready,read,write,push,del}=useDB();
+  const roster=[...ROSTER,...extra];
 
-  const rosterWithGuests = [...ROSTER, ...extraPlayers];
+  useEffect(()=>{
+    if(!ready)return;
+    const u=[];
+    u.push(read('currentGame',v=>setGame(v)));
+    u.push(read('signups',v=>setSignups(v||{})));
+    u.push(read('teams',v=>setTeams(v||[])));
+    u.push(read('scores',v=>setScores(v)));
+    u.push(read('history',v=>setHistory(v||{})));
+    u.push(read('extraPlayers',v=>setExtra(v||[])));
+    return()=>u.forEach(f=>typeof f==='function'&&f());
+  },[ready]);
 
-  // ── Load data ──
-  useEffect(() => {
-    if (!ready) return;
-    const unsubs = [];
-    unsubs.push(read('currentGame', val => setGameData(val)));
-    unsubs.push(read('signups', val => setSignups(val || {})));
-    unsubs.push(read('teams', val => setTeams(val || [])));
-    unsubs.push(read('scores', val => setScores(val)));
-    unsubs.push(read('history', val => setHistory(val || {})));
-    unsubs.push(read('extraPlayers', val => setExtraPlayers(val || [])));
-    return () => unsubs.forEach(u => typeof u === 'function' && u());
-  }, [ready]);
-
-  // ── Auth ──
-  function handleLogin(pw) {
-    if (pw === ADMIN_PASSWORD) { setIsAdmin(true); }
-    else alert('Wrong password');
-  }
-
-  // ── Game management ──
-  function createGame(g) {
-    write('currentGame', {...g, teamsPublished: false, createdAt: Date.now()});
-    write('signups', {});
-    write('teams', []);
-    write('scores', null);
+  function login(pw){if(pw===ADMIN_PW){setIsAdmin(true);}else alert('Wrong password')}
+  function createGame(g){write('currentGame',{...g,teamsPublished:false,createdAt:Date.now()});write('signups',{});write('teams',[]);write('scores',null)}
+  function archive(){
+    if(!game||!window.confirm('Archive this round? Saves to history and closes the game.'))return;
+    push('history',{...game,teams,scores,playerCount:Object.keys(signups).length,archivedAt:Date.now()});
+    write('currentGame',null);write('signups',{});write('teams',[]);write('scores',null);
   }
 
-  function archiveRound() {
-    if (!gameData) return;
-    if (!window.confirm('Archive this round? It will be saved to history and the game will close.')) return;
-    const roundData = {
-      ...gameData,
-      teams,
-      scores,
-      playerCount: Object.keys(signups).length,
-      archivedAt: Date.now()
-    };
-    push('history', roundData);
-    write('currentGame', null);
-    write('signups', {});
-    write('teams', []);
-    write('scores', null);
+  // Landing screen
+  if(!role){
+    return(
+      <Landing
+        onPlayer={()=>{setRole('player');setTab('home')}}
+        onAdmin={()=>{setRole('admin');setTab('home')}}
+      />
+    );
   }
 
-  function handleSignup(data) {
-    push('signups', data);
-  }
-  function removeSignup(key) {
-    remove(`signups/${key}`);
-  }
-  function saveTeams(t) {
-    write('teams', t);
-  }
-  function publishTeams() {
-    write('teams', teams);
-    write('currentGame', {...gameData, teamsPublished: true});
-  }
-  function saveScores(s) {
-    write('scores', s);
-  }
-  function addPlayer(p) {
-    const newP = {...p, id: 100 + extraPlayers.length + 1};
-    write('extraPlayers', [...extraPlayers, newP]);
-  }
-
-  if (!ready) return (
-    <div className="app">
-      <div className="header"><div className="header-top"><h1>Clark Golf</h1></div></div>
-      <div style={{padding:40, textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>
-    </div>
-  );
-
-  const tabs = [
-    {id:'signup', label:'Sign Up', icon: Icons.golf},
-    {id:'teams', label:'Teams', icon: Icons.users},
-    {id:'scoring', label:'Scoring', icon: Icons.trophy},
-    {id:'history', label:'History', icon: Icons.history},
-    {id:'admin', label:'Admin', icon: Icons.settings},
+  const playerTabs=[
+    {id:'home',label:'This Week',icon:Ic.flag},
+    {id:'teams',label:'Teams',icon:Ic.users},
+    {id:'scoring',label:'Scoring',icon:Ic.trophy},
+    {id:'history',label:'History',icon:Ic.clock},
   ];
+  const adminTabs=[
+    {id:'home',label:'This Week',icon:Ic.flag},
+    {id:'teams',label:'Teams',icon:Ic.users},
+    {id:'scoring',label:'Scoring',icon:Ic.trophy},
+    {id:'history',label:'History',icon:Ic.clock},
+    {id:'admin',label:'Admin',icon:Ic.gear},
+  ];
+  const TABS=role==='admin'?adminTabs:playerTabs;
 
-  return (
+  // Total signups across all days for header
+  const totalSignups=Object.keys(signups||{}).length;
+  const activeDays=['Friday','Saturday','Sunday'].filter(d=>Object.values(signups||{}).some(s=>s.day===d)).length;
+
+  return(
     <div className="app">
-      <div className="header">
-        <div className="header-top">
-          <h1>Clark Golf Group</h1>
-          {isAdmin && <span className="admin-badge">ADMIN</span>}
-        </div>
-        <div className="header-sub">
-          {gameData ? `${gameData.day} · ${fmtDate(gameData.date)}` : 'No game scheduled'}
+      <div className="hdr">
+        <div className="hdr-inner">
+          <div className="hdr-eyebrow">Weekly golf game</div>
+          <div className="hdr-title">Clark <span>Golf</span> Group</div>
+          <div className="hdr-stats">
+            <div className="hdr-stat"><div className="hdr-stat-num">{totalSignups}</div><div className="hdr-stat-lbl">Signed Up</div></div>
+            <div className="hdr-stat"><div className="hdr-stat-num">{activeDays}</div><div className="hdr-stat-lbl">Active Days</div></div>
+            <div className="hdr-stat"><div className="hdr-stat-num">{(teams||[]).length}</div><div className="hdr-stat-lbl">Teams</div></div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:2}}>
+            {game?(
+              <div className="hdr-game-pill"><span className="hdr-dot"></span>{game.day} · {fmtD(game.date)}{game.course?' · '+game.course:''}</div>
+            ):(
+              <div className="hdr-game-pill" style={{opacity:0.5}}>No game scheduled</div>
+            )}
+            {isAdmin&&<span className="admin-tag">ADMIN</span>}
+            <button onClick={()=>setRole(null)} style={{marginLeft:'auto',background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:20,padding:'4px 10px',color:'rgba(255,255,255,0.5)',fontSize:11,fontWeight:600,cursor:'pointer',letterSpacing:'0.04em'}}>Switch</button>
+          </div>
         </div>
       </div>
+
       <nav className="nav">
-        {tabs.map(t => (
-          <button key={t.id} className={`nav-btn ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>
-            {t.icon}{t.label}
-          </button>
-        ))}
+        {TABS.map(t=><button key={t.id} className={`nav-btn${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.icon}{t.label}</button>)}
       </nav>
+
       <div className="content">
-        {tab === 'signup' && <SignupView game={gameData} signups={signups} onSignup={handleSignup} onRemove={removeSignup} isAdmin={isAdmin} rosterWithGuests={rosterWithGuests} />}
-        {tab === 'teams' && <TeamsView game={gameData ? {...gameData, signups} : null} teams={teams} signups={signups} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublish={publishTeams} />}
-        {tab === 'scoring' && <ScoringView game={gameData ? {...gameData, signups} : null} teams={teams} scores={scores} onSaveScores={saveScores} isAdmin={isAdmin} />}
-        {tab === 'history' && <HistoryView history={history} />}
-        {tab === 'admin' && <AdminView isAdmin={isAdmin} onLogin={handleLogin} onLogout={() => setIsAdmin(false)} gameData={gameData} onCreateGame={createGame} onArchiveRound={archiveRound} onAddPlayer={addPlayer} rosterWithGuests={rosterWithGuests} />}
+        {tab==='home'&&(
+          <WeekDashboard
+            game={game}
+            signups={signups}
+            currentUser={currentUser}
+            onSignup={d=>push('signups',d)}
+            onRemove={k=>del('signups/'+k)}
+            isAdmin={isAdmin}
+          />
+        )}
+        {tab==='teams'&&<TeamsView game={game?{...game,signups}:null} teams={teams} signups={signups} isAdmin={isAdmin} onSave={t=>write('teams',t)} onPublish={()=>{write('teams',teams);write('currentGame',{...game,teamsPublished:true})}}/>}
+        {tab==='scoring'&&<ScoringView game={game?{...game,signups}:null} teams={teams} scores={scores} onSave={s=>write('scores',s)} isAdmin={isAdmin}/>}
+        {tab==='history'&&<HistoryView history={history}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogin={login} onLogout={()=>{setIsAdmin(false)}} gameData={game} onCreate={createGame} onArchive={archive} onAddPlayer={p=>write('extraPlayers',[...extra,{...p,id:100+extra.length+1}])} roster={roster}/>}
       </div>
     </div>
   );
