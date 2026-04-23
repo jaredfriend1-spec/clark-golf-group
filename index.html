@@ -930,6 +930,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
   const [justSaved,setJustSaved]=useState(false);
+  const [forceRefresh,setForceRefresh]=useState(0);
 
   const activeDays=(week&&week.activeDays)||[];
 
@@ -947,7 +948,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
     setSv(sc.skinsPot!==undefined?String(sc.skinsPot):'');
     setFp(sc.frontPlaces||2);setBp(sc.backPlaces||2);setOp(sc.overallPlaces||2);
     setJustSaved(false);
-  },[activeDay]);
+  },[activeDay,forceRefresh]);
 
   if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
 
@@ -996,9 +997,24 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
       )}
 
       {/* Status bar */}
-      {!scoresSaved&&!isAdmin&&<div className="alert alert-blue">Scores will appear here once the admin saves them.</div>}
-      {scoresSaved&&!payoutsCalculated&&<div className="alert alert-blue">{isAdmin?"Scores saved — players can see these. Calculate payouts when ready.":"Scores are in — payouts being calculated soon."}</div>}
-      {payoutsCalculated&&<div className="alert alert-ok">Payouts calculated — results are final.</div>}
+      {!scoresSaved&&!isAdmin&&(
+        <div className="alert alert-blue" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span>Scores will appear once the admin saves them.</span>
+          <button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#1e40af',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0,marginLeft:8}}>Refresh</button>
+        </div>
+      )}
+      {scoresSaved&&!payoutsCalculated&&(
+        <div className="alert alert-blue" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span>{isAdmin?"Scores saved — players can see these. Calculate payouts when ready.":"Scores are in — payouts coming soon."}</span>
+          {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#1e40af',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0,marginLeft:8}}>Refresh</button>}
+        </div>
+      )}
+      {payoutsCalculated&&(
+        <div className="alert alert-ok" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span>Payouts calculated — results are final.</span>
+          {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0,marginLeft:8}}>Refresh</button>}
+        </div>
+      )}
 
       {/* ADMIN: Pot setup */}
       {isAdmin&&(
@@ -1267,6 +1283,9 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
   const [teeTimes,setTeeTimes]=useState({Friday:'',Saturday:'',Sunday:''});
   const [lotteries,setLotteries]=useState({Friday:false,Saturday:false,Sunday:false});
   const [addQ,setAddQ]=useState('');
+  const [quickAddSel,setQuickAddSel]=useState(null);
+  const [quickAddTee,setQuickAddTee]=useState('Whites');
+  const [quickAddHcp,setQuickAddHcp]=useState('');
   const [addDay,setAddDay]=useState('Saturday');
   const [showRoster,setShowRoster]=useState(false);
   const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});
@@ -1393,13 +1412,37 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
             <input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/>
           </div>
           {addQ.length>0&&(
-            <div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:150,overflowY:'auto'}}>
+            <div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:220,overflowY:'auto'}}>
               {rosterSearch.map(p=>{
                 const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);
+                const isExpanded=quickAddSel===p.id;
                 return(
-                  <div key={p.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px',borderBottom:'1px solid #f1f5f9'}}>
-                    <span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>
-                    {!inDay&&<button className="btn btn-green btn-xs" onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:'Whites',handicap:10,day:addDay,signedUpAt:Date.now()});setAddQ('');}}>Add</button>}
+                  <div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}>
+                      <span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>
+                      {!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>
+                        {isExpanded?'Cancel':'Add'}
+                      </button>}
+                    </div>
+                    {isExpanded&&!inDay&&(
+                      <div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}>
+                        <div style={{flex:'1 1 80px'}}>
+                          <label className="fl">Tees</label>
+                          <select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>
+                            {TEES.map(t=><option key={t}>{t}</option>)}
+                          </select>
+                        </div>
+                        <div style={{flex:'1 1 70px'}}>
+                          <label className="fl">HCP</label>
+                          <input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/>
+                        </div>
+                        <button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}}
+                          onClick={()=>{
+                            onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});
+                            setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');
+                          }}>Confirm</button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
