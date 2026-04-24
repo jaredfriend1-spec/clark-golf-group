@@ -804,13 +804,14 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 }
 
 // ── TEAMS VIEW (per day) ─────────────────────────────────────────────────────
-function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw}){
+function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,onUpdatePaid,myName}){
   const [activeDay,setActiveDay]=useState(null);
   const [editTeams,setEditTeams]=useState(null);
   const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
+  const [showPaid,setShowPaid]=useState(false);
 
   const activeDays=(week&&week.activeDays)||[];
 
@@ -868,6 +869,24 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw}){
         <div className="stat-box"><div className="stat-n">{display.length}</div><div className="stat-l">Teams</div></div>
         <div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
       </div>
+
+      {/* Payment tracking toggle */}
+      {(display||[]).length>0&&(()=>{
+        const allPlayers=display.flatMap(t=>t.players||[]);
+        const paidCount=allPlayers.filter(p=>(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])).length;
+        const total=allPlayers.length;
+        return(
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>
+              {showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid — {f$(paidCount*25)} collected</div>}
+            </div>
+            <button onClick={()=>setShowPaid(!showPaid)} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+              {showPaid?'Hide':'Track payments'}
+            </button>
+          </div>
+        );
+      })()}
 
       {isAdmin&&(
         <div className="admin-bar">
@@ -990,6 +1009,8 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
   const [justSaved,setJustSaved]=useState(false);
   const [forceRefresh,setForceRefresh]=useState(0);
+  const [drawAdj,setDrawAdj]=useState('');
+  const [showDrawAdj,setShowDrawAdj]=useState(false);
 
   const activeDays=(week&&week.activeDays)||[];
 
@@ -1006,6 +1027,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
     setOv(sc.overallPot!==undefined?String(sc.overallPot):'');
     setSv(sc.skinsPot!==undefined?String(sc.skinsPot):'');
     setFp(sc.frontPlaces||2);setBp(sc.backPlaces||2);setOp(sc.overallPlaces||2);
+    setDrawAdj(sc.drawAdj!==undefined?String(sc.drawAdj):'');
     setJustSaved(false);
   },[activeDay,forceRefresh]);
 
@@ -1030,7 +1052,8 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}));}
 
   function saveScores(){
-    const data={teamScores:ts,skinCounts:sk,frontPot:parseFloat(fv)||0,backPot:parseFloat(bv)||0,overallPot:parseFloat(ov)||0,skinsPot:parseFloat(sv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:pc,playerCount:pc,savedAt:Date.now(),payoutsCalculated:false};
+    const da=parseFloat(drawAdj)||0;
+    const data={teamScores:ts,skinCounts:sk,frontPot:parseFloat(fv)||0,backPot:parseFloat(bv)||0,overallPot:parseFloat(ov)||0,skinsPot:parseFloat(sv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,tournFund:pc,playerCount:pc,drawAdj:da,savedAt:Date.now(),payoutsCalculated:false};
     onSaveScores(activeDay,data);
     setJustSaved(true);
     setTimeout(()=>setJustSaved(false),2500);
@@ -1091,6 +1114,31 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
             <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)} placeholder={'$'+pot.skins}/></div>
           </div>
           {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:600,color:ok?'#15803d':'#dc2626'}}>{ok?'✓ Pot balanced — '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
+
+          {/* Draw player pot adjustment */}
+          <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #fde68a'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:showDrawAdj?8:0}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#92400e'}}>Draw player adjustment</div>
+                {drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#d97706',marginTop:1}}>Pot reduced by {f$(drawAdj)}</div>}
+              </div>
+              <button onClick={()=>setShowDrawAdj(!showDrawAdj)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid #f59e0b',background:showDrawAdj?'#f59e0b':'transparent',color:showDrawAdj?'#0f172a':'#d97706',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {showDrawAdj?'Done':'Adjust'}
+              </button>
+            </div>
+            {showDrawAdj&&(
+              <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
+                <div style={{flex:1}}>
+                  <label className="fl">Reduce pot by ($)</label>
+                  <input className="fi" type="number" placeholder="e.g. 25" value={drawAdj} onChange={e=>setDrawAdj(e.target.value)}/>
+                </div>
+                <div style={{paddingBottom:1}}>
+                  <button className="btn btn-gold btn-sm" onClick={()=>{setDrawAdj('25');setShowDrawAdj(false);}}>-1 player</button>
+                </div>
+              </div>
+            )}
+            {showDrawAdj&&<div style={{fontSize:11,color:'#92400e',marginTop:6}}>Enter the amount to subtract from the total pot. The draw player does not pay in twice.</div>}
+          </div>
         </div>
       )}
 
@@ -1184,7 +1232,16 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
               <div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt tie">{f$(pc)}</span></div>
             </div>
           )}
-          <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(pc*25)}</span></div>
+          {parseFloat(drawAdj||0)>0&&(
+            <div className="pay-row" style={{color:'#d97706'}}>
+              <span className="pay-lbl" style={{color:'#d97706'}}>Draw player adjustment</span>
+              <span className="pay-amt tie">-{f$(drawAdj)}</span>
+            </div>
+          )}
+          <div className="pay-total">
+            <span>Total pot</span>
+            <span style={{color:'#15803d'}}>{f$(pc*25-(parseFloat(drawAdj)||0))}</span>
+          </div>
         </div>
       )}
 
@@ -1336,11 +1393,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
 }
 
 // ── ADMIN VIEW ───────────────────────────────────────────────────────────────
-function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onArchiveDay,onUpdateTeeTime}){
-  const [showCreate,setShowCreate]=useState(!(week&&week.activeDays&&week.activeDays.length>0));
-  const [selDays,setSelDays]=useState({Friday:true,Saturday:true,Sunday:true});
-  const [teeTimes,setTeeTimes]=useState({Friday:'',Saturday:'',Sunday:''});
-  const [lotteries,setLotteries]=useState({Friday:false,Saturday:false,Sunday:false});
+function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay}){
   const [addQ,setAddQ]=useState('');
   const [quickAddSel,setQuickAddSel]=useState(null);
   const [quickAddTee,setQuickAddTee]=useState('Whites');
@@ -1350,32 +1403,48 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
   const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});
   const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
   const [showGuest,setShowGuest]=useState(false);
-  const [editTeeDay,setEditTeeDay]=useState(null);
-  const [editTeeVal,setEditTeeVal]=useState('');
-  const [addDayModal,setAddDayModal]=useState(false);
-  const [newDay,setNewDay]=useState('Friday');
+  const [showSignups,setShowSignups]=useState(false);
+  // Per-day tee editing state
+  const [dayEdit,setDayEdit]=useState({});
+  // Warn state: {day, count} when deactivating a day with signups
+  const [warnDeact,setWarnDeact]=useState(null);
+
   const wd=getWeekDates();
   const rosterSearch=[...ROSTER,...(roster.filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
   const activeDays=(week&&week.activeDays)||[];
   const allSignups=week&&week.signups?Object.entries(week.signups):[];
 
-  function createWeek(){
-    const days=DAYS_OF_WEEK.filter(d=>selDays[d]);
-    if(!days.length){return;}
-    const dates={};const tt={};
-    days.forEach(d=>{
-      dates[d]=wd[d];
-      if(teeTimes[d]||lotteries[d])tt[d]={time:lotteries[d]?'LOTTERY':teeTimes[d],lottery:lotteries[d]};
-    });
-    onCreate({activeDays:days,dates,teeTimes:tt,createdAt:Date.now()});
-    setShowCreate(false);
+  function toggleDay(day){
+    const isActive=activeDays.includes(day);
+    if(isActive){
+      const cnt=allSignups.filter(([,s])=>s.day===day).length;
+      if(cnt>0){setWarnDeact({day,cnt});return;}
+      deactivateDay(day);
+    } else {
+      // Activate day — add to activeDays with auto date
+      const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};
+      onCreate(newWeek);
+    }
   }
 
-  function _unused(){
-    if(!newDay||activeDays.includes(newDay))return;
-    const newWeek={...week,activeDays:[...activeDays,newDay],dates:{...(week.dates||{}),[newDay]:wd[newDay]}};
-    onCreate(newWeek);
-    setAddDayModal(false);
+  function deactivateDay(day){
+    onDeactivateDay(day);
+    setWarnDeact(null);
+  }
+
+  function saveDayTeeTime(day){
+    const e=dayEdit[day]||{};
+    if(e.lottery){
+      onUpdateTeeTime(day,{time:e.lotteryReq||'LOTTERY',lottery:true,lotteryReq:e.lotteryReq||''});
+    } else if(e.time){
+      onUpdateTeeTime(day,{time:e.time,lottery:false});
+    }
+    setDayEdit(p=>({...p,[day]:{...p[day],editing:false}}));
+  }
+
+  function removeTeeTime(day){
+    onUpdateTeeTime(day,null);
+    setDayEdit(p=>({...p,[day]:{editing:false}}));
   }
 
   return(
@@ -1388,166 +1457,173 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
       </div>
 
-      {/* Create/manage week */}
-      <div className="card" style={{marginBottom:10}}>
-        <div className="section-btn" onClick={()=>setShowCreate(!showCreate)}>
-          <div className="section-title">{activeDays.length?'Current week — '+activeDays.join(', '):'Set up this week'}</div>
-          <svg style={{width:15,height:15,color:'#94a3b8',transform:showCreate?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+      {/* ── WEEK SETUP: one card per day ── */}
+      <div className="card card-pad" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div className="slbl" style={{marginBottom:0}}>This week — {getWeekLabel()}</div>
         </div>
-        {showCreate&&(
-          <div className="section-body">
-            <div style={{fontSize:12,fontWeight:500,color:'#64748b',marginBottom:10}}>Select days for {getWeekLabel()}</div>
-            {DAYS_OF_WEEK.map(d=>(
-              <div key={d} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}>
-                <label className="cb-row" style={{marginBottom:selDays[d]?8:0}}>
-                  <input type="checkbox" checked={selDays[d]||false} onChange={e=>setSelDays(p=>({...p,[d]:e.target.checked}))}/>
+
+        {DAYS_OF_WEEK.map((day,di)=>{
+          const isActive=activeDays.includes(day);
+          const teeInfo=week&&week.teeTimes&&week.teeTimes[day];
+          const edit=dayEdit[day]||{};
+          const isEditing=edit.editing;
+
+          return(
+            <div key={day} style={{borderTop:di>0?'1px solid #f1f5f9':'none',paddingTop:di>0?12:0,marginTop:di>0?12:0}}>
+              {/* Day header row */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:isActive?10:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  {/* Active toggle */}
+                  <div
+                    onClick={()=>toggleDay(day)}
+                    style={{width:36,height:20,borderRadius:10,background:isActive?'#10b981':'#e2e8f0',cursor:'pointer',position:'relative',transition:'background 0.2s',flexShrink:0}}>
+                    <div style={{position:'absolute',top:2,left:isActive?18:2,width:16,height:16,borderRadius:8,background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+                  </div>
                   <div>
-                    <div className="cb-label">{d}</div>
-                    <div className="cb-sub">{fmtDFull(wd[d])}</div>
+                    <div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div>
+                    <div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(wd[day])}</div>
                   </div>
-                </label>
-                {selDays[d]&&(
-                  <div style={{marginLeft:26}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                      <input type="checkbox" checked={lotteries[d]||false} onChange={e=>setLotteries(p=>({...p,[d]:e.target.checked}))} id={'lot'+d}/>
-                      <label htmlFor={'lot'+d} style={{fontSize:12,fontWeight:500,color:'#64748b',cursor:'pointer'}}>Waiting on lottery</label>
-                    </div>
-                    {!lotteries[d]&&(
-                      <div>
-                        <label className="fl">Tee time (optional)</label>
-                        <TimePicker onChange={v=>setTeeTimes(p=>({...p,[d]:v}))}/>
-                      </div>
-                    )}
-                  </div>
+                </div>
+                {isActive&&!isEditing&&(
+                  <button className="btn btn-outline btn-xs" onClick={()=>setDayEdit(p=>({...p,[day]:{...p[day],editing:true,lottery:teeInfo?teeInfo.lottery:false,time:teeInfo&&!teeInfo.lottery?teeInfo.time:'',lotteryReq:teeInfo&&teeInfo.lottery?teeInfo.time:''}}))}>
+                    {teeInfo?'Edit time':'Set time'}
+                  </button>
                 )}
               </div>
-            ))}
-            <button className="btn btn-green btn-full btn-sm" style={{marginTop:6}} onClick={createWeek}>
-              {activeDays.length?'Create new week (replaces current)':'Create week'}
-            </button>
-            {activeDays.length>0&&(
-              <button className="btn btn-outline btn-full btn-sm" style={{marginTop:8}} onClick={()=>setAddDayModal(true)}>
-                Add a day to current week
-              </button>
-            )}
-          </div>
-        )}
+
+              {/* Current tee time display */}
+              {isActive&&!isEditing&&teeInfo&&(
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f8fafc',borderRadius:8,marginBottom:2}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>
+                    {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' — requested '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
+                  </span>
+                  <button onClick={()=>removeTeeTime(day)} style={{marginLeft:'auto',fontSize:10,color:'#ef4444',background:'none',border:'none',cursor:'pointer',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>Remove</button>
+                </div>
+              )}
+              {isActive&&!isEditing&&!teeInfo&&(
+                <div style={{fontSize:11,color:'#94a3b8',fontStyle:'italic',marginTop:2}}>No tee time set — players can still sign up</div>
+              )}
+
+              {/* Inline tee time editor */}
+              {isActive&&isEditing&&(
+                <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginTop:4}}>
+                  <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:10,cursor:'pointer'}} onClick={()=>setDayEdit(p=>({...p,[day]:{...p[day],lottery:!edit.lottery}}))}>
+                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:edit.lottery?'#f59e0b':'#cbd5e1',background:edit.lottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {edit.lottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:500}}>Waiting on lottery</span>
+                  </div>
+                  {edit.lottery?(
+                    <div className="fg" style={{marginBottom:8}}>
+                      <label className="fl">Requested time (optional)</label>
+                      <TimePicker onChange={v=>setDayEdit(p=>({...p,[day]:{...p[day],lotteryReq:v}}))}/>
+                    </div>
+                  ):(
+                    <div className="fg" style={{marginBottom:8}}>
+                      <label className="fl">Tee time</label>
+                      <TimePicker onChange={v=>setDayEdit(p=>({...p,[day]:{...p[day],time:v}}))}/>
+                    </div>
+                  )}
+                  <div style={{display:'flex',gap:7}}>
+                    <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>saveDayTeeTime(day)}>Save</button>
+                    <button className="btn btn-outline btn-sm" onClick={()=>setDayEdit(p=>({...p,[day]:{...p[day],editing:false}}))}>Cancel</button>
+                    {teeInfo&&<button className="btn btn-red btn-sm" onClick={()=>removeTeeTime(day)}>Remove</button>}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Tee time editing per day */}
-      {activeDays.length>0&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Tee times</div>
-          {activeDays.map(d=>{
-            const ti=week&&week.teeTimes&&week.teeTimes[d];
-            return(
-              <div key={d} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
-                <div>
-                  <span style={{fontSize:13,fontWeight:600}}>{d}</span>
-                  {ti&&<span style={{fontSize:11,color:'#64748b',marginLeft:8}}>{ti.lottery?'Lottery':ti.time}</span>}
-                  {!ti&&<span style={{fontSize:11,color:'#94a3b8',marginLeft:8}}>No tee time set</span>}
-                </div>
-                <button className="btn btn-outline btn-xs" onClick={()=>{setEditTeeDay(d);setEditTeeVal(ti&&!ti.lottery?ti.time:'');}}>
-                  {ti?'Edit':'Set'}
-                </button>
-              </div>
-            );
-          })}
+      {/* Deactivate warning */}
+      {warnDeact&&(
+        <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
+          <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
+          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players. Sign-ups will be preserved but invisible until you reactivate it.</div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-red btn-sm" onClick={()=>deactivateDay(warnDeact.day)}>Deactivate anyway</button>
+            <button className="btn btn-outline btn-sm" onClick={()=>setWarnDeact(null)}>Keep active</button>
+          </div>
         </div>
       )}
 
-      {/* Manage sign-ups */}
+      {/* ── MANAGE SIGN-UPS ── */}
       {activeDays.length>0&&(
         <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Manage sign-ups</div>
-          <div style={{display:'flex',gap:8,marginBottom:10,alignItems:'center'}}>
-            <select className="fs" style={{flex:1}} value={addDay} onChange={e=>setAddDay(e.target.value)}>
-              {activeDays.map(d=><option key={d}>{d}</option>)}
-            </select>
-            <span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{allSignups.filter(([,s])=>s.day===addDay).length} signed up</span>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showSignups?12:0}} onClick={()=>setShowSignups(!showSignups)} style={{cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showSignups?12:0}}>
+            <div className="slbl" style={{marginBottom:0}}>Manage sign-ups</div>
+            <svg style={{width:14,height:14,color:'#94a3b8',transform:showSignups?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div className="sw" style={{marginBottom:8}}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/>
-          </div>
-          {addQ.length>0&&(
-            <div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:220,overflowY:'auto'}}>
-              {rosterSearch.map(p=>{
-                const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);
-                const isExpanded=quickAddSel===p.id;
-                return(
-                  <div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}>
-                      <span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>
-                      {!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>
-                        {isExpanded?'Cancel':'Add'}
-                      </button>}
-                    </div>
-                    {isExpanded&&!inDay&&(
-                      <div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}>
-                        <div style={{flex:'1 1 80px'}}>
-                          <label className="fl">Tees</label>
-                          <select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>
-                            {TEES.map(t=><option key={t}>{t}</option>)}
-                          </select>
+          {showSignups&&(
+            <div>
+              <div style={{display:'flex',gap:8,marginBottom:10,alignItems:'center'}}>
+                <select className="fs" style={{flex:1}} value={addDay} onChange={e=>setAddDay(e.target.value)}>
+                  {activeDays.map(d=><option key={d}>{d}</option>)}
+                </select>
+                <span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{allSignups.filter(([,s])=>s.day===addDay).length} signed up</span>
+              </div>
+              <div className="sw" style={{marginBottom:8}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/>
+              </div>
+              {addQ.length>0&&(
+                <div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:220,overflowY:'auto'}}>
+                  {rosterSearch.map(p=>{
+                    const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);
+                    const isExpanded=quickAddSel===p.id;
+                    return(
+                      <div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}>
+                          <span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>
+                          {!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>{isExpanded?'Cancel':'Add'}</button>}
                         </div>
-                        <div style={{flex:'1 1 70px'}}>
-                          <label className="fl">HCP</label>
-                          <input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/>
-                        </div>
-                        <button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}}
-                          onClick={()=>{
-                            onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});
-                            setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');
-                          }}>Confirm</button>
+                        {isExpanded&&!inDay&&(
+                          <div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}>
+                            <div style={{flex:'1 1 80px'}}><label className="fl">Tees</label><select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
+                            <div style={{flex:'1 1 70px'}}><label className="fl">HCP</label><input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/></div>
+                            <button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}}
+                              onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');}}>Confirm</button>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    );
+                  })}
+                </div>
+              )}
+              <button className="btn btn-outline btn-sm" style={{marginBottom:8}} onClick={()=>setShowGuest(!showGuest)}>
+                {showGuest?'Cancel':'+ Add Guest'}
+              </button>
+              {showGuest&&(
+                <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}>
+                  <div className="fr" style={{marginBottom:8}}>
+                    <div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div>
+                    <div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-          {/* Guest quick-add */}
-          <button className="btn btn-outline btn-sm" style={{marginBottom:8}} onClick={()=>setShowGuest(!showGuest)}>
-            {showGuest?'Cancel':'+ Add Guest'}
-          </button>
-          {showGuest&&(
-            <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}>
-              <div className="fr" style={{marginBottom:8}}>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-              </div>
-              <div className="fr">
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div>
-                <div style={{display:'flex',alignItems:'flex-end',paddingBottom:0}}>
-                  <button className="btn btn-green btn-sm" onClick={()=>{
-                    if(!gp.name||!gp.hcp)return;
-                    onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),day:addDay,signedUpAt:Date.now()});
-                    onAddPlayer({name:gp.name,isGuest:true});
-                    setGp({name:'',tee:'Whites',hcp:''});setShowGuest(false);
-                  }}>Add Guest</button>
+                  <div className="fr">
+                    <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div>
+                    <div style={{display:'flex',alignItems:'flex-end'}}>
+                      <button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:''});setShowGuest(false);}}>Add Guest</button>
+                    </div>
+                  </div>
                 </div>
+              )}
+              <div style={{maxHeight:190,overflowY:'auto'}}>
+                {allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(
+                  <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
+                    <div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>{s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</div>
+                    <button className="rm-btn" onClick={()=>onRemoveSignup(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>
+                  </div>
+                ))}
               </div>
             </div>
           )}
-          <div style={{maxHeight:190,overflowY:'auto'}}>
-            {allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(
-              <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
-                <div>
-                  <span style={{fontSize:13,fontWeight:600}}>{s.name}</span>
-                  <span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>
-                  {s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}
-                </div>
-                <button className="rm-btn" onClick={()=>onRemoveSignup(key)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* Quick-add player to roster with tee/hcp */}
+      {/* ── ROSTER ── */}
       <div className="card" style={{marginBottom:10}}>
         <div className="section-btn" onClick={()=>setShowRoster(!showRoster)}>
           <div className="section-title">Roster ({[...ROSTER,...roster.filter(p=>p.id>96)].length} members)</div>
@@ -1561,9 +1637,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
             </div>
             <div className="fr" style={{marginBottom:8}}>
               <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div>
-              <div style={{display:'flex',alignItems:'flex-end'}}>
-                <button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button>
-              </div>
+              <div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button></div>
             </div>
             <div style={{maxHeight:220,overflowY:'auto',marginTop:8}}>
               {[...ROSTER,...roster.filter(p=>p.id>96)].map(p=>(
@@ -1579,47 +1653,6 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           </div>
         )}
       </div>
-
-      {/* Add day modal */}
-      {addDayModal&&(
-        <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setAddDayModal(false);}}>
-          <div className="modal">
-            <div className="modal-handle"></div>
-            <div className="modal-title">Add a day to this week</div>
-            <div className="fg">
-              <label className="fl">Day</label>
-              <select className="fs" value={newDay} onChange={e=>setNewDay(e.target.value)}>
-                {DAYS_OF_WEEK.filter(d=>!activeDays.includes(d)).map(d=>(
-                  <option key={d}>{d} — {fmtDFull(wd[d])}</option>
-                ))}
-              </select>
-            </div>
-            {DAYS_OF_WEEK.filter(d=>!activeDays.includes(d)).length===0&&(
-              <div className="alert alert-blue">All three days are already active.</div>
-            )}
-            <button className="btn btn-green btn-full" onClick={()=>{const day=newDay.split(' ')[0];if(!activeDays.includes(day)){const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};onCreate(newWeek);}setAddDayModal(false);}}>Add Day</button>
-          </div>
-        </div>
-      )}
-
-      {/* Edit tee time modal */}
-      {editTeeDay&&(
-        <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setEditTeeDay(null);}}>
-          <div className="modal">
-            <div className="modal-handle"></div>
-            <div className="modal-title">Tee time — {editTeeDay}</div>
-            <div className="fg" style={{marginBottom:14}}>
-              <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#f8fafc',borderRadius:9,border:'1.5px solid #e2e8f0',cursor:'pointer',marginBottom:10}}
-                onClick={()=>onUpdateTeeTime(editTeeDay,{time:'LOTTERY',lottery:true})&&setEditTeeDay(null)}>
-                <span style={{fontSize:13,fontWeight:600}}>Set as Lottery</span>
-              </div>
-            </div>
-            <div className="fg"><label className="fl">Set confirmed time</label><TimePicker onChange={setEditTeeVal}/></div>
-            <button className="btn btn-green btn-full" onClick={()=>{onUpdateTeeTime(editTeeDay,{time:editTeeVal,lottery:false});setEditTeeDay(null);}}>Save time</button>
-            <button className="btn btn-outline btn-full" style={{marginTop:8}} onClick={()=>{onUpdateTeeTime(editTeeDay,null);setEditTeeDay(null);}}>Remove tee time</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1693,6 +1726,16 @@ function App(){
   }
   function removePlayer(id){write('extraPlayers',extra.filter(p=>p.id!==id));}
   function toggleLock(day,locked){write('week',{...week,locked:{...(week.locked||{}),[day]:locked}});}
+  function deactivateDay(day){
+    const newWeek={...week,activeDays:(week.activeDays||[]).filter(d=>d!==day)};
+    const tt={...(week.teeTimes||{})};delete tt[day];
+    newWeek.teeTimes=tt;
+    write('week',newWeek);
+  }
+  function updatePaid(day,playerName,paid){
+    const newPaid={...(week.paid||{}),[day]:{...((week.paid||{})[day]||{}),[playerName]:paid}};
+    write('week',{...week,paid:newPaid});
+  }
   function editHistoryRound(key,round){
     del('history/'+key);
     const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};
@@ -1788,7 +1831,9 @@ function App(){
         {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin}
           onSaveTeams={saveTeams}
           onPublishTeams={publishTeams}
-          onAssignBlindDraw={saveTeams}/>}
+          onAssignBlindDraw={saveTeams}
+          onUpdatePaid={updatePaid}
+          myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo}
           onSaveScores={saveScores}
           onCalcPayouts={calcPayouts}
@@ -1803,13 +1848,13 @@ function App(){
           onLogout={()=>{setIsAdmin(false);setRole(null);}}
           week={week}
           onCreate={createWeek}
-          onArchiveDay={archiveDay}
           onAddPlayer={addPlayer}
           onRemovePlayer={removePlayer}
           roster={extra}
           onRemoveSignup={k=>del('week/signups/'+k)}
-          onAddSignup={d=>write('week/signups/'+Date.now(),d)}
-          onUpdateTeeTime={updateTeeTime}/>}
+          onAddSignup={d=>push('week/signups',d)}
+          onUpdateTeeTime={updateTeeTime}
+          onDeactivateDay={deactivateDay}/>}
       </div>
     </div>
   );
