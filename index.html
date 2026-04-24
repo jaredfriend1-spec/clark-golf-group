@@ -1067,7 +1067,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   const [b1v,setB1v]=useState('');const [b2v,setB2v]=useState('');
   const [o1v,setO1v]=useState('');const [o2v,setO2v]=useState('');
 
-  const activeDays=(week&&week.activeDays)||[];
+  const activeDays=sortDays((week&&week.activeDays)||[]);
 
   useEffect(()=>{
     if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
@@ -1507,7 +1507,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       deactivateDay(day);
     } else {
       // Activate day - add to activeDays with auto date
-      const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};
+      const newWeek={...week,activeDays:[...activeDays,day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
   }
