@@ -980,6 +980,28 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
                     </div>
                   )}
                 </div>
+              {showPaid&&(
+                <button
+                  onClick={()=>{
+                    const canMark=isAdmin||(myName===p.name);
+                    if(!canMark)return;
+                    const paid=!((week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])||false);
+                    onUpdatePaid(activeDay,p.name,paid);
+                  }}
+                  style={{
+                    flexShrink:0,marginLeft:6,
+                    padding:'5px 11px',borderRadius:20,
+                    border:'1.5px solid',
+                    borderColor:(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'#10b981':'#e2e8f0',
+                    background:(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'#ecfdf5':'#fff',
+                    color:(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'#15803d':'#94a3b8',
+                    fontSize:11,fontWeight:700,cursor:(isAdmin||(myName===p.name))?'pointer':'default',
+                    fontFamily:"'DM Sans',sans-serif",
+                    opacity:(isAdmin||(myName===p.name))?1:0.5,
+                  }}>
+                  {(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'✓ Paid':'Paid?'}
+                </button>
+              )}
               </div>
             ))}
             {/* Blind draw slot */}
