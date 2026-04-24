@@ -996,7 +996,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
                     </div>
                   )}
                 </div>
-              {showPaid&&<PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
+              {showPaid&&<PaidBtn name={p.name} isAdmin={isAdmin} myName={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
               </div>
             ))}
             {/* Blind draw slot */}
@@ -1512,13 +1512,6 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
     }
   }
 
-  function clearWeek(){
-    if(isDemo){
-      setWeek({activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}});
-    } else {
-      write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}});
-    }
-  }
   function deactivateDay(day){
     onDeactivateDay(day);
     setWarnDeact(null);
@@ -1762,12 +1755,21 @@ function App(){
     const u=[];
     u.push(read('week',v=>setWeek(v)));
     u.push(read('history',v=>setHistory(v||{})));
-    u.push(read('extraPlayers',v=>setExtra(v||[])));
+    u.push(read('extraPlayers',v=>setExtra(v ? Object.values(v) : [])));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
   function createWeek(data){
     write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});
+  }
+
+  function clearWeek(){
+    const emptyWeek = {activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}};
+    if(isDemo){
+      setWeek(emptyWeek);
+    } else {
+      write('week', emptyWeek);
+    }
   }
 
   function archiveDay(day){
