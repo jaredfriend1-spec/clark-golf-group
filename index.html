@@ -839,6 +839,23 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 }
 
 // ── TEAMS VIEW (per day) ─────────────────────────────────────────────────────
+function PaymentBar({display,week,activeDay,showPaid,onToggle}){
+  const allPlayers=(display||[]).flatMap(t=>t.players||[]);
+  const paidCount=allPlayers.filter(p=>(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])).length;
+  const total=allPlayers.length;
+  return(
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}>
+      <div>
+        <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>
+        {showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid — {f$(paidCount*25)} collected</div>}
+      </div>
+      <button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+        {showPaid?'Hide':'Track payments'}
+      </button>
+    </div>
+  );
+}
+
 function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,onUpdatePaid,myName}){
   const [activeDay,setActiveDay]=useState(null);
   const [editTeams,setEditTeams]=useState(null);
@@ -906,22 +923,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
       </div>
 
       {/* Payment tracking toggle */}
-      {(display||[]).length>0&&(()=>{
-        const allPlayers=display.flatMap(t=>t.players||[]);
-        const paidCount=allPlayers.filter(p=>(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])).length;
-        const total=allPlayers.length;
-        return(
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}>
-            <div>
-              <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>
-              {showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid — {f$(paidCount*25)} collected</div>}
-            </div>
-            <button onClick={()=>setShowPaid(!showPaid)} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
-              {showPaid?'Hide':'Track payments'}
-            </button>
-          </div>
-        );
-      })()}
+      {(display||[]).length>0&&<PaymentBar display={display} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
 
       {isAdmin&&(
         <div className="admin-bar">
