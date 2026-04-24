@@ -427,7 +427,7 @@ function makeDemoData(){
   // Pre-built realistic scoring scenario:
   // Team One wins Front 9 outright (-4)
   // Team Three wins Back 9 outright (-5)
-  // Team Two and Team Four TIE Overall (-3 each) → split pot
+  // Team Two and Team Four TIE Overall (-3 each) -> split pot
   // Skins: Team One 2 skins, Team Three 1 skin
   const teamScores={
     1:{front:-4,back:-2,overall:-6},
@@ -484,7 +484,7 @@ function TimePicker({onChange}){
   );
 }
 
-// ── LANDING ──────────────────────────────────────────────────────────────────
+// -- LANDING ------------------------------------------------------------------
 function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
   const [showPw,setShowPw]=useState(false);
   const [pw,setPw]=useState('');
@@ -505,36 +505,36 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </div>
               <div className="land-btn-text"><span className="land-btn-main">I am a Player</span><span className="land-btn-sub">Sign up, view teams, see results</span></div>
-              <span className="land-arrow">›</span>
+              <span className="land-arrow">></span>
             </button>
             <button className="land-btn land-btn-admin" onClick={()=>{setShowPw(true);setPw('');}}>
               <div className="land-btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
               <div className="land-btn-text"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
-              <span className="land-arrow">›</span>
+              <span className="land-arrow">></span>
             </button>
             <div className="land-demo-divider">Try it out</div>
             <button className="land-btn land-btn-demo" onClick={onDemoPlayer}>
               <div className="land-btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </div>
-              <div className="land-btn-text"><span className="land-btn-main">Demo — Player View</span><span className="land-btn-sub">See what players experience</span></div>
-              <span className="land-arrow">›</span>
+              <div className="land-btn-text"><span className="land-btn-main">Demo - Player View</span><span className="land-btn-sub">See what players experience</span></div>
+              <span className="land-arrow">></span>
             </button>
             <button className="land-btn land-btn-demo2" onClick={onDemoAdmin}>
               <div className="land-btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <div className="land-btn-text"><span className="land-btn-main">Demo — Admin View</span><span className="land-btn-sub">Full admin walkthrough with sample data</span></div>
-              <span className="land-arrow">›</span>
+              <div className="land-btn-text"><span className="land-btn-main">Demo - Admin View</span><span className="land-btn-sub">Full admin walkthrough with sample data</span></div>
+              <span className="land-arrow">></span>
             </button>
           </div>
         ):(
           <div className="pw-box">
             <div className="pw-label">Admin Password</div>
             <input autoFocus type="password" className={'pw-input'+(err?' err':'')} placeholder="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryAdmin()}/>
-            {err&&<div className="pw-err">Wrong password — try again</div>}
+            {err&&<div className="pw-err">Wrong password - try again</div>}
             <div className="pw-row">
               <button className="pw-go" onClick={tryAdmin}>Sign In</button>
               <button className="pw-back" onClick={()=>{setShowPw(false);setPw('');}}>Back</button>
@@ -557,7 +557,7 @@ function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hc
   );
 }
 
-// ── THIS WEEK VIEW ─────────────────────────────────────────────────────────
+// -- THIS WEEK VIEW ---------------------------------------------------------
 function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
@@ -623,7 +623,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 
   return(
     <div>
-      {isDemo&&<div className="demo-bar"><span className="demo-lbl">{isAdmin?'Admin Demo Mode':'Player Demo Mode'} — Sample Data</span></div>}
+      {isDemo&&<div className="demo-bar"><span className="demo-lbl">{isAdmin?'Admin Demo Mode':'Player Demo Mode'} - Sample Data</span></div>}
 
       <div className="stat-row">
         {activeDays.map(day=>{
@@ -782,7 +782,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                     </div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:600}}>{d}</div>
-                      <div style={{fontSize:11,color:'#94a3b8'}}>{week.dates&&week.dates[d]?fmtD(week.dates[d]):''}{alreadyIn?' — already signed up':''}{isLocked&&!alreadyIn?' — locked':''}</div>
+                      <div style={{fontSize:11,color:'#94a3b8'}}>{week.dates&&week.dates[d]?fmtD(week.dates[d]):''}{alreadyIn?' - already signed up':''}{isLocked&&!alreadyIn?' - locked':''}</div>
                     </div>
                   </div>
                 );
@@ -808,7 +808,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setTeeModal(null);}}>
           <div className="modal">
             <div className="modal-handle"></div>
-            <div className="modal-title">Add tee time — {teeModal}</div>
+            <div className="modal-title">Add tee time - {teeModal}</div>
             <div className="fg" style={{marginBottom:14}}>
               <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#f8fafc',borderRadius:9,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0'),cursor:'pointer'}} onClick={()=>setIsLottery(!isLottery)}>
                 <div style={{width:19,height:19,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -827,7 +827,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setEditTeeModal(null);}}>
           <div className="modal">
             <div className="modal-handle"></div>
-            <div className="modal-title">Update tee time — {editTeeModal}</div>
+            <div className="modal-title">Update tee time - {editTeeModal}</div>
             <div className="alert alert-blue" style={{marginBottom:12}}>Enter the confirmed tee time.</div>
             <div className="fg"><label className="fl">Confirmed time</label><TimePicker onChange={setNewTime}/></div>
             <button className="btn btn-gold btn-full" onClick={()=>{onUpdateTeeTime(editTeeModal,{time:newTime,lottery:false});setEditTeeModal(null);}}>Update</button>
@@ -838,7 +838,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   );
 }
 
-// ── TEAMS VIEW (per day) ─────────────────────────────────────────────────────
+// -- TEAMS VIEW (per day) -----------------------------------------------------
 function PaidBtn({name,isAdmin,myName,week,activeDay,onUpdatePaid}){
   const paid=!!(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][name]);
   const canMark=isAdmin||(myName===name);
@@ -861,7 +861,7 @@ function PaymentBar({display,week,activeDay,showPaid,onToggle}){
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}>
       <div>
         <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>
-        {showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid — {f$(paidCount*25)} collected</div>}
+        {showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}
       </div>
       <button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
         {showPaid?'Hide':'Track payments'}
@@ -941,7 +941,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
 
       {isAdmin&&(
         <div className="admin-bar">
-          <div className="admin-lbl">Team builder — {activeDay}</div>
+          <div className="admin-lbl">Team builder - {activeDay}</div>
           <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
             <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{display.length?'Regenerate':'Auto-generate'}</button>
             {editTeams&&<button className="btn btn-gold btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save</button>}
@@ -974,7 +974,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
                 onDragStart={()=>{if(isAdmin)setDrag({ti,pi});}}
                 onDragOver={e=>e.preventDefault()}
                 onDrop={()=>drop(ti,pi)}>
-                {editTeams&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:13,flexShrink:0}}>⠿</span>}
+                {editTeams&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:13,flexShrink:0}}>:</span>}
                 <span className="slot">{p.slot}</span>
                 <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
                 <div style={{flex:1,minWidth:0}}>
@@ -1145,13 +1145,13 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
       )}
       {scoresSaved&&!payoutsCalculated&&(
         <div className="alert alert-blue" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span>{isAdmin?"Scores saved — players can see these. Calculate payouts when ready.":"Scores are in — payouts coming soon."}</span>
+          <span>{isAdmin?"Scores saved - players can see these. Calculate payouts when ready.":"Scores are in - payouts coming soon."}</span>
           {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#1e40af',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0,marginLeft:8}}>Refresh</button>}
         </div>
       )}
       {payoutsCalculated&&(
         <div className="alert alert-ok" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span>Payouts calculated — results are final.</span>
+          <span>Payouts calculated - results are final.</span>
           {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0,marginLeft:8}}>Refresh</button>}
         </div>
       )}
@@ -1162,8 +1162,8 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <div className="admin-lbl" style={{marginBottom:0}}>
               {parseFloat(drawAdj||0)>0
-                ?'Pot — '+(pc-Math.round(parseFloat(drawAdj)/25))+' players (+'+Math.round(parseFloat(drawAdj)/25)+' draw) — '+f$(pot.total-parseFloat(drawAdj))+' total'
-                :'Pot — '+pc+' players — '+f$(pot.total)+' total'}
+                ?'Pot - '+(pc-Math.round(parseFloat(drawAdj)/25))+' players (+'+Math.round(parseFloat(drawAdj)/25)+' draw) - '+f$(pot.total-parseFloat(drawAdj))+' total'
+                :'Pot - '+pc+' players - '+f$(pot.total)+' total'}
             </div>
             {!fv&&!bv&&!ov&&!sv&&<button className="btn btn-outline btn-xs" onClick={autoPot}>Auto-fill</button>}
           </div>
@@ -1175,14 +1175,14 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
             <div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" value={ov} onChange={e=>setOv(e.target.value)} placeholder={'$'+pot.overall}/></div>
             <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)} placeholder={'$'+pot.skins}/></div>
           </div>
-          {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:600,color:ok?'#15803d':'#dc2626'}}>{ok?'✓ Pot balanced — '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
+          {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:600,color:ok?'#15803d':'#dc2626'}}>{ok?'Pot balanced OK - '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
 
           {/* Draw player pot adjustment */}
           <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #fde68a'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:showDrawAdj?8:0}}>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#92400e'}}>Manual pot adjustment</div>
-                {drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#d97706',marginTop:1}}>Pot reduced by {f$(drawAdj)} — adjusted for draw player</div>}
+                {drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#d97706',marginTop:1}}>Pot reduced by {f$(drawAdj)} - adjusted for draw player</div>}
               </div>
               <button onClick={()=>setShowDrawAdj(!showDrawAdj)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid #f59e0b',background:showDrawAdj?'#f59e0b':'transparent',color:showDrawAdj?'#0f172a':'#d97706',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
                 {showDrawAdj?'Done':'Adjust'}
@@ -1216,7 +1216,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
             return(
               <div key={l} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}>
-                  <span style={{fontSize:13,fontWeight:600}}>{l}{p>0?' — '+f$(p):''}</span>
+                  <span style={{fontSize:13,fontWeight:600}}>{l}{p>0?' - '+f$(p):''}</span>
                   <div className="tog" style={{width:155,marginBottom:0}}>
                     <button className={'tog-opt'+(v===1?' on':'')} onClick={()=>s(1)}>1st only</button>
                     <button className={'tog-opt'+(v===2?' on':'')} onClick={()=>s(2)}>1st + 2nd</button>
@@ -1245,7 +1245,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
       {/* Team scores */}
       {(isAdmin||scoresSaved)&&(
         <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Team scores — {activeDay}</div>
+          <div className="slbl">Team scores - {activeDay}</div>
           <div className="sc-grid" style={{marginBottom:8}}>
             <div></div>
             <div className="sc-hd">Front</div>
@@ -1269,7 +1269,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
         <div className="card card-pad" style={{marginBottom:10}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}>
             <div className="slbl" style={{marginBottom:0}}>Skins tapper</div>
-            <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' — '+f$(snet)+' net':''}</div>
+            <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div>
           </div>
           <div className="skin-grid">
             {dayTeams.map(t=>(
@@ -1281,11 +1281,11 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
               </div>
             ))}
           </div>
-          {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} — Net skins: {f$(snet)}{tsk>0?' — '+f$(perSk.toFixed(2))+' per skin':''}</div>}
+          {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(perSk.toFixed(2))+' per skin':''}</div>}
         </div>
       )}
 
-      {/* Payout breakdown — shown after Calculate Payouts clicked, or admin preview */}
+      {/* Payout breakdown - shown after Calculate Payouts clicked, or admin preview */}
       {showPayouts&&(fv||bv||ov||sv)&&(
         <div className="card card-pad" style={{marginBottom:10}}>
           <div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
@@ -1297,7 +1297,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
                 <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
                 {rows.map((row,i)=>(
                   <div key={i} className="pay-row">
-                    <span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' — '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span>
+                    <span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' - '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span>
                     <span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span>
                   </div>
                 ))}
@@ -1311,7 +1311,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
               {tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(perSk.toFixed(2))}</span></div>}
               {Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{
                 const t=dayTeams.find(t=>String(t.id)===String(tid));
-                return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} — {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*perSk)}</span></div>:null;
+                return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} - {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*perSk)}</span></div>:null;
               })}
               <div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt tie">{f$(pc)}</span></div>
             </div>
@@ -1334,9 +1334,9 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
         <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
           {/* Step 1: Save Scores */}
           <button className="btn btn-dark btn-full" onClick={saveScores}>
-            {scoresSaved?'Update Scores':'Save Scores — Players Can See Live'}
+            {scoresSaved?'Update Scores':'Save Scores - Players Can See Live'}
           </button>
-          {justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved — players can see scores now.</div>}
+          {justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores now.</div>}
 
           {/* Step 2: Calculate Payouts */}
           {scoresSaved&&(
@@ -1364,7 +1364,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   );
 }
 
-// ── HISTORY VIEW ─────────────────────────────────────────────────────────────
+// -- HISTORY VIEW -------------------------------------------------------------
 function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
   const [open,setOpen]=useState(null);
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
@@ -1401,8 +1401,8 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
         <div key={k} className="hi">
           <div className="hi-hdr" onClick={()=>setOpen(open===k?null:k)}>
             <div>
-              <div className="hi-title">{r.day} — {fmtDFull(r.date)}</div>
-              <div className="hi-meta">{r.playerCount||0} players — {f$((r.playerCount||0)*25)} pot</div>
+              <div className="hi-title">{r.day} - {fmtDFull(r.date)}</div>
+              <div className="hi-meta">{r.playerCount||0} players - {f$((r.playerCount||0)*25)} pot</div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:6}}>
               {isAdmin&&<button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEditRound(k,r);}}>Edit</button>}
@@ -1445,7 +1445,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
                         <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{l}</div>
                         {rows.map((row,i)=>(
                           <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}>
-                            <span style={{color:'#475569'}}>{row.label}{row.names?' — '+row.names:''}</span>
+                            <span style={{color:'#475569'}}>{row.label}{row.names?' - '+row.names:''}</span>
                             <span style={{fontWeight:700,color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
                           </div>
                         ))}
@@ -1459,7 +1459,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
                         const t=r.teams.find(t=>String(t.id)===String(tid));
                         const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
                         const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
-                        return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} — {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(total>0?(net/total)*c:0)}</span></div>:null;
+                        return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(total>0?(net/total)*c:0)}</span></div>:null;
                       })}
                     </div>
                   )}
@@ -1476,7 +1476,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
   );
 }
 
-// ── ADMIN VIEW ───────────────────────────────────────────────────────────────
+// -- ADMIN VIEW ---------------------------------------------------------------
 function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onClearWeek}){
   const [addQ,setAddQ]=useState('');
   const [quickAddSel,setQuickAddSel]=useState(null);
@@ -1506,7 +1506,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       if(cnt>0){setWarnDeact({day,cnt});return;}
       deactivateDay(day);
     } else {
-      // Activate day — add to activeDays with auto date
+      // Activate day - add to activeDays with auto date
       const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
@@ -1563,10 +1563,10 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       )}
 
-      {/* ── WEEK SETUP: one card per day ── */}
+      {/* -- WEEK SETUP: one card per day -- */}
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <div className="slbl" style={{marginBottom:0}}>This week — {getWeekLabel()}</div>
+          <div className="slbl" style={{marginBottom:0}}>This week - {getWeekLabel()}</div>
         </div>
 
         {DAYS_OF_WEEK.map((day,di)=>{
@@ -1603,13 +1603,13 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
                 <div style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f8fafc',borderRadius:8,marginBottom:2}}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   <span style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>
-                    {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' — requested '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
+                    {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' - requested '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
                   </span>
                   <button onClick={()=>removeTeeTime(day)} style={{marginLeft:'auto',fontSize:10,color:'#ef4444',background:'none',border:'none',cursor:'pointer',fontWeight:700,fontFamily:"'DM Sans',sans-serif"}}>Remove</button>
                 </div>
               )}
               {isActive&&!isEditing&&!teeInfo&&(
-                <div style={{fontSize:11,color:'#94a3b8',fontStyle:'italic',marginTop:2}}>No tee time set — players can still sign up</div>
+                <div style={{fontSize:11,color:'#94a3b8',fontStyle:'italic',marginTop:2}}>No tee time set - players can still sign up</div>
               )}
 
               {/* Inline tee time editor */}
@@ -1656,7 +1656,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       )}
 
-      {/* ── MANAGE SIGN-UPS ── */}
+      {/* -- MANAGE SIGN-UPS -- */}
       {activeDays.length>0&&(
         <div className="card card-pad" style={{marginBottom:10}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showSignups?12:0,cursor:'pointer'}} onClick={()=>setShowSignups(!showSignups)}>
@@ -1729,7 +1729,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       )}
 
-      {/* ── ROSTER ── */}
+      {/* -- ROSTER -- */}
       <div className="card" style={{marginBottom:10}}>
         <div className="section-btn" onClick={()=>setShowRoster(!showRoster)}>
           <div className="section-title">Roster ({[...ROSTER,...roster.filter(p=>p.id>96)].length} members)</div>
