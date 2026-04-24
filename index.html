@@ -839,6 +839,20 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 }
 
 // ── TEAMS VIEW (per day) ─────────────────────────────────────────────────────
+function PaidBtn({name,isAdmin,myName,week,activeDay,onUpdatePaid}){
+  const paid=!!(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][name]);
+  const canMark=isAdmin||(myName===name);
+  const bg=paid?'#ecfdf5':'#fff';
+  const clr=paid?'#15803d':'#94a3b8';
+  const bc=paid?'#10b981':'#e2e8f0';
+  return(
+    <button onClick={()=>{if(canMark)onUpdatePaid(activeDay,name,!paid);}}
+      style={{flexShrink:0,marginLeft:6,padding:'5px 10px',borderRadius:20,border:'1.5px solid '+bc,background:bg,color:clr,fontSize:11,fontWeight:700,cursor:canMark?'pointer':'default',opacity:canMark?1:0.5}}>
+      {paid?'Paid':'Paid?'}
+    </button>
+  );
+}
+
 function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   const allPlayers=(display||[]).flatMap(t=>t.players||[]);
   const paidCount=allPlayers.filter(p=>(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])).length;
@@ -982,28 +996,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
                     </div>
                   )}
                 </div>
-              {showPaid&&(
-                <button
-                  onClick={()=>{
-                    const canMark=isAdmin||(myName===p.name);
-                    if(!canMark)return;
-                    const paid=!((week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])||false);
-                    onUpdatePaid(activeDay,p.name,paid);
-                  }}
-                  style={{
-                    flexShrink:0,marginLeft:6,
-                    padding:'5px 11px',borderRadius:20,
-                    border:'1.5px solid',
-                    borderColor:(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'#10b981':'#e2e8f0',
-                    background:(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'#ecfdf5':'#fff',
-                    color:(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'#15803d':'#94a3b8',
-                    fontSize:11,fontWeight:700,cursor:(isAdmin||(myName===p.name))?'pointer':'default',
-                    fontFamily:"'DM Sans',sans-serif",
-                    opacity:(isAdmin||(myName===p.name))?1:0.5,
-                  }}>
-                  {(week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])?'✓ Paid':'Paid?'}
-                </button>
-              )}
+              {showPaid&&<PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
               </div>
             ))}
             {/* Blind draw slot */}
