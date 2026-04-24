@@ -1908,7 +1908,7 @@ function App(){
             </div>
           </div>
           <div className="hdr-stats">
-            {activeDays.length>0?sortDays(activeDays).map(d=>{
+            {activeDays.length>0?activeDays.map(d=>{
               const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;
               return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;
             }):[
