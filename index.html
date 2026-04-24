@@ -623,7 +623,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 
   return(
     <div>
-      {isDemo&&<div className="demo-bar"><span className="demo-lbl">Demo Mode — {isAdmin?'Admin View':'Player View'} — Sample Data</span></div>}
+      {isDemo&&<div className="demo-bar"><span className="demo-lbl">{isAdmin?'Admin Demo Mode':'Player Demo Mode'} — Sample Data</span></div>}
 
       <div className="stat-row">
         {activeDays.map(day=>{
