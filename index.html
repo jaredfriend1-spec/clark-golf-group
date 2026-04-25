@@ -2002,6 +2002,15 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
     }
   }
 
+  function handleSetupDay(day){
+    const isAct=(activeDays||[]).includes(day);
+    if(!isAct){
+      const newWeek={...week,activeDays:[...(week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
+      onCreate(newWeek);
+    }
+    setWizDay(wizDay===day?null:day);
+  }
+
   function saveDayTeeTime(day){
     const e=dayEdit[day]||{};
     if(e.lottery){
@@ -2025,7 +2034,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           <span style={{fontSize:14,fontWeight:600}}>Control Panel</span>
         </div>
         <div style={{display:'flex',gap:6}}>
-          <button className="btn btn-red btn-sm" onClick={()=>setClearConfirm(true)}>Clear data</button>
+          {(activeDays.length>0||Object.keys(week&&week.signups||{}).length>0)&&<button className="btn btn-red btn-sm" onClick={()=>setClearConfirm(true)}>Clear data</button>}
           <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
         </div>
       </div>
@@ -2085,13 +2094,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
               {isActive&&!isEditing&&!teeInfo&&(
                 <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>No tee time set</div>
               )}
-              <button className="btn btn-green btn-sm" style={{width:'100%',marginTop:8}} onClick={()=>{
-                if(!isActive){
-                  const newWeek={...week,activeDays:[...(week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
-                  onCreate(newWeek);
-                }
-                setWizDay(wizDay===day?null:day);
-              }}>
+              <button className="btn btn-green btn-sm" style={{width:'100%',marginTop:8}} onClick={()=>handleSetupDay(day)}>
                 {wizDay===day?'Close setup':'Set up '+day}
               </button>
               {wizDay===day&&(
