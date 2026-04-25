@@ -127,7 +127,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .stat-l{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
 
 /* TEAM CARDS */
-.team-card{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.team-card{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fff}
 .team-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a}
 .team-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0.02em}
 .team-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600}
@@ -329,26 +329,24 @@ const ADMIN_PW='clark';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday'];
 const safeArray=arr=>Array.isArray(arr)?arr:Object.values(arr||{});
 const sortDays=days=>[...safeArray(days)].sort((a,b)=>DAYS_OF_WEEK.indexOf(a)-DAYS_OF_WEEK.indexOf(b));
-const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
-const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const lastName=n=>(n||'').split(' ').pop();
+const teamLabel=t=>(safeArray(t.players)).map(p=>lastName(p.name)).join(', ');
 
 function useDB(){
   const [db,setDb]=useState(null);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
-    try{if(!firebase.apps.length)firebase.initializeApp(FB);setDb(firebase.database());setReady(true);}
+    try{if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"});setDb(firebase.database());setReady(true);}
     catch(e){setReady(true);}
   },[]);
-  const read=useCallback((p,cb)=>{if(!db){cb(LS.g(p));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
-  const write=useCallback((p,v)=>{if(!db){LS.s(p,v);return Promise.resolve();}return db.ref(p).set(v);},[db]);
-  const push=useCallback((p,v)=>{if(!db){const e=LS.g(p)||{};const k=Date.now().toString();e[k]=v;LS.s(p,e);return Promise.resolve(k);}return db.ref(p).push(v).then(r=>r.key);},[db]);
+  const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
+  const write=useCallback((p,v)=>{if(!db){localStorage.setItem(p,JSON.stringify(v));return Promise.resolve();}return db.ref(p).set(v);},[db]);
+  const push=useCallback((p,v)=>{if(!db){const e=JSON.parse(localStorage.getItem(p)||'{}');const k=Date.now().toString();e[k]=v;localStorage.setItem(p,JSON.stringify(e));return Promise.resolve(k);}return db.ref(p).push(v).then(r=>r.key);},[db]);
   const del=useCallback((p)=>{if(!db){localStorage.removeItem(p);return Promise.resolve();}return db.ref(p).remove();},[db]);
   return{ready,read,write,push,del};
 }
 
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-const lastName=n=>(n||'').split(' ').pop();
-const teamLabel=t=>(t.players||[]).map(p=>lastName(p.name)).join(', ');
 const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2));};
 const td=()=>new Date().toISOString().split('T')[0];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -376,7 +374,7 @@ function buildTeams(players){
   const n=sorted.length;
   if(n<3)return[];
   const nt=Math.ceil(n/4);
-  const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:'Team '+(i+1),players:[],totalHcp:0}));
+  const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
   sorted.forEach((p,idx)=>{
     const round=Math.floor(idx/nt);
     const pos=idx%nt;
@@ -463,11 +461,6 @@ function makeDemoData(){
   ];
   const pc=DEMO_PLAYERS.length;
   const pot=calcPot(pc);
-  // Pre-built realistic scoring scenario:
-  // Team One wins Front 9 outright (-4)
-  // Team Three wins Back 9 outright (-5)
-  // Team Two and Team Four TIE Overall (-3 each) -> split pot
-  // Skins: Team One 2 skins, Team Three 1 skin
   const teamScores={
     1:{front:-4,back:-2,overall:-6},
     2:{front:-1,back:-3,overall:-4},
@@ -478,7 +471,7 @@ function makeDemoData(){
   const scores={
     teamScores,skinCounts,
     frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,
-    frontPlaces:2,backPlaces:2,overallPlaces:2,
+    frontPlaces:1,backPlaces:1,overallPlaces:1,
     playerCount:pc,tournFund:pc,drawAdj:0,
     f1v:0,f2v:0,b1v:0,b2v:0,o1v:0,o2v:0,
     savedAt:Date.now(),
@@ -597,10 +590,10 @@ function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hc
 }
 
 function TeamBadge({name,week,day}){
-  const dayTeams=week&&week.teams&&week.teams[day];
+  const dayTeams=safeArray(week?.teams?.[day]);
   const published=week&&week.teamsPublished&&week.teamsPublished[day];
-  if(!dayTeams||!published)return null;
-  const team=dayTeams.find(t=>t.players&&t.players.some(p=>p.name===name));
+  if(!dayTeams.length||!published)return null;
+  const team=dayTeams.find(t=>safeArray(t.players).some(p=>p.name===name));
   if(!team)return null;
   return(
     <span className="team-badge">
@@ -650,7 +643,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
   const [toast,setToast]=useState(null);
 
-  if(!week||!week.activeDays||week.activeDays.length===0){
+  if(!week||!safeArray(week?.activeDays).length){
     return(
       <div className="empty" style={{paddingTop:50}}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
@@ -660,7 +653,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     );
   }
 
-  const activeDays=sortDays((week.activeDays||[]).filter(d=>DAYS_OF_WEEK.includes(d)));
+  const activeDays=sortDays(safeArray(week?.activeDays).filter(d=>DAYS_OF_WEEK.includes(d)));
   const allSignups=week.signups||{};
   const totalSignups=Object.keys(allSignups).length;
 
@@ -717,8 +710,6 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         const daySignups=Object.entries(allSignups).filter(([,s])=>s.day===day).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);
         const cnt=daySignups.length;
         const teeInfo=week.teeTimes&&week.teeTimes[day];
-        const dayTeams=week.teams&&week.teams[day];
-        const dayScores=week.scores&&week.scores[day];
         const dayComplete=week.complete&&week.complete[day];
         const dayLocked=week.locked&&week.locked[day];
         const isOpen=expanded[day];
@@ -768,7 +759,11 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                   <div key={key} className="p-row">
                     <div className="avi">{ini(s.name)}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}</div>
+                      <div className="p-name">
+                      {s.name}
+                      {s.isGuest&&<span className="guest-tag">Guest</span>}
+                      <TeamBadge name={s.name} week={week} day={day}/>
+                    </div>
                       {editKey===key?(
                         <div className="ie">
                           <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
@@ -939,7 +934,7 @@ function PaidBtn({name,isAdmin,myName,week,activeDay,onUpdatePaid}){
 }
 
 function PaymentBar({display,week,activeDay,showPaid,onToggle}){
-  const allPlayers=(display||[]).flatMap(t=>t.players||[]);
+  const allPlayers=safeArray(display).flatMap(t=>safeArray(t.players));
   const paidCount=allPlayers.filter(p=>(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])).length;
   const total=allPlayers.length;
   return(
@@ -963,20 +958,34 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
   const [copied,setCopied]=useState(false);
-  const [groupOrder,setGroupOrder]=useState([]);
-  const [orderDrag,setOrderDrag]=useState(null);
+
+  const activeDays=sortDays(safeArray(week?.activeDays));
+
+  useEffect(()=>{
+    if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
+  },[activeDays.join(',')]);
+
+  if(!week||activeDays.length===0){
+    return<div className="empty"><div className="empty-title">No active games</div></div>;
+  }
+
+  const daySignups=Object.entries((week.signups)||{}).filter(([,s])=>s.day===activeDay).map(([,s])=>s);
+  const savedTeams=safeArray(week?.teams?.[activeDay]);
+  const display=editTeams||savedTeams;
+  const cnt=daySignups.length;
+  const published=(week.teamsPublished&&week.teamsPublished[activeDay])||false;
 
   function copyTeams(){
     if(!display.length)return;
     const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
     const teeStr=teeInfo?'First Tee: '+(teeInfo.lottery?'Lottery':teeInfo.time):'';
     const dateStr=week&&week.dates&&week.dates[activeDay]?fmtD(week.dates[activeDay]):'';
-    const ordered=display;
     const nl=String.fromCharCode(10);
     let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
-    ordered.forEach((team,i)=>{
-      text+=(groupOrder.length>0?'Group '+(i+1)+': ':'')+team.name+nl;
-      (team.players||[]).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});
+    display.forEach((team,i)=>{
+      const tName = published ? team.name : `Group ${i + 1}`;
+      text+=tName+nl;
+      safeArray(team.players).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});
       text+=nl;
     });
     navigator.clipboard.writeText(text.trim()).then(()=>{
@@ -984,56 +993,30 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
     }).catch(()=>{});
   }
 
-  const activeDays=sortDays(safeArray(week&&week.activeDays));
-
-  useEffect(()=>{
-    if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
-  },[activeDays.join(',')]);
-
-
-
-  if(!week||activeDays.length===0){
-    return<div className="empty"><div className="empty-title">No active games</div></div>;
-  }
-
-  const daySignups=Object.entries((week.signups)||{}).filter(([,s])=>s.day===activeDay).map(([,s])=>s);
-  const savedTeams=(week.teams&&week.teams[activeDay])||[];
-  const display=editTeams||savedTeams;
-  const cnt=daySignups.length;
-  const published=(week.teamsPublished&&week.teamsPublished[activeDay])||false;
-
   function gen(){
     if(daySignups.length<3)return;
     const built=buildTeams(daySignups);
     setEditTeams(built);
   }
 
-  function publishAndLock(){
-    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-    const final=(editTeams||savedTeams).map((t,i)=>({...t,name:names[i]||('Team '+(i+1))}));
-    onSaveTeams(activeDay,final);
-    onPublishTeams(activeDay);
-    if(onToggleLock)onToggleLock(activeDay,true);
-    setEditTeams(null);
+  function moveTeam(fromIdx, toIdx){
+    if(fromIdx === toIdx) return;
+    const base = editTeams || savedTeams;
+    const reordered = [...base];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setEditTeams(reordered);
   }
 
   function drop(ti,pi){
-    if(!drag||!isAdmin||!editTeams)return;
-    const u=editTeams.map(t=>({...t,players:[...t.players]}));
+    if(!drag||!isAdmin||published)return;
+    const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));
     const p=u[drag.ti].players[drag.pi];
     u[drag.ti].players.splice(drag.pi,1);
     u[ti].players.splice(pi,0,p);
     u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});
-    setEditTeams(u);setDrag(null);
-  }
-
-  function moveGroup(fromIdx,toIdx){
-    if(fromIdx===toIdx||!isAdmin||published)return;
-    const base=editTeams||savedTeams;
-    const reordered=[...base];
-    const [moved]=reordered.splice(fromIdx,1);
-    reordered.splice(toIdx,0,moved);
-    setEditTeams(reordered);
+    setEditTeams(u);
+    setDrag(null);
   }
 
   function savePlayerEdit(ti,pi){
@@ -1045,7 +1028,14 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
     setEditKey(null);
   }
 
-  const allPlayers=display.flatMap(t=>t.players.map(p=>({...p,teamId:t.id,teamName:t.name})));
+  function publishAndLock(){
+    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
+    const final = (editTeams || savedTeams).map((t, i) => ({...t, name: names[i] || `Team ${i+1}`}));
+    onSaveTeams(activeDay, final);
+    onPublishTeams(activeDay);
+    if(onToggleLock) onToggleLock(activeDay, true);
+    setEditTeams(null);
+  }
 
   return(
     <div>
@@ -1061,7 +1051,6 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
         <div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
       </div>
 
-      {/* Copy teams button - available to all when published */}
       {published&&display.length>0&&(
         <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
           <button className="btn btn-outline btn-sm" onClick={copyTeams}>
@@ -1071,70 +1060,20 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
         </div>
       )}
 
-
-
       {isAdmin&&!published&&(
         <div className="admin-bar">
           <div className="admin-lbl">Team builder - {activeDay}</div>
           <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
             <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{display.length?'Regenerate':'Auto-generate'}</button>
             {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save Draft</button>}
-            {display.length>0&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish and Lock</button>}
+            {display.length>0&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish & Lock Teams</button>}
+            {display.length>0&&<button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>}
           </div>
-          <div className="alert alert-warn" style={{marginTop:9,marginBottom:0,fontSize:12}}>
-            Drag player rows to rebalance. Drag team cards to set tee order. Team One goes first.
+          <div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>
+            <strong>1.</strong> Drag players (⋮) to rebalance.<br/>
+            <strong>2.</strong> Use the Group dropdowns to set the tee order.<br/>
+            <strong>3.</strong> Click <b>Publish & Lock</b> to finalize names and lock sign-ups.
           </div>
-        </div>
-      )}
-
-      {/* Group ordering */}
-      {published&&display.length>0&&isAdmin&&(
-        <div className="card card-pad" style={{marginBottom:12}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:'#0f172a'}}>Tee order</div>
-              <div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>Drag to set who goes off first</div>
-            </div>
-            <button className="btn btn-outline btn-sm" onClick={()=>setShowOrder(!showOrder)}>
-              {showOrder?'Done':'Set order'}
-            </button>
-          </div>
-          {showOrder&&(
-            <div style={{marginTop:10}}>
-              {(groupOrder.length>0?groupOrder:[...display.map(t=>t.id)]).map((tid,idx)=>{
-                const team=display.find(t=>t.id===tid);
-                if(!team)return null;
-                return(
-                  <div key={tid} className="order-row"
-                    draggable={true}
-                    onDragStart={()=>setOrderDrag(idx)}
-                    onDragOver={e=>e.preventDefault()}
-                    onDrop={()=>{
-                      if(orderDrag===null)return;
-                      const newOrder=[...(groupOrder.length>0?groupOrder:display.map(t=>t.id))];
-                      const [moved]=newOrder.splice(orderDrag,1);
-                      newOrder.splice(idx,0,moved);
-                      setGroupOrder(newOrder);
-                      setOrderDrag(null);
-                    }}>
-                    <span className="order-handle">:</span>
-                    <div className="order-num">{idx+1}</div>
-                    <span style={{fontSize:13,fontWeight:600,flex:1}}>{team.name}</span>
-                    <span style={{fontSize:11,color:'#94a3b8'}}>HCP {team.totalHcp.toFixed(1)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {!showOrder&&groupOrder.length>0&&(
-            <div style={{marginTop:8,display:'flex',flexWrap:'wrap',gap:6}}>
-              {groupOrder.map((tid,idx)=>{
-                const team=display.find(t=>t.id===tid);
-                if(!team)return null;
-                return<span key={tid} style={{fontSize:11,fontWeight:600,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,padding:'4px 10px',color:'#475569'}}>{idx+1}. {team.name}</span>;
-              })}
-            </div>
-          )}
         </div>
       )}
 
@@ -1145,35 +1084,73 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
         </div>
       )}
 
-      {display.length>0&&isAdmin&&(
+      {display.length>0&&isAdmin&&!published&&(
         <div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>
-          Drag team cards to set tee order - Team One goes first
+          Use the dropdowns to set tee order - Group 1 goes first
         </div>
       )}
 
       {display.map((team,ti)=>{
         const hasBlind=team.players.length<(display.length>0?Math.ceil(cnt/display.length):4)&&cnt>0;
         const blindDraw=team.blindDraw;
+        const teamNameDisplay = published ? team.name : `Group ${ti + 1} - ${teamLabel(team)}`;
+
         return(
-          <div key={team.id} className="team-card">
+          <div key={team.id || ti} className="team-card">
             <div className="team-hdr">
-              <span className="team-nm" style={{fontSize:published?16:13}}>{published?team.name:('Group '+(ti+1)+' - '+teamLabel(team))}</span>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                {isAdmin&&!published&&(
-                  <select value={ti} onChange={e=>moveGroup(ti,parseInt(e.target.value))} style={{background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:6,color:'#fff',fontSize:11,fontWeight:700,padding:'2px 6px',cursor:'pointer'}}>
-                    {display.map((_,idx)=><option key={idx} value={idx} style={{background:'#0f172a'}}>{"#"+(idx+1)}</option>)}
-                  </select>
+              <div style={{display:'flex', alignItems:'center', gap: 8, flex: 1, minWidth: 0}}>
+                {isAdmin && !published ? (
+                  <div style={{display:'flex', alignItems:'center', gap: 6}}>
+                    <span style={{color: '#94a3b8', fontSize: 12, fontWeight: 700}}>GROUP</span>
+                    <select
+                      value={ti}
+                      onChange={e => {
+                        if(!editTeams) setEditTeams(savedTeams);
+                        moveTeam(ti, parseInt(e.target.value, 10));
+                      }}
+                      style={{
+                        background: '#1e293b',
+                        color: '#fff',
+                        border: '1px solid #334155',
+                        borderRadius: 4,
+                        padding: '2px 4px',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {display.map((_, idx) => (
+                        <option key={idx} value={idx}>{idx + 1}</option>
+                      ))}
+                    </select>
+                    <span style={{color: '#475569'}}>|</span>
+                  </div>
+                ) : (
+                  !published && <span style={{fontSize: 14, fontWeight: 700, color: '#fff', marginRight: 4}}>Group {ti + 1} - </span>
                 )}
-                <span className="team-hcp">HCP {(team.totalHcp||0).toFixed(1)}</span>
+                <span className="team-nm" style={{fontSize: published ? 16 : 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                  {teamNameDisplay}
+                </span>
               </div>
+              <span className="team-hcp" style={{flexShrink: 0, marginLeft: 8}}>HCP {(team.totalHcp||0).toFixed(1)}</span>
             </div>
-            {team.players.map((p,pi)=>(
+            {safeArray(team.players).map((p,pi)=>(
               <div key={pi} className="team-row"
-                draggable={!!(editTeams&&isAdmin)}
-                onDragStart={()=>{if(isAdmin)setDrag({ti,pi});}}
-                onDragOver={e=>e.preventDefault()}
-                onDrop={()=>drop(ti,pi)}>
-                {editTeams&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:13,flexShrink:0}}>:</span>}
+                draggable={!!(!published&&isAdmin)}
+                onDragStart={(e)=>{
+                  e.stopPropagation();
+                  if(isAdmin&&!published) {
+                    if(!editTeams) setEditTeams(savedTeams);
+                    setDrag({ti,pi});
+                  }
+                }}
+                onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                onDrop={(e)=>{
+                  e.stopPropagation();
+                  drop(ti,pi);
+                }}>
+                {!published&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:18,fontWeight:700,flexShrink:0,marginRight:4}}>⋮</span>}
                 <span className="slot">{p.slot}</span>
                 <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
                 <div style={{flex:1,minWidth:0}}>
@@ -1191,21 +1168,19 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
                     <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
                       <span className="tee-dot" style={{background:TC[p.tee]||'#ccc'}}></span>
                       {p.tee} HCP {p.handicap}
-                      <button className="edit-btn" onClick={()=>{setEditKey(ti+'-'+pi);setEditVal({hcp:String(p.handicap),tee:p.tee});}}>edit</button>
+                      {(!published&&(isAdmin||myName===p.name))&&<button className="edit-btn" onClick={()=>{setEditKey(ti+'-'+pi);setEditVal({hcp:String(p.handicap),tee:p.tee});}}>edit</button>}
                     </div>
                   )}
                 </div>
-              {showPaid&&<PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
               </div>
             ))}
-            {/* Blind draw slot */}
             {hasBlind&&!blindDraw&&(
               <div style={{padding:'10px 13px',background:'#fffbeb',borderTop:'1px solid #fde68a',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:'#d97706'}}>Blind Draw TBD</div>
                   <div style={{fontSize:11,color:'#92400e',marginTop:1}}>Assign on the day</div>
                 </div>
-                {isAdmin&&<button className="btn btn-gold btn-xs" onClick={()=>setBlindModal({teamIdx:ti,teamId:team.id})}>Assign</button>}
+                {isAdmin&&!published&&<button className="btn btn-gold btn-xs" onClick={()=>setBlindModal({teamIdx:ti,teamId:team.id})}>Assign</button>}
               </div>
             )}
             {blindDraw&&(
@@ -1214,7 +1189,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
                   <div style={{fontSize:13,fontWeight:600,color:'#15803d'}}>{blindDraw.name} <span style={{fontWeight:400,color:'#64748b',fontSize:11}}>(added from draw)</span></div>
                   <div style={{fontSize:11,color:'#64748b',marginTop:1}}>{blindDraw.tee} HCP {blindDraw.handicap}</div>
                 </div>
-                {isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);setEditTeams(u);}}>Clear</button>}
+                {isAdmin&&!published&&<button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);setEditTeams(u);}}>Clear</button>}
               </div>
             )}
           </div>
@@ -1230,8 +1205,8 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
             <div className="alert alert-warn" style={{marginBottom:12}}>Pick any player from another team. They stay on their original team and also play for this team.</div>
             {display.filter((_,i)=>i!==blindModal.teamIdx).map(t=>(
               <div key={t.id} style={{marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:5}}>{t.name}</div>
-                {t.players.map((p,pi)=>(
+                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:5}}>{t.name||`Group ${t.id}`}</div>
+                {safeArray(t.players).map((p,pi)=>(
                   <div key={pi} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f8fafc'}}>
                     <span style={{fontSize:13,fontWeight:500}}>{p.name} <span style={{color:'#94a3b8',fontSize:11}}>HCP {p.handicap}</span></span>
                     <button className="btn btn-green btn-xs" onClick={()=>{
@@ -1267,7 +1242,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   const [b1v,setB1v]=useState('');const [b2v,setB2v]=useState('');
   const [o1v,setO1v]=useState('');const [o2v,setO2v]=useState('');
 
-  const activeDays=sortDays(safeArray(week&&week.activeDays));
+  const activeDays=sortDays(safeArray(week?.activeDays));
 
   useEffect(()=>{
     if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
@@ -1281,7 +1256,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
     setBv(sc.backPot!==undefined?String(sc.backPot):'');
     setOv(sc.overallPot!==undefined?String(sc.overallPot):'');
     setSv(sc.skinsPot!==undefined?String(sc.skinsPot):'');
-    setFp(sc.frontPlaces||2);setBp(sc.backPlaces||2);setOp(sc.overallPlaces||2);
+    setFp(sc.frontPlaces||1);setBp(sc.backPlaces||1);setOp(sc.overallPlaces||1);
     setDrawAdj(sc.drawAdj!==undefined?String(sc.drawAdj):'');
     setF1v(sc.f1!==undefined?String(sc.f1):'');setF2v(sc.f2!==undefined?String(sc.f2):'');
     setB1v(sc.b1!==undefined?String(sc.b1):'');setB2v(sc.b2!==undefined?String(sc.b2):'');
@@ -1291,7 +1266,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
 
   if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
 
-  const dayTeams=(week.teams&&week.teams[activeDay])||[];
+  const dayTeams=safeArray(week?.teams?.[activeDay]);
   const daySignups=Object.values(week.signups||{}).filter(s=>s.day===activeDay);
   const pc=daySignups.length;
   const pot=calcPot(pc);
@@ -1330,9 +1305,27 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
 
   return(
     <div>
-      {activeDays.length>1&&(
-        <div className="tog" style={{marginBottom:12}}>
-          {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
+      <div className="tog" style={{marginBottom:12}}>
+        {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
+      </div>
+
+      {/* Payment tracking */}
+      {dayTeams.length>0&&<PaymentBar display={dayTeams} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
+
+      {showPaid&&isAdmin&&(
+        <div className="card card-pad" style={{marginBottom:10}}>
+          <div className="slbl">Collect Payments</div>
+          {dayTeams.map((t, ti)=>(
+            <div key={t.id||ti} style={{marginBottom:12}}>
+              <div style={{fontSize:12, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', marginBottom:4}}>{t.name||(`Group ${ti+1}`)}</div>
+              {safeArray(t.players).map(p=>(
+                <div key={p.name} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f8fafc'}}>
+                  <span style={{fontSize:14, fontWeight:500, color:'#0f172a'}}>{p.name}</span>
+                  <PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       )}
 
@@ -1353,26 +1346,6 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
         <div className="alert alert-ok" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <span>Payouts calculated - results are final.</span>
           {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button>}
-        </div>
-      )}
-
-      {/* Payment tracking */}
-      {dayTeams.length>0&&<PaymentBar display={dayTeams} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
-
-      {showPaid&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Collect Payments</div>
-          {dayTeams.map((t,ti)=>(
-            <div key={t.id||ti} style={{marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',marginBottom:4}}>{t.name||('Group '+(ti+1))}</div>
-              {safeArray(t.players).map(p=>(
-                <div key={p.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc'}}>
-                  <span style={{fontSize:14,fontWeight:500,color:'#0f172a'}}>{p.name}</span>
-                  <PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>
-                </div>
-              ))}
-            </div>
-          ))}
         </div>
       )}
 
@@ -1472,9 +1445,12 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
             <div className="sc-hd">Back</div>
             <div className="sc-hd">Overall</div>
           </div>
-          {dayTeams.map(t=>(
-            <div key={t.id} className="sc-grid" style={{marginBottom:8,alignItems:'center'}}>
-              <div style={{fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}>{t.name}</div>
+          {dayTeams.map((t, ti)=>(
+            <div key={t.id||ti} className="sc-grid" style={{marginBottom:10,alignItems:'center'}}>
+              <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}>
+                <span style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>{t.name||(`Group ${ti+1}`)}</span>
+                <div style={{fontSize:10,fontWeight:400,color:'#94a3b8'}}>- {teamLabel(t)}</div>
+              </div>
               {['front','back','overall'].map(seg=>(
                 <ScorePicker key={seg} value={ts[t.id]?ts[t.id][seg]:undefined} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>
               ))}
@@ -1492,9 +1468,9 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
             <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div>
           </div>
           <div className="skin-grid">
-            {dayTeams.map(t=>(
-              <div key={t.id} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}>
-                <div className="skin-team">{t.name}</div>
+            {dayTeams.map((t, ti)=>(
+              <div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}>
+                <div className="skin-team">{t.name||(`Group ${ti+1}`)}</div>
                 <div className="skin-num">{sk[t.id]||0}</div>
                 <div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>
                 {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}
@@ -1505,7 +1481,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
         </div>
       )}
 
-      {/* Payout breakdown - shown after Calculate Payouts clicked, or admin preview */}
+      {/* Payout breakdown */}
       {showPayouts&&(fv||bv||ov||sv)&&(
         <div className="card card-pad" style={{marginBottom:10}}>
           <div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
@@ -1549,7 +1525,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
         </div>
       )}
 
-      {/* ADMIN: 2-step action buttons */}
+      {/* ADMIN: action buttons */}
       {isAdmin&&!isDemo&&(
         <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
           <button className="btn btn-dark btn-full" onClick={()=>{saveScores();calculatePayouts();}}>
@@ -1578,7 +1554,6 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
   const [view,setView]=useState('rounds');
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
 
-  // Build season leaderboard from history
   const leaderboard=useMemo(()=>{
     const players={};
     rounds.forEach(([,r])=>{
@@ -1586,17 +1561,15 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
       const pc=r.playerCount||0;
       const pot=pc*25;
       const da=parseFloat(r.scores.drawAdj||0);
-      // Track rounds played
       r.teams.forEach(team=>{
-        (team.players||[]).forEach(p=>{
+        safeArray(team.players).forEach(p=>{
           if(!players[p.name])players[p.name]={name:p.name,rounds:0,won:0};
           players[p.name].rounds++;
         });
       });
-      // Track winnings - front/back/overall
-      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||2},
-       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||2},
-       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||2}
+      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1},
+       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1},
+       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1}
       ].forEach(({seg,pot:segPot,pl})=>{
         const p=parseFloat(segPot||0);if(!p)return;
         const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
@@ -1609,13 +1582,12 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
         const sec=p*0.4;
         if(tied.length>1){
           const split=(first+sec)/tied.length;
-          tied.forEach(t=>(t.players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=split/t.players.length;}));
+          tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));
         } else {
-          (tied[0].players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=first/tied[0].players.length;});
-          if(pl===2&&second)(second.players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=sec/second.players.length;});
+          safeArray(tied[0].players).forEach(p=>{if(players[p.name])players[p.name].won+=first/safeArray(tied[0].players).length;});
+          if(pl===2&&second)safeArray(second.players).forEach(p=>{if(players[p.name])players[p.name].won+=sec/safeArray(second.players).length;});
         }
       });
-      // Skins
       const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
       const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
       if(tsk>0){
@@ -1623,7 +1595,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
           if(!cnt)return;
           const team=r.teams.find(t=>String(t.id)===String(tid));
           if(!team)return;
-          (team.players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=(snet/tsk*cnt)/team.players.length;});
+          safeArray(team.players).forEach(p=>{if(players[p.name])players[p.name].won+=(snet/tsk*cnt)/safeArray(team.players).length;});
         });
       }
     });
@@ -1704,7 +1676,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
                 <div key={t.id} style={{marginBottom:9}}>
                   <div style={{fontSize:13,fontWeight:700,color:'#10b981',marginBottom:3}}>{t.name} <span style={{fontWeight:500,color:'#94a3b8',fontSize:11}}>HCP {t.totalHcp&&t.totalHcp.toFixed(1)}</span></div>
                   <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                    {t.players&&t.players.map((p,i)=><span key={i} style={{fontSize:11,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}><span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}</span>)}
+                    {safeArray(t.players).map((p,i)=><span key={i} style={{fontSize:11,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}><span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}</span>)}
                   </div>
                 </div>
               ))}
@@ -1725,7 +1697,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
                     })}
                   </div>
                   <div className="slbl">Payouts</div>
-                  {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||2,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||2,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||2,seg:'overall'}].map(({l,pot,pl,seg})=>{
+                  {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||1,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,seg:'overall'}].map(({l,pot,pl,seg})=>{
                     const rows=calcHistPay(r.scores,r.teams,pot,pl,seg);
                     if(!rows.length)return null;
                     return(
@@ -1765,10 +1737,10 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
 }
 
 function DayChecklist({day,week,onGoTo}){
-  const signups=Object.values(week&&week.signups||{}).filter(s=>s.day===day).length;
-  const locked=!!(week&&week.locked&&week.locked[day]);
-  const published=!!(week&&week.teamsPublished&&week.teamsPublished[day]);
-  const teeSet=!!(week&&week.teeTimes&&week.teeTimes[day]);
+  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day).length;
+  const locked=!!(week?.locked?.[day]);
+  const published=!!(week?.teamsPublished?.[day]);
+  const teeSet=!!(week?.teeTimes?.[day]);
   const steps=[
     {label:'Sign-ups open',sub:signups+' player'+(signups!==1?'s':'')+' signed up',done:signups>0,action:null},
     {label:'Lock sign-ups',sub:'Prevent new additions',done:locked,action:()=>onGoTo('home')},
@@ -1806,55 +1778,21 @@ function AdminChecklist({week,activeDays,onGoTo}){
   if(!activeDays||activeDays.length===0)return null;
   return(
     <div>
-      {activeDays.map(day=><DayChecklist key={day} day={day} week={week} onGoTo={onGoTo}/>)}
+      {sortDays(activeDays).map(day=><DayChecklist key={day} day={day} week={week} onGoTo={onGoTo}/>)}
     </div>
   );
 }
 
 // -- ADMIN VIEW ---------------------------------------------------------------
-function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTime,onToggleLock,isDemo,setWeek,write,push}){
+function SetupWizard({day,week,onClose,onUpdateTeeTime,onToggleLock,onGoTo}){
   const [step,setStep]=useState(1);
-  const [wizTeams,setWizTeams]=useState(null);
-  const [teeOrder,setTeeOrder]=useState([]);
-  const [dragIdx,setDragIdx]=useState(null);
   const [isLottery,setIsLottery]=useState(false);
   const [newTime,setNewTime]=useState('');
 
-  const signups=Object.values(week&&week.signups||{}).filter(s=>s.day===day);
+  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day);
   const pc=signups.length;
-  const locked=!!(week&&week.locked&&week.locked[day]);
-  const teeInfo=week&&week.teeTimes&&week.teeTimes[day];
-  const savedTeams=(week&&week.teams&&week.teams[day])||[];
-  const workingTeams=wizTeams||savedTeams;
-  const published=!!(week&&week.teamsPublished&&week.teamsPublished[day]);
-
-  function genTeams(){
-    const built=buildTeams(signups);
-    setWizTeams(built);
-    setTeeOrder(built.map(t=>t.id));
-  }
-
-  function handlePublish(){
-    if(!workingTeams.length)return;
-    const order=teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id);
-    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-    const renamed=order.map((id,i)=>{
-      const team=workingTeams.find(t=>t.id===id);
-      if(!team)return null;
-      return{...team,id:i+1,name:names[i]||('Team '+(i+1))};
-    }).filter(Boolean);
-    onSaveTeams(day,renamed);
-    onPublishTeams(day);
-    onClose();
-  }
-
-  const steps=[
-    {num:1,label:'Tee time',done:!!teeInfo},
-    {num:2,label:'Lock sign-ups',done:locked},
-    {num:3,label:'Generate teams',done:workingTeams.length>0},
-    {num:4,label:'Set tee order',done:teeOrder.length>0},
-    {num:5,label:'Publish',done:published},
-  ];
+  const locked=!!(week?.locked?.[day]);
+  const teeInfo=week?.teeTimes?.[day];
 
   return(
     <div style={{background:'#f8fafc',border:'1.5px solid #10b981',borderRadius:14,padding:14,marginBottom:12}}>
@@ -1864,8 +1802,8 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
       </div>
 
       <div style={{display:'flex',gap:4,marginBottom:14}}>
-        {steps.map(s=>(
-          <div key={s.num} style={{flex:1,height:4,borderRadius:2,background:s.done?'#10b981':step===s.num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>
+        {[1,2,3].map(num=>(
+          <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&teeInfo)||(num===2&&locked))?'#10b981':step===num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>
         ))}
       </div>
 
@@ -1913,83 +1851,11 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
       {step===3&&(
         <div>
           <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 3 - Generate teams</div>
-          {workingTeams.length>0?(
-            <div style={{marginBottom:10}}>
-              {workingTeams.map(t=>(
-                <div key={t.id} style={{padding:'6px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:12,fontWeight:600}}>
-                  {t.name} - {t.players.length} players - HCP {t.totalHcp.toFixed(0)}
-                </div>
-              ))}
-            </div>
-          ):(
-            <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Teams not generated yet</div>
-          )}
-          <button className="btn btn-dark btn-sm" style={{width:'100%',marginBottom:10}} onClick={genTeams} disabled={pc<3}>
-            {workingTeams.length?'Regenerate teams':'Auto-generate teams'}
-          </button>
+          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Great! Now head over to the Teams tab to generate rosters, balance players, and set the tee order.</div>
+          
           <div className="wiz-btn-row">
             <button className="btn btn-outline btn-sm" onClick={()=>setStep(2)}>Back</button>
-            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>{setTeeOrder(workingTeams.map(t=>t.id));setStep(4);}} disabled={!workingTeams.length}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step===4&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Step 4 - Set tee order</div>
-          <div style={{fontSize:11,color:'#64748b',marginBottom:10}}>Drag to arrange who goes off first. Teams will be renamed 1-{workingTeams.length} when published.</div>
-          {(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id)).map((tid,idx)=>{
-            const team=workingTeams.find(t=>t.id===tid);
-            if(!team)return null;
-            const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-            return(
-              <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,marginBottom:6,cursor:'grab'}}
-                draggable={true}
-                onDragStart={()=>setDragIdx(idx)}
-                onDragOver={e=>e.preventDefault()}
-                onDrop={()=>{
-                  if(dragIdx===null)return;
-                  const newOrder=[...(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id))];
-                  const [moved]=newOrder.splice(dragIdx,1);
-                  newOrder.splice(idx,0,moved);
-                  setTeeOrder(newOrder);
-                  setDragIdx(null);
-                }}>
-                <div style={{width:24,height:24,borderRadius:50,background:'#0f172a',color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'"Barlow Condensed",sans-serif'}}>{idx+1}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',textDecoration:'line-through'}}>{teamLabel(team)}</div>
-                  <div style={{fontSize:13,fontWeight:700,color:'#10b981'}}>{names[idx]||('Team '+(idx+1))}</div>
-                </div>
-                <span style={{color:'#cbd5e1',fontSize:16}}>:</span>
-              </div>
-            );
-          })}
-          <div className="wiz-btn-row">
-            <button className="btn btn-outline btn-sm" onClick={()=>setStep(3)}>Back</button>
-            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(5)}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step===5&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 5 - Publish teams</div>
-          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Teams will be renamed in tee order and made visible to all players.</div>
-          {(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id)).map((tid,idx)=>{
-            const team=workingTeams.find(t=>t.id===tid);
-            if(!team)return null;
-            const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-            return(
-              <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:13}}>
-                <span style={{fontWeight:400,color:'#94a3b8',textDecoration:'line-through',flex:1}}>{teamLabel(team)}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                <span style={{fontWeight:700,color:'#10b981',flex:1}}>{names[idx]||('Team '+(idx+1))}</span>
-              </div>
-            );
-          })}
-          <div className="wiz-btn-row">
-            <button className="btn btn-outline btn-sm" onClick={()=>setStep(4)}>Back</button>
-            <button className="btn btn-green btn-sm" style={{flex:1}} onClick={handlePublish}>Publish teams</button>
+            <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>{onClose(); onGoTo('teams');}}>Go to Teams Tab</button>
           </div>
         </div>
       )}
@@ -2008,17 +1874,15 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
   const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
   const [showGuest,setShowGuest]=useState(false);
   const [showSignups,setShowSignups]=useState(false);
-  // Per-day tee editing state
   const [dayEdit,setDayEdit]=useState({});
-  // Warn state: {day, count} when deactivating a day with signups
   const [warnDeact,setWarnDeact]=useState(null);
   const [clearConfirm,setClearConfirm]=useState(false);
   const [wizDay,setWizDay]=useState(null);
 
   const wd=getWeekDates();
-  const rosterSearch=[...ROSTER,...(roster.filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
-  const activeDays=sortDays(safeArray(week&&week.activeDays));
-  const allSignups=week&&week.signups?Object.entries(week.signups):[];
+  const rosterSearch=[...ROSTER,...(safeArray(roster).filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
+  const activeDays=sortDays(safeArray(week?.activeDays));
+  const allSignups=Object.entries(week?.signups||{});
 
   function toggleDay(day){
     const isActive=activeDays.includes(day);
@@ -2027,16 +1891,15 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       if(cnt>0){setWarnDeact({day,cnt});return;}
       onDeactivateDay(day);
     } else {
-      // Activate day - add to activeDays with auto date
-      const newWeek={...week,activeDays:[...(week&&week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
+      const newWeek={...week,activeDays:[...(safeArray(week?.activeDays)),day],dates:{...(week?.dates||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
   }
 
   function handleSetupDay(day){
-    const isAct=(activeDays||[]).includes(day);
+    const isAct=activeDays.includes(day);
     if(!isAct){
-      const newWeek={...week,activeDays:[...(week&&week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
+      const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
     setWizDay(wizDay===day?null:day);
@@ -2065,14 +1928,10 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           <span style={{fontSize:14,fontWeight:600}}>Control Panel</span>
         </div>
         <div style={{display:'flex',gap:6}}>
-          {(activeDays.length>0||Object.keys(week&&week.signups||{}).length>0)&&<button className="btn btn-red btn-sm" onClick={()=>setClearConfirm(true)}>Clear data</button>}
+          {(activeDays.length>0||allSignups.length>0)&&<button className="btn btn-red btn-sm" onClick={()=>setClearConfirm(true)}>Clear data</button>}
           <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
         </div>
       </div>
-
-
-
-      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
 
       {clearConfirm&&(
         <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}>
@@ -2085,7 +1944,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       )}
 
-      
+      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
 
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
@@ -2093,7 +1952,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
         {DAYS_OF_WEEK.map((day,di)=>{
           const isActive=activeDays.includes(day);
-          const teeInfo=week&&week.teeTimes&&week.teeTimes[day];
+          const teeInfo=week?.teeTimes?.[day];
           const edit=dayEdit[day]||{};
           const isEditing=edit.editing;
           return(
@@ -2111,7 +1970,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
                     <button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>
                   )}
                   <button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>
-                    {wizDay===day?'Close':((week&&week.teeTimes&&week.teeTimes[day])||(week&&week.locked&&week.locked[day])||(week&&week.teams&&week.teams[day]&&week.teams[day].length>0)?'Continue set up':'Set up '+day)}
+                    {wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}
                   </button>
                 </div>
               </div>
@@ -2120,11 +1979,10 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
                   day={day}
                   week={week}
                   onClose={()=>setWizDay(null)}
-                  onSaveTeams={onSaveTeams}
-                  onPublishTeams={onPublishTeams}
+                  onGoTo={onGoTo}
                   onUpdateTeeTime={onUpdateTeeTime}
                   onToggleLock={onToggleLock}
-                  isDemo={isDemo}/>
+                />
               )}
               {isActive&&isEditing&&(
                 <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginTop:4}}>
@@ -2158,7 +2016,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       </div>
 
       {warnDeact&&(
-        <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
+        <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
           <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
           <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players.</div>
           <div style={{display:'flex',gap:8}}>
@@ -2239,15 +2097,15 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
 
       <div className="card" style={{marginBottom:10}}>
         <div className="section-btn" onClick={()=>setShowRoster(!showRoster)}>
-          <div className="section-title">Roster ({[...ROSTER,...roster.filter(p=>p.id>96)].length} members)</div>
+          <div className="section-title">Roster ({[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].length} members)</div>
           <svg style={{width:15,height:15,color:'#94a3b8',transform:showRoster?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         {showRoster&&(
           <div className="section-body">
-            {guestHistory&&guestHistory.length>0&&(
+            {safeArray(guestHistory).length>0&&(
               <div style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}>
                 <div className="slbl">Guest history</div>
-                {guestHistory.sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((g,i)=>(
+                {safeArray(guestHistory).sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((g,i)=>(
                   <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
                     <span style={{fontWeight:500}}>{g.name}</span>
                     <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -2267,7 +2125,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
               <div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button></div>
             </div>
             <div style={{maxHeight:220,overflowY:'auto',marginTop:8}}>
-              {[...ROSTER,...roster.filter(p=>p.id>96)].map(p=>(
+              {[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].map(p=>(
                 <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
                   <span style={{fontWeight:500}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</span>
                   <div style={{display:'flex',gap:5,alignItems:'center'}}>
@@ -2295,7 +2153,6 @@ function App(){
   const [extra,setExtra]=useState([]);
   const [guestHistory,setGuestHistory]=useState([]);
   const {ready,read,write,push,del}=useDB();
-  const fullRoster=[...ROSTER,...extra];
 
   useEffect(()=>{
     if(!ready||isDemo)return;
@@ -2303,7 +2160,7 @@ function App(){
     u.push(read('week',v=>setWeek(v)));
     u.push(read('history',v=>setHistory(v||{})));
     u.push(read('extraPlayers',v=>setExtra(safeArray(v))));
-    u.push(read('guests',v=>setGuestHistory(v?(Array.isArray(v)?v:Object.values(v)):[]),));
+    u.push(read('guests',v=>setGuestHistory(safeArray(v))));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
@@ -2319,13 +2176,13 @@ function App(){
   function archiveDay(day){
     if(!week)return;
     const daySignups=Object.values(week.signups||{}).filter(s=>s.day===day);
-    const dayTeams=(week.teams&&week.teams[day])||[];
+    const dayTeams=safeArray(week.teams?.[day]);
     const dayScores=(week.scores&&week.scores[day])||null;
     const dayDate=(week.dates&&week.dates[day])||td();
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()};
     if(isDemo){const k='dr_'+Date.now();setHistory(h=>({...h,[k]:roundData}));}else push('history',roundData);
     const newWeek={...week};
-    newWeek.activeDays=(newWeek.activeDays||[]).filter(d=>d!==day);
+    newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
     const ns={};
     Object.entries(week.signups||{}).forEach(([k,s])=>{if(s.day!==day)ns[k]=s;});
     newWeek.signups=ns;
@@ -2360,21 +2217,19 @@ function App(){
     const newExtra=[...extra,{...p,id:1000+extra.length+1}];
     write('extraPlayers',newExtra);
     if(p.isGuest){
-      // Track guest in separate guest history
-      const guestEntry={name:p.name,addedAt:Date.now(),rounds:1};
-      const existing=guestHistory.find(g=>g.name===p.name);
+      const existing=safeArray(guestHistory).find(g=>g.name===p.name);
       if(existing){
-        const updated=guestHistory.map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
+        const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
         write('guests',updated);
       } else {
-        write('guests',[...guestHistory,guestEntry]);
+        write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);
       }
     }
   }
-  function removePlayer(id){write('extraPlayers',extra.filter(p=>p.id!==id));}
+  function removePlayer(id){write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));}
   function toggleLock(day,locked){const nw={...week,locked:{...(week.locked||{}),[day]:locked}};if(isDemo){setWeek(nw);}else write('week',nw);}
   function deactivateDay(day){
-    const newWeek={...week,activeDays:(week.activeDays||[]).filter(d=>d!==day)};
+    const newWeek={...week,activeDays:safeArray(week.activeDays).filter(d=>d!==day)};
     const tt={...(week.teeTimes||{})};delete tt[day];
     newWeek.teeTimes=tt;
     write('week',newWeek);
@@ -2386,7 +2241,7 @@ function App(){
   function editHistoryRound(key,round){
     del('history/'+key);
     const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};
-    if(!newWeek.activeDays.includes(round.day))newWeek.activeDays=[...(newWeek.activeDays||[]),round.day];
+    if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];
     newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};
     if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};
     if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};
@@ -2416,7 +2271,7 @@ function App(){
     return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');setIsAdmin(true);setTab('home');}} onDemoPlayer={startDemoPlayer} onDemoAdmin={startDemoAdmin}/>;
   }
 
-  const activeDays=(week&&week.activeDays)||[];
+  const activeDays=safeArray(week?.activeDays);
   const hasScores=isDemo||activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].savedAt);
   const hasPayouts=activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].payoutsCalculated);
   const scoringVisible=isAdmin||hasScores;
@@ -2480,12 +2335,12 @@ function App(){
               if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}
               else push('week/signups',d);
               if(d.isGuest&&d.name){
-                const existing=guestHistory.find(g=>g.name===d.name);
+                const existing=safeArray(guestHistory).find(g=>g.name===d.name);
                 if(existing){
-                  const updated=guestHistory.map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
+                  const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
                   write('guests',updated);
                 } else {
-                  write('guests',[...guestHistory,{name:d.name,addedAt:Date.now(),rounds:1}]);
+                  write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);
                 }
               }
             }}
