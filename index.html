@@ -138,8 +138,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 /* SCORE PICKER */
 .sc-grid{display:grid;grid-template-columns:1fr 78px 78px 78px;gap:7px;align-items:center}
 .sc-hd{font-size:11px;font-weight:700;color:#94a3b8;text-align:center;letter-spacing:0.07em;text-transform:uppercase}
-.sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#f8fafc;height:46px}
-.sp button{background:none;border:none;cursor:pointer;font-size:20px;font-weight:700;color:#475569;padding:0;width:38px;height:46px;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;flex-shrink:0}
+.sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#f8fafc}
+.sp button{background:none;border:none;cursor:pointer;font-size:18px;font-weight:700;color:#475569;padding:6px 10px;line-height:1;flex-shrink:0}
 .sp button:hover{background:#e2e8f0}
 .sp-val{flex:1;text-align:center;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;min-width:26px}
 .sp-val.neg{color:#15803d}
@@ -985,10 +985,11 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
   },[activeDays.join(',')]);
 
   useEffect(()=>{
-    if(savedTeams.length>0&&groupOrder.length===0){
-      setGroupOrder(savedTeams.map(t=>t.id));
+    const st=(week&&week.teams&&week.teams[activeDay])||[];
+    if(st.length>0&&groupOrder.length===0){
+      setGroupOrder(st.map(t=>t.id));
     }
-  },[activeDay,savedTeams.length]);
+  },[activeDay,week]);
 
   if(!week||activeDays.length===0){
     return<div className="empty"><div className="empty-title">No active games</div></div>;
