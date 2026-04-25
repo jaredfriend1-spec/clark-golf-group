@@ -331,19 +331,17 @@ const safeArray=arr=>Array.isArray(arr)?arr:Object.values(arr||{});
 const sortDays=days=>[...safeArray(days)].sort((a,b)=>DAYS_OF_WEEK.indexOf(a)-DAYS_OF_WEEK.indexOf(b));
 const lastName=n=>(n||'').split(' ').pop();
 const teamLabel=t=>(safeArray(t.players)).map(p=>lastName(p.name)).join(', ');
-const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
-const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
 function useDB(){
   const [db,setDb]=useState(null);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
-    try{if(!firebase.apps.length)firebase.initializeApp(FB);setDb(firebase.database());setReady(true);}
+    try{if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"});setDb(firebase.database());setReady(true);}
     catch(e){setReady(true);}
   },[]);
-  const read=useCallback((p,cb)=>{if(!db){cb(LS.g(p));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
-  const write=useCallback((p,v)=>{if(!db){LS.s(p,v);return Promise.resolve();}return db.ref(p).set(v);},[db]);
-  const push=useCallback((p,v)=>{if(!db){const e=LS.g(p)||{};const k=Date.now().toString();e[k]=v;LS.s(p,e);return Promise.resolve(k);}return db.ref(p).push(v).then(r=>r.key);},[db]);
+  const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
+  const write=useCallback((p,v)=>{if(!db){localStorage.setItem(p,JSON.stringify(v));return Promise.resolve();}return db.ref(p).set(v);},[db]);
+  const push=useCallback((p,v)=>{if(!db){const e=JSON.parse(localStorage.getItem(p)||'{}');const k=Date.now().toString();e[k]=v;localStorage.setItem(p,JSON.stringify(e));return Promise.resolve(k);}return db.ref(p).push(v).then(r=>r.key);},[db]);
   const del=useCallback((p)=>{if(!db){localStorage.removeItem(p);return Promise.resolve();}return db.ref(p).remove();},[db]);
   return{ready,read,write,push,del};
 }
@@ -463,6 +461,11 @@ function makeDemoData(){
   ];
   const pc=DEMO_PLAYERS.length;
   const pot=calcPot(pc);
+  // Pre-built realistic scoring scenario:
+  // Team One wins Front 9 outright (-4)
+  // Team Three wins Back 9 outright (-5)
+  // Team Two and Team Four TIE Overall (-3 each) -> split pot
+  // Skins: Team One 2 skins, Team Three 1 skin
   const teamScores={
     1:{front:-4,back:-2,overall:-6},
     2:{front:-1,back:-3,overall:-4},
@@ -518,6 +521,7 @@ function TimePicker({onChange}){
   );
 }
 
+// -- LANDING ------------------------------------------------------------------
 function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
   const [showPw,setShowPw]=useState(false);
   const [pw,setPw]=useState('');
@@ -604,6 +608,7 @@ function TeamBadge({name,week,day}){
   );
 }
 
+// -- THIS WEEK VIEW ---------------------------------------------------------
 function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
@@ -710,6 +715,8 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         const daySignups=Object.entries(allSignups).filter(([,s])=>s.day===day).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);
         const cnt=daySignups.length;
         const teeInfo=week.teeTimes&&week.teeTimes[day];
+        const dayTeams=week.teams&&week.teams[day];
+        const dayScores=week.scores&&week.scores[day];
         const dayComplete=week.complete&&week.complete[day];
         const dayLocked=week.locked&&week.locked[day];
         const isOpen=expanded[day];
@@ -804,11 +811,13 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
             <div className="modal-handle"></div>
             <div className="modal-title">Sign up</div>
 
+            {/* Member / Guest toggle */}
             <div className="tog">
               <button className={'tog-opt'+(!isGuest?' on':'')} onClick={()=>setIsGuest(false)}>Member</button>
               <button className={'tog-opt'+(isGuest?' on':'')} onClick={()=>setIsGuest(true)}>Guest</button>
             </div>
 
+            {/* Name selection */}
             {!isGuest?(
               <div className="fg">
                 <label className="fl">Your name</label>
@@ -834,6 +843,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
               </div>
             )}
 
+            {/* Day selection */}
             <div className="fg">
               <label className="fl">Which days?</label>
               {activeDays.map(d=>{
@@ -856,6 +866,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
               })}
             </div>
 
+            {/* Tee + HCP */}
             <div className="fr" style={{marginTop:2}}>
               <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
               <div className="fg">
@@ -914,6 +925,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   );
 }
 
+// -- TEAMS VIEW (per day) -----------------------------------------------------
 function PaidBtn({name,isAdmin,myName,week,activeDay,onUpdatePaid}){
   const paid=!!(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][name]);
   const canMark=isAdmin||(myName===name);
@@ -945,10 +957,11 @@ function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   );
 }
 
-function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,myName}){
+function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}){
   const [activeDay,setActiveDay]=useState(null);
   const [editTeams,setEditTeams]=useState(null);
   const [drag,setDrag]=useState(null);
+  const [teamDrag,setTeamDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
@@ -994,14 +1007,25 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,myName}){
     setEditTeams(built);
   }
 
+  function dropTeam(toIdx){
+    if(teamDrag===null||!isAdmin||published)return;
+    const base=editTeams||savedTeams;
+    const reordered=[...base];
+    const [moved]=reordered.splice(teamDrag,1);
+    reordered.splice(toIdx,0,moved);
+    setEditTeams(reordered);
+    setTeamDrag(null);
+  }
+
   function drop(ti,pi){
-    if(!drag||!isAdmin||!editTeams||published)return;
-    const u=editTeams.map(t=>({...t,players:[...t.players]}));
+    if(!drag||!isAdmin||published)return;
+    const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));
     const p=u[drag.ti].players[drag.pi];
     u[drag.ti].players.splice(drag.pi,1);
     u[ti].players.splice(pi,0,p);
     u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});
-    setEditTeams(u);setDrag(null);
+    setEditTeams(u);
+    setDrag(null);
   }
 
   function savePlayerEdit(ti,pi){
@@ -1011,6 +1035,15 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,myName}){
     u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);
     if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);
     setEditKey(null);
+  }
+
+  function publishAndLock(){
+    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
+    const final = (editTeams || savedTeams).map((t, i) => ({...t, name: names[i] || `Team ${i+1}`}));
+    onSaveTeams(activeDay, final);
+    onPublishTeams(activeDay);
+    if(onToggleLock) onToggleLock(activeDay, true);
+    setEditTeams(null);
   }
 
   return(
@@ -1041,10 +1074,15 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,myName}){
           <div className="admin-lbl">Team builder - {activeDay}</div>
           <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
             <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{display.length?'Regenerate':'Auto-generate'}</button>
-            {editTeams&&<button className="btn btn-gold btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save</button>}
-            {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>setEditTeams(null)}>Cancel</button>}
+            {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save Draft</button>}
+            {display.length>0&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish & Lock Teams</button>}
+            {display.length>0&&<button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>}
           </div>
-          <div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>Drag players to rebalance. Use the <strong>Set up</strong> wizard in the Admin tab to set order and publish.</div>
+          <div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>
+            <strong>1.</strong> Drag players (⋮) to rebalance.<br/>
+            <strong>2.</strong> Drag the dark team headers to set the tee order.<br/>
+            <strong>3.</strong> Click <b>Publish & Lock</b> to finalize names and lock sign-ups.
+          </div>
         </div>
       )}
 
@@ -1055,24 +1093,52 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,myName}){
         </div>
       )}
 
+      {display.length>0&&isAdmin&&!published&&(
+        <div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>
+          Drag team cards to set tee order - Team One goes first
+        </div>
+      )}
+
       {display.map((team,ti)=>{
         const hasBlind=team.players.length<(display.length>0?Math.ceil(cnt/display.length):4)&&cnt>0;
         const blindDraw=team.blindDraw;
         const teamNameDisplay = published ? team.name : `Group ${ti + 1} - ${teamLabel(team)}`;
 
         return(
-          <div key={team.id} className="team-card">
-            <div className="team-hdr">
+          <div key={team.id || ti} className="team-card"
+            draggable={!!(!published && isAdmin)}
+            onDragStart={(e)=>{
+              if(isAdmin && !published) {
+                if(!editTeams) setEditTeams(savedTeams);
+                setTeamDrag(ti);
+              }
+            }}
+            onDragOver={e=>e.preventDefault()}
+            onDrop={(e)=>{
+              e.stopPropagation();
+              dropTeam(ti);
+            }}
+            style={{opacity:teamDrag===ti?0.5:1}}>
+            <div className="team-hdr" style={{cursor:(!published&&isAdmin)?'grab':'default'}}>
               <span className="team-nm" style={{fontSize: published ? 16 : 14}}>{teamNameDisplay}</span>
-              <span className="team-hcp">HCP {team.totalHcp.toFixed(1)}</span>
+              <span className="team-hcp">HCP {(team.totalHcp||0).toFixed(1)}</span>
             </div>
             {safeArray(team.players).map((p,pi)=>(
               <div key={pi} className="team-row"
-                draggable={!!(!published&&editTeams&&isAdmin)}
-                onDragStart={()=>{if(isAdmin&&!published)setDrag({ti,pi});}}
-                onDragOver={e=>e.preventDefault()}
-                onDrop={()=>drop(ti,pi)}>
-                {!published&&editTeams&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:13,flexShrink:0}}>:</span>}
+                draggable={!!(!published&&isAdmin)}
+                onDragStart={(e)=>{
+                  e.stopPropagation();
+                  if(isAdmin&&!published) {
+                    if(!editTeams) setEditTeams(savedTeams);
+                    setDrag({ti,pi});
+                  }
+                }}
+                onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
+                onDrop={(e)=>{
+                  e.stopPropagation();
+                  drop(ti,pi);
+                }}>
+                {!published&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:18,fontWeight:700,flexShrink:0,marginRight:4}}>⋮</span>}
                 <span className="slot">{p.slot}</span>
                 <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
                 <div style={{flex:1,minWidth:0}}>
@@ -1126,7 +1192,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,myName}){
             <div className="alert alert-warn" style={{marginBottom:12}}>Pick any player from another team. They stay on their original team and also play for this team.</div>
             {display.filter((_,i)=>i!==blindModal.teamIdx).map(t=>(
               <div key={t.id} style={{marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:5}}>{t.name}</div>
+                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:5}}>{t.name||`Group ${t.id}`}</div>
                 {safeArray(t.players).map((p,pi)=>(
                   <div key={pi} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f8fafc'}}>
                     <span style={{fontSize:13,fontWeight:500}}>{p.name} <span style={{color:'#94a3b8',fontSize:11}}>HCP {p.handicap}</span></span>
@@ -1705,11 +1771,8 @@ function AdminChecklist({week,activeDays,onGoTo}){
 }
 
 // -- ADMIN VIEW ---------------------------------------------------------------
-function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTime,onToggleLock}){
+function SetupWizard({day,week,onClose,onUpdateTeeTime,onToggleLock,onGoTo}){
   const [step,setStep]=useState(1);
-  const [wizTeams,setWizTeams]=useState(null);
-  const [teeOrder,setTeeOrder]=useState([]);
-  const [dragIdx,setDragIdx]=useState(null);
   const [isLottery,setIsLottery]=useState(false);
   const [newTime,setNewTime]=useState('');
 
@@ -1717,38 +1780,6 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
   const pc=signups.length;
   const locked=!!(week?.locked?.[day]);
   const teeInfo=week?.teeTimes?.[day];
-  const savedTeams=safeArray(week?.teams?.[day]);
-  const workingTeams=wizTeams||savedTeams;
-  const published=!!(week?.teamsPublished?.[day]);
-
-  function genTeams(){
-    const built=buildTeams(signups);
-    setWizTeams(built);
-    setTeeOrder(built.map(t=>t.id));
-  }
-
-  function handlePublish(){
-    if(!workingTeams.length)return;
-    const order=teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id);
-    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-    const renamed=order.map((id,i)=>{
-      const team=workingTeams.find(t=>t.id===id);
-      if(!team)return null;
-      return{...team,id:i+1,name:names[i]||('Team '+(i+1))};
-    }).filter(Boolean);
-    onSaveTeams(day,renamed);
-    onPublishTeams(day);
-    onToggleLock(day,true);
-    onClose();
-  }
-
-  const steps=[
-    {num:1,label:'Tee time',done:!!teeInfo},
-    {num:2,label:'Lock sign-ups',done:locked},
-    {num:3,label:'Generate teams',done:workingTeams.length>0},
-    {num:4,label:'Set tee order',done:teeOrder.length>0},
-    {num:5,label:'Publish',done:published},
-  ];
 
   return(
     <div style={{background:'#f8fafc',border:'1.5px solid #10b981',borderRadius:14,padding:14,marginBottom:12}}>
@@ -1758,8 +1789,8 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
       </div>
 
       <div style={{display:'flex',gap:4,marginBottom:14}}>
-        {steps.map(s=>(
-          <div key={s.num} style={{flex:1,height:4,borderRadius:2,background:s.done?'#10b981':step===s.num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>
+        {[1,2,3].map(num=>(
+          <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&teeInfo)||(num===2&&locked))?'#10b981':step===num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>
         ))}
       </div>
 
@@ -1807,83 +1838,11 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
       {step===3&&(
         <div>
           <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 3 - Generate teams</div>
-          {workingTeams.length>0?(
-            <div style={{marginBottom:10}}>
-              {workingTeams.map((t, ti)=>(
-                <div key={t.id||ti} style={{padding:'6px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:12,fontWeight:600}}>
-                  Group {ti + 1} - {safeArray(t.players).length} players - HCP {(t.totalHcp||0).toFixed(0)}
-                </div>
-              ))}
-            </div>
-          ):(
-            <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Teams not generated yet</div>
-          )}
-          <button className="btn btn-dark btn-sm" style={{width:'100%',marginBottom:10}} onClick={genTeams} disabled={pc<3}>
-            {workingTeams.length?'Regenerate teams':'Auto-generate teams'}
-          </button>
+          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Great! Now head over to the Teams tab to generate rosters, balance players, and set the tee order.</div>
+          
           <div className="wiz-btn-row">
             <button className="btn btn-outline btn-sm" onClick={()=>setStep(2)}>Back</button>
-            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>{setTeeOrder(workingTeams.map(t=>t.id));setStep(4);}} disabled={!workingTeams.length}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step===4&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Step 4 - Set tee order</div>
-          <div style={{fontSize:11,color:'#64748b',marginBottom:10}}>Drag to arrange who goes off first. Teams will be renamed 1-{workingTeams.length} when published.</div>
-          {(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id)).map((tid,idx)=>{
-            const team=workingTeams.find(t=>t.id===tid);
-            if(!team)return null;
-            const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-            return(
-              <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,marginBottom:6,cursor:'grab'}}
-                draggable={true}
-                onDragStart={()=>setDragIdx(idx)}
-                onDragOver={e=>e.preventDefault()}
-                onDrop={()=>{
-                  if(dragIdx===null)return;
-                  const newOrder=[...(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id))];
-                  const [moved]=newOrder.splice(dragIdx,1);
-                  newOrder.splice(idx,0,moved);
-                  setTeeOrder(newOrder);
-                  setDragIdx(null);
-                }}>
-                <div style={{width:24,height:24,borderRadius:50,background:'#0f172a',color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'"Barlow Condensed",sans-serif'}}>{idx+1}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',textDecoration:'line-through'}}>Group {idx + 1}</div>
-                  <div style={{fontSize:13,fontWeight:700,color:'#10b981'}}>{names[idx]||('Team '+(idx+1))}</div>
-                </div>
-                <span style={{color:'#cbd5e1',fontSize:16}}>:</span>
-              </div>
-            );
-          })}
-          <div className="wiz-btn-row">
-            <button className="btn btn-outline btn-sm" onClick={()=>setStep(3)}>Back</button>
-            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(5)}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step===5&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 5 - Publish teams</div>
-          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Teams will be renamed in tee order and made visible to all players.</div>
-          {(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id)).map((tid,idx)=>{
-            const team=workingTeams.find(t=>t.id===tid);
-            if(!team)return null;
-            const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-            return(
-              <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:13}}>
-                <span style={{fontWeight:400,color:'#94a3b8',textDecoration:'line-through',flex:1}}>Group {idx + 1}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                <span style={{fontWeight:700,color:'#10b981',flex:1}}>{names[idx]||('Team '+(idx+1))}</span>
-              </div>
-            );
-          })}
-          <div className="wiz-btn-row">
-            <button className="btn btn-outline btn-sm" onClick={()=>setStep(4)}>Back</button>
-            <button className="btn btn-green btn-sm" style={{flex:1}} onClick={handlePublish}>Publish teams</button>
+            <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>{onClose(); onGoTo('teams');}}>Go to Teams Tab</button>
           </div>
         </div>
       )}
@@ -2007,10 +1966,10 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
                   day={day}
                   week={week}
                   onClose={()=>setWizDay(null)}
-                  onSaveTeams={onSaveTeams}
-                  onPublishTeams={onPublishTeams}
+                  onGoTo={onGoTo}
                   onUpdateTeeTime={onUpdateTeeTime}
-                  onToggleLock={onToggleLock}/>
+                  onToggleLock={onToggleLock}
+                />
               )}
               {isActive&&isEditing&&(
                 <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginTop:4}}>
@@ -2169,6 +2128,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
     </div>
   );
 }
+
 
 function App(){
   const [role,setRole]=useState(null);
@@ -2330,7 +2290,7 @@ function App(){
           </div>
           <div className="hdr-stats">
             {activeDays.length>0?sortDays(activeDays).map(d=>{
-              const cnt=Object.values(week?.signups||{}).filter(s=>s.day===d).length;
+              const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;
               return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;
             }):[
               <div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,
@@ -2381,6 +2341,8 @@ function App(){
           onSaveTeams={saveTeams}
           onPublishTeams={publishTeams}
           onAssignBlindDraw={saveTeams}
+          onUpdatePaid={updatePaid}
+          onToggleLock={toggleLock}
           myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo}
           onSaveScores={saveScores}
