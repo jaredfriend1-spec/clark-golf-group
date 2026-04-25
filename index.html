@@ -64,19 +64,19 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 
 /* NAV */
 .nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0}
-.nb{flex:1;padding:10px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
-.nb svg{width:17px;height:17px;flex-shrink:0}
+.nb{flex:1;padding:12px 2px 10px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
+.nb svg{width:19px;height:19px;flex-shrink:0}
 .nb.on{color:#0f172a}
 .nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
 .nb.locked{opacity:0.3;cursor:not-allowed}
-.content{flex:1;padding:16px 13px 48px;line-height:1.5}
+.content{flex:1;padding:18px 14px 56px;line-height:1.5}
 
 /* CARDS */
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
 .card-pad{padding:14px}
 
 /* DAY CARDS */
-.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .day-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;user-select:none;-webkit-user-select:none}
 .day-hdr:active{background:#f8fafc}
 .day-left{flex:1;min-width:0}
@@ -95,17 +95,18 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .day-body{border-top:1px solid #f1f5f9}
 
 /* PLAYER ROWS */
-.p-row{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid #f8fafc;gap:9px}
+.p-row{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #f8fafc;gap:12px}
 .p-row:last-child{border-bottom:none}
-.avi{width:30px;height:30px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
-.p-name{font-size:13px;font-weight:600;color:#0f172a}
-.p-meta{font-size:11px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:1px}
+.avi{width:36px;height:36px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
+.p-name{font-size:14px;font-weight:600;color:#0f172a}
+.p-meta{font-size:12px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:3px}
 .tee-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .edit-btn{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:600;padding:0 2px;font-family:'DM Sans',sans-serif}
 .rm-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:4px;display:flex;flex-shrink:0;margin-left:auto}
 .rm-btn:hover{color:#ef4444}
 .rm-btn svg{width:14px;height:14px}
 .guest-tag{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px}
+.team-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle}
 
 /* INLINE EDIT */
 .ie{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}
@@ -115,9 +116,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .ie-cancel{font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
 
 /* SIGNUP BUTTON AREA */
-.day-actions{padding:10px 14px;display:flex;gap:7px;align-items:center;border-top:1px solid #f1f5f9}
-.signup-btn{padding:8px 14px;background:#10b981;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
-.teeadd-btn{padding:8px 12px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#475569}
+.day-actions{padding:13px 16px;display:flex;gap:8px;align-items:center;border-top:1px solid #f1f5f9}
+.signup-btn{padding:11px 18px;background:#10b981;color:#0f172a;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.teeadd-btn{padding:11px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#475569}
 
 /* STATS ROW */
 .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
@@ -130,17 +131,17 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .team-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a}
 .team-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0.02em}
 .team-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600}
-.team-row{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid #f8fafc}
+.team-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #f8fafc}
 .team-row:last-child{border-bottom:none}
 .slot{font-size:10px;font-weight:700;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:20px;text-align:center}
 
 /* SCORE PICKER */
 .sc-grid{display:grid;grid-template-columns:1fr 78px 78px 78px;gap:7px;align-items:center}
 .sc-hd{font-size:11px;font-weight:700;color:#94a3b8;text-align:center;letter-spacing:0.07em;text-transform:uppercase}
-.sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:7px;overflow:hidden;background:#f8fafc}
-.sp button{background:none;border:none;cursor:pointer;font-size:16px;font-weight:700;color:#475569;padding:5px 8px;font-family:'DM Sans',sans-serif;line-height:1;flex-shrink:0}
+.sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#f8fafc;height:46px}
+.sp button{background:none;border:none;cursor:pointer;font-size:20px;font-weight:700;color:#475569;padding:0;width:38px;height:46px;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;flex-shrink:0}
 .sp button:hover{background:#e2e8f0}
-.sp-val{flex:1;text-align:center;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;min-width:26px}
+.sp-val{flex:1;text-align:center;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;min-width:26px}
 .sp-val.neg{color:#15803d}
 .sp-val.pos{color:#dc2626}
 .sp-val.zero{color:#94a3b8}
@@ -171,6 +172,13 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .hi-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
 .hi-meta{font-size:11px;color:#94a3b8;font-weight:500;margin-top:2px}
 .hi-body{padding:13px 14px;border-top:1px solid #f1f5f9}
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f8fafc}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{width:24px;height:24px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif}
+.lb-rank.top{background:#f59e0b;color:#0f172a}
+.lb-name{flex:1;font-size:13px;font-weight:600;color:#0f172a}
+.lb-stat{font-size:11px;color:#94a3b8;text-align:right}
+.lb-money{font-size:14px;font-weight:700;color:#15803d;font-family:"Barlow Condensed",sans-serif;min-width:48px;text-align:right}
 
 /* ADMIN */
 .admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;margin-bottom:10px}
@@ -246,6 +254,25 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .cb-row input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
 .cb-label{font-size:14px;font-weight:500;color:#0f172a}
 .cb-sub{font-size:11px;color:#94a3b8;font-weight:500}
+.chk-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.chk-hdr{padding:13px 16px 8px;display:flex;align-items:center;gap:8px}
+.chk-title{font-size:14px;font-weight:700;color:#0f172a;flex:1}
+.chk-prog-wrap{height:4px;background:#f1f5f9;margin:0 16px 4px;border-radius:2px}
+.chk-prog{height:4px;background:#10b981;border-radius:2px;transition:width 0.3s}
+.chk-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #f8fafc}
+.chk-circle{width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+.chk-circle.done{background:#10b981;border-color:#10b981}
+.chk-text{flex:1}
+.chk-label{font-size:13px;font-weight:600;color:#0f172a}
+.chk-label.done{color:#94a3b8;text-decoration:line-through}
+.chk-sub{font-size:11px;color:#94a3b8;margin-top:1px}
+.chk-action{font-size:11px;font-weight:700;color:#10b981;background:#ecfdf5;padding:5px 11px;border-radius:20px;white-space:nowrap;border:none;cursor:pointer;font-family:"DM Sans",sans-serif}
+.order-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f8fafc;background:#fff}
+.order-row:last-child{border-bottom:none}
+.order-num{width:26px;height:26px;border-radius:50%;background:#0f172a;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif}
+.order-handle{color:#cbd5e1;cursor:grab;font-size:16px;padding:4px;flex-shrink:0}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:8px;animation:toastIn 0.25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -557,6 +584,20 @@ function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hc
   );
 }
 
+function TeamBadge({name,week,day}){
+  const dayTeams=week&&week.teams&&week.teams[day];
+  const published=week&&week.teamsPublished&&week.teamsPublished[day];
+  if(!dayTeams||!published)return null;
+  const team=dayTeams.find(t=>t.players&&t.players.some(p=>p.name===name));
+  if(!team)return null;
+  return(
+    <span className="team-badge">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>
+      {team.name}
+    </span>
+  );
+}
+
 // -- THIS WEEK VIEW ---------------------------------------------------------
 function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
   const [showSignup,setShowSignup]=useState(false);
@@ -568,6 +609,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   const [gname,setGname]=useState('');
   const [tee,setTee]=useState('Whites');
   const [hcp,setHcp]=useState('');
+  const [hcpMemory,setHcpMemory]=useState(null);
   const [q,setQ]=useState('');
   const [isLottery,setIsLottery]=useState(false);
   const [newTime,setNewTime]=useState('');
@@ -577,7 +619,24 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     try{return localStorage.getItem('cgMyName')||null;}catch{return null;}
   });
   const setMyNamePersist=n=>{setMyName(n);try{if(n)localStorage.setItem('cgMyName',n);else localStorage.removeItem('cgMyName');}catch{}};
+  function loadMemory(playerId){
+    try{
+      const saved=localStorage.getItem('cgPref_'+playerId);
+      if(saved){
+        const pref=JSON.parse(saved);
+        setTee(pref.tee||'Whites');
+        setHcp(String(pref.hcp||''));
+        setHcpMemory(pref);
+      } else {
+        setHcpMemory(null);
+      }
+    }catch{setHcpMemory(null);}
+  }
+  function saveMemory(playerId,teeVal,hcpVal){
+    try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}
+  }
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
+  const [toast,setToast]=useState(null);
 
   if(!week||!week.activeDays||week.activeDays.length===0){
     return(
@@ -606,7 +665,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     if(!name||!hcp)return;
     const selectedDays=activeDays.filter(d=>signupDays[d]);
     if(!selectedDays.length)return;
-    if(!isGuest&&sel)setMyNamePersist(name);
+    if(!isGuest&&sel){setMyNamePersist(name);saveMemory(sel,tee,hcp);}
     if(isGuest&&gname)setMyNamePersist(gname.trim());
     const pid=isGuest?'g_'+Date.now():parseInt(sel);
     selectedDays.forEach((day,i)=>{
@@ -614,6 +673,10 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
       if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),day,signedUpAt:Date.now()+(i*100)});
     });
     setShowSignup(false);
+    const days=activeDays.filter(d=>signupDays[d]);
+    const msg=days.length===1?"You're in for "+days[0]+"!":'Signed up for '+days.join(' & ')+'!';
+    setToast(msg);
+    setTimeout(()=>setToast(null),3000);
   }
 
   const avail=ROSTER.filter(p=>{
@@ -693,7 +756,11 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                   <div key={key} className="p-row">
                     <div className="avi">{ini(s.name)}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}</div>
+                      <div className="p-name">
+                      {s.name}
+                      {s.isGuest&&<span className="guest-tag">Guest</span>}
+                      <TeamBadge name={s.name} week={week} day={day}/>
+                    </div>
                       {editKey===key?(
                         <div className="ie">
                           <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
@@ -792,7 +859,10 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
             {/* Tee + HCP */}
             <div className="fr" style={{marginTop:2}}>
               <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-              <div className="fg"><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/></div>
+              <div className="fg">
+                <label className="fl">Handicap{hcpMemory&&!isGuest&&<span style={{fontWeight:400,color:'#10b981',marginLeft:6,textTransform:'none',letterSpacing:0}}>(last used: {hcpMemory.hcp})</span>}</label>
+                <input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
+              </div>
             </div>
 
             <SignupConfirmBtn
@@ -820,6 +890,13 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
             <div className="fg"><label className="fl">{isLottery?'Requested time':'Tee time'}</label><TimePicker onChange={setNewTime}/></div>
             <button className="btn btn-green btn-full" onClick={()=>{onUpdateTeeTime(teeModal,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setTeeModal(null);}}>Save</button>
           </div>
+        </div>
+      )}
+
+      {toast&&(
+        <div className="toast">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>
+          {toast}
         </div>
       )}
 
@@ -878,12 +955,44 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
   const [showPaid,setShowPaid]=useState(false);
+  const [showOrder,setShowOrder]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [groupOrder,setGroupOrder]=useState([]);
+  const [orderDrag,setOrderDrag]=useState(null);
+
+  function copyTeams(){
+    if(!display.length)return;
+    const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
+    const teeStr=teeInfo?'First Tee: '+(teeInfo.lottery?'Lottery':teeInfo.time):'';
+    const dateStr=week&&week.dates&&week.dates[activeDay]?fmtD(week.dates[activeDay]):'';
+    const ordered=groupOrder.length>0?groupOrder.map(id=>display.find(t=>t.id===id)).filter(Boolean):display;
+    let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+'
+
+';
+    ordered.forEach((team,i)=>{
+      text+=(groupOrder.length>0?'Group '+(i+1)+': ':'')+team.name+'
+';
+      (team.players||[]).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')
+';});
+      text+='
+';
+    });
+    navigator.clipboard.writeText(text.trim()).then(()=>{
+      setCopied(true);setTimeout(()=>setCopied(false),2500);
+    }).catch(()=>{});
+  }
 
   const activeDays=sortDays((week&&week.activeDays)||[]);
 
   useEffect(()=>{
     if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
   },[activeDays.join(',')]);
+
+  useEffect(()=>{
+    if(savedTeams.length>0&&groupOrder.length===0){
+      setGroupOrder(savedTeams.map(t=>t.id));
+    }
+  },[activeDay,savedTeams.length]);
 
   if(!week||activeDays.length===0){
     return<div className="empty"><div className="empty-title">No active games</div></div>;
@@ -936,6 +1045,16 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
         <div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
       </div>
 
+      {/* Copy teams button - available to all when published */}
+      {published&&display.length>0&&(
+        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
+          <button className="btn btn-outline btn-sm" onClick={copyTeams}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            {copied?'Copied!':'Copy teams'}
+          </button>
+        </div>
+      )}
+
       {/* Payment tracking toggle */}
       {(display||[]).length>0&&<PaymentBar display={display} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
 
@@ -947,8 +1066,60 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
             {editTeams&&<button className="btn btn-gold btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save</button>}
             {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>setEditTeams(null)}>Cancel</button>}
             {!editTeams&&display.length>0&&!published&&<button className="btn btn-gold btn-sm" onClick={()=>onPublishTeams(activeDay)}>Publish</button>}
+            {display.length>0&&<button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>}
           </div>
           {editTeams&&<div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>Drag to rebalance. Anyone can edit tee/handicap inline.</div>}
+        </div>
+      )}
+
+      {/* Group ordering */}
+      {published&&display.length>0&&isAdmin&&(
+        <div className="card card-pad" style={{marginBottom:12}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:'#0f172a'}}>Tee order</div>
+              <div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>Drag to set who goes off first</div>
+            </div>
+            <button className="btn btn-outline btn-sm" onClick={()=>setShowOrder(!showOrder)}>
+              {showOrder?'Done':'Set order'}
+            </button>
+          </div>
+          {showOrder&&(
+            <div style={{marginTop:10}}>
+              {(groupOrder.length>0?groupOrder:[...display.map(t=>t.id)]).map((tid,idx)=>{
+                const team=display.find(t=>t.id===tid);
+                if(!team)return null;
+                return(
+                  <div key={tid} className="order-row"
+                    draggable={true}
+                    onDragStart={()=>setOrderDrag(idx)}
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={()=>{
+                      if(orderDrag===null)return;
+                      const newOrder=[...(groupOrder.length>0?groupOrder:display.map(t=>t.id))];
+                      const [moved]=newOrder.splice(orderDrag,1);
+                      newOrder.splice(idx,0,moved);
+                      setGroupOrder(newOrder);
+                      setOrderDrag(null);
+                    }}>
+                    <span className="order-handle">:</span>
+                    <div className="order-num">{idx+1}</div>
+                    <span style={{fontSize:13,fontWeight:600,flex:1}}>{team.name}</span>
+                    <span style={{fontSize:11,color:'#94a3b8'}}>HCP {team.totalHcp.toFixed(1)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {!showOrder&&groupOrder.length>0&&(
+            <div style={{marginTop:8,display:'flex',flexWrap:'wrap',gap:6}}>
+              {groupOrder.map((tid,idx)=>{
+                const team=display.find(t=>t.id===tid);
+                if(!team)return null;
+                return<span key={tid} style={{fontSize:11,fontWeight:600,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,padding:'4px 10px',color:'#475569'}}>{idx+1}. {team.name}</span>;
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -996,7 +1167,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
                     </div>
                   )}
                 </div>
-              {showPaid&&<PaidBtn name={p.name} isAdmin={isAdmin} myName={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
+              {showPaid&&<PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
               </div>
             ))}
             {/* Blind draw slot */}
@@ -1067,7 +1238,7 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
   const [b1v,setB1v]=useState('');const [b2v,setB2v]=useState('');
   const [o1v,setO1v]=useState('');const [o2v,setO2v]=useState('');
 
-  const activeDays=sortDays((week&&week.activeDays)||[]);
+  const activeDays=(week&&week.activeDays)||[];
 
   useEffect(()=>{
     if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
@@ -1367,7 +1538,60 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
 // -- HISTORY VIEW -------------------------------------------------------------
 function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
   const [open,setOpen]=useState(null);
+  const [view,setView]=useState('rounds');
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
+
+  // Build season leaderboard from history
+  const leaderboard=useMemo(()=>{
+    const players={};
+    rounds.forEach(([,r])=>{
+      if(!r.teams||!r.scores)return;
+      const pc=r.playerCount||0;
+      const pot=pc*25;
+      const da=parseFloat(r.scores.drawAdj||0);
+      // Track rounds played
+      r.teams.forEach(team=>{
+        (team.players||[]).forEach(p=>{
+          if(!players[p.name])players[p.name]={name:p.name,rounds:0,won:0};
+          players[p.name].rounds++;
+        });
+      });
+      // Track winnings - front/back/overall
+      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||2},
+       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||2},
+       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||2}
+      ].forEach(({seg,pot:segPot,pl})=>{
+        const p=parseFloat(segPot||0);if(!p)return;
+        const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+        if(!sc.length)return;
+        sc.sort((a,b)=>a.score-b.score);
+        const best=sc[0].score;
+        const tied=sc.filter(t=>t.score===best);
+        const second=sc.find(t=>t.score!==best);
+        const first=pl===1?p:p*0.6;
+        const sec=p*0.4;
+        if(tied.length>1){
+          const split=(first+sec)/tied.length;
+          tied.forEach(t=>(t.players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=split/t.players.length;}));
+        } else {
+          (tied[0].players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=first/tied[0].players.length;});
+          if(pl===2&&second)(second.players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=sec/second.players.length;});
+        }
+      });
+      // Skins
+      const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
+      const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+      if(tsk>0){
+        Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{
+          if(!cnt)return;
+          const team=r.teams.find(t=>String(t.id)===String(tid));
+          if(!team)return;
+          (team.players||[]).forEach(p=>{if(players[p.name])players[p.name].won+=(snet/tsk*cnt)/team.players.length;});
+        });
+      }
+    });
+    return Object.values(players).sort((a,b)=>b.won-a.won);
+  },[rounds.length]);
 
   if(!rounds.length){
     return(
@@ -1393,11 +1617,38 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
 
   return(
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-        <div className="slbl" style={{marginBottom:0}}>{rounds.length} round{rounds.length!==1?'s':''} on record</div>
-        {isAdmin&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={onClearAll}>Clear all</button>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+        <div className="tog" style={{marginBottom:0,flex:1,marginRight:10}}>
+          <button className={'tog-opt'+(view==='rounds'?' on':'')} onClick={()=>setView('rounds')}>Rounds</button>
+          <button className={'tog-opt'+(view==='leaders'?' on':'')} onClick={()=>setView('leaders')}>Leaderboard</button>
+        </div>
+        {isAdmin&&view==='rounds'&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={onClearAll}>Clear all</button>}
       </div>
-      {rounds.map(([k,r])=>(
+
+      {view==='leaders'&&(
+        <div className="card" style={{marginBottom:10}}>
+          <div style={{padding:'13px 14px 8px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div className="slbl" style={{marginBottom:0}}>Season standings</div>
+            <span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto auto',padding:'8px 14px 4px',gap:8}}>
+            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player</div>
+            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'center'}}>Rounds</div>
+            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div>
+          </div>
+          {leaderboard.slice(0,20).map((p,i)=>(
+            <div key={p.name} className="lb-row">
+              <div className={'lb-rank'+(i<3?' top':'')}>{i+1}</div>
+              <div className="lb-name">{p.name}</div>
+              <div className="lb-stat">{p.rounds}r</div>
+              <div className="lb-money">{f$(Math.round(p.won))}</div>
+            </div>
+          ))}
+          {leaderboard.length===0&&<div style={{padding:'16px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No data yet</div>}
+        </div>
+      )}
+
+      {view==='rounds'&&rounds.map(([k,r])=>(
         <div key={k} className="hi">
           <div className="hi-hdr" onClick={()=>setOpen(open===k?null:k)}>
             <div>
@@ -1476,8 +1727,56 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
   );
 }
 
+function DayChecklist({day,week,onGoTo}){
+  const signups=Object.values(week&&week.signups||{}).filter(s=>s.day===day).length;
+  const locked=!!(week&&week.locked&&week.locked[day]);
+  const published=!!(week&&week.teamsPublished&&week.teamsPublished[day]);
+  const teeSet=!!(week&&week.teeTimes&&week.teeTimes[day]);
+  const steps=[
+    {label:'Sign-ups open',sub:signups+' player'+(signups!==1?'s':'')+' signed up',done:signups>0,action:null},
+    {label:'Lock sign-ups',sub:'Prevent new additions',done:locked,action:()=>onGoTo('home')},
+    {label:'Set tee time',sub:teeSet?'Tee time confirmed':'Not yet set',done:teeSet,action:()=>onGoTo('home')},
+    {label:'Publish teams',sub:published?'Teams are live':'Generate and publish',done:published,action:()=>onGoTo('teams')},
+  ];
+  const doneCount=steps.filter(s=>s.done).length;
+  const pct=Math.round((doneCount/steps.length)*100);
+  const allDone=doneCount===steps.length;
+  return(
+    <div className="chk-card">
+      <div className="chk-hdr">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={allDone?"#10b981":"#f59e0b"} strokeWidth="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <div className="chk-title">{day} checklist</div>
+        <div style={{fontSize:11,fontWeight:700,color:allDone?'#15803d':'#94a3b8'}}>{doneCount} of {steps.length} done</div>
+      </div>
+      <div className="chk-prog-wrap"><div className="chk-prog" style={{width:pct+'%'}}/></div>
+      {steps.map((step,i)=>(
+        <div key={i} className="chk-item">
+          <div className={'chk-circle'+(step.done?' done':'')}>
+            {step.done&&<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+          </div>
+          <div className="chk-text">
+            <div className={'chk-label'+(step.done?' done':'')}>{step.label}</div>
+            <div className="chk-sub">{step.sub}</div>
+          </div>
+          {!step.done&&step.action&&<button className="chk-action" onClick={step.action}>Go</button>}
+        </div>
+      ))}
+    </div>
+  </div>
+  );
+}
+
+function AdminChecklist({week,activeDays,onGoTo}){
+  if(!activeDays||activeDays.length===0)return null;
+  return(
+    <div>
+      {activeDays.map(day=><DayChecklist key={day} day={day} week={week} onGoTo={onGoTo}/>)}
+    </div>
+  );
+}
+
 // -- ADMIN VIEW ---------------------------------------------------------------
-function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onClearWeek}){
+function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onClearWeek,onGoTo,guestHistory}){
   const [addQ,setAddQ]=useState('');
   const [quickAddSel,setQuickAddSel]=useState(null);
   const [quickAddTee,setQuickAddTee]=useState('Whites');
@@ -1507,11 +1806,18 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       deactivateDay(day);
     } else {
       // Activate day - add to activeDays with auto date
-      const newWeek={...week,activeDays:[...activeDays,day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
+      const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
   }
 
+  function clearWeek(){
+    if(isDemo){
+      setWeek({activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}});
+    } else {
+      write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}});
+    }
+  }
   function deactivateDay(day){
     onDeactivateDay(day);
     setWarnDeact(null);
@@ -1544,6 +1850,10 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
         </div>
       </div>
+
+      <AdminChecklist week={week} activeDays={activeDays} onGoTo={tab=>{
+        if(tab==='home'||tab==='teams')onGoTo(tab);
+      }}/>
 
       {clearConfirm&&(
         <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}>
@@ -1626,7 +1936,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       </div>
 
       {warnDeact&&(
-        <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
+        <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
           <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
           <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players.</div>
           <div style={{display:'flex',gap:8}}>
@@ -1712,6 +2022,20 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
         {showRoster&&(
           <div className="section-body">
+            {guestHistory&&guestHistory.length>0&&(
+              <div style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}>
+                <div className="slbl">Guest history</div>
+                {guestHistory.sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((g,i)=>(
+                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
+                    <span style={{fontWeight:500}}>{g.name}</span>
+                    <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                      <span style={{fontSize:11,color:'#94a3b8'}}>{g.rounds||1} round{(g.rounds||1)!==1?'s':''}</span>
+                      <span className="guest-tag">Guest</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="fr" style={{marginBottom:8}}>
               <div className="fg" style={{marginBottom:0}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
               <div className="fg" style={{marginBottom:0}}><label className="fl">Default Tees</label><select className="fs" value={np.tee} onChange={e=>setNp({...np,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
@@ -1735,6 +2059,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         )}
       </div>
     </div>
+  </div>
   );
 }
 
@@ -1747,6 +2072,7 @@ function App(){
   const [week,setWeek]=useState(null);
   const [history,setHistory]=useState({});
   const [extra,setExtra]=useState([]);
+  const [guestHistory,setGuestHistory]=useState([]);
   const {ready,read,write,push,del}=useDB();
   const fullRoster=[...ROSTER,...extra];
 
@@ -1755,21 +2081,12 @@ function App(){
     const u=[];
     u.push(read('week',v=>setWeek(v)));
     u.push(read('history',v=>setHistory(v||{})));
-    u.push(read('extraPlayers',v=>setExtra(v ? Object.values(v) : [])));
+    u.push(read('extraPlayers',v=>setExtra(v||[])));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
   function createWeek(data){
     write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});
-  }
-
-  function clearWeek(){
-    const emptyWeek = {activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}};
-    if(isDemo){
-      setWeek(emptyWeek);
-    } else {
-      write('week', emptyWeek);
-    }
   }
 
   function archiveDay(day){
@@ -1815,6 +2132,17 @@ function App(){
   function addPlayer(p){
     const newExtra=[...extra,{...p,id:1000+extra.length+1}];
     write('extraPlayers',newExtra);
+    if(p.isGuest){
+      // Track guest in separate guest history
+      const guestEntry={name:p.name,addedAt:Date.now(),rounds:1};
+      const existing=guestHistory.find(g=>g.name===p.name);
+      if(existing){
+        const updated=guestHistory.map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
+        write('guests',updated);
+      } else {
+        write('guests',[...guestHistory,guestEntry]);
+      }
+    }
   }
   function removePlayer(id){write('extraPlayers',extra.filter(p=>p.id!==id));}
   function toggleLock(day,locked){const nw={...week,locked:{...(week.locked||{}),[day]:locked}};if(isDemo){setWeek(nw);}else write('week',nw);}
@@ -1955,7 +2283,9 @@ function App(){
           onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}}
           onUpdateTeeTime={updateTeeTime}
           onDeactivateDay={deactivateDay}
-          onClearWeek={clearWeek}/>}
+          onClearWeek={clearWeek}
+          onGoTo={t=>setTab(t)}
+          guestHistory={guestHistory}/>}
       </div>
     </div>
   );
