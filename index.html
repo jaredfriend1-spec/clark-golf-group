@@ -461,11 +461,6 @@ function makeDemoData(){
   ];
   const pc=DEMO_PLAYERS.length;
   const pot=calcPot(pc);
-  // Pre-built realistic scoring scenario:
-  // Team One wins Front 9 outright (-4)
-  // Team Three wins Back 9 outright (-5)
-  // Team Two and Team Four TIE Overall (-3 each) -> split pot
-  // Skins: Team One 2 skins, Team Three 1 skin
   const teamScores={
     1:{front:-4,back:-2,overall:-6},
     2:{front:-1,back:-3,overall:-4},
@@ -715,8 +710,6 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         const daySignups=Object.entries(allSignups).filter(([,s])=>s.day===day).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);
         const cnt=daySignups.length;
         const teeInfo=week.teeTimes&&week.teeTimes[day];
-        const dayTeams=week.teams&&week.teams[day];
-        const dayScores=week.scores&&week.scores[day];
         const dayComplete=week.complete&&week.complete[day];
         const dayLocked=week.locked&&week.locked[day];
         const isOpen=expanded[day];
@@ -961,7 +954,6 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
   const [activeDay,setActiveDay]=useState(null);
   const [editTeams,setEditTeams]=useState(null);
   const [drag,setDrag]=useState(null);
-  const [teamDrag,setTeamDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
@@ -1007,14 +999,13 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
     setEditTeams(built);
   }
 
-  function dropTeam(toIdx){
-    if(teamDrag===null||!isAdmin||published)return;
-    const base=editTeams||savedTeams;
-    const reordered=[...base];
-    const [moved]=reordered.splice(teamDrag,1);
-    reordered.splice(toIdx,0,moved);
+  function moveTeam(fromIdx, toIdx){
+    if(fromIdx === toIdx) return;
+    const base = editTeams || savedTeams;
+    const reordered = [...base];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
     setEditTeams(reordered);
-    setTeamDrag(null);
   }
 
   function drop(ti,pi){
@@ -1080,7 +1071,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
           </div>
           <div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>
             <strong>1.</strong> Drag players (⋮) to rebalance.<br/>
-            <strong>2.</strong> Drag the dark team headers to set the tee order.<br/>
+            <strong>2.</strong> Use the Group dropdowns to set the tee order.<br/>
             <strong>3.</strong> Click <b>Publish & Lock</b> to finalize names and lock sign-ups.
           </div>
         </div>
@@ -1095,33 +1086,54 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
 
       {display.length>0&&isAdmin&&!published&&(
         <div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>
-          Drag team cards to set tee order - Team One goes first
+          Use the dropdowns to set tee order - Group 1 goes first
         </div>
       )}
 
       {display.map((team,ti)=>{
         const hasBlind=team.players.length<(display.length>0?Math.ceil(cnt/display.length):4)&&cnt>0;
         const blindDraw=team.blindDraw;
-        const teamNameDisplay = published ? team.name : `Group ${ti + 1} - ${teamLabel(team)}`;
+        const teamNameDisplay = published ? team.name : teamLabel(team);
 
         return(
-          <div key={team.id || ti} className="team-card"
-            draggable={!!(!published && isAdmin)}
-            onDragStart={(e)=>{
-              if(isAdmin && !published) {
-                if(!editTeams) setEditTeams(savedTeams);
-                setTeamDrag(ti);
-              }
-            }}
-            onDragOver={e=>e.preventDefault()}
-            onDrop={(e)=>{
-              e.stopPropagation();
-              dropTeam(ti);
-            }}
-            style={{opacity:teamDrag===ti?0.5:1}}>
-            <div className="team-hdr" style={{cursor:(!published&&isAdmin)?'grab':'default'}}>
-              <span className="team-nm" style={{fontSize: published ? 16 : 14}}>{teamNameDisplay}</span>
-              <span className="team-hcp">HCP {(team.totalHcp||0).toFixed(1)}</span>
+          <div key={team.id || ti} className="team-card">
+            <div className="team-hdr">
+              <div style={{display:'flex', alignItems:'center', gap: 8, flex: 1, minWidth: 0}}>
+                {isAdmin && !published ? (
+                  <div style={{display:'flex', alignItems:'center', gap: 6}}>
+                    <span style={{color: '#94a3b8', fontSize: 12, fontWeight: 700}}>GROUP</span>
+                    <select
+                      value={ti}
+                      onChange={e => {
+                        if(!editTeams) setEditTeams(savedTeams);
+                        moveTeam(ti, parseInt(e.target.value, 10));
+                      }}
+                      style={{
+                        background: '#1e293b',
+                        color: '#fff',
+                        border: '1px solid #334155',
+                        borderRadius: 4,
+                        padding: '2px 4px',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {display.map((_, idx) => (
+                        <option key={idx} value={idx}>{idx + 1}</option>
+                      ))}
+                    </select>
+                    <span style={{color: '#475569'}}>|</span>
+                  </div>
+                ) : (
+                  !published && <span style={{fontSize: 14, fontWeight: 700, color: '#fff', marginRight: 4}}>Group {ti + 1} - </span>
+                )}
+                <span className="team-nm" style={{fontSize: published ? 16 : 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                  {teamNameDisplay}
+                </span>
+              </div>
+              <span className="team-hcp" style={{flexShrink: 0, marginLeft: 8}}>HCP {(team.totalHcp||0).toFixed(1)}</span>
             </div>
             {safeArray(team.players).map((p,pi)=>(
               <div key={pi} className="team-row"
@@ -1184,6 +1196,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onToggleLock,myName}
         );
       })}
 
+      {/* Blind draw assignment modal */}
       {blindModal&&(
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setBlindModal(null);}}>
           <div className="modal">
@@ -2128,7 +2141,6 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
     </div>
   );
 }
-
 
 function App(){
   const [role,setRole]=useState(null);
