@@ -2045,6 +2045,8 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       )}
 
+      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
+
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <div className="slbl" style={{marginBottom:0}}>This week - {getWeekLabel()}</div>
@@ -2083,11 +2085,15 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
               {isActive&&!isEditing&&!teeInfo&&(
                 <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>No tee time set</div>
               )}
-              {isActive&&!isEditing&&(
-                <button className="btn btn-green btn-sm" style={{width:'100%',marginTop:8}} onClick={()=>setWizDay(wizDay===day?null:day)}>
-                  {wizDay===day?'Close setup':'Set up '+day}
-                </button>
-              )}
+              <button className="btn btn-green btn-sm" style={{width:'100%',marginTop:8}} onClick={()=>{
+                if(!isActive){
+                  const newWeek={...week,activeDays:[...(week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
+                  onCreate(newWeek);
+                }
+                setWizDay(wizDay===day?null:day);
+              }}>
+                {wizDay===day?'Close setup':'Set up '+day}
+              </button>
               {wizDay===day&&(
                 <SetupWizard
                   day={day}
