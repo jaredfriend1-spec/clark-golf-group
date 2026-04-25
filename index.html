@@ -1806,18 +1806,6 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
     }
   }
 
-  function clearWeek(){
-    if(isDemo){
-      setWeek({activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}});
-    } else {
-      write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}});
-    }
-  }
-  function deactivateDay(day){
-    onDeactivateDay(day);
-    setWarnDeact(null);
-  }
-
   function saveDayTeeTime(day){
     const e=dayEdit[day]||{};
     if(e.lottery){
@@ -2081,6 +2069,11 @@ function App(){
 
   function createWeek(data){
     write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});
+  }
+
+  function clearWeek(){
+    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}};
+    if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);
   }
 
   function archiveDay(day){
