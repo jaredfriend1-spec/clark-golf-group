@@ -961,7 +961,6 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
-  const [showPaid,setShowPaid]=useState(false);
   const [teamDrag,setTeamDrag]=useState(null);
   const [showOrder,setShowOrder]=useState(false);
   const [copied,setCopied]=useState(false);
@@ -1065,8 +1064,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
         </div>
       )}
 
-      {/* Payment tracking toggle */}
-      {(display||[]).length>0&&<PaymentBar display={display} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
+
 
       {isAdmin&&(
         <div className="admin-bar">
@@ -1245,16 +1243,17 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
   );
 }
 
-function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,onReopenDay,onCalcPayouts,isDemo}){
+function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,onReopenDay,onCalcPayouts,isDemo,onUpdatePaid,myName}){
   const [activeDay,setActiveDay]=useState(null);
   const [ts,setTs]=useState({});
   const [sk,setSk]=useState({});
-  const [fp,setFp]=useState(2);const [bp,setBp]=useState(2);const [op,setOp]=useState(2);
+  const [fp,setFp]=useState(1);const [bp,setBp]=useState(1);const [op,setOp]=useState(1);
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
   const [justSaved,setJustSaved]=useState(false);
   const [forceRefresh,setForceRefresh]=useState(0);
   const [drawAdj,setDrawAdj]=useState('');
   const [showDrawAdj,setShowDrawAdj]=useState(false);
+  const [showPaid,setShowPaid]=useState(false);
   const [f1v,setF1v]=useState('');const [f2v,setF2v]=useState('');
   const [b1v,setB1v]=useState('');const [b2v,setB2v]=useState('');
   const [o1v,setO1v]=useState('');const [o2v,setO2v]=useState('');
@@ -1347,6 +1346,9 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
           {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button>}
         </div>
       )}
+
+      {/* Payment tracking */}
+      {dayTeams.length>0&&<PaymentBar display={dayTeams} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
 
       {/* ADMIN: Pot setup */}
       {isAdmin&&(
@@ -2044,6 +2046,8 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
 
 
 
+      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
+
       {clearConfirm&&(
         <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}>
           <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:5}}>Clear all data for this week?</div>
@@ -2056,8 +2060,6 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       )}
 
       
-
-      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
 
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
@@ -2478,7 +2480,9 @@ function App(){
           onCalcPayouts={calcPayouts}
           onMoveToHistory={moveToHistory}
           onMarkComplete={markComplete}
-          onReopenDay={reopenDay}/>}
+          onReopenDay={reopenDay}
+          onUpdatePaid={updatePaid}
+          myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin}
           onDelete={k=>del('history/'+k)}
           onClearAll={()=>write('history',{})}
