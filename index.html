@@ -346,6 +346,8 @@ function useDB(){
 }
 
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const lastName=n=>(n||'').split(' ').pop();
+const teamLabel=t=>(t.players||[]).map(p=>lastName(p.name)).join(', ');
 const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2));};
 const td=()=>new Date().toISOString().split('T')[0];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1155,7 +1157,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
             onDrop={()=>dropTeam(ti)}
             style={{opacity:teamDrag===ti?0.5:1,cursor:isAdmin?'grab':'default'}}>
             <div className="team-hdr">
-              <span className="team-nm">{team.name}</span>
+              <span className="team-nm">{published?team.name:teamLabel(team)}</span>
               <span className="team-hcp">HCP {team.totalHcp.toFixed(1)}</span>
             </div>
             {team.players.map((p,pi)=>(
@@ -1519,33 +1521,21 @@ function ScoringView({week,isAdmin,onSaveScores,onMoveToHistory,onMarkComplete,o
         </div>
       )}
 
-      {/* ADMIN: 3-step action buttons */}
+      {/* ADMIN: 2-step action buttons */}
       {isAdmin&&!isDemo&&(
         <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
-          {/* Step 1: Save Scores */}
-          <button className="btn btn-dark btn-full" onClick={saveScores}>
-            {scoresSaved?'Update Scores':'Save Scores - Players Can See Live'}
+          <button className="btn btn-dark btn-full" onClick={()=>{saveScores();calculatePayouts();}}>
+            {scoresSaved?'Update & Publish Results':'Save & Publish Results'}
           </button>
-          {justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores now.</div>}
-
-          {/* Step 2: Calculate Payouts */}
+          {justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores and payouts.</div>}
           {scoresSaved&&(
-            <button className="btn btn-gold btn-full" onClick={calculatePayouts} disabled={!ok&&alloc>0}>
-              {payoutsCalculated?'Recalculate Payouts':'Calculate Payouts'}
-            </button>
-          )}
-
-          {/* Step 3: Move to History */}
-          {payoutsCalculated&&(
             <button className="btn btn-outline btn-full" onClick={()=>onMoveToHistory(activeDay)}>
               Move to History
             </button>
           )}
-
-          {/* Reopen */}
           {scoresSaved&&(
             <button className="btn btn-outline btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>
-              Reopen / Edit Scores
+              Edit Scores
             </button>
           )}
         </div>
@@ -1939,7 +1929,7 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
                 }}>
                 <div style={{width:24,height:24,borderRadius:50,background:'#0f172a',color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'"Barlow Condensed",sans-serif'}}>{idx+1}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',textDecoration:'line-through'}}>{team.name}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',textDecoration:'line-through'}}>{teamLabel(team)}</div>
                   <div style={{fontSize:13,fontWeight:700,color:'#10b981'}}>{names[idx]||('Team '+(idx+1))}</div>
                 </div>
                 <span style={{color:'#cbd5e1',fontSize:16}}>:</span>
@@ -1963,7 +1953,7 @@ function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTim
             const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
             return(
               <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:13}}>
-                <span style={{fontWeight:400,color:'#94a3b8',textDecoration:'line-through',flex:1}}>{team.name}</span>
+                <span style={{fontWeight:400,color:'#94a3b8',textDecoration:'line-through',flex:1}}>{teamLabel(team)}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 <span style={{fontWeight:700,color:'#10b981',flex:1}}>{names[idx]||('Team '+(idx+1))}</span>
               </div>
