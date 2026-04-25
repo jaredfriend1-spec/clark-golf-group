@@ -765,11 +765,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                   <div key={key} className="p-row">
                     <div className="avi">{ini(s.name)}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div className="p-name">
-                      {s.name}
-                      {s.isGuest&&<span className="guest-tag">Guest</span>}
-                      <TeamBadge name={s.name} week={week} day={day}/>
-                    </div>
+                      <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}</div>
                       {editKey===key?(
                         <div className="ie">
                           <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
@@ -964,6 +960,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);
   const [showPaid,setShowPaid]=useState(false);
+  const [teamDrag,setTeamDrag]=useState(null);
   const [showOrder,setShowOrder]=useState(false);
   const [copied,setCopied]=useState(false);
   const [groupOrder,setGroupOrder]=useState([]);
@@ -974,7 +971,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
     const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
     const teeStr=teeInfo?'First Tee: '+(teeInfo.lottery?'Lottery':teeInfo.time):'';
     const dateStr=week&&week.dates&&week.dates[activeDay]?fmtD(week.dates[activeDay]):'';
-    const ordered=groupOrder.length>0?groupOrder.map(id=>display.find(t=>t.id===id)).filter(Boolean):display;
+    const ordered=display;
     const nl=String.fromCharCode(10);
     let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
     ordered.forEach((team,i)=>{
@@ -993,12 +990,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
     if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
   },[activeDays.join(',')]);
 
-  useEffect(()=>{
-    const st=(week&&week.teams&&week.teams[activeDay])||[];
-    if(st.length>0&&groupOrder.length===0){
-      setGroupOrder(st.map(t=>t.id));
-    }
-  },[activeDay,week]);
+
 
   if(!week||activeDays.length===0){
     return<div className="empty"><div className="empty-title">No active games</div></div>;
@@ -1024,6 +1016,16 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
     u[ti].players.splice(pi,0,p);
     u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});
     setEditTeams(u);setDrag(null);
+  }
+
+  function dropTeam(toIdx){
+    if(teamDrag===null||!isAdmin)return;
+    const base=editTeams||savedTeams;
+    const reordered=[...base];
+    const [moved]=reordered.splice(teamDrag,1);
+    reordered.splice(toIdx,0,moved);
+    setEditTeams(reordered);
+    setTeamDrag(null);
   }
 
   function savePlayerEdit(ti,pi){
@@ -1136,11 +1138,22 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
         </div>
       )}
 
+      {display.length>0&&isAdmin&&(
+        <div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>
+          Drag team cards to set tee order - Team One goes first
+        </div>
+      )}
+
       {display.map((team,ti)=>{
         const hasBlind=team.players.length<(display.length>0?Math.ceil(cnt/display.length):4)&&cnt>0;
         const blindDraw=team.blindDraw;
         return(
-          <div key={team.id} className="team-card">
+          <div key={team.id} className="team-card"
+            draggable={!!isAdmin}
+            onDragStart={()=>{if(isAdmin)setTeamDrag(ti);}}
+            onDragOver={e=>e.preventDefault()}
+            onDrop={()=>dropTeam(ti)}
+            style={{opacity:teamDrag===ti?0.5:1,cursor:isAdmin?'grab':'default'}}>
             <div className="team-hdr">
               <span className="team-nm">{team.name}</span>
               <span className="team-hcp">HCP {team.totalHcp.toFixed(1)}</span>
@@ -1994,7 +2007,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
     if(isActive){
       const cnt=allSignups.filter(([,s])=>s.day===day).length;
       if(cnt>0){setWarnDeact({day,cnt});return;}
-      deactivateDay(day);
+      onDeactivateDay(day);
     } else {
       // Activate day - add to activeDays with auto date
       const newWeek={...week,activeDays:[...(week&&week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
@@ -2039,9 +2052,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       </div>
 
-      <AdminChecklist week={week} activeDays={activeDays} onGoTo={tab=>{
-        if(tab==='home'||tab==='teams')onGoTo(tab);
-      }}/>
+
 
       {clearConfirm&&(
         <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}>
@@ -2055,6 +2066,8 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       )}
 
       
+
+      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
 
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
@@ -2080,7 +2093,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
                     <button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>
                   )}
                   <button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>
-                    {wizDay===day?'Close':'Set up '+day}
+                    {wizDay===day?'Close':((week&&week.teeTimes&&week.teeTimes[day])||(week&&week.locked&&week.locked[day])||(week&&week.teams&&week.teams[day]&&week.teams[day].length>0)?'Continue set up':'Set up '+day)}
                   </button>
                 </div>
               </div>
@@ -2131,7 +2144,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
           <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players.</div>
           <div style={{display:'flex',gap:8}}>
-            <button className="btn btn-red btn-sm" onClick={()=>deactivateDay(warnDeact.day)}>Deactivate anyway</button>
+            <button className="btn btn-red btn-sm" onClick={()=>onDeactivateDay(warnDeact.day)}>Deactivate anyway</button>
             <button className="btn btn-outline btn-sm" onClick={()=>setWarnDeact(null)}>Keep active</button>
           </div>
         </div>
