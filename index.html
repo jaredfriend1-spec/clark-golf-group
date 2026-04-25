@@ -383,14 +383,60 @@ function calcPot(playerCount){
 function TeamBadge({name,week,day}){
   const dayTeams=safeArray(week?.teams?.[day]);
   const published=week?.teamsPublished?.[day];
-  if(!dayTeams.length||!published) return null;
+  if(!dayTeams.length||!published)return null;
   const team=dayTeams.find(t=>safeArray(t.players).some(p=>p.name===name));
-  if(!team) return null;
+  if(!team)return null;
   return <span className="team-badge">{team.name}</span>;
 }
 
-// -- VIEWS ------------------------------------------------------------------
+// -- LANDING ------------------------------------------------------------------
+function Landing({onPlayer,onAdmin}){
+  const [showPw,setShowPw]=useState(false);
+  const [pw,setPw]=useState('');
+  const [err,setErr]=useState(false);
+  function tryAdmin(){
+    if(pw.toLowerCase()===ADMIN_PW){onAdmin();}
+    else{setErr(true);setTimeout(()=>setErr(false),1500);}
+  }
+  return(
+    <div className="land">
+      <div style={{width:'100%',maxWidth:360}}>
+        <div className="land-title">Clark <em>Golf</em> Group</div>
+        <div className="land-week">{getWeekLabel()}</div>
+        {!showPw?(
+          <div>
+            <button className="land-btn land-btn-player" onClick={onPlayer}>
+              <div className="land-btn-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div className="land-btn-text"><span className="land-btn-main">I am a Player</span><span className="land-btn-sub">Sign up, view teams, see results</span></div>
+              <span className="land-arrow">></span>
+            </button>
+            <button className="land-btn land-btn-admin" onClick={()=>{setShowPw(true);setPw('');}}>
+              <div className="land-btn-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div className="land-btn-text"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
+              <span className="land-arrow">></span>
+            </button>
+          </div>
+        ):(
+          <div className="pw-box">
+            <div className="pw-label">Admin Password</div>
+            <input autoFocus type="password" className={'pw-input'+(err?' err':'')} placeholder="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryAdmin()}/>
+            {err&&<div className="pw-err">Wrong password - try again</div>}
+            <div className="pw-row">
+              <button className="pw-go" onClick={tryAdmin}>Sign In</button>
+              <button className="pw-back" onClick={()=>{setShowPw(false);setPw('');}}>Back</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
+// -- WEEK VIEW ------------------------------------------------------------------
 function WeekView({week,isAdmin,onSignup,onRemove}){
   const [showSignup,setShowSignup]=useState(false);
   const [sel,setSel]=useState('');
@@ -428,7 +474,7 @@ function WeekView({week,isAdmin,onSignup,onRemove}){
               </div>
             ))}
             <div className="card-pad">
-              {!locked && <button className="btn btn-green btn-full" onClick={()=>{setQ(''); setShowSignup(day);}}>+ Sign Up</button>}
+              {!locked && <button className="btn btn-green btn-full" onClick={()=>{setQ(''); setSel(''); setHcp(''); setShowSignup(day);}}>+ Sign Up</button>}
             </div>
           </div>
         );
@@ -465,6 +511,7 @@ function WeekView({week,isAdmin,onSignup,onRemove}){
   );
 }
 
+// -- TEAMS VIEW ------------------------------------------------------------------
 function TeamsView({week}){
   const [activeDay,setActiveDay]=useState(null);
   const activeDays=sortDays(week?.activeDays);
@@ -479,44 +526,50 @@ function TeamsView({week}){
       <div className="tog">
         {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
       </div>
-      {teams.map((t,i) => (
-        <div key={i} className="team-card">
-          <div className="team-hdr">
-            <span className="team-nm">{published ? t.name : `Group ${i+1} - ${safeArray(t.players).map(p=>lastName(p.name)).join(', ')}`}</span>
-            <span style={{color:'#10b981', fontSize:12}}>HCP {(t.totalHcp||0).toFixed(1)}</span>
-          </div>
-          {safeArray(t.players).map((p,pi)=>(
-            <div key={pi} className="p-row">
-              <div className="avi">{ini(p.name)}</div>
-              <div style={{flex:1}}>{p.name} <span style={{fontSize:11,color:'#94a3b8'}}>({p.tee})</span></div>
-              <div style={{fontWeight:700}}>{p.handicap}</div>
+      {teams.map((t,i) => {
+        const tName = published ? t.name : `Group ${i+1} - ${safeArray(t.players).map(p=>lastName(p.name)).join(', ')}`;
+        return (
+          <div key={i} className="team-card">
+            <div className="team-hdr">
+              <span className="team-nm">{tName}</span>
+              <span style={{color:'#10b981', fontSize:12}}>HCP {(t.totalHcp||0).toFixed(1)}</span>
             </div>
-          ))}
-        </div>
-      ))}
+            {safeArray(t.players).map((p,pi)=>(
+              <div key={pi} className="p-row">
+                <div className="avi">{ini(p.name)}</div>
+                <div style={{flex:1}}>{p.name} <span style={{fontSize:11,color:'#94a3b8'}}>({p.tee})</span></div>
+                <div style={{fontWeight:700}}>{p.handicap}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function PaymentBar({display,week,activeDay,onUpdatePaid}){
+// -- SCORING VIEW ------------------------------------------------------------------
+function PaymentBar({display,week,activeDay,onUpdatePaid,isAdmin}){
   const players = safeArray(display).flatMap(t=>safeArray(t.players));
   const paidCount = players.filter(p=>week?.paid?.[activeDay]?.[p.name]).length;
   return (
     <div className="card card-pad" style={{background:'#ecfdf5', borderColor:'#10b981', marginBottom:15}}>
       <div style={{fontWeight:700, fontSize:13}}>{paidCount} of {players.length} Paid — {f$(paidCount*25)} Collected</div>
-      <div style={{marginTop:10}}>
-        {players.map(p => {
-          const paid = !!week?.paid?.[activeDay]?.[p.name];
-          return (
-            <div key={p.name} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:12}}>
-              <span>{p.name}</span>
-              <button className="chk-action" onClick={()=>onUpdatePaid(activeDay,p.name,!paid)} style={{background:paid?'#10b981':'#fff', color:paid?'#fff':'#10b981', border:'1px solid #10b981'}}>
-                {paid?'Paid':'Mark Paid'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      {isAdmin && (
+        <div style={{marginTop:10}}>
+          {players.map(p => {
+            const paid = !!week?.paid?.[activeDay]?.[p.name];
+            return (
+              <div key={p.name} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:12}}>
+                <span>{p.name}</span>
+                <button className="chk-action" onClick={()=>onUpdatePaid(activeDay,p.name,!paid)} style={{background:paid?'#10b981':'#fff', color:paid?'#fff':'#10b981', border:'1px solid #10b981'}}>
+                  {paid?'Paid':'Mark Paid'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -537,7 +590,7 @@ function ScoringView({week,isAdmin,onSaveScores,onUpdatePaid}){
       <div className="tog">
         {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
       </div>
-      {isAdmin && <PaymentBar display={teams} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
+      {isAdmin && <PaymentBar display={teams} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid} isAdmin={isAdmin}/>}
       <div className="card card-pad">
         <div className="slbl">Enter Team Scores</div>
         {teams.map(t=>(
@@ -556,6 +609,7 @@ function ScoringView({week,isAdmin,onSaveScores,onUpdatePaid}){
   );
 }
 
+// -- ADMIN VIEW ------------------------------------------------------------------
 function AdminChecklist({week}){
   const activeDays = sortDays(week?.activeDays);
   return (
@@ -593,7 +647,7 @@ function SetupWizard({day,week,onSaveTeams,onPublishTeams,onToggleLock,onUpdateT
   const [wizTeams,setWizTeams]=useState([]);
   const signups = safeArray(week?.signups).filter(s=>s.day===day);
 
-  function publish(){
+  function finish(){
     const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six'];
     const final = wizTeams.map((t,i)=>({...t, name:names[i]||`Team ${i+1}`}));
     onSaveTeams(day, final);
@@ -648,6 +702,7 @@ function AdminView({week,onSaveTeams,onPublishTeams,onToggleLock,onClearWeek,onC
   );
 }
 
+// -- APP COMPONENT ------------------------------------------------------------------
 function App(){
   const [role,setRole]=useState(null);
   const [tab,setTab]=useState('home');
@@ -668,7 +723,7 @@ function App(){
     write('week', empty);
   }
 
-  if(!role) return <Landing onPlayer={()=>setRole('player')} onAdmin={()=>setRole('admin')} onDemoPlayer={()=>setRole('player')} onDemoAdmin={()=>setRole('admin')}/>;
+  if(!role) return <Landing onPlayer={()=>setRole('player')} onAdmin={()=>setRole('admin')}/>;
 
   return (
     <div className="app">
