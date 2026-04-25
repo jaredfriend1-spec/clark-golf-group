@@ -2144,7 +2144,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
           <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players.</div>
           <div style={{display:'flex',gap:8}}>
-            <button className="btn btn-red btn-sm" onClick={()=>onDeactivateDay(warnDeact.day)}>Deactivate anyway</button>
+            <button className="btn btn-red btn-sm" onClick={()=>{onDeactivateDay(warnDeact.day);setWarnDeact(null);}}>Deactivate anyway</button>
             <button className="btn btn-outline btn-sm" onClick={()=>setWarnDeact(null)}>Keep active</button>
           </div>
         </div>
