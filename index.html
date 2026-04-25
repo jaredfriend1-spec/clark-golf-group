@@ -1997,7 +1997,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
       deactivateDay(day);
     } else {
       // Activate day - add to activeDays with auto date
-      const newWeek={...week,activeDays:[...activeDays,day],dates:{...(week.dates||{}),[day]:wd[day]}};
+      const newWeek={...week,activeDays:[...(week&&week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
   }
@@ -2005,7 +2005,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
   function handleSetupDay(day){
     const isAct=(activeDays||[]).includes(day);
     if(!isAct){
-      const newWeek={...week,activeDays:[...(week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
+      const newWeek={...week,activeDays:[...(week&&week.activeDays||[]),day],dates:{...((week&&week.dates)||{}),[day]:wd[day]}};
       onCreate(newWeek);
     }
     setWizDay(wizDay===day?null:day);
@@ -2054,7 +2054,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
       )}
 
-      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
+      
 
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
@@ -2063,6 +2063,8 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         {DAYS_OF_WEEK.map((day,di)=>{
           const isActive=activeDays.includes(day);
           const teeInfo=week&&week.teeTimes&&week.teeTimes[day];
+          const edit=dayEdit[day]||{};
+          const isEditing=edit.editing;
           return(
             <div key={day} style={{borderTop:di>0?'1px solid #f1f5f9':'none',paddingTop:di>0?12:0,marginTop:di>0?12:0}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
@@ -2269,7 +2271,7 @@ function App(){
     const u=[];
     u.push(read('week',v=>setWeek(v)));
     u.push(read('history',v=>setHistory(v||{})));
-    u.push(read('extraPlayers',v=>setExtra(v||[])));
+    u.push(read('extraPlayers',v=>setExtra(v?Object.values(v):[])));
     u.push(read('guests',v=>setGuestHistory(v?(Array.isArray(v)?v:Object.values(v)):[]),));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
