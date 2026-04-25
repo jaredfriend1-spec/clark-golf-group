@@ -15,64 +15,273 @@
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
 #root{min-height:100%}
 .app{max-width:430px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
+
+/* LANDING */
 .land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px}
 .land-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#fff;text-align:center;line-height:1.1;margin-bottom:4px}
 .land-title em{color:#10b981;font-style:normal}
 .land-week{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:36px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
 .land-btn{width:100%;padding:16px 18px;border-radius:12px;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all 0.15s;text-align:left}
+.land-btn:active{transform:scale(0.98)}
 .land-btn-player{background:#10b981;color:#0f172a;border-bottom:3px solid #059669}
 .land-btn-admin{background:#dc2626;color:#fff;border:1px solid #b91c1c;border-bottom:3px solid #991b1b}
 .land-btn-demo{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);margin-top:4px}
 .land-btn-demo2{background:rgba(251,191,36,0.18);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);margin-top:4px}
+.land-demo-divider{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);text-align:center;letter-spacing:0.12em;text-transform:uppercase;margin:14px 0 8px}
 .land-btn-icon{width:36px;height:36px;border-radius:8px;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .land-btn-icon svg{width:17px;height:17px}
 .land-btn-text{flex:1}
 .land-btn-main{font-size:14px;font-weight:700;display:block}
 .land-btn-sub{font-size:11px;font-weight:500;opacity:0.55;display:block;margin-top:1px}
+.land-arrow{font-size:18px;opacity:0.35}
 .pw-box{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px}
-.pw-input{width:100%;padding:13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;outline:none;text-align:center;margin-bottom:10px}
+.pw-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-align:center;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px}
+.pw-input{width:100%;padding:13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;text-align:center;letter-spacing:0.12em;margin-bottom:10px}
+.pw-input.err{border-color:#f87171}
+.pw-err{color:#f87171;font-size:12px;font-weight:600;text-align:center;margin-bottom:8px}
+.pw-row{display:flex;gap:8px}
+.pw-go{flex:1;padding:12px;background:#10b981;color:#0f172a;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.pw-back{padding:12px 14px;background:none;border:1px solid rgba(255,255,255,0.14);border-radius:9px;color:rgba(255,255,255,0.45);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+
+/* HEADER */
 .hdr{background:#0f172a;padding:20px 16px 0;position:relative;overflow:hidden}
 .hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:18px;background:#fff;border-radius:18px 18px 0 0}
 .hdr-inner{position:relative;z-index:1;padding-bottom:22px}
-.hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:#fff}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:#fff;line-height:1.15}
 .hdr-brand em{color:#10b981;font-style:normal}
+.hdr-week{font-size:11px;font-weight:600;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:3px}
+.hdr-right{display:flex;align-items:center;gap:5px}
+.admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.demo-tag{background:#10b981;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 .hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
 .hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 6px;text-align:center}
 .hdr-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#10b981}
-.hdr-stat-l{font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase}
+.hdr-stat-l{font-size:11px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:2px}
+.hdr-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.65)}
+.hdr-dot{width:5px;height:5px;border-radius:50%;background:#10b981;flex-shrink:0}
+
+/* NAV */
 .nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0}
-.nb{flex:1;padding:12px 2px 10px;background:none;border:none;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;text-transform:uppercase;position:relative}
+.nb{flex:1;padding:12px 2px 10px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
+.nb svg{width:19px;height:19px;flex-shrink:0}
 .nb.on{color:#0f172a}
-.nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b}
-.content{flex:1;padding:18px 14px 56px}
+.nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
+.nb.locked{opacity:0.3;cursor:not-allowed}
+.content{flex:1;padding:18px 14px 56px;line-height:1.5}
+
+/* CARDS */
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
 .card-pad{padding:14px}
-.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px}
+
+/* DAY CARDS */
+.day-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.day-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;user-select:none;-webkit-user-select:none}
+.day-hdr:active{background:#f8fafc}
+.day-left{flex:1;min-width:0}
+.day-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
+.day-sub{font-size:11px;color:#94a3b8;font-weight:500;margin-top:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tee-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
+.tee-tag.lottery{background:#fef3c7;color:#d97706}
+.tee-tag.set{background:#dcfce7;color:#15803d}
+.tee-tag.done{background:#dbeafe;color:#1d4ed8}
+.day-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.day-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.day-pill.has{background:#10b981;color:#fff}
+.day-pill.none{background:#f1f5f9;color:#94a3b8}
+.day-chev{width:15px;height:15px;color:#cbd5e1;transition:transform 0.2s;flex-shrink:0}
+.day-chev.open{transform:rotate(180deg)}
+.day-body{border-top:1px solid #f1f5f9}
+
+/* PLAYER ROWS */
 .p-row{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #f8fafc;gap:12px}
-.avi{width:36px;height:36px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.p-row:last-child{border-bottom:none}
+.avi{width:36px;height:36px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
+.p-name{font-size:14px;font-weight:600;color:#0f172a}
+.p-meta{font-size:12px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:3px}
+.tee-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.edit-btn{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:600;padding:0 2px;font-family:'DM Sans',sans-serif}
+.rm-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:4px;display:flex;flex-shrink:0;margin-left:auto}
+.rm-btn:hover{color:#ef4444}
+.rm-btn svg{width:14px;height:14px}
+.guest-tag{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px}
+.team-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle}
+
+/* INLINE EDIT */
+.ie{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}
+.ie input{width:52px;padding:3px 6px;border:1.5px solid #10b981;border-radius:6px;font-size:12px;font-weight:600;outline:none;font-family:'DM Sans',sans-serif}
+.ie select{padding:3px 5px;border:1.5px solid #10b981;border-radius:6px;font-size:11px;font-weight:500;outline:none;font-family:'DM Sans',sans-serif}
+.ie-save{font-size:11px;font-weight:700;color:#15803d;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ie-cancel{font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* SIGNUP BUTTON AREA */
+.day-actions{padding:13px 16px;display:flex;gap:8px;align-items:center;border-top:1px solid #f1f5f9}
+.signup-btn{padding:11px 18px;background:#10b981;color:#0f172a;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.teeadd-btn{padding:11px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#475569}
+
+/* STATS ROW */
 .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .stat-box{background:#0f172a;border-radius:10px;padding:11px 6px;text-align:center}
 .stat-n{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#10b981}
-.stat-l{font-size:11px;color:rgba(255,255,255,0.3);font-weight:600;text-transform:uppercase}
+.stat-l{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
+
+/* TEAM CARDS */
 .team-card{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
 .team-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a}
-.team-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff}
+.team-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0.02em}
+.team-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600}
+.team-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #f8fafc}
+.team-row:last-child{border-bottom:none}
+.slot{font-size:10px;font-weight:700;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;flex-shrink:0;min-width:20px;text-align:center}
+
+/* SCORE PICKER */
+.sc-grid{display:grid;grid-template-columns:1fr 78px 78px 78px;gap:7px;align-items:center}
+.sc-hd{font-size:11px;font-weight:700;color:#94a3b8;text-align:center;letter-spacing:0.07em;text-transform:uppercase}
 .sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#f8fafc}
-.sp button{background:none;border:none;cursor:pointer;font-size:18px;font-weight:700;color:#475569;padding:6px 10px}
-.sp-val{flex:1;text-align:center;font-size:15px;font-weight:700}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none}
+.sp button{background:none;border:none;cursor:pointer;font-size:18px;font-weight:700;color:#475569;padding:6px 10px;line-height:1;flex-shrink:0}
+.sp button:hover{background:#e2e8f0}
+.sp-val{flex:1;text-align:center;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;min-width:26px}
+.sp-val.neg{color:#15803d}
+.sp-val.pos{color:#dc2626}
+.sp-val.zero{color:#94a3b8}
+
+/* SKINS */
+.skin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:12px}
+.skin-btn{padding:16px 8px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;text-align:center;user-select:none;-webkit-user-select:none;transition:border-color 0.12s}
+.skin-btn:active{transform:scale(0.94)}
+.skin-btn.on{border-color:#10b981;background:#ecfdf5}
+.skin-team{font-size:11px;font-weight:700;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em}
+.skin-num{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;color:#0f172a;line-height:1}
+.skin-lbl{font-size:10px;color:#94a3b8;margin-top:3px}
+.skin-undo{font-size:10px;color:#ef4444;margin-top:4px;cursor:pointer;font-weight:700;text-transform:uppercase}
+
+/* PAYOUTS */
+.pay-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:13px}
+.pay-row:last-child{border-bottom:none}
+.pay-lbl{color:#475569;font-weight:500}
+.pay-amt{font-weight:600;font-family:'DM Sans',sans-serif;font-size:14px}
+.pay-amt.win{color:#15803d}
+.pay-amt.tie{color:#f59e0b}
+.pay-amt.fund{color:#f59e0b}
+.pay-total{display:flex;justify-content:space-between;padding:10px 0 0;font-size:15px;font-weight:600;border-top:2px solid #0f172a;margin-top:4px}
+
+/* HISTORY */
+.hi{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:9px;overflow:hidden}
+.hi-hdr{padding:12px 14px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.hi-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
+.hi-meta{font-size:11px;color:#94a3b8;font-weight:500;margin-top:2px}
+.hi-body{padding:13px 14px;border-top:1px solid #f1f5f9}
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f8fafc}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{width:24px;height:24px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif}
+.lb-rank.top{background:#f59e0b;color:#0f172a}
+.lb-name{flex:1;font-size:13px;font-weight:600;color:#0f172a}
+.lb-stat{font-size:11px;color:#94a3b8;text-align:right}
+.lb-money{font-size:14px;font-weight:700;color:#15803d;font-family:"Barlow Condensed",sans-serif;min-width:48px;text-align:right}
+
+/* ADMIN */
+.admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;margin-bottom:10px}
+.admin-lbl{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px}
+
+/* FORMS */
+.fg{margin-bottom:12px}
+.fl{font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block;letter-spacing:0.06em;text-transform:uppercase}
+.fi{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
+.fi:focus{border-color:#10b981}
+.fs{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;appearance:none}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw{position:relative;margin-bottom:8px}
+.sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
+.si{width:100%;padding:10px 12px 10px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;background:#f8fafc}
+.si:focus{border-color:#10b981;background:#fff}
+
+/* TOGGLE */
+.tog{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;margin-bottom:12px}
+.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.03em}
+.tog-opt.on{background:#0f172a;color:#fff}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;letter-spacing:0.01em}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+.btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
 .btn-green{background:#10b981;color:#0f172a}
+.btn-green:hover{background:#34d399}
 .btn-dark{background:#0f172a;color:#fff}
+.btn-dark:hover{background:#1e293b}
+.btn-gold{background:#f59e0b;color:#0f172a}
+.btn-gold:hover{background:#fbbf24}
+.btn-red{background:#ef4444;color:#fff}
+.btn-red:hover{background:#f87171}
 .btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569}
+.btn-outline:hover{background:#f8fafc}
+.btn-sm{padding:6px 11px;font-size:11px}
+.btn-xs{padding:4px 9px;font-size:10px}
 .btn-full{width:100%}
-.chk-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:12px;padding:12px}
-.chk-prog-wrap{height:4px;background:#f1f5f9;margin:8px 0;border-radius:2px}
+
+/* ALERTS */
+.alert{border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:500}
+.alert-ok{background:#ecfdf5;border:1px solid #bbf7d0;color:#15803d}
+.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.alert-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200}
+.modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:88vh;overflow-y:auto}
+.modal-handle{width:34px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;margin-bottom:13px;letter-spacing:0.01em}
+.p-pick{display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+.p-pick:last-child{border-bottom:none}
+.p-pick:hover{background:#f8fafc}
+.p-pick.sel{background:#ecfdf5}
+
+/* MISC */
+.slbl{font-size:11px;font-weight:600;letter-spacing:0.07em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
+.demo-bar{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.demo-lbl{font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.07em}
+.empty{text-align:center;padding:44px 16px}
+.empty svg{width:38px;height:38px;opacity:0.18;margin-bottom:11px}
+.empty-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px}
+.empty-sub{font-size:13px;color:#64748b;line-height:1.55}
+.pill-gray{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:10px;font-weight:600}
+.pill-green{display:inline-block;padding:1px 6px;background:#dcfce7;color:#15803d;border-radius:20px;font-size:10px;font-weight:600}
+.section-btn{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.section-title{font-size:14px;font-weight:600;color:#0f172a}
+.section-body{padding:13px}
+/* checkbox */
+.cb-row{display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer}
+.cb-row input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
+.cb-label{font-size:14px;font-weight:500;color:#0f172a}
+.cb-sub{font-size:11px;color:#94a3b8;font-weight:500}
+.wiz-step{background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden}
+.wiz-step-hdr{padding:13px 16px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.wiz-step-num{width:26px;height:26px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif}
+.wiz-step-num.done{background:#10b981;color:#fff}
+.wiz-step-num.active{background:#0f172a;color:#fff}
+.wiz-step-title{font-size:14px;font-weight:600;color:#0f172a;flex:1}
+.wiz-step-title.done{color:#94a3b8}
+.wiz-step-body{padding:0 16px 14px}
+.wiz-btn-row{display:flex;gap:8px;margin-top:12px}
+.chk-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.chk-hdr{padding:13px 16px 8px;display:flex;align-items:center;gap:8px}
+.chk-title{font-size:14px;font-weight:700;color:#0f172a;flex:1}
+.chk-prog-wrap{height:4px;background:#f1f5f9;margin:0 16px 4px;border-radius:2px}
 .chk-prog{height:4px;background:#10b981;border-radius:2px;transition:width 0.3s}
-.chk-item{display:flex;align-items:center;gap:12px;padding:8px 0}
-.chk-circle{width:20px;height:20px;border-radius:50%;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center}
+.chk-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #f8fafc}
+.chk-circle{width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
 .chk-circle.done{background:#10b981;border-color:#10b981}
-.chk-action{font-size:11px;font-weight:700;color:#10b981;background:#ecfdf5;padding:4px 10px;border-radius:20px;border:none}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;z-index:999}
+.chk-text{flex:1}
+.chk-label{font-size:13px;font-weight:600;color:#0f172a}
+.chk-label.done{color:#94a3b8;text-decoration:line-through}
+.chk-sub{font-size:11px;color:#94a3b8;margin-top:1px}
+.chk-action{font-size:11px;font-weight:700;color:#10b981;background:#ecfdf5;padding:5px 11px;border-radius:20px;white-space:nowrap;border:none;cursor:pointer;font-family:"DM Sans",sans-serif}
+.order-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f8fafc;background:#fff}
+.order-row:last-child{border-bottom:none}
+.order-num{width:26px;height:26px;border-radius:50%;background:#0f172a;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif}
+.order-handle{color:#cbd5e1;cursor:grab;font-size:16px;padding:4px;flex-shrink:0}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:8px;animation:toastIn 0.25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -118,16 +327,15 @@ const TEES=['Blends','Whites','Golds','SGA'];
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const ADMIN_PW='clark';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday'];
-const sortDays=days=>[...days].sort((a,b)=>DAYS_OF_WEEK.indexOf(a)-DAYS_OF_WEEK.indexOf(b));
+const sortDays=days=>[...safeArray(days)].sort((a,b)=>DAYS_OF_WEEK.indexOf(a)-DAYS_OF_WEEK.indexOf(b));
 const safeArray=arr=>Array.isArray(arr)?arr:Object.values(arr||{});
-const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
-const LS={g:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const lastName=n=>(n||'').split(' ').pop();
 
 function useDB(){
   const [db,setDb]=useState(null);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
-    try{if(!firebase.apps.length)firebase.initializeApp(FB);setDb(firebase.database());setReady(true);}
+    try{if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"});setDb(firebase.database());setReady(true);}
     catch(e){setReady(true);}
   },[]);
   const read=useCallback((p,cb)=>{if(!db){cb(LS.g(p));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
@@ -143,27 +351,18 @@ const td=()=>new Date().toISOString().split('T')[0];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy);};
 
-function getWeekDates(){
+function getWeekLabel(){
   const now=new Date();
   const day=now.getDay();
   const mon=new Date(now);mon.setDate(now.getDate()-day+(day===0?-6:1));
   const fri=new Date(mon);fri.setDate(mon.getDate()+4);
-  const sat=new Date(mon);sat.setDate(mon.getDate()+5);
   const sun=new Date(mon);sun.setDate(mon.getDate()+6);
-  const fmt=d=>d.toISOString().split('T')[0];
-  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun)};
-}
-
-function getWeekLabel(){
-  const wd=getWeekDates();
-  return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);
+  return'Week of '+fmtD(fri.toISOString().split('T')[0])+' - '+fmtD(sun.toISOString().split('T')[0]);
 }
 
 function buildTeams(players){
   const sorted=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
-  const n=sorted.length;
-  if(n<3)return[];
-  const nt=Math.ceil(n/4);
+  const nt=Math.ceil(sorted.length/4);
   const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
   sorted.forEach((p,idx)=>{
     const round=Math.floor(idx/nt);
@@ -181,90 +380,55 @@ function calcPot(playerCount){
   return{skins,front:side,back:side,overall:side,total:skins+side*3};
 }
 
-function buildPayouts(pot,places,teams,scores,seg,custom1,custom2){
-  const p=parseFloat(pot||0);
-  if(!p||!teams)return[];
-  const w=getWinners(teams,scores,seg);
-  if(!w)return [];
-  const rows=[];
-  const first=parseFloat(custom1)|| (places===1?p:p*0.6);
-  const second=parseFloat(custom2)|| p*0.4;
-  if(w.tied.length>1){
-    const split=places===1?first/w.tied.length:(first+second)/w.tied.length;
-    rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});
-  } else {
-    rows.push({label:'1st',amt:first,teams:w.tied,isTie:false});
-    if(places===2&&w.second)rows.push({label:'2nd',amt:second,teams:[w.second],isTie:false});
-  }
-  return rows;
+function TeamBadge({name,week,day}){
+  const dayTeams=safeArray(week?.teams?.[day]);
+  const published=week?.teamsPublished?.[day];
+  if(!dayTeams.length||!published) return null;
+  const team=dayTeams.find(t=>safeArray(t.players).some(p=>p.name===name));
+  if(!team) return null;
+  return <span className="team-badge">{team.name}</span>;
 }
 
-function getWinners(teams,scores,seg){
-  if(!teams||!teams.length)return null;
-  const sc=teams.map(t=>({...t,score:parseFloat((scores[t.id]||{})[seg])})).filter(t=>!isNaN(t.score));
-  if(!sc.length)return null;
-  sc.sort((a,b)=>a.score-b.score);
-  const best=sc[0].score;
-  const tied=sc.filter(t=>t.score===best);
-  const second=sc.find(t=>t.score!==best);
-  return{best,tied,second};
-}
+// -- VIEWS ------------------------------------------------------------------
 
-function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onToggleLock}){
+function WeekView({week,isAdmin,onSignup,onRemove}){
   const [showSignup,setShowSignup]=useState(false);
-  const [signupDays,setSignupDays]=useState({});
   const [sel,setSel]=useState('');
-  const [gname,setGname]=useState('');
   const [tee,setTee]=useState('Whites');
   const [hcp,setHcp]=useState('');
   const [q,setQ]=useState('');
-  const activeDays=sortDays(safeArray(week?.activeDays).filter(d=>DAYS_OF_WEEK.includes(d)));
-  
-  if(!week||!activeDays.length){
-    return <div className="empty" style={{paddingTop:50}}><div className="empty-title">No games scheduled</div></div>;
-  }
+  const activeDays=sortDays(week?.activeDays);
 
-  function doSignup(){
-    const name=sel?(ROSTER.find(p=>p.id==sel)||{}).name:gname.trim();
-    if(!name||!hcp)return;
-    const selectedDays=activeDays.filter(d=>signupDays[d]);
-    selectedDays.forEach((day,i)=>{
-      onSignup({playerId:sel||'g_'+Date.now(),name,tee,handicap:parseFloat(hcp),day,signedUpAt:Date.now()+i});
-    });
-    setShowSignup(false);
-  }
+  if(!week || !activeDays.length) return <div className="empty">No games scheduled</div>;
 
-  return(
+  return (
     <div>
       <div className="stat-row">
-        {activeDays.map(day=>{
-          const cnt=Object.values(week.signups||{}).filter(s=>s.day===day).length;
-          return <div key={day} className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">{day.slice(0,3)}</div></div>;
-        })}
+        {activeDays.map(day => (
+          <div key={day} className="stat-box">
+            <div className="stat-n">{safeArray(week.signups).filter(s=>s.day===day).length}</div>
+            <div className="stat-l">{day.slice(0,3)}</div>
+          </div>
+        ))}
       </div>
-      {activeDays.map(day=>{
-        const daySignups=Object.entries(week.signups||{}).filter(([,s])=>s.day===day);
-        const locked=!!week.locked?.[day];
-        const teeInfo=week.teeTimes?.[day];
-        return(
+      {activeDays.map(day => {
+        const daySignups = Object.entries(week.signups||{}).filter(([,s])=>s.day===day);
+        const locked = !!week.locked?.[day];
+        return (
           <div key={day} className="day-card">
-            <div className="card-pad" style={{borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between'}}>
-              <div>
-                <div style={{fontWeight:700}}>{day}</div>
-                <div style={{fontSize:11,color:'#94a3b8'}}>{teeInfo? (teeInfo.lottery?'Lottery':teeInfo.time) : 'No time set'}</div>
-              </div>
-              <div style={{fontSize:12,fontWeight:700}}>{daySignups.length} Players</div>
-            </div>
-            {daySignups.map(([key,s])=>(
+            <div className="card-pad" style={{background:'#f8fafc', fontWeight:700}}>{day}</div>
+            {daySignups.map(([key,s]) => (
               <div key={key} className="p-row">
                 <div className="avi">{ini(s.name)}</div>
-                <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{s.name}</div><div style={{fontSize:11,color:'#94a3b8'}}>{s.tee} HCP {s.handicap}</div></div>
-                {(!locked||isAdmin)&&<button className="rm-btn" onClick={()=>onRemove(key)}>×</button>}
+                <div style={{flex:1}}>
+                   <div>{s.name} <TeamBadge name={s.name} week={week} day={day}/></div>
+                   <div style={{fontSize:11,color:'#94a3b8'}}>{s.tee} HCP {s.handicap}</div>
+                </div>
+                {(!locked||isAdmin) && <button className="rm-btn" onClick={()=>onRemove(key)}>×</button>}
               </div>
             ))}
             <div className="card-pad">
-              {!locked && <button className="btn btn-green btn-full" onClick={()=>{setSignupDays({[day]:true});setShowSignup(true);}}>+ Sign Up</button>}
-              {locked && <div style={{textAlign:'center',fontSize:12,color:'#94a3b8',fontWeight:600}}>Sign-ups locked</div>}
+              {!locked && <button className="btn btn-green btn-full" onClick={()=>{setQ(''); setShowSignup(day);}}>+ Sign Up</button>}
             </div>
           </div>
         );
@@ -272,18 +436,28 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
       {showSignup && (
         <div className="overlay" onClick={()=>setShowSignup(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-title">Sign Up</div>
-            <div className="fg"><label className="fl">Search Name</label><input className="fi" value={q} onChange={e=>setQ(e.target.value)} placeholder="Member name..."/></div>
-            <div style={{maxHeight:150,overflowY:'auto',marginBottom:10}}>
+            <div className="modal-title">Sign Up - {showSignup}</div>
+            <div className="fg"><label className="fl">Member Search</label>
+              <input className="fi" value={q} onChange={e=>setQ(e.target.value)} placeholder="Type name..."/>
+            </div>
+            <div style={{maxHeight:150, overflowY:'auto', marginBottom:10}}>
               {ROSTER.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).map(p=>(
-                <div key={p.id} className="p-pick" onClick={()=>{setSel(p.id);setQ(p.name);}}>{p.name}</div>
+                <div key={p.id} className="p-pick" onClick={()=>{setSel(p.id); setQ(p.name);}}>{p.name}</div>
               ))}
             </div>
             <div className="fr">
-              <div className="fg"><label className="fl">Tee</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-              <div className="fg"><label className="fl">HCP</label><input className="fi" type="number" value={hcp} onChange={e=>setHcp(e.target.value)}/></div>
+              <div className="fg"><label className="fl">Tee</label>
+                <select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
+              </div>
+              <div className="fg"><label className="fl">Handicap</label>
+                <input className="fi" type="number" value={hcp} onChange={e=>setHcp(e.target.value)}/>
+              </div>
             </div>
-            <button className="btn btn-green btn-full" onClick={doSignup}>Confirm</button>
+            <button className="btn btn-green btn-full" onClick={()=>{
+               const p = ROSTER.find(x=>x.id==sel);
+               if(p&&hcp) onSignup({playerId:sel, name:p.name, tee, handicap:parseFloat(hcp), day:showSignup, signedUpAt:Date.now()});
+               setShowSignup(false);
+            }}>Confirm</button>
           </div>
         </div>
       )}
@@ -291,32 +465,122 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   );
 }
 
-function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams}){
+function TeamsView({week}){
   const [activeDay,setActiveDay]=useState(null);
-  const activeDays=sortDays(safeArray(week?.activeDays));
+  const activeDays=sortDays(week?.activeDays);
   useEffect(()=>{if(!activeDay && activeDays.length) setActiveDay(activeDays[0])},[activeDays]);
-
   if(!activeDay) return null;
-  const published=!!week?.teamsPublished?.[activeDay];
-  const teams=safeArray(week?.teams?.[activeDay]);
 
-  return(
+  const published = !!week?.teamsPublished?.[activeDay];
+  const teams = safeArray(week?.teams?.[activeDay]);
+
+  return (
     <div>
       <div className="tog">
         {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
       </div>
-      {teams.map((t,i)=>{
-        const tName = published ? t.name : `Group ${i+1} - ${safeArray(t.players).map(p=>p.name.split(' ').pop()).join(', ')}`;
-        return(
-          <div key={i} className="team-card">
-            <div className="team-hdr"><span className="team-nm">{tName}</span><span style={{color:'#10b981',fontSize:12}}>HCP {t.totalHcp.toFixed(1)}</span></div>
-            {safeArray(t.players).map((p,pi)=>(
-              <div key={pi} className="p-row">
-                <div className="avi">{ini(p.name)}</div>
-                <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{p.name}</div></div>
-                <div style={{fontSize:11,color:'#94a3b8'}}>{p.tee} ({p.handicap})</div>
-              </div>
+      {teams.map((t,i) => (
+        <div key={i} className="team-card">
+          <div className="team-hdr">
+            <span className="team-nm">{published ? t.name : `Group ${i+1} - ${safeArray(t.players).map(p=>lastName(p.name)).join(', ')}`}</span>
+            <span style={{color:'#10b981', fontSize:12}}>HCP {(t.totalHcp||0).toFixed(1)}</span>
+          </div>
+          {safeArray(t.players).map((p,pi)=>(
+            <div key={pi} className="p-row">
+              <div className="avi">{ini(p.name)}</div>
+              <div style={{flex:1}}>{p.name} <span style={{fontSize:11,color:'#94a3b8'}}>({p.tee})</span></div>
+              <div style={{fontWeight:700}}>{p.handicap}</div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PaymentBar({display,week,activeDay,onUpdatePaid}){
+  const players = safeArray(display).flatMap(t=>safeArray(t.players));
+  const paidCount = players.filter(p=>week?.paid?.[activeDay]?.[p.name]).length;
+  return (
+    <div className="card card-pad" style={{background:'#ecfdf5', borderColor:'#10b981', marginBottom:15}}>
+      <div style={{fontWeight:700, fontSize:13}}>{paidCount} of {players.length} Paid — {f$(paidCount*25)} Collected</div>
+      <div style={{marginTop:10}}>
+        {players.map(p => {
+          const paid = !!week?.paid?.[activeDay]?.[p.name];
+          return (
+            <div key={p.name} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:12}}>
+              <span>{p.name}</span>
+              <button className="chk-action" onClick={()=>onUpdatePaid(activeDay,p.name,!paid)} style={{background:paid?'#10b981':'#fff', color:paid?'#fff':'#10b981', border:'1px solid #10b981'}}>
+                {paid?'Paid':'Mark Paid'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ScoringView({week,isAdmin,onSaveScores,onUpdatePaid}){
+  const [activeDay,setActiveDay]=useState(null);
+  const [ts,setTs]=useState({});
+  const activeDays=sortDays(week?.activeDays);
+  useEffect(()=>{if(!activeDay && activeDays.length) setActiveDay(activeDays[0])},[activeDays]);
+  useEffect(()=>{if(activeDay) setTs(week?.scores?.[activeDay]?.teamScores || {})},[activeDay]);
+
+  if(!activeDay) return null;
+  const teams = safeArray(week?.teams?.[activeDay]);
+  const signupCount = safeArray(week?.signups).filter(s=>s.day===activeDay).length;
+
+  return (
+    <div>
+      <div className="tog">
+        {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
+      </div>
+      {isAdmin && <PaymentBar display={teams} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>}
+      <div className="card card-pad">
+        <div className="slbl">Enter Team Scores</div>
+        {teams.map(t=>(
+          <div key={t.id} className="sc-grid" style={{marginBottom:15}}>
+            <div style={{fontSize:12, fontWeight:700}}>
+               {t.name || 'Group'} <span style={{fontWeight:400, color:'#94a3b8', fontSize:10}}>{safeArray(t.players).map(p=>lastName(p.name)).join(', ')}</span>
+            </div>
+            {['front','back','overall'].map(seg=>(
+              <ScorePicker key={seg} value={ts[t.id]?.[seg]} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...p[t.id],[seg]:v}}))}/>
             ))}
+          </div>
+        ))}
+        {isAdmin && <button className="btn btn-dark btn-full" onClick={()=>onSaveScores(activeDay,{teamScores:ts, frontPlaces:1, backPlaces:1, overallPlaces:1, savedAt:Date.now()})}>Save Results</button>}
+      </div>
+    </div>
+  );
+}
+
+function AdminChecklist({week}){
+  const activeDays = sortDays(week?.activeDays);
+  return (
+    <div style={{marginBottom:20}}>
+      {activeDays.map(day => {
+        const signups = safeArray(week?.signups).filter(s=>s.day===day).length;
+        const pub = !!week?.teamsPublished?.[day];
+        const locked = !!week?.locked?.[day];
+        const done = [signups>0, locked, pub].filter(Boolean).length;
+        return (
+          <div key={day} className="chk-card">
+            <div style={{fontWeight:700, fontSize:13}}>{day} Setup Progress</div>
+            <div className="chk-prog-wrap"><div className="chk-prog" style={{width:(done/3*100)+'%'}}/></div>
+            <div className="chk-item">
+              <div className={'chk-circle'+(signups>0?' done':'')}/>
+              <div style={{fontSize:12}}>{signups} Players signed up</div>
+            </div>
+            <div className="chk-item">
+              <div className={'chk-circle'+(locked?' done':'')}/>
+              <div style={{fontSize:12}}>Sign-ups Locked</div>
+            </div>
+            <div className="chk-item">
+              <div className={'chk-circle'+(pub?' done':'')}/>
+              <div style={{fontSize:12}}>Teams Published & Official</div>
+            </div>
           </div>
         );
       })}
@@ -324,122 +588,60 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams}){
   );
 }
 
-function ScoringView({week,isAdmin,onSaveScores,onCalcPayouts,onUpdatePaid}){
-  const [activeDay,setActiveDay]=useState(null);
-  const [ts,setTs]=useState({});
-  const [sk,setSk]=useState({});
-  const [fp,setFp]=useState(1);const [bp,setBp]=useState(1);const [op,setOp]=useState(1);
-  const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
-  const activeDays=sortDays(safeArray(week?.activeDays));
+function SetupWizard({day,week,onSaveTeams,onPublishTeams,onToggleLock,onUpdateTeeTime,onClose}){
+  const [step,setStep]=useState(1);
+  const [wizTeams,setWizTeams]=useState([]);
+  const signups = safeArray(week?.signups).filter(s=>s.day===day);
 
-  useEffect(()=>{if(!activeDay && activeDays.length) setActiveDay(activeDays[0])},[activeDays]);
-  useEffect(()=>{
-    if(!activeDay)return;
-    const sc=week?.scores?.[activeDay]||{};
-    setTs(sc.teamScores||{});setSk(sc.skinCounts||{});
-    setFv(sc.frontPot||'');setBv(sc.backPot||'');setOv(sc.overallPot||'');setSv(sc.skinsPot||'');
-  },[activeDay, week]);
+  function publish(){
+    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six'];
+    const final = wizTeams.map((t,i)=>({...t, name:names[i]||`Team ${i+1}`}));
+    onSaveTeams(day, final);
+    onPublishTeams(day);
+    onToggleLock(day, true);
+    onClose();
+  }
 
-  if(!activeDay) return null;
-  const dayTeams=safeArray(week?.teams?.[activeDay]);
-  const pc=safeArray(week?.signups).filter(s=>s.day===activeDay).length;
-
-  return(
-    <div>
-      <div className="tog">
-        {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
-      </div>
-
-      <PaymentBar display={dayTeams} week={week} activeDay={activeDay} showPaid={true} onToggle={()=>{}}/>
-
-      {isAdmin && (
-        <div className="admin-bar">
-          <div className="admin-lbl">Pot Setup (Total: {f$(pc*25)})</div>
-          <div className="fr">
-            <div className="fg"><label className="fl">Front</label><input className="fi" type="number" value={fv} onChange={e=>setFv(e.target.value)}/></div>
-            <div className="fg"><label className="fl">Back</label><input className="fi" type="number" value={bv} onChange={e=>setBv(e.target.value)}/></div>
-            <div className="fg"><label className="fl">Overall</label><input className="fi" type="number" value={ov} onChange={e=>setOv(e.target.value)}/></div>
-            <div className="fg"><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)}/></div>
-          </div>
+  return (
+    <div className="modal">
+      <div className="modal-title">Set Up {day}</div>
+      {step===1 && (
+        <div>
+          <div className="fg"><label className="fl">Set Tee Time</label><TimePicker onChange={v=>onUpdateTeeTime(day,{time:v, lottery:false})}/></div>
+          <button className="btn btn-dark btn-full" onClick={()=>setStep(2)}>Next: Generate Teams</button>
         </div>
       )}
-
-      <div className="card card-pad">
-        <div className="slbl">Enter Scores</div>
-        {dayTeams.map(t=>(
-          <div key={t.id} className="sc-grid" style={{marginBottom:10}}>
-            <div style={{fontSize:12,fontWeight:600}}>{t.name || 'Team'} <span style={{fontWeight:400,color:'#94a3b8'}}>- {safeArray(t.players).map(p=>p.name.split(' ').pop()).join(', ')}</span></div>
-            {['front','back','overall'].map(seg=>(
-              <ScorePicker key={seg} value={ts[t.id]?.[seg]} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...p[t.id],[seg]:v}}))}/>
-            ))}
-          </div>
-        ))}
-        {isAdmin && <button className="btn btn-dark btn-full" onClick={()=>onSaveScores(activeDay,{teamScores:ts,skinCounts:sk,frontPot:fv,backPot:bv,overallPot:ov,skinsPot:sv,frontPlaces:fp,backPlaces:bp,overallPlaces:op,savedAt:Date.now()})}>Save Scores</button>}
-      </div>
+      {step===2 && (
+        <button className="btn btn-dark btn-full" onClick={()=>{setWizTeams(buildTeams(signups)); setStep(3);}}>Generate Roster</button>
+      )}
+      {step===3 && (
+        <div>
+          {wizTeams.map((t,i)=><div key={i} style={{padding:8, background:'#f8fafc', marginBottom:4, fontSize:12}}>Group {i+1}: {safeArray(t.players).map(p=>lastName(p.name)).join(', ')}</div>)}
+          <button className="btn btn-green btn-full" style={{marginTop:10}} onClick={publish}>Publish & Lock Teams</button>
+        </div>
+      )}
     </div>
   );
 }
 
-function AdminView({week,onCreate,onUpdateTeeTime,onSaveTeams,onPublishTeams,onToggleLock,onClearWeek}){
+function AdminView({week,onSaveTeams,onPublishTeams,onToggleLock,onClearWeek,onCreate,onUpdateTeeTime}){
   const [wizDay,setWizDay]=useState(null);
-  const activeDays=sortDays(safeArray(week?.activeDays));
-
-  return(
+  return (
     <div>
-      <AdminChecklist week={week} activeDays={activeDays} onGoTo={()=>{}}/>
+      <AdminChecklist week={week}/>
       <div className="card card-pad">
-        <div className="slbl">Week Management</div>
-        {DAYS_OF_WEEK.map(day=>(
-          <div key={day} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-             <span>{day}</span>
-             <button className="btn btn-outline btn-sm" onClick={()=>setWizDay(day)}>Set Up</button>
+        <div className="slbl">Manage Week</div>
+        {DAYS_OF_WEEK.map(day => (
+          <div key={day} style={{padding:'10px 0', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <span>{day}</span>
+            <button className="btn btn-outline btn-sm" onClick={()=>setWizDay(day)}>Set Up</button>
           </div>
         ))}
         <button className="btn btn-red btn-full" style={{marginTop:20}} onClick={onClearWeek}>Clear All Data</button>
       </div>
       {wizDay && (
         <div className="overlay" onClick={()=>setWizDay(null)}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
-             <SetupWizard day={wizDay} week={week} onSaveTeams={onSaveTeams} onPublishTeams={onPublishTeams} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock} onClose={()=>setWizDay(null)}/>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SetupWizard({day,week,onSaveTeams,onPublishTeams,onUpdateTeeTime,onToggleLock,onClose}){
-  const [step,setStep]=useState(1);
-  const [wizTeams,setWizTeams]=useState(null);
-  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day);
-
-  function finish(){
-    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six'];
-    const final=wizTeams.map((t,i)=>({...t,name:names[i]||`Team ${i+1}`}));
-    onSaveTeams(day,final);
-    onPublishTeams(day);
-    onToggleLock(day,true);
-    onClose();
-  }
-
-  return(
-    <div>
-      <div className="modal-title">Set Up {day}</div>
-      {step===1 && (
-        <div>
-          <div className="fg"><label className="fl">Tee Time</label><TimePicker onChange={v=>onUpdateTeeTime(day,{time:v,lottery:false})}/></div>
-          <button className="btn btn-dark btn-full" onClick={()=>setStep(2)}>Next</button>
-        </div>
-      )}
-      {step===2 && (
-        <div>
-          <button className="btn btn-dark btn-full" onClick={()=>{setWizTeams(buildTeams(signups));setStep(3);}}>Generate Teams</button>
-        </div>
-      )}
-      {step===3 && (
-        <div>
-          {wizTeams.map((t,i)=><div key={i} style={{padding:8,background:'#f8fafc',marginBottom:4,fontSize:12}}>Group {i+1}: {safeArray(t.players).map(p=>p.name.split(' ').pop()).join(', ')}</div>)}
-          <button className="btn btn-green btn-full" onClick={finish}>Publish & Lock</button>
+          <div onClick={e=>e.stopPropagation()}><SetupWizard day={wizDay} week={week} onSaveTeams={onSaveTeams} onPublishTeams={onPublishTeams} onToggleLock={onToggleLock} onUpdateTeeTime={onUpdateTeeTime} onClose={()=>setWizDay(null)}/></div>
         </div>
       )}
     </div>
@@ -457,32 +659,37 @@ function App(){
     if(!ready)return;
     const u=[];
     u.push(read('week',v=>setWeek(v)));
-    u.push(read('extraPlayers',v=>setExtra(safeArray(v))));
+    u.push(read('extraPlayers', v=>setExtra(safeArray(v))));
     return()=>u.forEach(f=>f?.());
   },[ready]);
 
+  function clearWeek(){
+    const empty = {activeDays:[], dates:{}, signups:{}, teams:{}, scores:{}, complete:{}, teeTimes:{}, teamsPublished:{}, locked:{}};
+    write('week', empty);
+  }
+
   if(!role) return <Landing onPlayer={()=>setRole('player')} onAdmin={()=>setRole('admin')} onDemoPlayer={()=>setRole('player')} onDemoAdmin={()=>setRole('admin')}/>;
 
-  return(
+  return (
     <div className="app">
       <div className="hdr">
         <div className="hdr-curve"></div>
         <div className="hdr-inner">
-           <div className="hdr-brand">Clark <em>Golf</em> Group</div>
-           <div style={{color:'rgba(255,255,255,0.4)',fontSize:11}}>{getWeekLabel()}</div>
+          <div className="hdr-brand">Clark <em>Golf</em> Group</div>
+          <div style={{color:'rgba(255,255,255,0.4)', fontSize:11}}>{getWeekLabel()}</div>
         </div>
       </div>
       <nav className="nav">
-        <button className={'nb'+(tab==='home'?' on':'')} onClick={()=>setTab('home')}>This Week</button>
+        <button className={'nb'+(tab==='home'?' on':'')} onClick={()=>setTab('home')}>Home</button>
         <button className={'nb'+(tab==='teams'?' on':'')} onClick={()=>setTab('teams')}>Teams</button>
         <button className={'nb'+(tab==='scoring'?' on':'')} onClick={()=>setTab('scoring')}>Scoring</button>
         {role==='admin' && <button className={'nb'+(tab==='admin'?' on':'')} onClick={()=>setTab('admin')}>Admin</button>}
       </nav>
       <div className="content">
         {tab==='home' && <WeekView week={week} isAdmin={role==='admin'} onSignup={d=>push('week/signups',d)} onRemove={k=>del('week/signups/'+k)}/>}
-        {tab==='teams' && <TeamsView week={week} isAdmin={role==='admin'} onSaveTeams={(d,t)=>write(`week/teams/${d}`,t)}/>}
+        {tab==='teams' && <TeamsView week={week} isAdmin={role==='admin'}/>}
         {tab==='scoring' && <ScoringView week={week} isAdmin={role==='admin'} onSaveScores={(d,s)=>write(`week/scores/${d}`,s)} onUpdatePaid={(d,n,p)=>write(`week/paid/${d}/${n}`,p)}/>}
-        {tab==='admin' && <AdminView week={week} onUpdateTeeTime={(d,t)=>write(`week/teeTimes/${d}`,t)} onSaveTeams={(d,t)=>write(`week/teams/${d}`,t)} onPublishTeams={d=>write(`week/teamsPublished/${d}`,true)} onToggleLock={(d,l)=>write(`week/locked/${d}`,l)} onClearWeek={()=>write('week',null)} onCreate={d=>write('week',d)}/>}
+        {tab==='admin' && <AdminView week={week} onCreate={d=>write('week',d)} onUpdateTeeTime={(d,t)=>write(`week/teeTimes/${d}`,t)} onSaveTeams={(d,t)=>write(`week/teams/${d}`,t)} onPublishTeams={d=>write(`week/teamsPublished/${d}`,true)} onToggleLock={(d,l)=>write(`week/locked/${d}`,l)} onClearWeek={clearWeek}/>}
       </div>
     </div>
   );
