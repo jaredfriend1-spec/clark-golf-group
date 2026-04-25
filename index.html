@@ -966,16 +966,12 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishTeams,onAssignBlindDraw,on
     const teeStr=teeInfo?'First Tee: '+(teeInfo.lottery?'Lottery':teeInfo.time):'';
     const dateStr=week&&week.dates&&week.dates[activeDay]?fmtD(week.dates[activeDay]):'';
     const ordered=groupOrder.length>0?groupOrder.map(id=>display.find(t=>t.id===id)).filter(Boolean):display;
-    let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+'
-
-';
+    const nl=String.fromCharCode(10);
+    let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
     ordered.forEach((team,i)=>{
-      text+=(groupOrder.length>0?'Group '+(i+1)+': ':'')+team.name+'
-';
-      (team.players||[]).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')
-';});
-      text+='
-';
+      text+=(groupOrder.length>0?'Group '+(i+1)+': ':'')+team.name+nl;
+      (team.players||[]).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});
+      text+=nl;
     });
     navigator.clipboard.writeText(text.trim()).then(()=>{
       setCopied(true);setTimeout(()=>setCopied(false),2500);
