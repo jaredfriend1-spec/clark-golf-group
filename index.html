@@ -254,6 +254,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .cb-row input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
 .cb-label{font-size:14px;font-weight:500;color:#0f172a}
 .cb-sub{font-size:11px;color:#94a3b8;font-weight:500}
+.wiz-step{background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden}
+.wiz-step-hdr{padding:13px 16px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.wiz-step-num{width:26px;height:26px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif}
+.wiz-step-num.done{background:#10b981;color:#fff}
+.wiz-step-num.active{background:#0f172a;color:#fff}
+.wiz-step-title{font-size:14px;font-weight:600;color:#0f172a;flex:1}
+.wiz-step-title.done{color:#94a3b8}
+.wiz-step-body{padding:0 16px 14px}
+.wiz-btn-row{display:flex;gap:8px;margin-top:12px}
 .chk-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .chk-hdr{padding:13px 16px 8px;display:flex;align-items:center;gap:8px}
 .chk-title{font-size:14px;font-weight:700;color:#0f172a;flex:1}
@@ -1772,7 +1781,192 @@ function AdminChecklist({week,activeDays,onGoTo}){
 }
 
 // -- ADMIN VIEW ---------------------------------------------------------------
-function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onClearWeek,onGoTo,guestHistory}){
+function SetupWizard({day,week,onClose,onSaveTeams,onPublishTeams,onUpdateTeeTime,onToggleLock,isDemo,setWeek,write,push}){
+  const [step,setStep]=useState(1);
+  const [wizTeams,setWizTeams]=useState(null);
+  const [teeOrder,setTeeOrder]=useState([]);
+  const [dragIdx,setDragIdx]=useState(null);
+  const [isLottery,setIsLottery]=useState(false);
+  const [newTime,setNewTime]=useState('');
+
+  const signups=Object.values(week&&week.signups||{}).filter(s=>s.day===day);
+  const pc=signups.length;
+  const locked=!!(week&&week.locked&&week.locked[day]);
+  const teeInfo=week&&week.teeTimes&&week.teeTimes[day];
+  const savedTeams=(week&&week.teams&&week.teams[day])||[];
+  const workingTeams=wizTeams||savedTeams;
+  const published=!!(week&&week.teamsPublished&&week.teamsPublished[day]);
+
+  function genTeams(){
+    const built=buildTeams(signups);
+    setWizTeams(built);
+    setTeeOrder(built.map(t=>t.id));
+  }
+
+  function handlePublish(){
+    if(!workingTeams.length)return;
+    const order=teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id);
+    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
+    const renamed=order.map((id,i)=>{
+      const team=workingTeams.find(t=>t.id===id);
+      if(!team)return null;
+      return{...team,id:i+1,name:names[i]||('Team '+(i+1))};
+    }).filter(Boolean);
+    onSaveTeams(day,renamed);
+    onPublishTeams(day);
+    onClose();
+  }
+
+  const steps=[
+    {num:1,label:'Tee time',done:!!teeInfo},
+    {num:2,label:'Lock sign-ups',done:locked},
+    {num:3,label:'Generate teams',done:workingTeams.length>0},
+    {num:4,label:'Set tee order',done:teeOrder.length>0},
+    {num:5,label:'Publish',done:published},
+  ];
+
+  return(
+    <div style={{background:'#f8fafc',border:'1.5px solid #10b981',borderRadius:14,padding:14,marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+        <div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>Setting up {day}</div>
+        <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:13,color:'#94a3b8',fontWeight:600}}>Done</button>
+      </div>
+
+      <div style={{display:'flex',gap:4,marginBottom:14}}>
+        {steps.map(s=>(
+          <div key={s.num} style={{flex:1,height:4,borderRadius:2,background:s.done?'#10b981':step===s.num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>
+        ))}
+      </div>
+
+      {step===1&&(
+        <div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 1 - Set tee time</div>
+          {teeInfo?(
+            <div style={{padding:'8px 12px',background:'#ecfdf5',borderRadius:8,fontSize:13,fontWeight:600,color:'#15803d',marginBottom:10}}>
+              {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' - '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
+            </div>
+          ):(
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:10,cursor:'pointer',padding:'8px 10px',background:'#f8fafc',borderRadius:8,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0')}} onClick={()=>setIsLottery(!isLottery)}>
+                <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  {isLottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                </div>
+                <span style={{fontSize:13,fontWeight:500}}>Waiting on lottery</span>
+              </div>
+              <div className="fg" style={{marginBottom:8}}><label className="fl">{isLottery?'Requested time':'Tee time'}</label><TimePicker onChange={setNewTime}/></div>
+              <button className="btn btn-green btn-sm" onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});}} style={{width:'100%'}}>Save tee time</button>
+            </div>
+          )}
+          <div className="wiz-btn-row">
+            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(2)} disabled={!teeInfo}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {step===2&&(
+        <div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 2 - Lock sign-ups</div>
+          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>{pc} player{pc!==1?'s':''} signed up for {day}</div>
+          {locked?(
+            <div style={{padding:'8px 12px',background:'#ecfdf5',borderRadius:8,fontSize:13,fontWeight:600,color:'#15803d',marginBottom:10}}>Sign-ups locked</div>
+          ):(
+            <button className="btn btn-dark btn-sm" style={{width:'100%',marginBottom:10}} onClick={()=>onToggleLock(day,true)}>Lock sign-ups ({pc} players)</button>
+          )}
+          <div className="wiz-btn-row">
+            <button className="btn btn-outline btn-sm" onClick={()=>setStep(1)}>Back</button>
+            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(3)} disabled={!locked}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {step===3&&(
+        <div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 3 - Generate teams</div>
+          {workingTeams.length>0?(
+            <div style={{marginBottom:10}}>
+              {workingTeams.map(t=>(
+                <div key={t.id} style={{padding:'6px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:12,fontWeight:600}}>
+                  {t.name} - {t.players.length} players - HCP {t.totalHcp.toFixed(0)}
+                </div>
+              ))}
+            </div>
+          ):(
+            <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Teams not generated yet</div>
+          )}
+          <button className="btn btn-dark btn-sm" style={{width:'100%',marginBottom:10}} onClick={genTeams} disabled={pc<3}>
+            {workingTeams.length?'Regenerate teams':'Auto-generate teams'}
+          </button>
+          <div className="wiz-btn-row">
+            <button className="btn btn-outline btn-sm" onClick={()=>setStep(2)}>Back</button>
+            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>{setTeeOrder(workingTeams.map(t=>t.id));setStep(4);}} disabled={!workingTeams.length}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {step===4&&(
+        <div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Step 4 - Set tee order</div>
+          <div style={{fontSize:11,color:'#64748b',marginBottom:10}}>Drag to arrange who goes off first. Teams will be renamed 1-{workingTeams.length} when published.</div>
+          {(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id)).map((tid,idx)=>{
+            const team=workingTeams.find(t=>t.id===tid);
+            if(!team)return null;
+            const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
+            return(
+              <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,marginBottom:6,cursor:'grab'}}
+                draggable={true}
+                onDragStart={()=>setDragIdx(idx)}
+                onDragOver={e=>e.preventDefault()}
+                onDrop={()=>{
+                  if(dragIdx===null)return;
+                  const newOrder=[...(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id))];
+                  const [moved]=newOrder.splice(dragIdx,1);
+                  newOrder.splice(idx,0,moved);
+                  setTeeOrder(newOrder);
+                  setDragIdx(null);
+                }}>
+                <div style={{width:24,height:24,borderRadius:50,background:'#0f172a',color:'#fff',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'"Barlow Condensed",sans-serif'}}>{idx+1}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',textDecoration:'line-through'}}>{team.name}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:'#10b981'}}>{names[idx]||('Team '+(idx+1))}</div>
+                </div>
+                <span style={{color:'#cbd5e1',fontSize:16}}>:</span>
+              </div>
+            );
+          })}
+          <div className="wiz-btn-row">
+            <button className="btn btn-outline btn-sm" onClick={()=>setStep(3)}>Back</button>
+            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(5)}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {step===5&&(
+        <div>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 5 - Publish teams</div>
+          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Teams will be renamed in tee order and made visible to all players.</div>
+          {(teeOrder.length>0?teeOrder:workingTeams.map(t=>t.id)).map((tid,idx)=>{
+            const team=workingTeams.find(t=>t.id===tid);
+            if(!team)return null;
+            const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
+            return(
+              <div key={tid} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',background:'#f8fafc',borderRadius:8,marginBottom:4,fontSize:13}}>
+                <span style={{fontWeight:400,color:'#94a3b8',textDecoration:'line-through',flex:1}}>{team.name}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <span style={{fontWeight:700,color:'#10b981',flex:1}}>{names[idx]||('Team '+(idx+1))}</span>
+              </div>
+            );
+          })}
+          <div className="wiz-btn-row">
+            <button className="btn btn-outline btn-sm" onClick={()=>setStep(4)}>Back</button>
+            <button className="btn btn-green btn-sm" style={{flex:1}} onClick={handlePublish}>Publish teams</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onClearWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo}){
   const [addQ,setAddQ]=useState('');
   const [quickAddSel,setQuickAddSel]=useState(null);
   const [quickAddTee,setQuickAddTee]=useState('Whites');
@@ -1788,6 +1982,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
   // Warn state: {day, count} when deactivating a day with signups
   const [warnDeact,setWarnDeact]=useState(null);
   const [clearConfirm,setClearConfirm]=useState(false);
+  const [wizDay,setWizDay]=useState(null);
 
   const wd=getWeekDates();
   const rosterSearch=[...ROSTER,...(roster.filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
@@ -1887,6 +2082,22 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
               )}
               {isActive&&!isEditing&&!teeInfo&&(
                 <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>No tee time set</div>
+              )}
+              {isActive&&!isEditing&&(
+                <button className="btn btn-green btn-sm" style={{width:'100%',marginTop:8}} onClick={()=>setWizDay(wizDay===day?null:day)}>
+                  {wizDay===day?'Close setup':'Set up '+day}
+                </button>
+              )}
+              {wizDay===day&&(
+                <SetupWizard
+                  day={day}
+                  week={week}
+                  onClose={()=>setWizDay(null)}
+                  onSaveTeams={onSaveTeams}
+                  onPublishTeams={onPublishTeams}
+                  onUpdateTeeTime={onUpdateTeeTime}
+                  onToggleLock={onToggleLock}
+                  isDemo={isDemo}/>
               )}
               {isActive&&isEditing&&(
                 <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginTop:4}}>
@@ -2065,6 +2276,7 @@ function App(){
     u.push(read('week',v=>setWeek(v)));
     u.push(read('history',v=>setHistory(v||{})));
     u.push(read('extraPlayers',v=>setExtra(v||[])));
+    u.push(read('guests',v=>setGuestHistory(v?(Array.isArray(v)?v:Object.values(v)):[]),));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
@@ -2237,7 +2449,19 @@ function App(){
 
       <div className="content">
         {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo}
-          onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}}
+          onSignup={d=>{
+              if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}
+              else push('week/signups',d);
+              if(d.isGuest&&d.name){
+                const existing=guestHistory.find(g=>g.name===d.name);
+                if(existing){
+                  const updated=guestHistory.map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
+                  write('guests',updated);
+                } else {
+                  write('guests',[...guestHistory,{name:d.name,addedAt:Date.now(),rounds:1}]);
+                }
+              }
+            }}
           onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
           onUpdateSignup={updateSignup}
           onUpdateTeeTime={updateTeeTime}
@@ -2273,7 +2497,11 @@ function App(){
           onDeactivateDay={deactivateDay}
           onClearWeek={clearWeek}
           onGoTo={t=>setTab(t)}
-          guestHistory={guestHistory}/>}
+          guestHistory={guestHistory}
+          onSaveTeams={saveTeams}
+          onPublishTeams={publishTeams}
+          onToggleLock={toggleLock}
+          isDemo={isDemo}/>}
       </div>
     </div>
   );
