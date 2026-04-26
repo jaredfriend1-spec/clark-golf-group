@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>Clark Golf Group - How It Works</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .container{max-width:600px;margin:0 auto;background:#fff;min-height:100vh;}
+  
+  /* Header */
+  .hdr{background:#0f172a;padding:30px 20px 40px;text-align:center;}
+  .hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#fff;}
+  .hdr-brand em{color:#10b981;font-style:normal;}
+  .hdr-sub{color:rgba(255,255,255,0.6);font-size:14px;margin-top:5px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;}
+  
+  /* Content */
+  .content{padding:0 20px 40px;position:relative;top:-20px;}
+  
+  /* Section Cards */
+  .section{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);}
+  .section h2{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#0f172a;margin-bottom:8px;border-bottom:2px solid #10b981;padding-bottom:8px;display:inline-block;}
+  .section p{font-size:15px;color:#475569;margin-bottom:16px;}
+  
+  /* Feature Items */
+  .feature{margin-bottom:24px;}
+  .feature h3{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .feature-num{background:#10b981;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'Barlow Condensed',sans-serif;}
+  
+  /* Screenshot Placeholders */
+  .screenshot{background:#f8fafc;border:2px dashed #cbd5e1;border-radius:8px;padding:40px 20px;text-align:center;margin-bottom:16px;color:#94a3b8;font-weight:600;font-size:13px;}
+  /* To add real images later, you will replace the <div class="screenshot"> with an <img src="your-image.png" style="width:100%; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:16px;"/> */
+
+  /* The Email Bridge Callout */
+  .email-callout{background:#ecfdf5;border:1px solid #10b981;border-radius:8px;padding:16px;margin-top:10px;}
+  .email-callout strong{color:#15803d;display:block;margin-bottom:4px;}
+  .email-callout p{margin:0;font-size:14px;color:#065f46;}
+
+  /* Back Button */
+  .back-btn{display:block;width:100%;text-align:center;padding:14px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;margin-top:20px;transition:background 0.2s;}
+  .back-btn:hover{background:#1e293b;}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="hdr">
+    <div class="hdr-brand">Clark <em>Golf</em> Group</div>
+    <div class="hdr-sub">How It Works</div>
+  </div>
+
+  <div class="content">
+    
+    <div class="section">
+      <h2>For the Players</h2>
+      <p>No more messy email chains or forgetting who is playing what tees. Sign up in seconds.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num">1</span> Pick Your Days & Tees</h3>
+        <p>Just select your name, check the days you want to play, and choose your tees and handicap. Done.</p>
+        <div class="screenshot">[ Snip of the Player Sign Up Modal ]</div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">2</span> Bringing a Guest? Easy.</h3>
+        <p>Toggle over to "Guest", type in their name and handicap, and they are instantly added to the roster.</p>
+        <div class="screenshot">[ Snip of the Guest Toggle in the Sign Up Modal ]</div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">3</span> See the Teams Live</h3>
+        <p>Once the admin publishes the groups, check the <b>Teams</b> tab to see exactly who you are grouped with, what position they are in, and the total team handicap.</p>
+        <div class="screenshot">[ Snip of a published Team Card in the Teams tab ]</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>For the Admins</h2>
+      <p>The app does the heavy lifting, math, and sorting for you. You just push the buttons.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num">1</span> The Setup Wizard</h3>
+        <p>Setting up a day is completely foolproof. Set the tee time, lock the sign-ups so the roster is frozen, and generate the groups in three clicks.</p>
+        <div class="screenshot">[ Snip of the Admin Setup Wizard showing steps ]</div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">2</span> Auto-Balancing Teams</h3>
+        <p>Hit "Generate Teams" and the app automatically sorts the entire roster by handicap and evenly distributes A, B, C, and D players into groups.</p>
+        <div class="screenshot">[ Snip of the "Regenerate / Save Draft" buttons in Admin Team Builder ]</div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">3</span> Publish & Lock</h3>
+        <p>Once you are happy with the groups, set the tee order using the Dropdowns. Hit <b>Publish & Lock</b> to instantly assign names (Team One, Team Two) and push the groups live to the players.</p>
+        
+        <div class="email-callout">
+          <strong>Still love sending the weekly email?</strong>
+          <p>No problem! Once teams are published, just hit the "Copy Teams" button. It instantly formats perfectly so you can paste it right into Gmail or iMessage.</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">4</span> Instant Scoring & Payouts</h3>
+        <p>In the <b>Scoring</b> tab, enter the team scores (Front, Back, Overall) and tap the Skins buttons. The app instantly calculates the total pot, tracks who has paid, splits ties evenly, and calculates exact dollar payouts per player.</p>
+        <div class="screenshot">[ Snip of the Payout Breakdown section showing splits ]</div>
+      </div>
+    </div>
+
+    <a href="index.html" class="back-btn">Back to the App</a>
+
+  </div>
+</div>
+
+</body>
+</html>
