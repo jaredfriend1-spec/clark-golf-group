@@ -562,6 +562,13 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
               <div className="land-btn-text"><span className="land-btn-main">Demo - Admin View</span><span className="land-btn-sub">Full admin walkthrough with sample data</span></div>
               <span className="land-arrow">></span>
             </button>
+
+            {/* NEW GUIDE LINK HERE */}
+            <div className="land-demo-divider" style={{marginTop: 24}}>Need Help?</div>
+            <div style={{textAlign: 'center'}}>
+                <a href="guide.html" style={{color:'#10b981', fontSize:14, fontWeight:600, textDecoration:'none', padding: '10px', display: 'inline-block'}}>Read the "How it Works" Guide</a>
+            </div>
+
           </div>
         ):(
           <div className="pw-box">
