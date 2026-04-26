@@ -29,9 +29,34 @@
   .feature h3{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
   .feature-num{background:#10b981;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'Barlow Condensed',sans-serif;}
   
-  /* Screenshot Placeholders */
-  .screenshot{background:#f8fafc;border:2px dashed #cbd5e1;border-radius:8px;padding:40px 20px;text-align:center;margin-bottom:16px;color:#94a3b8;font-weight:600;font-size:13px;}
-  /* To add real images later, you will replace the <div class="screenshot"> with an <img src="your-image.png" style="width:100%; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:16px;"/> */
+  /* CSS Replicas of App UI */
+  .mock-ui{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:16px;}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;}
+  .btn-green{background:#10b981;color:#0f172a;}
+  .btn-dark{background:#0f172a;color:#fff;}
+  .btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;}
+  .btn-full{width:100%;}
+  .btn-sm{padding:6px 11px;font-size:11px;}
+  
+  .tog{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;}
+  .tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:#64748b;border-radius:16px;text-transform:uppercase;letter-spacing:0.03em;text-align:center;}
+  .tog-opt.on{background:#0f172a;color:#fff;}
+
+  .team-card{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;margin-top:10px;}
+  .team-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a;}
+  .team-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0.02em;}
+  .team-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600;}
+  .team-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #f8fafc;}
+  .slot{font-size:10px;font-weight:700;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;}
+  .avi{width:27px;height:27px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
+
+  .sc-grid{display:grid;grid-template-columns:1fr 78px 78px 78px;gap:7px;align-items:center;background:#fff;padding:10px;border:1px solid #e2e8f0;border-radius:8px;}
+  .sp{display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#f8fafc;justify-content:space-between;padding:0 5px;}
+  .sp-val{font-size:14px;font-weight:700;padding:6px 0;}
+
+  .admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;}
+  .admin-lbl{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px;}
 
   /* The Email Bridge Callout */
   .email-callout{background:#ecfdf5;border:1px solid #10b981;border-radius:8px;padding:16px;margin-top:10px;}
@@ -60,19 +85,43 @@
       <div class="feature">
         <h3><span class="feature-num">1</span> Pick Your Days & Tees</h3>
         <p>Just select your name, check the days you want to play, and choose your tees and handicap. Done.</p>
-        <div class="screenshot">[ Snip of the Player Sign Up Modal ]</div>
+        <div class="mock-ui">
+          <button class="btn btn-green btn-full">+ Sign up</button>
+        </div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">2</span> Bringing a Guest? Easy.</h3>
         <p>Toggle over to "Guest", type in their name and handicap, and they are instantly added to the roster.</p>
-        <div class="screenshot">[ Snip of the Guest Toggle in the Sign Up Modal ]</div>
+        <div class="mock-ui">
+          <div class="tog">
+            <div class="tog-opt">Member</div>
+            <div class="tog-opt on">Guest</div>
+          </div>
+        </div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">3</span> See the Teams Live</h3>
         <p>Once the admin publishes the groups, check the <b>Teams</b> tab to see exactly who you are grouped with, what position they are in, and the total team handicap.</p>
-        <div class="screenshot">[ Snip of a published Team Card in the Teams tab ]</div>
+        <div class="mock-ui" style="padding:0; border:none; background:none;">
+          <div class="team-card">
+            <div class="team-hdr">
+              <span class="team-nm">Team One</span>
+              <span class="team-hcp">HCP 35.0</span>
+            </div>
+            <div class="team-row">
+              <span class="slot">A</span>
+              <div class="avi">CA</div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div>
+            </div>
+            <div class="team-row" style="border-bottom:none;">
+              <span class="slot">B</span>
+              <div class="avi">JS</div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Jeff Sarris</div><div style="font-size:11px;color:#94a3b8">Whites HCP 6</div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -83,13 +132,23 @@
       <div class="feature">
         <h3><span class="feature-num">1</span> The Setup Wizard</h3>
         <p>Setting up a day is completely foolproof. Set the tee time, lock the sign-ups so the roster is frozen, and generate the groups in three clicks.</p>
-        <div class="screenshot">[ Snip of the Admin Setup Wizard showing steps ]</div>
+        <div class="mock-ui">
+          <button class="btn btn-green btn-full">Set up Saturday</button>
+        </div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">2</span> Auto-Balancing Teams</h3>
-        <p>Hit "Generate Teams" and the app automatically sorts the entire roster by handicap and evenly distributes A, B, C, and D players into groups.</p>
-        <div class="screenshot">[ Snip of the "Regenerate / Save Draft" buttons in Admin Team Builder ]</div>
+        <p>Hit "Auto-generate" and the app sorts the entire roster by handicap and evenly distributes A, B, C, and D players into groups.</p>
+        <div class="mock-ui" style="padding:0; border:none; background:none;">
+          <div class="admin-bar">
+            <div class="admin-lbl">Team builder - Saturday</div>
+            <div style="display:flex; gap:7px; flex-wrap:wrap;">
+              <button class="btn btn-dark btn-sm">Auto-generate</button>
+              <button class="btn btn-outline btn-sm">Copy teams</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="feature">
@@ -98,14 +157,21 @@
         
         <div class="email-callout">
           <strong>Still love sending the weekly email?</strong>
-          <p>No problem! Once teams are published, just hit the "Copy Teams" button. It instantly formats perfectly so you can paste it right into Gmail or iMessage.</p>
+          <p>No problem! Once teams are published, just hit the "Copy teams" button. It instantly formats perfectly so you can paste it right into Gmail or iMessage.</p>
         </div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">4</span> Instant Scoring & Payouts</h3>
         <p>In the <b>Scoring</b> tab, enter the team scores (Front, Back, Overall) and tap the Skins buttons. The app instantly calculates the total pot, tracks who has paid, splits ties evenly, and calculates exact dollar payouts per player.</p>
-        <div class="screenshot">[ Snip of the Payout Breakdown section showing splits ]</div>
+        <div class="mock-ui" style="padding:0; border:none; background:none;">
+           <div class="sc-grid">
+             <div style="font-size:12px;font-weight:700">Team One <span style="font-weight:400;color:#94a3b8;font-size:10px">- Allen, Sarris</span></div>
+             <div class="sp"><span style="color:#475569;font-weight:700">-</span><span class="sp-val" style="color:#15803d">-4</span><span style="color:#475569;font-weight:700">+</span></div>
+             <div class="sp"><span style="color:#475569;font-weight:700">-</span><span class="sp-val" style="color:#15803d">-2</span><span style="color:#475569;font-weight:700">+</span></div>
+             <div class="sp"><span style="color:#475569;font-weight:700">-</span><span class="sp-val" style="color:#15803d">-6</span><span style="color:#475569;font-weight:700">+</span></div>
+           </div>
+        </div>
       </div>
     </div>
 
