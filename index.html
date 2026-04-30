@@ -16,24 +16,32 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 #root{min-height:100%}
 .app{max-width:430px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
 
+/* LOADING SPINNER */
+.loading-screen{position:fixed;inset:0;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s}
+.loading-screen.hide{opacity:0;pointer-events:none}
+.loading-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:#10b981;border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-brand{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:#fff;margin-top:18px}
+.loading-brand em{color:#10b981;font-style:normal}
+
 /* LANDING */
-.land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px}
-.land-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#fff;text-align:center;line-height:1.1;margin-bottom:4px}
+.land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
+.land-title{font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:700;color:#fff;text-align:center;line-height:1.1;margin-bottom:6px}
 .land-title em{color:#10b981;font-style:normal}
-.land-week{font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:36px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
-.land-btn{width:100%;padding:16px 18px;border-radius:12px;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all 0.15s;text-align:left}
+.land-week{font-size:13px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:44px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
+.land-btn{width:100%;padding:18px 20px;border-radius:14px;border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:14px;margin-bottom:12px;transition:all 0.15s;text-align:left}
 .land-btn:active{transform:scale(0.98)}
 .land-btn-player{background:#10b981;color:#0f172a;border-bottom:3px solid #059669}
 .land-btn-admin{background:#dc2626;color:#fff;border:1px solid #b91c1c;border-bottom:3px solid #991b1b}
 .land-btn-demo{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);margin-top:4px}
 .land-btn-demo2{background:rgba(251,191,36,0.18);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);margin-top:4px}
-.land-demo-divider{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);text-align:center;letter-spacing:0.12em;text-transform:uppercase;margin:14px 0 8px}
-.land-btn-icon{width:36px;height:36px;border-radius:8px;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.land-btn-icon svg{width:17px;height:17px}
+.land-demo-divider{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);text-align:center;letter-spacing:0.12em;text-transform:uppercase;margin:18px 0 10px}
+.land-btn-icon{width:40px;height:40px;border-radius:10px;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.land-btn-icon svg{width:19px;height:19px}
 .land-btn-text{flex:1}
-.land-btn-main{font-size:14px;font-weight:700;display:block}
-.land-btn-sub{font-size:11px;font-weight:500;opacity:0.55;display:block;margin-top:1px}
-.land-arrow{font-size:18px;opacity:0.35}
+.land-btn-main{font-size:15px;font-weight:700;display:block}
+.land-btn-sub{font-size:12px;font-weight:500;opacity:0.55;display:block;margin-top:2px}
+.land-arrow{font-size:20px;opacity:0.35}
 .pw-box{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px}
 .pw-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-align:center;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px}
 .pw-input{width:100%;padding:13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;text-align:center;letter-spacing:0.12em;margin-bottom:10px}
@@ -236,6 +244,14 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .p-pick:hover{background:#f8fafc}
 .p-pick.sel{background:#ecfdf5}
 
+/* SELECTED PLAYER CHIP */
+.sel-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px}
+.sel-chip-info{flex:1;min-width:0}
+.sel-chip-name{font-size:14px;font-weight:700;color:#0f172a}
+.sel-chip-status{font-size:11px;color:#15803d;font-weight:600;margin-top:1px}
+.sel-chip-change{background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0}
+.sel-chip-change:hover{background:#f8fafc}
+
 /* MISC */
 .slbl{font-size:11px;font-weight:600;letter-spacing:0.07em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
 .demo-bar{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
@@ -249,7 +265,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .section-btn{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;cursor:pointer;border-bottom:1px solid #f1f5f9}
 .section-title{font-size:14px;font-weight:600;color:#0f172a}
 .section-body{padding:13px}
-/* checkbox */
 .cb-row{display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer}
 .cb-row input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
 .cb-label{font-size:14px;font-weight:500;color:#0f172a}
@@ -285,6 +300,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 </style>
 </head>
 <body>
+<div id="loader" class="loading-screen">
+<div class="loading-spinner"></div>
+<div class="loading-brand">Clark <em>Golf</em> Group</div>
+</div>
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useCallback,useMemo}=React;
@@ -355,8 +374,7 @@ const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return MO[parseInt(m)-1]
 const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy)+', '+y;};
 
 function getWeekDates(){
-  const now=new Date();
-  const day=now.getDay();
+  const now=new Date();const day=now.getDay();
   const mon=new Date(now);mon.setDate(now.getDate()-day+(day===0?-6:1));
   const fri=new Date(mon);fri.setDate(mon.getDate()+4);
   const sat=new Date(mon);sat.setDate(mon.getDate()+5);
@@ -364,62 +382,36 @@ function getWeekDates(){
   const fmt=d=>d.toISOString().split('T')[0];
   return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun)};
 }
-
-function getWeekLabel(){
-  const wd=getWeekDates();
-  return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);
-}
+function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);}
 
 function buildTeams(players){
   const sorted=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
-  const n=sorted.length;
-  if(n<3)return[];
+  const n=sorted.length;if(n<3)return[];
   const nt=Math.ceil(n/4);
   const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
-  sorted.forEach((p,idx)=>{
-    const round=Math.floor(idx/nt);
-    const pos=idx%nt;
-    const ti=round%2===0?pos:nt-1-pos;
-    teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});
-    teams[ti].totalHcp+=parseFloat(p.handicap)||0;
-  });
+  sorted.forEach((p,idx)=>{const round=Math.floor(idx/nt);const pos=idx%nt;const ti=round%2===0?pos:nt-1-pos;teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});teams[ti].totalHcp+=parseFloat(p.handicap)||0;});
   return teams;
 }
 
-function calcPot(playerCount){
-  const skins=playerCount*10;
-  const side=playerCount*5;
-  return{skins,front:side,back:side,overall:side,total:skins+side*3};
-}
+function calcPot(playerCount){const skins=playerCount*10;const side=playerCount*5;return{skins,front:side,back:side,overall:side,total:skins+side*3};}
 
 function getWinners(teams,scores,seg){
   if(!teams||!teams.length)return null;
   const sc=teams.map(t=>({...t,score:parseFloat((scores[t.id]||{})[seg])})).filter(t=>!isNaN(t.score));
-  if(!sc.length)return null;
-  sc.sort((a,b)=>a.score-b.score);
-  const best=sc[0].score;
-  const tied=sc.filter(t=>t.score===best);
-  const second=sc.find(t=>t.score!==best);
+  if(!sc.length)return null;sc.sort((a,b)=>a.score-b.score);
+  const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
   return{best,tied,second};
 }
 
 function buildPayouts(pot,places,teams,scores,seg,custom1,custom2){
-  const p=parseFloat(pot||0);
-  if(!p)return[];
-  const amt1=parseFloat(custom1)||0;
-  const amt2=parseFloat(custom2)||0;
-  const first=amt1>0?amt1:(places===1?p:p*0.6);
-  const second=amt2>0?amt2:p*0.4;
+  const p=parseFloat(pot||0);if(!p)return[];
+  const amt1=parseFloat(custom1)||0;const amt2=parseFloat(custom2)||0;
+  const first=amt1>0?amt1:(places===1?p:p*0.6);const second=amt2>0?amt2:p*0.4;
   const w=getWinners(teams,scores,seg);
   if(!w)return places===1?[{label:'1st place',amt:first,teams:[],isTie:false}]:[{label:'1st place',amt:first,teams:[],isTie:false},{label:'2nd place',amt:second,teams:[],isTie:false}];
   const rows=[];
-  if(w.tied.length>1){
-    const split=places===1?first:(first+second)/w.tied.length;
-    rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});
-  } else {
-    rows.push({label:'1st',amt:first,teams:w.tied,isTie:false});
-    if(places===2&&w.second)rows.push({label:'2nd',amt:second,teams:[w.second],isTie:false});
-  }
+  if(w.tied.length>1){const split=places===1?first:(first+second)/w.tied.length;rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});}
+  else{rows.push({label:'1st',amt:first,teams:w.tied,isTie:false});if(places===2&&w.second)rows.push({label:'2nd',amt:second,teams:[w.second],isTie:false});}
   return rows;
 }
 
@@ -431,53 +423,17 @@ function makeDemoData(){
     {name:"Tom Watson",hcp:19},{name:"Cesar Rodriguez",hcp:7},{name:"John McCarthy",hcp:12},{name:"George Divver",hcp:19},
   ];
   const signups={};
-  DEMO_PLAYERS.forEach((p,i)=>{
-    signups['d'+i]={playerId:i+1,name:p.name,tee:'Whites',handicap:p.hcp,day:'Saturday',signedUpAt:Date.now()+i};
-  });
+  DEMO_PLAYERS.forEach((p,i)=>{signups['d'+i]={playerId:i+1,name:p.name,tee:'Whites',handicap:p.hcp,day:'Saturday',signedUpAt:Date.now()+i};});
   const demoTeams=[
-    {id:1,name:'Team One',totalHcp:51,players:[
-      {name:'Chris Allen',tee:'Whites',handicap:5,slot:'A'},
-      {name:'Jeff Sarris',tee:'Whites',handicap:6,slot:'B'},
-      {name:'George Divver',tee:'Whites',handicap:19,slot:'C'},
-      {name:'Jon Rucker',tee:'Whites',handicap:23,slot:'D'},
-    ]},
-    {id:2,name:'Team Two',totalHcp:47,players:[
-      {name:'Brian Grimes',tee:'Whites',handicap:5,slot:'A'},
-      {name:'Cesar Rodriguez',tee:'Whites',handicap:7,slot:'B'},
-      {name:'Mike Barry',tee:'Whites',handicap:8,slot:'C'},
-      {name:'Tom Watson',tee:'Whites',handicap:19,slot:'D'},
-    ]},
-    {id:3,name:'Team Three',totalHcp:44,players:[
-      {name:'Bob Latos',tee:'Whites',handicap:9,slot:'A'},
-      {name:'Tim Marose',tee:'Whites',handicap:9,slot:'B'},
-      {name:'Duane Robins',tee:'Whites',handicap:11,slot:'C'},
-      {name:'Robert Chase',tee:'Whites',handicap:15,slot:'D'},
-    ]},
-    {id:4,name:'Team Four',totalHcp:56,players:[
-      {name:'Clark Kunkle',tee:'Whites',handicap:11,slot:'A'},
-      {name:'John McCarthy',tee:'Whites',handicap:12,slot:'B'},
-      {name:'Jim Weiskopf',tee:'Whites',handicap:14,slot:'C'},
-      {name:'Frank McGuire',tee:'Whites',handicap:22,slot:'D'},
-    ]},
+    {id:1,name:'Team One',totalHcp:51,players:[{name:'Chris Allen',tee:'Whites',handicap:5,slot:'A'},{name:'Jeff Sarris',tee:'Whites',handicap:6,slot:'B'},{name:'George Divver',tee:'Whites',handicap:19,slot:'C'},{name:'Jon Rucker',tee:'Whites',handicap:23,slot:'D'}]},
+    {id:2,name:'Team Two',totalHcp:47,players:[{name:'Brian Grimes',tee:'Whites',handicap:5,slot:'A'},{name:'Cesar Rodriguez',tee:'Whites',handicap:7,slot:'B'},{name:'Mike Barry',tee:'Whites',handicap:8,slot:'C'},{name:'Tom Watson',tee:'Whites',handicap:19,slot:'D'}]},
+    {id:3,name:'Team Three',totalHcp:44,players:[{name:'Bob Latos',tee:'Whites',handicap:9,slot:'A'},{name:'Tim Marose',tee:'Whites',handicap:9,slot:'B'},{name:'Duane Robins',tee:'Whites',handicap:11,slot:'C'},{name:'Robert Chase',tee:'Whites',handicap:15,slot:'D'}]},
+    {id:4,name:'Team Four',totalHcp:56,players:[{name:'Clark Kunkle',tee:'Whites',handicap:11,slot:'A'},{name:'John McCarthy',tee:'Whites',handicap:12,slot:'B'},{name:'Jim Weiskopf',tee:'Whites',handicap:14,slot:'C'},{name:'Frank McGuire',tee:'Whites',handicap:22,slot:'D'}]},
   ];
-  const pc=DEMO_PLAYERS.length;
-  const pot=calcPot(pc);
-  const teamScores={
-    1:{front:-4,back:-2,overall:-6},
-    2:{front:-1,back:-3,overall:-4},
-    3:{front:-2,back:-5,overall:-8},
-    4:{front:-3,back:-1,overall:-4},
-  };
+  const pc=DEMO_PLAYERS.length;const pot=calcPot(pc);
+  const teamScores={1:{front:-4,back:-2,overall:-6},2:{front:-1,back:-3,overall:-4},3:{front:-2,back:-5,overall:-8},4:{front:-3,back:-1,overall:-4}};
   const skinCounts={1:2,2:0,3:1,4:0};
-  const scores={
-    teamScores,skinCounts,
-    frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,
-    frontPlaces:1,backPlaces:1,overallPlaces:1,
-    playerCount:pc,tournFund:pc,drawAdj:0,
-    f1v:0,f2v:0,b1v:0,b2v:0,o1v:0,o2v:0,
-    savedAt:Date.now(),
-    payoutsCalculated:false,
-  };
+  const scores={teamScores,skinCounts,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,frontPlaces:1,backPlaces:1,overallPlaces:1,playerCount:pc,tournFund:pc,drawAdj:0,f1v:0,f2v:0,b1v:0,b2v:0,o1v:0,o2v:0,savedAt:Date.now(),payoutsCalculated:false};
   return{signups,teams:demoTeams,scores};
 }
 
@@ -486,98 +442,56 @@ function ScorePicker({value,onChange,readOnly}){
   const display=v===null?'--':(v>0?'+'+v:String(v));
   const cls=v===null?'zero':v<0?'neg':v>0?'pos':'zero';
   if(readOnly)return<div style={{textAlign:'center',padding:'7px 3px',fontSize:14,fontWeight:700}} className={'sp-val '+cls}>{display}</div>;
-  return(
-    <div className="sp">
-      <button onClick={()=>onChange(Math.max(-30,(v===null?0:v)-1))}>-</button>
-      <div className={'sp-val '+cls}>{display}</div>
-      <button onClick={()=>onChange(Math.min(30,(v===null?0:v)+1))}>+</button>
-    </div>
-  );
+  return(<div className="sp"><button onClick={()=>onChange(Math.max(-30,(v===null?0:v)-1))}>-</button><div className={'sp-val '+cls}>{display}</div><button onClick={()=>onChange(Math.min(30,(v===null?0:v)+1))}>+</button></div>);
 }
 
 function TimePicker({onChange}){
-  const [h,setH]=useState('7');
-  const [m,setM]=useState('00');
-  const [ap,setAp]=useState('AM');
-  const hrs=Array.from({length:12},(_,i)=>String(i+1));
-  const mins=['00','15','30','45'];
+  const [h,setH]=useState('7');const [m,setM]=useState('00');const [ap,setAp]=useState('AM');
+  const hrs=Array.from({length:12},(_,i)=>String(i+1));const mins=['00','15','30','45'];
   function emit(nh,nm,nap){onChange(nh.padStart(2,'0')+':'+nm+' '+nap);}
-  return(
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-      <select className="fs" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>
-        {hrs.map(x=><option key={x}>{x}</option>)}
-      </select>
-      <select className="fs" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>
-        {mins.map(x=><option key={x}>{x}</option>)}
-      </select>
-      <select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}>
-        <option>AM</option><option>PM</option>
-      </select>
-    </div>
-  );
+  return(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}><select className="fs" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>{hrs.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>{mins.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}><option>AM</option><option>PM</option></select></div>);
 }
-
 // -- LANDING ------------------------------------------------------------------
 function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
-  const [showPw,setShowPw]=useState(false);
-  const [pw,setPw]=useState('');
-  const [err,setErr]=useState(false);
-  function tryAdmin(){
-    if(pw.toLowerCase()===ADMIN_PW){onAdmin();}
-    else{setErr(true);setTimeout(()=>setErr(false),1500);}
-  }
+  const [showPw,setShowPw]=useState(false);const [pw,setPw]=useState('');const [err,setErr]=useState(false);
+  function tryAdmin(){if(pw.toLowerCase()===ADMIN_PW){onAdmin();}else{setErr(true);setTimeout(()=>setErr(false),1500);}}
   return(
     <div className="land">
-      <div style={{width:'100%',maxWidth:360}}>
+      <div style={{width:'100%',maxWidth:480}}>
         <div className="land-title">Clark <em>Golf</em> Group</div>
         <div className="land-week">{getWeekLabel()}</div>
         {!showPw?(
           <div>
             <button className="land-btn land-btn-player" onClick={onPlayer}>
-              <div className="land-btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
+              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
               <div className="land-btn-text"><span className="land-btn-main">I am a Player</span><span className="land-btn-sub">Sign up, view teams, see results</span></div>
-              <span className="land-arrow">></span>
+              <span className="land-arrow">›</span>
             </button>
             <button className="land-btn land-btn-admin" onClick={()=>{setShowPw(true);setPw('');}}>
-              <div className="land-btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </div>
+              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
               <div className="land-btn-text"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
-              <span className="land-arrow">></span>
+              <span className="land-arrow">›</span>
             </button>
             <div className="land-demo-divider">Try it out</div>
             <button className="land-btn land-btn-demo" onClick={onDemoPlayer}>
-              <div className="land-btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
+              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
               <div className="land-btn-text"><span className="land-btn-main">Demo - Player View</span><span className="land-btn-sub">See what players experience</span></div>
-              <span className="land-arrow">></span>
+              <span className="land-arrow">›</span>
             </button>
             <button className="land-btn land-btn-demo2" onClick={onDemoAdmin}>
-              <div className="land-btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              </div>
+              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
               <div className="land-btn-text"><span className="land-btn-main">Demo - Admin View</span><span className="land-btn-sub">Full admin walkthrough with sample data</span></div>
-              <span className="land-arrow">></span>
+              <span className="land-arrow">›</span>
             </button>
-
-            <div className="land-demo-divider" style={{marginTop: 24}}>Need Help?</div>
-            <div style={{textAlign: 'center'}}>
-                <a href="guide.html" style={{color:'#10b981', fontSize:14, fontWeight:600, textDecoration:'none', padding: '10px', display: 'inline-block'}}>Read the "How it Works" Guide</a>
-            </div>
-
+            <div className="land-demo-divider" style={{marginTop:24}}>Need Help?</div>
+            <div style={{textAlign:'center'}}><a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a></div>
           </div>
         ):(
           <div className="pw-box">
             <div className="pw-label">Admin Password</div>
             <input autoFocus type="password" className={'pw-input'+(err?' err':'')} placeholder="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryAdmin()}/>
             {err&&<div className="pw-err">Wrong password - try again</div>}
-            <div className="pw-row">
-              <button className="pw-go" onClick={tryAdmin}>Sign In</button>
-              <button className="pw-back" onClick={()=>{setShowPw(false);setPw('');}}>Back</button>
-            </div>
+            <div className="pw-row"><button className="pw-go" onClick={tryAdmin}>Sign In</button><button className="pw-back" onClick={()=>{setShowPw(false);setPw('');}}>Back</button></div>
           </div>
         )}
       </div>
@@ -589,28 +503,17 @@ function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hc
   const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
   const selectedDays=(activeDays||[]).filter(d=>signupDays[d]&&!Object.values(allSignups||{}).some(s=>s.day===d&&s.name===name));
   const disabled=(!sel&&!gname)||!hcp||selectedDays.length===0;
-  return(
-    <button className="btn btn-green btn-full" onClick={onConfirm} disabled={disabled} style={{opacity:disabled?0.4:1}}>
-      {selectedDays.length>1?'Sign up for '+selectedDays.length+' days':'Confirm sign-up'}
-    </button>
-  );
+  return(<button className="btn btn-green btn-full" onClick={onConfirm} disabled={disabled} style={{opacity:disabled?0.4:1}}>{selectedDays.length>1?'Sign up for '+selectedDays.length+' days':'Confirm sign-up'}</button>);
 }
 
 function TeamBadge({name,week,day}){
-  const dayTeams=safeArray(week?.teams?.[day]);
-  const published=week&&week.teamsPublished&&week.teamsPublished[day];
+  const dayTeams=safeArray(week?.teams?.[day]);const published=week&&week.teamsPublished&&week.teamsPublished[day];
   if(!dayTeams.length||!published)return null;
-  const team=dayTeams.find(t=>safeArray(t.players).some(p=>p.name===name));
-  if(!team)return null;
-  return(
-    <span className="team-badge">
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>
-      {team.name}
-    </span>
-  );
+  const team=dayTeams.find(t=>safeArray(t.players).some(p=>p.name===name));if(!team)return null;
+  return(<span className="team-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>{team.name}</span>);
 }
 
-// -- THIS WEEK VIEW ---------------------------------------------------------
+// -- THIS WEEK VIEW (with improved signup modal) ----------------------------
 function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
@@ -627,56 +530,27 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   const [newTime,setNewTime]=useState('');
   const [editKey,setEditKey]=useState(null);
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
-  const [myName,setMyName]=useState(()=>{
-    try{return localStorage.getItem('cgMyName')||null;}catch{return null;}
-  });
+  const [myName,setMyName]=useState(()=>{try{return localStorage.getItem('cgMyName')||null;}catch{return null;}});
   const setMyNamePersist=n=>{setMyName(n);try{if(n)localStorage.setItem('cgMyName',n);else localStorage.removeItem('cgMyName');}catch{}};
-  function loadMemory(playerId){
-    try{
-      const saved=localStorage.getItem('cgPref_'+playerId);
-      if(saved){
-        const pref=JSON.parse(saved);
-        setTee(pref.tee||'Whites');
-        setHcp(String(pref.hcp||''));
-        setHcpMemory(pref);
-      } else {
-        setHcpMemory(null);
-      }
-    }catch{setHcpMemory(null);}
-  }
-  function saveMemory(playerId,teeVal,hcpVal){
-    try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}
-  }
+  function loadMemory(playerId){try{const saved=localStorage.getItem('cgPref_'+playerId);if(saved){const pref=JSON.parse(saved);setTee(pref.tee||'Whites');setHcp(String(pref.hcp||''));setHcpMemory(pref);}else{setHcpMemory(null);}}catch{setHcpMemory(null);}}
+  function saveMemory(playerId,teeVal,hcpVal){try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}}
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
   const [toast,setToast]=useState(null);
 
   if(!week||!safeArray(week?.activeDays).length){
-    return(
-      <div className="empty" style={{paddingTop:50}}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-        <div className="empty-title">No games this week</div>
-        <div className="empty-sub">Admin will set up this week's games.</div>
-      </div>
-    );
+    return(<div className="empty" style={{paddingTop:50}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg><div className="empty-title">No games this week</div><div className="empty-sub">Admin will set up this week's games.</div></div>);
   }
 
   const activeDays=sortDays(safeArray(week?.activeDays).filter(d=>DAYS_OF_WEEK.includes(d)));
   const allSignups=week.signups||{};
   const totalSignups=Object.keys(allSignups).length;
 
-  function openSignup(){
-    const init={};
-    activeDays.forEach(d=>{init[d]=false;});
-    setSignupDays(init);
-    setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');
-    setShowSignup(true);
-  }
+  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setShowSignup(true);}
 
   function doSignup(){
     const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
     if(!name||!hcp)return;
-    const selectedDays=activeDays.filter(d=>signupDays[d]);
-    if(!selectedDays.length)return;
+    const selectedDays=activeDays.filter(d=>signupDays[d]);if(!selectedDays.length)return;
     if(!isGuest&&sel){setMyNamePersist(name);saveMemory(sel,tee,hcp);}
     if(isGuest&&gname)setMyNamePersist(gname.trim());
     const pid=isGuest?'g_'+Date.now():parseInt(sel);
@@ -687,52 +561,33 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     setShowSignup(false);
     const days=activeDays.filter(d=>signupDays[d]);
     const msg=days.length===1?"You're in for "+days[0]+"!":'Signed up for '+days.join(' & ')+'!';
-    setToast(msg);
-    setTimeout(()=>setToast(null),3000);
+    setToast(msg);setTimeout(()=>setToast(null),3000);
   }
 
-  const avail=ROSTER.filter(p=>{
-    if(!p.name.toLowerCase().includes(q.toLowerCase()))return false;
-    return true;
-  });
+  const avail=ROSTER.filter(p=>p.name.toLowerCase().includes(q.toLowerCase()));
+  const selPlayer=sel?ROSTER.find(p=>p.id==sel):null;
 
   return(
     <div>
       {isDemo&&<div className="demo-bar"><span className="demo-lbl">{isAdmin?'Admin Demo Mode':'Player Demo Mode'} - Sample Data</span></div>}
-
       <div className="stat-row">
-        {activeDays.map(day=>{
-          const cnt=Object.values(allSignups).filter(s=>s.day===day).length;
-          return(
-            <div key={day} className="stat-box">
-              <div className="stat-n">{cnt}</div>
-              <div className="stat-l">{day.slice(0,3)}</div>
-            </div>
-          );
-        })}
+        {activeDays.map(day=>{const cnt=Object.values(allSignups).filter(s=>s.day===day).length;return(<div key={day} className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">{day.slice(0,3)}</div></div>);})}
         {activeDays.length<3&&<div className="stat-box"><div className="stat-n">{totalSignups}</div><div className="stat-l">Total</div></div>}
       </div>
 
       {activeDays.map(day=>{
         const daySignups=Object.entries(allSignups).filter(([,s])=>s.day===day).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);
-        const cnt=daySignups.length;
-        const teeInfo=week.teeTimes&&week.teeTimes[day];
-        const dayComplete=week.complete&&week.complete[day];
-        const dayLocked=week.locked&&week.locked[day];
+        const cnt=daySignups.length;const teeInfo=week.teeTimes&&week.teeTimes[day];
+        const dayComplete=week.complete&&week.complete[day];const dayLocked=week.locked&&week.locked[day];
         const isOpen=expanded[day];
-
         return(
           <div key={day} className="day-card">
             {isAdmin&&teeInfo&&teeInfo.lottery&&(
               <div style={{background:'#fffbeb',borderBottom:'1px solid #fde68a',padding:'7px 13px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <span style={{fontSize:11,fontWeight:700,color:'#d97706',display:'flex',alignItems:'center',gap:5}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Waiting on lottery
-                </span>
+                <span style={{fontSize:11,fontWeight:700,color:'#d97706',display:'flex',alignItems:'center',gap:5}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Waiting on lottery</span>
                 <button className="btn btn-gold btn-xs" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Set Time</button>
               </div>
             )}
-
             <div className="day-hdr" onClick={()=>setExpanded(p=>({...p,[day]:!p[day]}))}>
               <div className="day-left">
                 <div className="day-title">{day}</div>
@@ -749,49 +604,24 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                 <svg className={'day-chev'+(isOpen?' open':'')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
-
             {isOpen&&(
               <div className="day-body">
-
-                {dayComplete&&(
-                  <div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>
-                    {isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(day)}>Reopen</button>}
-                  </div>
-                )}
-
+                {dayComplete&&(<div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>{isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(day)}>Reopen</button>}</div>)}
                 {cnt===0&&<div style={{padding:'13px 14px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No sign-ups yet for {day}</div>}
-
                 {daySignups.map(([key,s])=>(
                   <div key={key} className="p-row">
                     <div className="avi">{ini(s.name)}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div className="p-name">
-                      {s.name}
-                      {s.isGuest&&<span className="guest-tag">Guest</span>}
-                      <TeamBadge name={s.name} week={week} day={day}/>
-                    </div>
+                      <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
                       {editKey===key?(
-                        <div className="ie">
-                          <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
-                          <select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>
-                            {TEES.map(t=><option key={t}>{t}</option>)}
-                          </select>
-                          <button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button>
-                          <button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button>
-                        </div>
+                        <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                       ):(
-                        <div className="p-meta">
-                          <span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span>
-                          <span>{s.tee} HCP {s.handicap}</span>
-                          {(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}
-                        </div>
+                        <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
                       )}
                     </div>
                     {(isAdmin||myName===s.name)&&<button className="rm-btn" title="Remove sign-up" onClick={()=>onRemove(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
                   </div>
                 ))}
-
                 <div className="day-actions">
                   {!dayLocked&&<button className="signup-btn" onClick={openSignup}>+ Sign up</button>}
                   {!isDemo&&dayLocked&&!isAdmin&&<span style={{fontSize:12,color:'#94a3b8',fontWeight:600,padding:'8px 4px'}}>Sign-ups locked</span>}
@@ -805,6 +635,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
         );
       })}
 
+      {/* ===== IMPROVED SIGN-UP MODAL ===== */}
       {showSignup&&(
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setShowSignup(false);}}>
           <div className="modal">
@@ -813,28 +644,42 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 
             {/* Member / Guest toggle */}
             <div className="tog">
-              <button className={'tog-opt'+(!isGuest?' on':'')} onClick={()=>setIsGuest(false)}>Member</button>
-              <button className={'tog-opt'+(isGuest?' on':'')} onClick={()=>setIsGuest(true)}>Guest</button>
+              <button className={'tog-opt'+(!isGuest?' on':'')} onClick={()=>{setIsGuest(false);setSel('');setGname('');setHcp('');setTee('Whites');setHcpMemory(null);}}>Member</button>
+              <button className={'tog-opt'+(isGuest?' on':'')} onClick={()=>{setIsGuest(true);setSel('');setGname('');setHcp('');setTee('Whites');setHcpMemory(null);}}>Guest</button>
             </div>
 
-            {/* Name selection */}
+            {/* STEP 1: Name selection */}
             {!isGuest?(
               <div className="fg">
                 <label className="fl">Your name</label>
-                <div className="sw">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input className="si" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
-                </div>
-                <div style={{maxHeight:180,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:9}}>
-                  {avail.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).map(p=>(
-                    <div key={p.id} className={'p-pick'+(sel==p.id?' sel':'')} onClick={()=>{setSel(p.id);setQ('');}}>
-                      <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
-                      <span style={{fontSize:13,fontWeight:500,flex:1}}>{p.name}</span>
-                      {sel==p.id&&<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>}
+                {selPlayer?(
+                  /* COLLAPSED CHIP - player selected */
+                  <div className="sel-chip">
+                    <div className="avi" style={{width:34,height:34,fontSize:12}}>{ini(selPlayer.name)}</div>
+                    <div className="sel-chip-info">
+                      <div className="sel-chip-name">{selPlayer.name}</div>
+                      <div className="sel-chip-status">✓ Selected</div>
                     </div>
-                  ))}
-                  {avail.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).length===0&&<div style={{padding:13,fontSize:13,color:'#94a3b8',textAlign:'center'}}>No matches</div>}
-                </div>
+                    <button className="sel-chip-change" onClick={()=>{setSel('');setQ('');setHcp('');setTee('Whites');setHcpMemory(null);}}>Change</button>
+                  </div>
+                ):(
+                  /* EXPANDED LIST - searching for name */
+                  <div>
+                    <div className="sw">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      <input autoFocus className="si" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
+                    </div>
+                    <div style={{maxHeight:200,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:9}}>
+                      {avail.slice(0,q?avail.length:20).map(p=>(
+                        <div key={p.id} className="p-pick" onClick={()=>{setSel(p.id);setQ('');loadMemory(p.id);}}>
+                          <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
+                          <span style={{fontSize:13,fontWeight:500,flex:1}}>{p.name}</span>
+                        </div>
+                      ))}
+                      {avail.length===0&&<div style={{padding:13,fontSize:13,color:'#94a3b8',textAlign:'center'}}>No matches</div>}
+                    </div>
+                  </div>
+                )}
               </div>
             ):(
               <div className="fg">
@@ -843,84 +688,63 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
               </div>
             )}
 
-            {/* Day selection */}
-            <div className="fg">
-              <label className="fl">Which days?</label>
-              {activeDays.map(d=>{
-                const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
-                const alreadyIn=name&&Object.values(allSignups).some(s=>s.day===d&&s.name===name);
-                const isLocked=week.locked&&week.locked[d];
-                const checked=signupDays[d]||false;
-                return(
-                  <div key={d} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',marginBottom:6,borderRadius:9,border:'1.5px solid '+(checked&&!alreadyIn?'#10b981':'#e2e8f0'),background:checked&&!alreadyIn?'#ecfdf5':'#f8fafc',cursor:alreadyIn||isLocked?'default':'pointer',opacity:alreadyIn||isLocked?0.5:1}}
-                    onClick={()=>{if(!alreadyIn&&!isLocked)setSignupDays(p=>({...p,[d]:!p[d]}));}}>
-                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:checked&&!alreadyIn?'#10b981':'#cbd5e1',background:checked&&!alreadyIn?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      {checked&&!alreadyIn&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:600}}>{d}</div>
-                      <div style={{fontSize:11,color:'#94a3b8'}}>{week.dates&&week.dates[d]?fmtD(week.dates[d]):''}{alreadyIn?' - already signed up':''}{isLocked&&!alreadyIn?' - locked':''}</div>
-                    </div>
+            {/* STEP 2+3: Days, Tees, Handicap - always visible once name is picked */}
+            {(selPlayer||isGuest)&&(
+              <div>
+                {/* Day selection */}
+                <div className="fg">
+                  <label className="fl">Which days?</label>
+                  {activeDays.map(d=>{
+                    const name=isGuest?gname.trim():selPlayer?.name;
+                    const alreadyIn=name&&Object.values(allSignups).some(s=>s.day===d&&s.name===name);
+                    const isLocked=week.locked&&week.locked[d];const checked=signupDays[d]||false;
+                    return(
+                      <div key={d} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',marginBottom:6,borderRadius:9,border:'1.5px solid '+(checked&&!alreadyIn?'#10b981':'#e2e8f0'),background:checked&&!alreadyIn?'#ecfdf5':'#f8fafc',cursor:alreadyIn||isLocked?'default':'pointer',opacity:alreadyIn||isLocked?0.5:1}}
+                        onClick={()=>{if(!alreadyIn&&!isLocked)setSignupDays(p=>({...p,[d]:!p[d]}));}}>
+                        <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:checked&&!alreadyIn?'#10b981':'#cbd5e1',background:checked&&!alreadyIn?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          {checked&&!alreadyIn&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                        </div>
+                        <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{d}</div><div style={{fontSize:11,color:'#94a3b8'}}>{week.dates&&week.dates[d]?fmtD(week.dates[d]):''}{alreadyIn?' - already signed up':''}{isLocked&&!alreadyIn?' - locked':''}</div></div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Tee + HCP */}
+                <div className="fr" style={{marginTop:2}}>
+                  <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
+                  <div className="fg">
+                    <label className="fl">Handicap{hcpMemory&&!isGuest&&<span style={{fontWeight:400,color:'#10b981',marginLeft:6,textTransform:'none',letterSpacing:0}}>(last: {hcpMemory.hcp})</span>}</label>
+                    <input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Tee + HCP */}
-            <div className="fr" style={{marginTop:2}}>
-              <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-              <div className="fg">
-                <label className="fl">Handicap{hcpMemory&&!isGuest&&<span style={{fontWeight:400,color:'#10b981',marginLeft:6,textTransform:'none',letterSpacing:0}}>(last used: {hcpMemory.hcp})</span>}</label>
-                <input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
+                </div>
+                <SignupConfirmBtn isGuest={isGuest} gname={gname} sel={sel} activeDays={activeDays} signupDays={signupDays} allSignups={allSignups} hcp={hcp} onConfirm={doSignup}/>
               </div>
-            </div>
-
-            <SignupConfirmBtn
-              isGuest={isGuest} gname={gname} sel={sel}
-              activeDays={activeDays} signupDays={signupDays}
-              allSignups={allSignups} hcp={hcp}
-              onConfirm={doSignup}/>
+            )}
           </div>
         </div>
       )}
 
       {teeModal&&(
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setTeeModal(null);}}>
-          <div className="modal">
-            <div className="modal-handle"></div>
-            <div className="modal-title">Add tee time - {teeModal}</div>
-            <div className="fg" style={{marginBottom:14}}>
-              <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#f8fafc',borderRadius:9,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0'),cursor:'pointer'}} onClick={()=>setIsLottery(!isLottery)}>
-                <div style={{width:19,height:19,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  {isLottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-                </div>
-                <div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Waiting on lottery</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>Check if time not yet confirmed</div></div>
-              </div>
-            </div>
+          <div className="modal"><div className="modal-handle"></div><div className="modal-title">Add tee time - {teeModal}</div>
+            <div className="fg" style={{marginBottom:14}}><div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'#f8fafc',borderRadius:9,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0'),cursor:'pointer'}} onClick={()=>setIsLottery(!isLottery)}><div style={{width:19,height:19,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isLottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}</div><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Waiting on lottery</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>Check if time not yet confirmed</div></div></div></div>
             <div className="fg"><label className="fl">{isLottery?'Requested time':'Tee time'}</label><TimePicker onChange={setNewTime}/></div>
             <button className="btn btn-green btn-full" onClick={()=>{onUpdateTeeTime(teeModal,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setTeeModal(null);}}>Save</button>
           </div>
         </div>
       )}
 
-      {toast&&(
-        <div className="toast">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>
-          {toast}
-        </div>
-      )}
-
       {editTeeModal&&(
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setEditTeeModal(null);}}>
-          <div className="modal">
-            <div className="modal-handle"></div>
-            <div className="modal-title">Update tee time - {editTeeModal}</div>
+          <div className="modal"><div className="modal-handle"></div><div className="modal-title">Update tee time - {editTeeModal}</div>
             <div className="alert alert-blue" style={{marginBottom:12}}>Enter the confirmed tee time.</div>
             <div className="fg"><label className="fl">Confirmed time</label><TimePicker onChange={setNewTime}/></div>
             <button className="btn btn-gold btn-full" onClick={()=>{onUpdateTeeTime(editTeeModal,{time:newTime,lottery:false});setEditTeeModal(null);}}>Update</button>
           </div>
         </div>
       )}
+
+      {toast&&(<div className="toast"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>{toast}</div>)}
     </div>
   );
 }
@@ -929,300 +753,107 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
 function PaidBtn({name,isAdmin,myName,week,activeDay,onUpdatePaid}){
   const paid=!!(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][name]);
   const canMark=isAdmin||(myName===name);
-  const bg=paid?'#ecfdf5':'#fff';
-  const clr=paid?'#15803d':'#94a3b8';
-  const bc=paid?'#10b981':'#e2e8f0';
-  return(
-    <button onClick={()=>{if(canMark)onUpdatePaid(activeDay,name,!paid);}}
-      style={{flexShrink:0,marginLeft:6,padding:'5px 10px',borderRadius:20,border:'1.5px solid '+bc,background:bg,color:clr,fontSize:11,fontWeight:700,cursor:canMark?'pointer':'default',opacity:canMark?1:0.5}}>
-      {paid?'Paid':'Paid?'}
-    </button>
-  );
+  const bg=paid?'#ecfdf5':'#fff';const clr=paid?'#15803d':'#94a3b8';const bc=paid?'#10b981':'#e2e8f0';
+  return(<button onClick={()=>{if(canMark)onUpdatePaid(activeDay,name,!paid);}} style={{flexShrink:0,marginLeft:6,padding:'5px 10px',borderRadius:20,border:'1.5px solid '+bc,background:bg,color:clr,fontSize:11,fontWeight:700,cursor:canMark?'pointer':'default',opacity:canMark?1:0.5}}>{paid?'Paid':'Paid?'}</button>);
 }
 
 function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   const allPlayers=safeArray(display).flatMap(t=>safeArray(t.players));
   const paidCount=allPlayers.filter(p=>(week&&week.paid&&week.paid[activeDay]&&week.paid[activeDay][p.name])).length;
   const total=allPlayers.length;
-  return(
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}>
-      <div>
-        <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>
-        {showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}
-      </div>
-      <button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer'}}>
-        {showPaid?'Hide':'Track payments'}
-      </button>
-    </div>
-  );
+  return(<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>{showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}</div><button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer'}}>{showPaid?'Hide':'Track payments'}</button></div>);
 }
 
 function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,myName}){
-  const [activeDay,setActiveDay]=useState(null);
-  const [editTeams,setEditTeams]=useState(null);
-  const [drag,setDrag]=useState(null);
-  const [editKey,setEditKey]=useState(null);
-  const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
-  const [blindModal,setBlindModal]=useState(null);
-  const [copied,setCopied]=useState(false);
-
+  const [activeDay,setActiveDay]=useState(null);const [editTeams,setEditTeams]=useState(null);const [drag,setDrag]=useState(null);
+  const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
+  const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
   const activeDays=sortDays(safeArray(week?.activeDays));
-
-  useEffect(()=>{
-    if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
-  },[activeDays.join(',')]);
-
-  if(!week||activeDays.length===0){
-    return<div className="empty"><div className="empty-title">No active games</div></div>;
-  }
+  useEffect(()=>{if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);},[activeDays.join(',')]);
+  if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
 
   const daySignups=Object.entries((week.signups)||{}).filter(([,s])=>s.day===activeDay).map(([,s])=>s);
-  const savedTeams=safeArray(week?.teams?.[activeDay]);
-  const display=editTeams||savedTeams;
-  const cnt=daySignups.length;
-  const published=(week.teamsPublished&&week.teamsPublished[activeDay])||false;
+  const savedTeams=safeArray(week?.teams?.[activeDay]);const display=editTeams||savedTeams;
+  const cnt=daySignups.length;const published=(week.teamsPublished&&week.teamsPublished[activeDay])||false;
 
   function copyTeams(){
-    if(!display.length)return;
-    const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
+    if(!display.length)return;const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
     const teeStr=teeInfo?'First Tee: '+(teeInfo.lottery?'Lottery':teeInfo.time):'';
     const dateStr=week&&week.dates&&week.dates[activeDay]?fmtD(week.dates[activeDay]):'';
-    const nl=String.fromCharCode(10);
-    let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
-    display.forEach((team,i)=>{
-      const tName = published ? team.name : `Group ${i + 1}`;
-      text+=tName+nl;
-      safeArray(team.players).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});
-      text+=nl;
-    });
-    navigator.clipboard.writeText(text.trim()).then(()=>{
-      setCopied(true);setTimeout(()=>setCopied(false),2500);
-    }).catch(()=>{});
+    const nl=String.fromCharCode(10);let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
+    display.forEach((team,i)=>{const tName=published?team.name:'Group '+(i+1);text+=tName+nl;safeArray(team.players).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});text+=nl;});
+    navigator.clipboard.writeText(text.trim()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}).catch(()=>{});
   }
-
-  function gen(){
-    if(daySignups.length<3)return;
-    const built=buildTeams(daySignups);
-    setEditTeams(built);
-  }
-
-  function moveTeam(fromIdx, toIdx){
-    if(fromIdx === toIdx) return;
-    const base = editTeams || savedTeams;
-    const reordered = [...base];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, moved);
-    setEditTeams(reordered);
-  }
-
-  function drop(ti,pi){
-    if(!drag||!isAdmin||published)return;
-    const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));
-    const p=u[drag.ti].players[drag.pi];
-    u[drag.ti].players.splice(drag.pi,1);
-    u[ti].players.splice(pi,0,p);
-    u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});
-    setEditTeams(u);
-    setDrag(null);
-  }
-
-  function savePlayerEdit(ti,pi){
-    const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));
-    if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);
-    u[ti].players[pi].tee=editVal.tee;
-    u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);
-    if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);
-    setEditKey(null);
-  }
-
-  function publishAndLock(){
-    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-    const final = (editTeams || savedTeams).map((t, i) => ({...t, name: names[i] || `Team ${i+1}`}));
-    onPublishAndLock(activeDay, final);
-    setEditTeams(null);
-  }
+  function gen(){if(daySignups.length<3)return;setEditTeams(buildTeams(daySignups));}
+  function moveTeam(fromIdx,toIdx){if(fromIdx===toIdx)return;const base=editTeams||savedTeams;const reordered=[...base];const[moved]=reordered.splice(fromIdx,1);reordered.splice(toIdx,0,moved);setEditTeams(reordered);}
+  function drop(ti,pi){if(!drag||!isAdmin||published)return;const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));const p=u[drag.ti].players[drag.pi];u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});setEditTeams(u);setDrag(null);}
+  function savePlayerEdit(ti,pi){const u=(editTeams||savedTeams).map(t=>({...t,players:[...t.players]}));if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);u[ti].players[pi].tee=editVal.tee;u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);setEditKey(null);}
+  function publishAndLock(){const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];const final=(editTeams||savedTeams).map((t,i)=>({...t,name:names[i]||'Team '+(i+1)}));onPublishAndLock(activeDay,final);setEditTeams(null);}
 
   return(
     <div>
-      {activeDays.length>1&&(
-        <div className="tog" style={{marginBottom:12}}>
-          {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>{setActiveDay(d);setEditTeams(null);setEditKey(null);}}>{d.slice(0,3)}</button>)}
-        </div>
-      )}
-
-      <div className="stat-row">
-        <div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div>
-        <div className="stat-box"><div className="stat-n">{display.length}</div><div className="stat-l">Teams</div></div>
-        <div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div>
-      </div>
-
-      {published&&display.length>0&&(
-        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-          <button className="btn btn-outline btn-sm" onClick={copyTeams}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            {copied?'Copied!':'Copy teams'}
-          </button>
-        </div>
-      )}
-
+      {activeDays.length>1&&(<div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>{setActiveDay(d);setEditTeams(null);setEditKey(null);}}>{d.slice(0,3)}</button>)}</div>)}
+      <div className="stat-row"><div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div><div className="stat-box"><div className="stat-n">{display.length}</div><div className="stat-l">Teams</div></div><div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div></div>
+      {published&&display.length>0&&(<div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><button className="btn btn-outline btn-sm" onClick={copyTeams}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>{copied?'Copied!':'Copy teams'}</button></div>)}
       {isAdmin&&!published&&(
-        <div className="admin-bar">
-          <div className="admin-lbl">Team builder - {activeDay}</div>
+        <div className="admin-bar"><div className="admin-lbl">Team builder - {activeDay}</div>
           <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
             <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{display.length?'Regenerate':'Auto-generate'}</button>
             {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save Draft</button>}
             {display.length>0&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish & Lock Teams</button>}
             {display.length>0&&<button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>}
           </div>
-          <div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}>
-            <strong>1.</strong> Drag players (⋮) to rebalance.<br/>
-            <strong>2.</strong> Use the Group dropdowns to set the tee order.<br/>
-            <strong>3.</strong> Click <b>Publish & Lock</b> to finalize names and lock sign-ups.
-          </div>
+          <div className="alert alert-warn" style={{marginTop:9,marginBottom:0}}><strong>1.</strong> Drag players (⋮) to rebalance.<br/><strong>2.</strong> Use the Group dropdowns to set the tee order.<br/><strong>3.</strong> Click <b>Publish & Lock</b> to finalize names and lock sign-ups.</div>
         </div>
       )}
-
-      {display.length===0&&(
-        <div className="empty">
-          <div className="empty-title">No teams yet for {activeDay}</div>
-          <div className="empty-sub">{cnt>0?'Admin will generate teams shortly.':'No sign-ups yet for this day.'}</div>
-        </div>
-      )}
-
-      {display.length>0&&isAdmin&&!published&&(
-        <div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>
-          Use the dropdowns to set tee order - Group 1 goes first
-        </div>
-      )}
+      {display.length===0&&(<div className="empty"><div className="empty-title">No teams yet for {activeDay}</div><div className="empty-sub">{cnt>0?'Admin will generate teams shortly.':'No sign-ups yet for this day.'}</div></div>)}
+      {display.length>0&&isAdmin&&!published&&(<div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>Use the dropdowns to set tee order - Group 1 goes first</div>)}
 
       {display.map((team,ti)=>{
-        const hasBlind=team.players.length<(display.length>0?Math.ceil(cnt/display.length):4)&&cnt>0;
-        const blindDraw=team.blindDraw;
-        const teamNameDisplay = published ? team.name : `Group ${ti + 1} - ${teamLabel(team)}`;
-
+        const hasBlind=team.players.length<(display.length>0?Math.ceil(cnt/display.length):4)&&cnt>0;const blindDraw=team.blindDraw;
+        const teamNameDisplay=published?team.name:'Group '+(ti+1)+' - '+teamLabel(team);
         return(
-          <div key={team.id || ti} className="team-card">
+          <div key={team.id||ti} className="team-card">
             <div className="team-hdr">
-              <div style={{display:'flex', alignItems:'center', gap: 8, flex: 1, minWidth: 0}}>
-                {isAdmin && !published ? (
-                  <div style={{display:'flex', alignItems:'center', gap: 6}}>
-                    <span style={{color: '#94a3b8', fontSize: 12, fontWeight: 700}}>GROUP</span>
-                    <select
-                      value={ti}
-                      onChange={e => {
-                        if(!editTeams) setEditTeams(savedTeams);
-                        moveTeam(ti, parseInt(e.target.value, 10));
-                      }}
-                      style={{
-                        background: '#1e293b',
-                        color: '#fff',
-                        border: '1px solid #334155',
-                        borderRadius: 4,
-                        padding: '2px 4px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {display.map((_, idx) => (
-                        <option key={idx} value={idx}>{idx + 1}</option>
-                      ))}
-                    </select>
-                    <span style={{color: '#475569'}}>|</span>
+              <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
+                {isAdmin&&!published?(
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{color:'#94a3b8',fontSize:12,fontWeight:700}}>GROUP</span>
+                    <select value={ti} onChange={e=>{if(!editTeams)setEditTeams(savedTeams);moveTeam(ti,parseInt(e.target.value,10));}} style={{background:'#1e293b',color:'#fff',border:'1px solid #334155',borderRadius:4,padding:'2px 4px',fontSize:13,fontWeight:700,outline:'none',cursor:'pointer'}}>{display.map((_,idx)=><option key={idx} value={idx}>{idx+1}</option>)}</select>
+                    <span style={{color:'#475569'}}>|</span>
                   </div>
-                ) : (
-                  !published && <span style={{fontSize: 14, fontWeight: 700, color: '#fff', marginRight: 4}}>Group {ti + 1} - </span>
-                )}
-                <span className="team-nm" style={{fontSize: published ? 16 : 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                  {teamNameDisplay}
-                </span>
+                ):(!published&&<span style={{fontSize:14,fontWeight:700,color:'#fff',marginRight:4}}>Group {ti+1} - </span>)}
+                <span className="team-nm" style={{fontSize:published?16:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{teamNameDisplay}</span>
               </div>
-              <span className="team-hcp" style={{flexShrink: 0, marginLeft: 8}}>HCP {(team.totalHcp||0).toFixed(1)}</span>
+              <span className="team-hcp" style={{flexShrink:0,marginLeft:8}}>HCP {(team.totalHcp||0).toFixed(1)}</span>
             </div>
             {safeArray(team.players).map((p,pi)=>(
-              <div key={pi} className="team-row"
-                draggable={!!(!published&&isAdmin)}
-                onDragStart={(e)=>{
-                  e.stopPropagation();
-                  if(isAdmin&&!published) {
-                    if(!editTeams) setEditTeams(savedTeams);
-                    setDrag({ti,pi});
-                  }
-                }}
-                onDragOver={e=>{e.preventDefault(); e.stopPropagation();}}
-                onDrop={(e)=>{
-                  e.stopPropagation();
-                  drop(ti,pi);
-                }}>
+              <div key={pi} className="team-row" draggable={!!(!published&&isAdmin)} onDragStart={e=>{e.stopPropagation();if(isAdmin&&!published){if(!editTeams)setEditTeams(savedTeams);setDrag({ti,pi});}}} onDragOver={e=>{e.preventDefault();e.stopPropagation();}} onDrop={e=>{e.stopPropagation();drop(ti,pi);}}>
                 {!published&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:18,fontWeight:700,flexShrink:0,marginRight:4}}>⋮</span>}
                 <span className="slot">{p.slot}</span>
                 <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}{p.fromDraw&&<span style={{fontSize:10,color:'#f59e0b',marginLeft:5,fontWeight:500}}>(added from draw)</span>}</div>
-                  {editKey===ti+'-'+pi?(
-                    <div className="ie">
-                      <input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/>
-                      <select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>
-                        {TEES.map(t=><option key={t}>{t}</option>)}
-                      </select>
-                      <button className="ie-save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button>
-                      <button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button>
-                    </div>
-                  ):(
-                    <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
-                      <span className="tee-dot" style={{background:TC[p.tee]||'#ccc'}}></span>
-                      {p.tee} HCP {p.handicap}
-                      {(!published&&(isAdmin||myName===p.name))&&<button className="edit-btn" onClick={()=>{setEditKey(ti+'-'+pi);setEditVal({hcp:String(p.handicap),tee:p.tee});}}>edit</button>}
-                    </div>
+                  {editKey===ti+'-'+pi?(<div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>):(
+                    <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}><span className="tee-dot" style={{background:TC[p.tee]||'#ccc'}}></span>{p.tee} HCP {p.handicap}{(!published&&(isAdmin||myName===p.name))&&<button className="edit-btn" onClick={()=>{setEditKey(ti+'-'+pi);setEditVal({hcp:String(p.handicap),tee:p.tee});}}>edit</button>}</div>
                   )}
                 </div>
               </div>
             ))}
-            {hasBlind&&!blindDraw&&(
-              <div style={{padding:'10px 13px',background:'#fffbeb',borderTop:'1px solid #fde68a',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:'#d97706'}}>Blind Draw TBD</div>
-                  <div style={{fontSize:11,color:'#92400e',marginTop:1}}>Assign on the day</div>
-                </div>
-                {isAdmin&&!published&&<button className="btn btn-gold btn-xs" onClick={()=>setBlindModal({teamIdx:ti,teamId:team.id})}>Assign</button>}
-              </div>
-            )}
-            {blindDraw&&(
-              <div style={{padding:'10px 13px',background:'#ecfdf5',borderTop:'1px solid #bbf7d0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:'#15803d'}}>{blindDraw.name} <span style={{fontWeight:400,color:'#64748b',fontSize:11}}>(added from draw)</span></div>
-                  <div style={{fontSize:11,color:'#64748b',marginTop:1}}>{blindDraw.tee} HCP {blindDraw.handicap}</div>
-                </div>
-                {isAdmin&&!published&&<button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);setEditTeams(u);}}>Clear</button>}
-              </div>
-            )}
+            {hasBlind&&!blindDraw&&(<div style={{padding:'10px 13px',background:'#fffbeb',borderTop:'1px solid #fde68a',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:13,fontWeight:600,color:'#d97706'}}>Blind Draw TBD</div><div style={{fontSize:11,color:'#92400e',marginTop:1}}>Assign on the day</div></div>{isAdmin&&!published&&<button className="btn btn-gold btn-xs" onClick={()=>setBlindModal({teamIdx:ti,teamId:team.id})}>Assign</button>}</div>)}
+            {blindDraw&&(<div style={{padding:'10px 13px',background:'#ecfdf5',borderTop:'1px solid #bbf7d0',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:13,fontWeight:600,color:'#15803d'}}>{blindDraw.name} <span style={{fontWeight:400,color:'#64748b',fontSize:11}}>(added from draw)</span></div><div style={{fontSize:11,color:'#64748b',marginTop:1}}>{blindDraw.tee} HCP {blindDraw.handicap}</div></div>{isAdmin&&!published&&<button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);setEditTeams(u);}}>Clear</button>}</div>)}
           </div>
         );
       })}
 
-      {/* Blind draw assignment modal */}
       {blindModal&&(
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setBlindModal(null);}}>
-          <div className="modal">
-            <div className="modal-handle"></div>
-            <div className="modal-title">Assign Blind Draw</div>
+          <div className="modal"><div className="modal-handle"></div><div className="modal-title">Assign Blind Draw</div>
             <div className="alert alert-warn" style={{marginBottom:12}}>Pick any player from another team. They stay on their original team and also play for this team.</div>
             {display.filter((_,i)=>i!==blindModal.teamIdx).map(t=>(
               <div key={t.id} style={{marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:5}}>{t.name||`Group ${t.id}`}</div>
-                {safeArray(t.players).map((p,pi)=>(
-                  <div key={pi} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f8fafc'}}>
-                    <span style={{fontSize:13,fontWeight:500}}>{p.name} <span style={{color:'#94a3b8',fontSize:11}}>HCP {p.handicap}</span></span>
-                    <button className="btn btn-green btn-xs" onClick={()=>{
-                      const base=editTeams||savedTeams;
-                      const u=base.map((team,i)=>i===blindModal.teamIdx?{...team,blindDraw:{...p,fromDraw:true}}:team);
-                      onSaveTeams(activeDay,u);
-                      setEditTeams(u);
-                      setBlindModal(null);
-                    }}>Assign</button>
-                  </div>
-                ))}
+                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:5}}>{t.name||'Group '+t.id}</div>
+                {safeArray(t.players).map((p,pi)=>(<div key={pi} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f8fafc'}}><span style={{fontSize:13,fontWeight:500}}>{p.name} <span style={{color:'#94a3b8',fontSize:11}}>HCP {p.handicap}</span></span><button className="btn btn-green btn-xs" onClick={()=>{const base=editTeams||savedTeams;const u=base.map((team,i)=>i===blindModal.teamIdx?{...team,blindDraw:{...p,fromDraw:true}}:team);onSaveTeams(activeDay,u);setEditTeams(u);setBlindModal(null);}}>Assign</button></div>))}
               </div>
             ))}
           </div>
@@ -1233,34 +864,20 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,myName}){
 }
 
 function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReopenDay,isDemo,onUpdatePaid,myName}){
-  const [activeDay,setActiveDay]=useState(null);
-  const [ts,setTs]=useState({});
-  const [sk,setSk]=useState({});
+  const [activeDay,setActiveDay]=useState(null);const [ts,setTs]=useState({});const [sk,setSk]=useState({});
   const [fp,setFp]=useState(1);const [bp,setBp]=useState(1);const [op,setOp]=useState(1);
   const [fv,setFv]=useState('');const [bv,setBv]=useState('');const [ov,setOv]=useState('');const [sv,setSv]=useState('');
-  const [justSaved,setJustSaved]=useState(false);
-  const [forceRefresh,setForceRefresh]=useState(0);
-  const [drawAdj,setDrawAdj]=useState('');
-  const [showDrawAdj,setShowDrawAdj]=useState(false);
-  const [showPaid,setShowPaid]=useState(false);
-  const [f1v,setF1v]=useState('');const [f2v,setF2v]=useState('');
-  const [b1v,setB1v]=useState('');const [b2v,setB2v]=useState('');
+  const [justSaved,setJustSaved]=useState(false);const [forceRefresh,setForceRefresh]=useState(0);
+  const [drawAdj,setDrawAdj]=useState('');const [showDrawAdj,setShowDrawAdj]=useState(false);const [showPaid,setShowPaid]=useState(false);
+  const [f1v,setF1v]=useState('');const [f2v,setF2v]=useState('');const [b1v,setB1v]=useState('');const [b2v,setB2v]=useState('');
   const [o1v,setO1v]=useState('');const [o2v,setO2v]=useState('');
-
   const activeDays=sortDays(safeArray(week?.activeDays));
-
+  useEffect(()=>{if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);},[activeDays.join(',')]);
   useEffect(()=>{
-    if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);
-  },[activeDays.join(',')]);
-
-  useEffect(()=>{
-    if(!activeDay)return;
-    const sc=(week&&week.scores&&week.scores[activeDay])||{};
+    if(!activeDay)return;const sc=(week&&week.scores&&week.scores[activeDay])||{};
     setTs(sc.teamScores||{});setSk(sc.skinCounts||{});
-    setFv(sc.frontPot!==undefined?String(sc.frontPot):'');
-    setBv(sc.backPot!==undefined?String(sc.backPot):'');
-    setOv(sc.overallPot!==undefined?String(sc.overallPot):'');
-    setSv(sc.skinsPot!==undefined?String(sc.skinsPot):'');
+    setFv(sc.frontPot!==undefined?String(sc.frontPot):'');setBv(sc.backPot!==undefined?String(sc.backPot):'');
+    setOv(sc.overallPot!==undefined?String(sc.overallPot):'');setSv(sc.skinsPot!==undefined?String(sc.skinsPot):'');
     setFp(sc.frontPlaces||1);setBp(sc.backPlaces||1);setOp(sc.overallPlaces||1);
     setDrawAdj(sc.drawAdj!==undefined?String(sc.drawAdj):'');
     setF1v(sc.f1!==undefined?String(sc.f1):'');setF2v(sc.f2!==undefined?String(sc.f2):'');
@@ -1268,462 +885,94 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
     setO1v(sc.o1!==undefined?String(sc.o1):'');setO2v(sc.o2!==undefined?String(sc.o2):'');
     setJustSaved(false);
   },[activeDay,forceRefresh]);
-
   if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
-
-  const dayTeams=safeArray(week?.teams?.[activeDay]);
-  const daySignups=Object.values(week.signups||{}).filter(s=>s.day===activeDay);
-  const pc=daySignups.length;
-  const pot=calcPot(pc);
-  const dayScores=(week.scores&&week.scores[activeDay])||{};
-  const scoresSaved=!!dayScores.savedAt;
-  const payoutsCalculated=!!dayScores.payoutsCalculated;
-  const dayComplete=!!(week.complete&&week.complete[activeDay]);
-
-  const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);
-  const ok=pc>0&&Math.abs(alloc-pot.total)<0.01;
-  const snet=Math.max(0,parseFloat(sv||0)-pc);
-  const tsk=Object.values(sk).reduce((s,c)=>s+c,0);
-  const perSk=tsk>0?snet/tsk:0;
-
+  const dayTeams=safeArray(week?.teams?.[activeDay]);const daySignups=Object.values(week.signups||{}).filter(s=>s.day===activeDay);
+  const pc=daySignups.length;const pot=calcPot(pc);const dayScores=(week.scores&&week.scores[activeDay])||{};
+  const scoresSaved=!!dayScores.savedAt;const payoutsCalculated=!!dayScores.payoutsCalculated;const dayComplete=!!(week.complete&&week.complete[activeDay]);
+  const alloc=parseFloat(fv||0)+parseFloat(bv||0)+parseFloat(ov||0)+parseFloat(sv||0);const ok=pc>0&&Math.abs(alloc-pot.total)<0.01;
+  const snet=Math.max(0,parseFloat(sv||0)-pc);const tsk=Object.values(sk).reduce((s,c)=>s+c,0);const perSk=tsk>0?snet/tsk:0;
   function tap(id){if(!isAdmin)return;setSk(p=>({...p,[id]:(p[id]||0)+1}));}
   function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}));}
-
-  function handleSaveAndPublish(){
-    const da=parseFloat(drawAdj)||0;
-    const data={teamScores:ts,skinCounts:sk,frontPot:parseFloat(fv)||0,backPot:parseFloat(bv)||0,overallPot:parseFloat(ov)||0,skinsPot:parseFloat(sv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,f1:parseFloat(f1v)||0,f2:parseFloat(f2v)||0,b1:parseFloat(b1v)||0,b2:parseFloat(b2v)||0,o1:parseFloat(o1v)||0,o2:parseFloat(o2v)||0,tournFund:pc,playerCount:pc,drawAdj:da,savedAt:Date.now(),payoutsCalculated:true,payoutsAt:Date.now()};
-    onSaveScoresAndPayouts(activeDay, data);
-    setJustSaved(true);
-    setTimeout(()=>setJustSaved(false),2500);
-  }
-
-  function autoPot(){
-    setFv(String(pot.front));setBv(String(pot.back));setOv(String(pot.overall));setSv(String(pot.skins));
-  }
-
+  function handleSaveAndPublish(){const da=parseFloat(drawAdj)||0;const data={teamScores:ts,skinCounts:sk,frontPot:parseFloat(fv)||0,backPot:parseFloat(bv)||0,overallPot:parseFloat(ov)||0,skinsPot:parseFloat(sv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,f1:parseFloat(f1v)||0,f2:parseFloat(f2v)||0,b1:parseFloat(b1v)||0,b2:parseFloat(b2v)||0,o1:parseFloat(o1v)||0,o2:parseFloat(o2v)||0,tournFund:pc,playerCount:pc,drawAdj:da,savedAt:Date.now(),payoutsCalculated:true,payoutsAt:Date.now()};onSaveScoresAndPayouts(activeDay,data);setJustSaved(true);setTimeout(()=>setJustSaved(false),2500);}
+  function autoPot(){setFv(String(pot.front));setBv(String(pot.back));setOv(String(pot.overall));setSv(String(pot.skins));}
   const showPayouts=payoutsCalculated||(isAdmin&&(fv||bv||ov||sv));
 
   return(
     <div>
-      <div className="tog" style={{marginBottom:12}}>
-        {activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}
-      </div>
-
-      {/* Payment tracking */}
+      <div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}</div>
       {dayTeams.length>0&&<PaymentBar display={dayTeams} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
-
-      {showPaid&&isAdmin&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Collect Payments</div>
-          {dayTeams.map((t, ti)=>(
-            <div key={t.id||ti} style={{marginBottom:12}}>
-              <div style={{fontSize:12, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', marginBottom:4}}>{t.name||(`Group ${ti+1}`)}</div>
-              {safeArray(t.players).map(p=>(
-                <div key={p.name} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 0', borderBottom:'1px solid #f8fafc'}}>
-                  <span style={{fontSize:14, fontWeight:500, color:'#0f172a'}}>{p.name}</span>
-                  <PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/>
-                </div>
-              ))}
-            </div>
-          ))}
+      {showPaid&&isAdmin&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Collect Payments</div>{dayTeams.map((t,ti)=>(<div key={t.id||ti} style={{marginBottom:12}}><div style={{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',marginBottom:4}}>{t.name||('Group '+(ti+1))}</div>{safeArray(t.players).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc'}}><span style={{fontSize:14,fontWeight:500,color:'#0f172a'}}>{p.name}</span><PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/></div>))}</div>))}</div>)}
+      {!scoresSaved&&!isAdmin&&(<div className="alert alert-blue" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Scores will appear once the admin saves them.</span><button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#1e40af',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button></div>)}
+      {payoutsCalculated&&(<div className="alert alert-ok" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Payouts calculated - results are final.</span>{!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button>}</div>)}
+      {isAdmin&&(<div className="admin-bar">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><div className="admin-lbl" style={{marginBottom:0}}>{parseFloat(drawAdj||0)>0?'Pot - '+(pc-Math.round(parseFloat(drawAdj)/25))+' players (+'+Math.round(parseFloat(drawAdj)/25)+' draw) - '+f$(pot.total-parseFloat(drawAdj))+' total':'Pot - '+pc+' players - '+f$(pot.total)+' total'}</div>{!fv&&!bv&&!ov&&!sv&&<button className="btn btn-outline btn-xs" onClick={autoPot}>Auto-fill</button>}</div>
+        <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Front 9</label><input className="fi" type="number" value={fv} onChange={e=>setFv(e.target.value)} placeholder={'$'+pot.front}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Back 9</label><input className="fi" type="number" value={bv} onChange={e=>setBv(e.target.value)} placeholder={'$'+pot.back}/></div></div>
+        <div className="fr"><div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" value={ov} onChange={e=>setOv(e.target.value)} placeholder={'$'+pot.overall}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)} placeholder={'$'+pot.skins}/></div></div>
+        {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:600,color:ok?'#15803d':'#dc2626'}}>{ok?'Pot balanced OK - '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #fde68a'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:showDrawAdj?8:0}}><div><div style={{fontSize:12,fontWeight:600,color:'#92400e'}}>Manual pot adjustment</div>{drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#d97706',marginTop:1}}>Pot reduced by {f$(drawAdj)} - adjusted for draw player</div>}</div><button onClick={()=>setShowDrawAdj(!showDrawAdj)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid #f59e0b',background:showDrawAdj?'#f59e0b':'transparent',color:showDrawAdj?'#0f172a':'#d97706',fontSize:11,fontWeight:700,cursor:'pointer'}}>{showDrawAdj?'Done':'Adjust'}</button></div>
+        {showDrawAdj&&(<div style={{display:'flex',gap:8,alignItems:'flex-end'}}><div style={{flex:1}}><label className="fl">Reduce pot by ($)</label><input className="fi" type="number" placeholder="e.g. 25" value={drawAdj} onChange={e=>setDrawAdj(e.target.value)}/></div><div style={{paddingBottom:1}}><button className="btn btn-gold btn-sm" onClick={()=>{setDrawAdj('25');setShowDrawAdj(false);}}>-1 player</button></div></div>)}
+        {showDrawAdj&&<div style={{fontSize:11,color:'#92400e',marginTop:6}}>Enter the amount to subtract from the total pot. The draw player does not pay in twice.</div>}
         </div>
-      )}
-
-      {/* Status bar */}
-      {!scoresSaved&&!isAdmin&&(
-        <div className="alert alert-blue" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span>Scores will appear once the admin saves them.</span>
-          <button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#1e40af',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button>
-        </div>
-      )}
-      {payoutsCalculated&&(
-        <div className="alert alert-ok" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span>Payouts calculated - results are final.</span>
-          {!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button>}
-        </div>
-      )}
-
-      {/* ADMIN: Pot setup */}
-      {isAdmin&&(
-        <div className="admin-bar">
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <div className="admin-lbl" style={{marginBottom:0}}>
-              {parseFloat(drawAdj||0)>0
-                ?'Pot - '+(pc-Math.round(parseFloat(drawAdj)/25))+' players (+'+Math.round(parseFloat(drawAdj)/25)+' draw) - '+f$(pot.total-parseFloat(drawAdj))+' total'
-                :'Pot - '+pc+' players - '+f$(pot.total)+' total'}
-            </div>
-            {!fv&&!bv&&!ov&&!sv&&<button className="btn btn-outline btn-xs" onClick={autoPot}>Auto-fill</button>}
-          </div>
-          <div className="fr" style={{marginBottom:8}}>
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Front 9</label><input className="fi" type="number" value={fv} onChange={e=>setFv(e.target.value)} placeholder={'$'+pot.front}/></div>
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Back 9</label><input className="fi" type="number" value={bv} onChange={e=>setBv(e.target.value)} placeholder={'$'+pot.back}/></div>
-          </div>
-          <div className="fr">
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" value={ov} onChange={e=>setOv(e.target.value)} placeholder={'$'+pot.overall}/></div>
-            <div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)} placeholder={'$'+pot.skins}/></div>
-          </div>
-          {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:600,color:ok?'#15803d':'#dc2626'}}>{ok?'Pot balanced OK - '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
-
-          {/* Draw player pot adjustment */}
-          <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #fde68a'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:showDrawAdj?8:0}}>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#92400e'}}>Manual pot adjustment</div>
-                {drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#d97706',marginTop:1}}>Pot reduced by {f$(drawAdj)} - adjusted for draw player</div>}
-              </div>
-              <button onClick={()=>setShowDrawAdj(!showDrawAdj)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid #f59e0b',background:showDrawAdj?'#f59e0b':'transparent',color:showDrawAdj?'#0f172a':'#d97706',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                {showDrawAdj?'Done':'Adjust'}
-              </button>
-            </div>
-            {showDrawAdj&&(
-              <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
-                <div style={{flex:1}}>
-                  <label className="fl">Reduce pot by ($)</label>
-                  <input className="fi" type="number" placeholder="e.g. 25" value={drawAdj} onChange={e=>setDrawAdj(e.target.value)}/>
-                </div>
-                <div style={{paddingBottom:1}}>
-                  <button className="btn btn-gold btn-sm" onClick={()=>{setDrawAdj('25');setShowDrawAdj(false);}}>-1 player</button>
-                </div>
-              </div>
-            )}
-            {showDrawAdj&&<div style={{fontSize:11,color:'#92400e',marginTop:6}}>Enter the amount to subtract from the total pot. The draw player does not pay in twice.</div>}
-          </div>
-        </div>
-      )}
-
-      {/* ADMIN: Places paid */}
-      {isAdmin&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Payout splits</div>
-          {[{l:'Front 9',pot:fv,v:fp,s:setFp,f1:f1v,sf1:setF1v,f2:f2v,sf2:setF2v},
-            {l:'Back 9',pot:bv,v:bp,s:setBp,f1:b1v,sf1:setB1v,f2:b2v,sf2:setB2v},
-            {l:'Overall',pot:ov,v:op,s:setOp,f1:o1v,sf1:setO1v,f2:o2v,sf2:setO2v}
-          ].map(({l,pot,v,s,f1,sf1,f2,sf2})=>{
-            const p=parseFloat(pot||0);
-            return(
-              <div key={l} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}>
-                  <span style={{fontSize:13,fontWeight:600}}>{l}{p>0?' - '+f$(p):''}</span>
-                  <div className="tog" style={{width:155,marginBottom:0}}>
-                    <button className={'tog-opt'+(v===1?' on':'')} onClick={()=>s(1)}>1st only</button>
-                    <button className={'tog-opt'+(v===2?' on':'')} onClick={()=>s(2)}>1st + 2nd</button>
-                  </div>
-                </div>
-                {p>0&&(
-                  <div className="fr" style={{gap:8}}>
-                    <div className="fg" style={{marginBottom:0}}>
-                      <label className="fl">1st place $</label>
-                      <input className="fi" type="number" placeholder={v===1?f$(p):f$(p*0.6)} value={f1} onChange={e=>sf1(e.target.value)}/>
-                    </div>
-                    {v===2&&(
-                      <div className="fg" style={{marginBottom:0}}>
-                        <label className="fl">2nd place $</label>
-                        <input className="fi" type="number" placeholder={f$(p*0.4)} value={f2} onChange={e=>sf2(e.target.value)}/>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Team scores */}
-      {(isAdmin||scoresSaved)&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Team scores - {activeDay}</div>
-          <div className="sc-grid" style={{marginBottom:8}}>
-            <div></div>
-            <div className="sc-hd">Front</div>
-            <div className="sc-hd">Back</div>
-            <div className="sc-hd">Overall</div>
-          </div>
-          {dayTeams.map((t, ti)=>(
-            <div key={t.id||ti} className="sc-grid" style={{marginBottom:10,alignItems:'center'}}>
-              <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}>
-                <span style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>{t.name||(`Group ${ti+1}`)}</span>
-                <div style={{fontSize:10,fontWeight:400,color:'#94a3b8'}}>- {teamLabel(t)}</div>
-              </div>
-              {['front','back','overall'].map(seg=>(
-                <ScorePicker key={seg} value={ts[t.id]?ts[t.id][seg]:undefined} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>
-              ))}
-            </div>
-          ))}
-          {!dayTeams.length&&<div style={{textAlign:'center',color:'#94a3b8',fontSize:13,padding:'8px 0'}}>Teams not published yet</div>}
-        </div>
-      )}
-
-      {/* Skins tapper */}
-      {(isAdmin||scoresSaved)&&dayTeams.length>0&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}>
-            <div className="slbl" style={{marginBottom:0}}>Skins tapper</div>
-            <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div>
-          </div>
-          <div className="skin-grid">
-            {dayTeams.map((t, ti)=>(
-              <div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}>
-                <div className="skin-team">{t.name||(`Group ${ti+1}`)}</div>
-                <div className="skin-num">{sk[t.id]||0}</div>
-                <div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>
-                {isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}
-              </div>
-            ))}
-          </div>
-          {sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(perSk.toFixed(2))+' per skin':''}</div>}
-        </div>
-      )}
-
-      {/* Payout breakdown */}
-      {showPayouts&&(fv||bv||ov||sv)&&(
-        <div className="card card-pad" style={{marginBottom:10}}>
-          <div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
-          {[{l:'Front 9',pot:fv,pl:fp,seg:'front'},{l:'Back 9',pot:bv,pl:bp,seg:'back'},{l:'Overall',pot:ov,pl:op,seg:'overall'}].map(({l,pot,pl,seg})=>{
-            const rows=buildPayouts(pot,pl,dayTeams,ts,seg,seg==='front'?f1v:seg==='back'?b1v:o1v,seg==='front'?f2v:seg==='back'?b2v:o2v);
-            if(!rows.length)return null;
-            return(
-              <div key={l} style={{marginBottom:13}}>
-                <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
-                {rows.map((row,i)=>(
-                  <div key={i} className="pay-row">
-                    <span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' - '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span>
-                    <span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-          {parseFloat(sv||0)>0&&(
-            <div style={{marginBottom:13}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div>
-              <div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt win">{f$(snet)}</span></div>
-              {tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(perSk.toFixed(2))}</span></div>}
-              {Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{
-                const t=dayTeams.find(t=>String(t.id)===String(tid));
-                return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} - {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*perSk)}</span></div>:null;
-              })}
-              <div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt tie">{f$(pc)}</span></div>
-            </div>
-          )}
-          {parseFloat(drawAdj||0)>0&&(
-            <div className="pay-row" style={{color:'#d97706'}}>
-              <span className="pay-lbl" style={{color:'#d97706'}}>Manual pot adjustment</span>
-              <span className="pay-amt tie">-{f$(drawAdj)}</span>
-            </div>
-          )}
-          <div className="pay-total">
-            <span>Total pot</span>
-            <span style={{color:'#15803d'}}>{f$(pc*25-(parseFloat(drawAdj)||0))}</span>
-          </div>
-        </div>
-      )}
-
-      {/* ADMIN: action buttons */}
-      {isAdmin&&!isDemo&&(
-        <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}>
-          <button className="btn btn-dark btn-full" onClick={handleSaveAndPublish}>
-            {scoresSaved?'Update & Publish Results':'Save & Publish Results'}
-          </button>
-          {justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores and payouts.</div>}
-          {scoresSaved&&(
-            <button className="btn btn-outline btn-full" onClick={()=>onMoveToHistory(activeDay)}>
-              Move to History
-            </button>
-          )}
-          {scoresSaved&&(
-            <button className="btn btn-outline btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>
-              Edit Scores
-            </button>
-          )}
-        </div>
-      )}
+      </div>)}
+      {isAdmin&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Payout splits</div>
+        {[{l:'Front 9',pot:fv,v:fp,s:setFp,f1:f1v,sf1:setF1v,f2:f2v,sf2:setF2v},{l:'Back 9',pot:bv,v:bp,s:setBp,f1:b1v,sf1:setB1v,f2:b2v,sf2:setB2v},{l:'Overall',pot:ov,v:op,s:setOp,f1:o1v,sf1:setO1v,f2:o2v,sf2:setO2v}].map(({l,pot,v,s,f1,sf1,f2,sf2})=>{const p=parseFloat(pot||0);return(<div key={l} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}><span style={{fontSize:13,fontWeight:600}}>{l}{p>0?' - '+f$(p):''}</span><div className="tog" style={{width:155,marginBottom:0}}><button className={'tog-opt'+(v===1?' on':'')} onClick={()=>s(1)}>1st only</button><button className={'tog-opt'+(v===2?' on':'')} onClick={()=>s(2)}>1st + 2nd</button></div></div>{p>0&&(<div className="fr" style={{gap:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">1st place $</label><input className="fi" type="number" placeholder={v===1?f$(p):f$(p*0.6)} value={f1} onChange={e=>sf1(e.target.value)}/></div>{v===2&&(<div className="fg" style={{marginBottom:0}}><label className="fl">2nd place $</label><input className="fi" type="number" placeholder={f$(p*0.4)} value={f2} onChange={e=>sf2(e.target.value)}/></div>)}</div>)}</div>);})
+      </div>)}
+      {(isAdmin||scoresSaved)&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Team scores - {activeDay}</div><div className="sc-grid" style={{marginBottom:8}}><div></div><div className="sc-hd">Front</div><div className="sc-hd">Back</div><div className="sc-hd">Overall</div></div>{dayTeams.map((t,ti)=>(<div key={t.id||ti} className="sc-grid" style={{marginBottom:10,alignItems:'center'}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}><span style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>{t.name||('Group '+(ti+1))}</span><div style={{fontSize:10,fontWeight:400,color:'#94a3b8'}}>- {teamLabel(t)}</div></div>{['front','back','overall'].map(seg=>(<ScorePicker key={seg} value={ts[t.id]?ts[t.id][seg]:undefined} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>))}</div>))}{!dayTeams.length&&<div style={{textAlign:'center',color:'#94a3b8',fontSize:13,padding:'8px 0'}}>Teams not published yet</div>}</div>)}
+      {(isAdmin||scoresSaved)&&dayTeams.length>0&&(<div className="card card-pad" style={{marginBottom:10}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}><div className="slbl" style={{marginBottom:0}}>Skins tapper</div><div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div></div><div className="skin-grid">{dayTeams.map((t,ti)=>(<div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}><div className="skin-team">{t.name||('Group '+(ti+1))}</div><div className="skin-num">{sk[t.id]||0}</div><div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>{isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}</div>))}</div>{sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(perSk.toFixed(2))+' per skin':''}</div>}</div>)}
+      {showPayouts&&(fv||bv||ov||sv)&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
+        {[{l:'Front 9',pot:fv,pl:fp,seg:'front'},{l:'Back 9',pot:bv,pl:bp,seg:'back'},{l:'Overall',pot:ov,pl:op,seg:'overall'}].map(({l,pot,pl,seg})=>{const rows=buildPayouts(pot,pl,dayTeams,ts,seg,seg==='front'?f1v:seg==='back'?b1v:o1v,seg==='front'?f2v:seg==='back'?b2v:o2v);if(!rows.length)return null;return(<div key={l} style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>{rows.map((row,i)=>(<div key={i} className="pay-row"><span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' - '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span><span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
+        {parseFloat(sv||0)>0&&(<div style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div><div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt win">{f$(snet)}</span></div>{tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(perSk.toFixed(2))}</span></div>}{Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{const t=dayTeams.find(t=>String(t.id)===String(tid));return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} - {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*perSk)}</span></div>:null;})}<div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt tie">{f$(pc)}</span></div></div>)}
+        {parseFloat(drawAdj||0)>0&&(<div className="pay-row" style={{color:'#d97706'}}><span className="pay-lbl" style={{color:'#d97706'}}>Manual pot adjustment</span><span className="pay-amt tie">-{f$(drawAdj)}</span></div>)}
+        <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(pc*25-(parseFloat(drawAdj)||0))}</span></div>
+      </div>)}
+      {isAdmin&&!isDemo&&(<div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}><button className="btn btn-dark btn-full" onClick={handleSaveAndPublish}>{scoresSaved?'Update & Publish Results':'Save & Publish Results'}</button>{justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores and payouts.</div>}{scoresSaved&&(<button className="btn btn-outline btn-full" onClick={()=>onMoveToHistory(activeDay)}>Move to History</button>)}{scoresSaved&&(<button className="btn btn-outline btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>Edit Scores</button>)}</div>)}
     </div>
   );
 }
 
 // -- HISTORY VIEW -------------------------------------------------------------
 function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
-  const [open,setOpen]=useState(null);
-  const [view,setView]=useState('rounds');
+  const [open,setOpen]=useState(null);const [view,setView]=useState('rounds');
   const rounds=Object.entries(history||{}).sort((a,b)=>(b[1].date||'').localeCompare(a[1].date||''));
-
   const leaderboard=useMemo(()=>{
     const players={};
-    rounds.forEach(([,r])=>{
-      if(!r.teams||!r.scores)return;
-      const pc=r.playerCount||0;
-      const pot=pc*25;
-      const da=parseFloat(r.scores.drawAdj||0);
-      r.teams.forEach(team=>{
-        safeArray(team.players).forEach(p=>{
-          if(!players[p.name])players[p.name]={name:p.name,rounds:0,won:0};
-          players[p.name].rounds++;
-        });
-      });
-      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1},
-       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1},
-       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1}
-      ].forEach(({seg,pot:segPot,pl})=>{
+    rounds.forEach(([,r])=>{if(!r.teams||!r.scores)return;const pc=r.playerCount||0;
+      r.teams.forEach(team=>{safeArray(team.players).forEach(p=>{if(!players[p.name])players[p.name]={name:p.name,rounds:0,won:0};players[p.name].rounds++;});});
+      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1},{seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1},{seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1}].forEach(({seg,pot:segPot,pl})=>{
         const p=parseFloat(segPot||0);if(!p)return;
-        const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
-        if(!sc.length)return;
-        sc.sort((a,b)=>a.score-b.score);
-        const best=sc[0].score;
-        const tied=sc.filter(t=>t.score===best);
-        const second=sc.find(t=>t.score!==best);
-        const first=pl===1?p:p*0.6;
-        const sec=p*0.4;
-        if(tied.length>1){
-          const split=(first+sec)/tied.length;
-          tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));
-        } else {
-          safeArray(tied[0].players).forEach(p=>{if(players[p.name])players[p.name].won+=first/safeArray(tied[0].players).length;});
-          if(pl===2&&second)safeArray(second.players).forEach(p=>{if(players[p.name])players[p.name].won+=sec/safeArray(second.players).length;});
-        }
+        const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return;
+        sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
+        const first=pl===1?p:p*0.6;const sec=p*0.4;
+        if(tied.length>1){const split=(first+sec)/tied.length;tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));}
+        else{safeArray(tied[0].players).forEach(p=>{if(players[p.name])players[p.name].won+=first/safeArray(tied[0].players).length;});if(pl===2&&second)safeArray(second.players).forEach(p=>{if(players[p.name])players[p.name].won+=sec/safeArray(second.players).length;});}
       });
-      const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
-      const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
-      if(tsk>0){
-        Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{
-          if(!cnt)return;
-          const team=r.teams.find(t=>String(t.id)===String(tid));
-          if(!team)return;
-          safeArray(team.players).forEach(p=>{if(players[p.name])players[p.name].won+=(snet/tsk*cnt)/safeArray(team.players).length;});
-        });
-      }
-    });
-    return Object.values(players).sort((a,b)=>b.won-a.won);
+      const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+      if(tsk>0){Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{if(!cnt)return;const team=r.teams.find(t=>String(t.id)===String(tid));if(!team)return;safeArray(team.players).forEach(p=>{if(players[p.name])players[p.name].won+=(snet/tsk*cnt)/safeArray(team.players).length;});});}
+    });return Object.values(players).sort((a,b)=>b.won-a.won);
   },[rounds.length]);
 
-  if(!rounds.length){
-    return(
-      <div className="empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <div className="empty-title">No rounds yet</div>
-        <div className="empty-sub">Completed rounds appear here.</div>
-      </div>
-    );
-  }
+  if(!rounds.length)return(<div className="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div className="empty-title">No rounds yet</div><div className="empty-sub">Completed rounds appear here.</div></div>);
 
-  function calcHistPay(scores,teams,pot,places,seg){
-    const p=parseFloat(pot||0);if(!p||!teams)return[];
-    const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
-    if(!sc.length)return[];
-    sc.sort((a,b)=>a.score-b.score);
-    const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
-    const rows=[];
-    if(tied.length>1){const split=places===1?p/tied.length:(p*0.6+p*0.4)/tied.length;rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}
-    else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:places===1?p:p*0.6,isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:p*0.4,isTie:false});}
-    return rows;
-  }
+  function calcHistPay(scores,teams,pot,places,seg){const p=parseFloat(pot||0);if(!p||!teams)return[];const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return[];sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);const rows=[];if(tied.length>1){const split=places===1?p/tied.length:(p*0.6+p*0.4)/tied.length;rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:places===1?p:p*0.6,isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:p*0.4,isTie:false});}return rows;}
 
   return(
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-        <div className="tog" style={{marginBottom:0,flex:1,marginRight:10}}>
-          <button className={'tog-opt'+(view==='rounds'?' on':'')} onClick={()=>setView('rounds')}>Rounds</button>
-          <button className={'tog-opt'+(view==='leaders'?' on':'')} onClick={()=>setView('leaders')}>Leaderboard</button>
-        </div>
+        <div className="tog" style={{marginBottom:0,flex:1,marginRight:10}}><button className={'tog-opt'+(view==='rounds'?' on':'')} onClick={()=>setView('rounds')}>Rounds</button><button className={'tog-opt'+(view==='leaders'?' on':'')} onClick={()=>setView('leaders')}>Leaderboard</button></div>
         {isAdmin&&view==='rounds'&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={onClearAll}>Clear all</button>}
       </div>
-
-      {view==='leaders'&&(
-        <div className="card" style={{marginBottom:10}}>
-          <div style={{padding:'13px 14px 8px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div className="slbl" style={{marginBottom:0}}>Season standings</div>
-            <span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr auto auto',padding:'8px 14px 4px',gap:8}}>
-            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player</div>
-            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'center'}}>Rounds</div>
-            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div>
-          </div>
-          {leaderboard.slice(0,20).map((p,i)=>(
-            <div key={p.name} className="lb-row">
-              <div className={'lb-rank'+(i<3?' top':'')}>{i+1}</div>
-              <div className="lb-name">{p.name}</div>
-              <div className="lb-stat">{p.rounds}r</div>
-              <div className="lb-money">{f$(Math.round(p.won))}</div>
-            </div>
-          ))}
-          {leaderboard.length===0&&<div style={{padding:'16px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No data yet</div>}
-        </div>
-      )}
-
+      {view==='leaders'&&(<div className="card" style={{marginBottom:10}}><div style={{padding:'13px 14px 8px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="slbl" style={{marginBottom:0}}>Season standings</div><span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span></div><div style={{display:'grid',gridTemplateColumns:'1fr auto auto',padding:'8px 14px 4px',gap:8}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'center'}}>Rounds</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div></div>{leaderboard.slice(0,20).map((p,i)=>(<div key={p.name} className="lb-row"><div className={'lb-rank'+(i<3?' top':'')}>{i+1}</div><div className="lb-name">{p.name}</div><div className="lb-stat">{p.rounds}r</div><div className="lb-money">{f$(Math.round(p.won))}</div></div>))}{leaderboard.length===0&&<div style={{padding:'16px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No data yet</div>}</div>)}
       {view==='rounds'&&rounds.map(([k,r])=>(
-        <div key={k} className="hi">
-          <div className="hi-hdr" onClick={()=>setOpen(open===k?null:k)}>
-            <div>
-              <div className="hi-title">{r.day} - {fmtDFull(r.date)}</div>
-              <div className="hi-meta">{r.playerCount||0} players - {f$((r.playerCount||0)*25)} pot</div>
-            </div>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              {isAdmin&&<button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEditRound(k,r);}}>Edit</button>}
-              {isAdmin&&<button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();onDelete(k);}}>Delete</button>}
-              <svg style={{width:15,height:15,color:'#94a3b8',transition:'transform 0.2s',transform:open===k?'rotate(180deg)':'none',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
-          {open===k&&(
-            <div className="hi-body">
-              {r.teams&&r.teams.map(t=>(
-                <div key={t.id} style={{marginBottom:9}}>
-                  <div style={{fontSize:13,fontWeight:700,color:'#10b981',marginBottom:3}}>{t.name} <span style={{fontWeight:500,color:'#94a3b8',fontSize:11}}>HCP {t.totalHcp&&t.totalHcp.toFixed(1)}</span></div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                    {safeArray(t.players).map((p,i)=><span key={i} style={{fontSize:11,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}><span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}</span>)}
-                  </div>
-                </div>
-              ))}
-              {r.scores&&r.teams&&(
-                <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}>
-                  <div className="slbl">Scores</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,44px)',gap:'3px 5px',fontSize:12,marginBottom:11}}>
-                    <div style={{color:'#94a3b8',fontWeight:600}}>Team</div>
-                    {['Front','Back','Ovr'].map(h=><div key={h} style={{color:'#94a3b8',textAlign:'center',fontWeight:600}}>{h}</div>)}
-                    {r.teams.map(t=>{
-                      const sc=(r.scores.teamScores&&r.scores.teamScores[t.id])||{};
-                      return(
-                        <React.Fragment key={t.id}>
-                          <div style={{fontWeight:600}}>{t.name}</div>
-                          {['front','back','overall'].map(s=>{const v=sc[s];return<div key={s} style={{textAlign:'center',fontWeight:600,color:typeof v==='number'?v<0?'#15803d':v>0?'#dc2626':'#0f172a':'#94a3b8'}}>{typeof v==='number'?(v>0?'+'+v:v):'--'}</div>;})}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                  <div className="slbl">Payouts</div>
-                  {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||1,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,seg:'overall'}].map(({l,pot,pl,seg})=>{
-                    const rows=calcHistPay(r.scores,r.teams,pot,pl,seg);
-                    if(!rows.length)return null;
-                    return(
-                      <div key={l} style={{marginBottom:9}}>
-                        <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{l}</div>
-                        {rows.map((row,i)=>(
-                          <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}>
-                            <span style={{color:'#475569'}}>{row.label}{row.names?' - '+row.names:''}</span>
-                            <span style={{fontWeight:700,color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                  {parseFloat(r.scores.skinsPot||0)>0&&(
-                    <div style={{marginBottom:9}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div>
-                      {Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{
-                        const t=r.teams.find(t=>String(t.id)===String(tid));
-                        const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
-                        const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
-                        return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(total>0?(net/total)*c:0)}</span></div>:null;
-                      })}
-                    </div>
-                  )}
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,borderTop:'2px solid #0f172a',paddingTop:8}}>
-                    <span>Total pot</span><span style={{color:'#15803d'}}>{f$((r.playerCount||0)*25)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+        <div key={k} className="hi"><div className="hi-hdr" onClick={()=>setOpen(open===k?null:k)}><div><div className="hi-title">{r.day} - {fmtDFull(r.date)}</div><div className="hi-meta">{r.playerCount||0} players - {f$((r.playerCount||0)*25)} pot</div></div><div style={{display:'flex',alignItems:'center',gap:6}}>{isAdmin&&<button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEditRound(k,r);}}>Edit</button>}{isAdmin&&<button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();onDelete(k);}}>Delete</button>}<svg style={{width:15,height:15,color:'#94a3b8',transition:'transform 0.2s',transform:open===k?'rotate(180deg)':'none',flexShrink:0}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+          {open===k&&(<div className="hi-body">
+            {r.teams&&r.teams.map(t=>(<div key={t.id} style={{marginBottom:9}}><div style={{fontSize:13,fontWeight:700,color:'#10b981',marginBottom:3}}>{t.name} <span style={{fontWeight:500,color:'#94a3b8',fontSize:11}}>HCP {t.totalHcp&&t.totalHcp.toFixed(1)}</span></div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{safeArray(t.players).map((p,i)=><span key={i} style={{fontSize:11,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'2px 7px',display:'inline-flex',alignItems:'center',gap:4}}><span className="slot" style={{fontSize:9,padding:'1px 4px'}}>{p.slot}</span>{p.name}</span>)}</div></div>))}
+            {r.scores&&r.teams&&(<div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}><div className="slbl">Scores</div><div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,44px)',gap:'3px 5px',fontSize:12,marginBottom:11}}><div style={{color:'#94a3b8',fontWeight:600}}>Team</div>{['Front','Back','Ovr'].map(h=><div key={h} style={{color:'#94a3b8',textAlign:'center',fontWeight:600}}>{h}</div>)}{r.teams.map(t=>{const sc=(r.scores.teamScores&&r.scores.teamScores[t.id])||{};return(<React.Fragment key={t.id}><div style={{fontWeight:600}}>{t.name}</div>{['front','back','overall'].map(s=>{const v=sc[s];return<div key={s} style={{textAlign:'center',fontWeight:600,color:typeof v==='number'?v<0?'#15803d':v>0?'#dc2626':'#0f172a':'#94a3b8'}}>{typeof v==='number'?(v>0?'+'+v:v):'--'}</div>;})}</React.Fragment>);})}</div>
+              <div className="slbl">Payouts</div>
+              {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||1,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,seg:'overall'}].map(({l,pot,pl,seg})=>{const rows=calcHistPay(r.scores,r.teams,pot,pl,seg);if(!rows.length)return null;return(<div key={l} style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{l}</div>{rows.map((row,i)=>(<div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{row.label}{row.names?' - '+row.names:''}</span><span style={{fontWeight:700,color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
+              {parseFloat(r.scores.skinsPot||0)>0&&(<div style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div>{Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{const t=r.teams.find(t=>String(t.id)===String(tid));const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(total>0?(net/total)*c:0)}</span></div>:null;})}</div>)}
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,borderTop:'2px solid #0f172a',paddingTop:8}}><span>Total pot</span><span style={{color:'#15803d'}}>{f$((r.playerCount||0)*25)}</span></div>
+            </div>)}
+          </div>)}
         </div>
       ))}
     </div>
@@ -1731,283 +980,89 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
 }
 
 function DayChecklist({day,week,onGoTo}){
-  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day).length;
-  const locked=!!(week?.locked?.[day]);
-  const published=!!(week?.teamsPublished?.[day]);
-  const teeSet=!!(week?.teeTimes?.[day]);
-  const steps=[
-    {label:'Sign-ups open',sub:signups+' player'+(signups!==1?'s':'')+' signed up',done:signups>0,action:null},
-    {label:'Lock sign-ups',sub:'Prevent new additions',done:locked,action:()=>onGoTo('home')},
-    {label:'Set tee time',sub:teeSet?'Tee time confirmed':'Not yet set',done:teeSet,action:()=>onGoTo('home')},
-    {label:'Publish teams',sub:published?'Teams are live':'Generate and publish',done:published,action:()=>onGoTo('teams')},
-  ];
-  const doneCount=steps.filter(s=>s.done).length;
-  const pct=Math.round((doneCount/steps.length)*100);
-  const allDone=doneCount===steps.length;
-  return(
-    <div className="chk-card">
-      <div className="chk-hdr">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={allDone?"#10b981":"#f59e0b"} strokeWidth="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-        <div className="chk-title">{day} checklist</div>
-        <div style={{fontSize:11,fontWeight:700,color:allDone?'#15803d':'#94a3b8'}}>{doneCount} of {steps.length} done</div>
-      </div>
-      <div className="chk-prog-wrap"><div className="chk-prog" style={{width:pct+'%'}}/></div>
-      {steps.map((step,i)=>(
-        <div key={i} className="chk-item">
-          <div className={'chk-circle'+(step.done?' done':'')}>
-            {step.done&&<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-          </div>
-          <div className="chk-text">
-            <div className={'chk-label'+(step.done?' done':'')}>{step.label}</div>
-            <div className="chk-sub">{step.sub}</div>
-          </div>
-          {!step.done&&step.action&&<button className="chk-action" onClick={step.action}>Go</button>}
-        </div>
-      ))}
-    </div>
-  );
+  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day).length;const locked=!!(week?.locked?.[day]);
+  const published=!!(week?.teamsPublished?.[day]);const teeSet=!!(week?.teeTimes?.[day]);
+  const steps=[{label:'Sign-ups open',sub:signups+' player'+(signups!==1?'s':'')+' signed up',done:signups>0,action:null},{label:'Lock sign-ups',sub:'Prevent new additions',done:locked,action:()=>onGoTo('home')},{label:'Set tee time',sub:teeSet?'Tee time confirmed':'Not yet set',done:teeSet,action:()=>onGoTo('home')},{label:'Publish teams',sub:published?'Teams are live':'Generate and publish',done:published,action:()=>onGoTo('teams')}];
+  const doneCount=steps.filter(s=>s.done).length;const pct=Math.round((doneCount/steps.length)*100);const allDone=doneCount===steps.length;
+  return(<div className="chk-card"><div className="chk-hdr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={allDone?"#10b981":"#f59e0b"} strokeWidth="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><div className="chk-title">{day} checklist</div><div style={{fontSize:11,fontWeight:700,color:allDone?'#15803d':'#94a3b8'}}>{doneCount} of {steps.length} done</div></div><div className="chk-prog-wrap"><div className="chk-prog" style={{width:pct+'%'}}/></div>{steps.map((step,i)=>(<div key={i} className="chk-item"><div className={'chk-circle'+(step.done?' done':'')}>{step.done&&<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}</div><div className="chk-text"><div className={'chk-label'+(step.done?' done':'')}>{step.label}</div><div className="chk-sub">{step.sub}</div></div>{!step.done&&step.action&&<button className="chk-action" onClick={step.action}>Go</button>}</div>))}</div>);
 }
 
 function AdminChecklist({week,activeDays,onGoTo}){
   if(!activeDays||activeDays.length===0)return null;
-  return(
-    <div>
-      {sortDays(activeDays).map(day=><DayChecklist key={day} day={day} week={week} onGoTo={onGoTo}/>)}
-    </div>
-  );
+  return(<div>{sortDays(activeDays).map(day=><DayChecklist key={day} day={day} week={week} onGoTo={onGoTo}/>)}</div>);
 }
 
-// -- ADMIN VIEW ---------------------------------------------------------------
 function SetupWizard({day,week,onClose,onUpdateTeeTime,onToggleLock,onGoTo}){
-  const [step,setStep]=useState(1);
-  const [isLottery,setIsLottery]=useState(false);
-  const [newTime,setNewTime]=useState('');
-
-  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day);
-  const pc=signups.length;
-  const locked=!!(week?.locked?.[day]);
-  const teeInfo=week?.teeTimes?.[day];
-
+  const [step,setStep]=useState(1);const [isLottery,setIsLottery]=useState(false);const [newTime,setNewTime]=useState('');
+  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day);const pc=signups.length;
+  const locked=!!(week?.locked?.[day]);const teeInfo=week?.teeTimes?.[day];
   return(
     <div style={{background:'#f8fafc',border:'1.5px solid #10b981',borderRadius:14,padding:14,marginBottom:12}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-        <div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>Setting up {day}</div>
-        <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:13,color:'#94a3b8',fontWeight:600}}>Done</button>
-      </div>
-
-      <div style={{display:'flex',gap:4,marginBottom:14}}>
-        {[1,2,3].map(num=>(
-          <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&teeInfo)||(num===2&&locked))?'#10b981':step===num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>
-        ))}
-      </div>
-
-      {step===1&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 1 - Set tee time</div>
-          {teeInfo?(
-            <div style={{padding:'8px 12px',background:'#ecfdf5',borderRadius:8,fontSize:13,fontWeight:600,color:'#15803d',marginBottom:10}}>
-              {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' - '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
-            </div>
-          ):(
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:10,cursor:'pointer',padding:'8px 10px',background:'#f8fafc',borderRadius:8,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0')}} onClick={()=>setIsLottery(!isLottery)}>
-                <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  {isLottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-                </div>
-                <span style={{fontSize:13,fontWeight:500}}>Waiting on lottery</span>
-              </div>
-              <div className="fg" style={{marginBottom:8}}><label className="fl">{isLottery?'Requested time':'Tee time'}</label><TimePicker onChange={setNewTime}/></div>
-              <button className="btn btn-green btn-sm" onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});}} style={{width:'100%'}}>Save tee time</button>
-            </div>
-          )}
-          <div className="wiz-btn-row">
-            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(2)} disabled={!teeInfo}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step===2&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 2 - Lock sign-ups</div>
-          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>{pc} player{pc!==1?'s':''} signed up for {day}</div>
-          {locked?(
-            <div style={{padding:'8px 12px',background:'#ecfdf5',borderRadius:8,fontSize:13,fontWeight:600,color:'#15803d',marginBottom:10}}>Sign-ups locked</div>
-          ):(
-            <button className="btn btn-dark btn-sm" style={{width:'100%',marginBottom:10}} onClick={()=>onToggleLock(day,true)}>Lock sign-ups ({pc} players)</button>
-          )}
-          <div className="wiz-btn-row">
-            <button className="btn btn-outline btn-sm" onClick={()=>setStep(1)}>Back</button>
-            <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(3)} disabled={!locked}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {step===3&&(
-        <div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 3 - Generate teams</div>
-          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Great! Now head over to the Teams tab to generate rosters, balance players, and set the tee order.</div>
-          
-          <div className="wiz-btn-row">
-            <button className="btn btn-outline btn-sm" onClick={()=>setStep(2)}>Back</button>
-            <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>{onClose(); onGoTo('teams');}}>Go to Teams Tab</button>
-          </div>
-        </div>
-      )}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>Setting up {day}</div><button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:13,color:'#94a3b8',fontWeight:600}}>Done</button></div>
+      <div style={{display:'flex',gap:4,marginBottom:14}}>{[1,2,3].map(num=>(<div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&teeInfo)||(num===2&&locked))?'#10b981':step===num?'#0f172a':'#e2e8f0',transition:'background 0.2s'}}/>))}</div>
+      {step===1&&(<div><div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 1 - Set tee time</div>{teeInfo?(<div style={{padding:'8px 12px',background:'#ecfdf5',borderRadius:8,fontSize:13,fontWeight:600,color:'#15803d',marginBottom:10}}>{teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' - '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}</div>):(<div><div style={{display:'flex',alignItems:'center',gap:9,marginBottom:10,cursor:'pointer',padding:'8px 10px',background:'#f8fafc',borderRadius:8,border:'1.5px solid '+(isLottery?'#f59e0b':'#e2e8f0')}} onClick={()=>setIsLottery(!isLottery)}><div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isLottery?'#f59e0b':'#cbd5e1',background:isLottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isLottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}</div><span style={{fontSize:13,fontWeight:500}}>Waiting on lottery</span></div><div className="fg" style={{marginBottom:8}}><label className="fl">{isLottery?'Requested time':'Tee time'}</label><TimePicker onChange={setNewTime}/></div><button className="btn btn-green btn-sm" onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});}} style={{width:'100%'}}>Save tee time</button></div>)}<div className="wiz-btn-row"><button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(2)} disabled={!teeInfo}>Next</button></div></div>)}
+      {step===2&&(<div><div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 2 - Lock sign-ups</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>{pc} player{pc!==1?'s':''} signed up for {day}</div>{locked?(<div style={{padding:'8px 12px',background:'#ecfdf5',borderRadius:8,fontSize:13,fontWeight:600,color:'#15803d',marginBottom:10}}>Sign-ups locked</div>):(<button className="btn btn-dark btn-sm" style={{width:'100%',marginBottom:10}} onClick={()=>onToggleLock(day,true)}>Lock sign-ups ({pc} players)</button>)}<div className="wiz-btn-row"><button className="btn btn-outline btn-sm" onClick={()=>setStep(1)}>Back</button><button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>setStep(3)} disabled={!locked}>Next</button></div></div>)}
+      {step===3&&(<div><div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Step 3 - Generate teams</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Great! Now head over to the Teams tab to generate rosters, balance players, and set the tee order.</div><div className="wiz-btn-row"><button className="btn btn-outline btn-sm" onClick={()=>setStep(2)}>Back</button><button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>{onClose();onGoTo('teams');}}>Go to Teams Tab</button></div></div>)}
     </div>
   );
 }
 
+// -- ADMIN VIEW (REORDERED: Manage Days first, then collapsible checklists) ---
 function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo}){
-  const [addQ,setAddQ]=useState('');
-  const [quickAddSel,setQuickAddSel]=useState(null);
-  const [quickAddTee,setQuickAddTee]=useState('Whites');
-  const [quickAddHcp,setQuickAddHcp]=useState('');
-  const [addDay,setAddDay]=useState('Saturday');
-  const [showRoster,setShowRoster]=useState(false);
-  const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});
-  const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
-  const [showGuest,setShowGuest]=useState(false);
-  const [showSignups,setShowSignups]=useState(false);
-  const [dayEdit,setDayEdit]=useState({});
-  const [warnDeact,setWarnDeact]=useState(null);
-  const [closeoutConfirm,setCloseoutConfirm]=useState(false);
-  const [wizDay,setWizDay]=useState(null);
+  const [addQ,setAddQ]=useState('');const [quickAddSel,setQuickAddSel]=useState(null);const [quickAddTee,setQuickAddTee]=useState('Whites');
+  const [quickAddHcp,setQuickAddHcp]=useState('');const [addDay,setAddDay]=useState('Saturday');const [showRoster,setShowRoster]=useState(false);
+  const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
+  const [showGuest,setShowGuest]=useState(false);const [showSignups,setShowSignups]=useState(false);
+  const [dayEdit,setDayEdit]=useState({});const [warnDeact,setWarnDeact]=useState(null);const [closeoutConfirm,setCloseoutConfirm]=useState(false);
+  const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
 
   const wd=getWeekDates();
   const rosterSearch=[...ROSTER,...(safeArray(roster).filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
   const activeDays=sortDays(safeArray(week?.activeDays));
   const allSignups=Object.entries(week?.signups||{});
 
-  function toggleDay(day){
-    const isActive=activeDays.includes(day);
-    if(isActive){
-      const cnt=allSignups.filter(([,s])=>s.day===day).length;
-      if(cnt>0){setWarnDeact({day,cnt});return;}
-      onDeactivateDay(day);
-    } else {
-      const newWeek={...week,activeDays:[...(safeArray(week?.activeDays)),day],dates:{...(week?.dates||{}),[day]:wd[day]}};
-      onCreate(newWeek);
-    }
-  }
+  function toggleDay(day){const isActive=activeDays.includes(day);if(isActive){const cnt=allSignups.filter(([,s])=>s.day===day).length;if(cnt>0){setWarnDeact({day,cnt});return;}onDeactivateDay(day);}else{const newWeek={...week,activeDays:[...(safeArray(week?.activeDays)),day],dates:{...(week?.dates||{}),[day]:wd[day]}};onCreate(newWeek);}}
 
-  function handleSetupDay(day){
-    const isAct=activeDays.includes(day);
-    if(!isAct){
-      const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:wd[day]}};
-      onCreate(newWeek);
-    }
-    setWizDay(wizDay===day?null:day);
-  }
-
-  function saveDayTeeTime(day){
-    const e=dayEdit[day]||{};
-    if(e.lottery){
-      onUpdateTeeTime(day,{time:e.lotteryReq||'LOTTERY',lottery:true,lotteryReq:e.lotteryReq||''});
-    } else if(e.time){
-      onUpdateTeeTime(day,{time:e.time,lottery:false});
-    }
-    setDayEdit(p=>({...p,[day]:{...p[day],editing:false}}));
-  }
-
-  function removeTeeTime(day){
-    onUpdateTeeTime(day,null);
-    setDayEdit(p=>({...p,[day]:{editing:false}}));
-  }
+  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:wd[day]}};onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
 
   return(
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-        <div style={{display:'flex',alignItems:'center',gap:7}}>
-          <span className="admin-tag">Admin</span>
-          <span style={{fontSize:14,fontWeight:600}}>Control Panel</span>
-        </div>
-        <div style={{display:'flex',gap:6}}>
-          <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button>
-        </div>
+        <div style={{display:'flex',alignItems:'center',gap:7}}><span className="admin-tag">Admin</span><span style={{fontSize:14,fontWeight:600}}>Control Panel</span></div>
+        <div style={{display:'flex',gap:6}}><button className="btn btn-outline btn-sm" onClick={onLogout}>Sign out</button></div>
       </div>
 
-      {activeDays.length>0&&<AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/>}
-
+      {/* === MANAGE DAYS (moved to top) === */}
       <div className="card card-pad" style={{marginBottom:10}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <div className="slbl" style={{marginBottom:0}}>Manage Days</div>
-        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div className="slbl" style={{marginBottom:0}}>Manage Days</div></div>
         {DAYS_OF_WEEK.map((day,di)=>{
-          const isActive=activeDays.includes(day);
-          const teeInfo=week?.teeTimes?.[day];
-          const edit=dayEdit[day]||{};
-          const isEditing=edit.editing;
+          const isActive=activeDays.includes(day);const teeInfo=week?.teeTimes?.[day];
           return(
             <div key={day} style={{borderTop:di>0?'1px solid #f1f5f9':'none',paddingTop:di>0?12:0,marginTop:di>0?12:0}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                <div>
-                  <div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div>
-                  <div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(wd[day])}</div>
-                  {isActive&&teeInfo&&(
-                    <div style={{fontSize:11,color:'#15803d',fontWeight:600,marginTop:2}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}</div>
-                  )}
-                </div>
-                <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                  {isActive&&(
-                    <button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>
-                  )}
-                  <button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>
-                    {wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}
-                  </button>
-                </div>
+                <div><div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(wd[day])}</div>{isActive&&teeInfo&&(<div style={{fontSize:11,color:'#15803d',fontWeight:600,marginTop:2}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}</div>)}</div>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>{isActive&&(<button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>)}<button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>{wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}</button></div>
               </div>
-              {wizDay===day&&(
-                <SetupWizard
-                  day={day}
-                  week={week}
-                  onClose={()=>setWizDay(null)}
-                  onGoTo={onGoTo}
-                  onUpdateTeeTime={onUpdateTeeTime}
-                  onToggleLock={onToggleLock}
-                />
-              )}
-              {isActive&&isEditing&&(
-                <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginTop:4}}>
-                  <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:10,cursor:'pointer'}} onClick={()=>setDayEdit(p=>({...p,[day]:{...p[day],lottery:!edit.lottery}}))}>
-                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:edit.lottery?'#f59e0b':'#cbd5e1',background:edit.lottery?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      {edit.lottery&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-                    </div>
-                    <span style={{fontSize:13,fontWeight:500}}>Waiting on lottery</span>
-                  </div>
-                  {edit.lottery?(
-                    <div className="fg" style={{marginBottom:8}}>
-                      <label className="fl">Requested time (optional)</label>
-                      <TimePicker onChange={v=>setDayEdit(p=>({...p,[day]:{...p[day],lotteryReq:v}}))}/>
-                    </div>
-                  ):(
-                    <div className="fg" style={{marginBottom:8}}>
-                      <label className="fl">Tee time</label>
-                      <TimePicker onChange={v=>setDayEdit(p=>({...p,[day]:{...p[day],time:v}}))}/>
-                    </div>
-                  )}
-                  <div style={{display:'flex',gap:7}}>
-                    <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>saveDayTeeTime(day)}>Save</button>
-                    <button className="btn btn-outline btn-sm" onClick={()=>setDayEdit(p=>({...p,[day]:{...p[day],editing:false}}))}>Cancel</button>
-                    {teeInfo&&<button className="btn btn-red btn-sm" onClick={()=>removeTeeTime(day)}>Remove</button>}
-                  </div>
-                </div>
-              )}
+              {wizDay===day&&(<SetupWizard day={day} week={week} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>)}
             </div>
           );
         })}
       </div>
 
-      {warnDeact&&(
-        <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
-          <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
-          <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players.</div>
-          <div style={{display:'flex',gap:8}}>
-            <button className="btn btn-red btn-sm" onClick={()=>{onDeactivateDay(warnDeact.day);setWarnDeact(null);}}>Deactivate anyway</button>
-            <button className="btn btn-outline btn-sm" onClick={()=>setWarnDeact(null)}>Keep active</button>
+      {warnDeact&&(<div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}><div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>Deactivating will hide this day from players.</div><div style={{display:'flex',gap:8}}><button className="btn btn-red btn-sm" onClick={()=>{onDeactivateDay(warnDeact.day);setWarnDeact(null);}}>Deactivate anyway</button><button className="btn btn-outline btn-sm" onClick={()=>setWarnDeact(null)}>Keep active</button></div></div>)}
+
+      {/* === COLLAPSIBLE CHECKLISTS === */}
+      {activeDays.length>0&&(
+        <div className="card" style={{marginBottom:10}}>
+          <div className="section-btn" onClick={()=>setShowChecklist(!showChecklist)}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><div className="section-title">Day Checklists</div></div>
+            <svg style={{width:15,height:15,color:'#94a3b8',transform:showChecklist?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          {showChecklist&&<div className="section-body"><AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/></div>}
         </div>
       )}
 
+      {/* Manage sign-ups */}
       <div className="card card-pad" style={{marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showSignups?12:0,cursor:'pointer'}} onClick={()=>setShowSignups(!showSignups)}>
           <div className="slbl" style={{marginBottom:0}}>Manage sign-ups</div>
@@ -2015,343 +1070,108 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
         </div>
         {showSignups&&activeDays.length>0&&(
           <div>
-            <div style={{display:'flex',gap:8,marginBottom:10,alignItems:'center'}}>
-              <select className="fs" style={{flex:1}} value={addDay} onChange={e=>setAddDay(e.target.value)}>
-                {activeDays.map(d=><option key={d}>{d}</option>)}
-              </select>
-              <span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{allSignups.filter(([,s])=>s.day===addDay).length} signed up</span>
-            </div>
-            <div className="sw" style={{marginBottom:8}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/>
-            </div>
-            {addQ.length>0&&(
-              <div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:150,overflowY:'auto'}}>
-                {rosterSearch.map(p=>{
-                  const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);
-                  const isExpanded=quickAddSel===p.id;
-                  return(
-                    <div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}>
-                        <span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>
-                        {!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>{isExpanded?'Cancel':'Add'}</button>}
-                      </div>
-                      {isExpanded&&!inDay&&(
-                        <div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}>
-                          <div style={{flex:'1 1 80px'}}><label className="fl">Tees</label><select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-                          <div style={{flex:'1 1 70px'}}><label className="fl">HCP</label><input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/></div>
-                          <button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}} onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');}}>Confirm</button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <button className="btn btn-outline btn-sm" style={{marginBottom:8}} onClick={()=>setShowGuest(!showGuest)}>
-              {showGuest?'Cancel':'+ Add Guest'}
-            </button>
-            {showGuest&&(
-              <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}>
-                <div className="fr" style={{marginBottom:8}}>
-                  <div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div>
-                  <div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-                </div>
-                <div className="fr">
-                  <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div>
-                  <div style={{display:'flex',alignItems:'flex-end'}}>
-                    <button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:''});setShowGuest(false);}}>Add Guest</button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div style={{maxHeight:190,overflowY:'auto'}}>
-              {allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(
-                <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
-                  <div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>{s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</div>
-                  <button className="rm-btn" onClick={()=>onRemoveSignup(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>
-                </div>
-              ))}
-            </div>
+            <div style={{display:'flex',gap:8,marginBottom:10,alignItems:'center'}}><select className="fs" style={{flex:1}} value={addDay} onChange={e=>setAddDay(e.target.value)}>{activeDays.map(d=><option key={d}>{d}</option>)}</select><span style={{fontSize:12,color:'#94a3b8',flexShrink:0}}>{allSignups.filter(([,s])=>s.day===addDay).length} signed up</span></div>
+            <div className="sw" style={{marginBottom:8}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/></div>
+            {addQ.length>0&&(<div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:150,overflowY:'auto'}}>{rosterSearch.map(p=>{const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);const isExpanded=quickAddSel===p.id;return(<div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}><span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>{!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>{isExpanded?'Cancel':'Add'}</button>}</div>{isExpanded&&!inDay&&(<div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}><div style={{flex:'1 1 80px'}}><label className="fl">Tees</label><select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div><div style={{flex:'1 1 70px'}}><label className="fl">HCP</label><input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/></div><button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}} onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');}}>Confirm</button></div>)}</div>);})}</div>)}
+            <button className="btn btn-outline btn-sm" style={{marginBottom:8}} onClick={()=>setShowGuest(!showGuest)}>{showGuest?'Cancel':'+ Add Guest'}</button>
+            {showGuest&&(<div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}><div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div><div className="fr"><div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:''});setShowGuest(false);}}>Add Guest</button></div></div></div>)}
+            <div style={{maxHeight:190,overflowY:'auto'}}>{allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(<div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}><div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>{s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</div><button className="rm-btn" onClick={()=>onRemoveSignup(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button></div>))}</div>
           </div>
         )}
       </div>
 
+      {/* Roster */}
       <div className="card" style={{marginBottom:10}}>
         <div className="section-btn" onClick={()=>setShowRoster(!showRoster)}>
           <div className="section-title">Roster ({[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].length} members)</div>
           <svg style={{width:15,height:15,color:'#94a3b8',transform:showRoster?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        {showRoster&&(
-          <div className="section-body">
-            {safeArray(guestHistory).length>0&&(
-              <div style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}>
-                <div className="slbl">Guest history</div>
-                {safeArray(guestHistory).sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((g,i)=>(
-                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
-                    <span style={{fontWeight:500}}>{g.name}</span>
-                    <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                      <span style={{fontSize:11,color:'#94a3b8'}}>{g.rounds||1} round{(g.rounds||1)!==1?'s':''}</span>
-                      <span className="guest-tag">Guest</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="fr" style={{marginBottom:8}}>
-              <div className="fg" style={{marginBottom:0}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div>
-              <div className="fg" style={{marginBottom:0}}><label className="fl">Default Tees</label><select className="fs" value={np.tee} onChange={e=>setNp({...np,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-            </div>
-            <div className="fr" style={{marginBottom:8}}>
-              <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div>
-              <div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button></div>
-            </div>
-            <div style={{maxHeight:220,overflowY:'auto',marginTop:8}}>
-              {[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].map(p=>(
-                <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
-                  <span style={{fontWeight:500}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</span>
-                  <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                    {p.id>96&&<span className="pill-green">New</span>}
-                    {p.id>96&&<button className="rm-btn" onClick={()=>onRemovePlayer(p.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {showRoster&&(<div className="section-body">
+          {safeArray(guestHistory).length>0&&(<div style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}><div className="slbl">Guest history</div>{safeArray(guestHistory).sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((g,i)=>(<div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}><span style={{fontWeight:500}}>{g.name}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontSize:11,color:'#94a3b8'}}>{g.rounds||1} round{(g.rounds||1)!==1?'s':''}</span><span className="guest-tag">Guest</span></div></div>))}</div>)}
+          <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Default Tees</label><select className="fs" value={np.tee} onChange={e=>setNp({...np,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div>
+          <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button></div></div>
+          <div style={{maxHeight:220,overflowY:'auto',marginTop:8}}>{[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].map(p=>(<div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}><span style={{fontWeight:500}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</span><div style={{display:'flex',gap:5,alignItems:'center'}}>{p.id>96&&<span className="pill-green">New</span>}{p.id>96&&<button className="rm-btn" onClick={()=>onRemovePlayer(p.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>}</div></div>))}</div>
+        </div>)}
       </div>
 
-      {/* NEW END OF WEEK ACTION */}
-      {(activeDays.length>0||allSignups.length>0)&&(
-        <div>
-          {closeoutConfirm ? (
-            <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:5}}>End Week & Start Fresh?</div>
-              <div style={{fontSize:12,color:'#64748b',marginBottom:10}}>All games from this week will be permanently saved to History, and the board will be cleared for the new week.</div>
-              <div style={{display:'flex',gap:8}}>
-                <button className="btn btn-red btn-sm" onClick={()=>{onEndWeek();setCloseoutConfirm(false);}}>Archive & Start New Week</button>
-                <button className="btn btn-outline btn-sm" onClick={()=>setCloseoutConfirm(false)}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <button className="btn btn-dark btn-full" style={{marginTop:10}} onClick={()=>setCloseoutConfirm(true)}>End Week & Start Fresh</button>
-          )}
-        </div>
-      )}
+      {/* End Week */}
+      {(activeDays.length>0||allSignups.length>0)&&(<div>{closeoutConfirm?(<div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}><div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:5}}>End Week & Start Fresh?</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>All games from this week will be permanently saved to History, and the board will be cleared for the new week.</div><div style={{display:'flex',gap:8}}><button className="btn btn-red btn-sm" onClick={()=>{onEndWeek();setCloseoutConfirm(false);}}>Archive & Start New Week</button><button className="btn btn-outline btn-sm" onClick={()=>setCloseoutConfirm(false)}>Cancel</button></div></div>):(<button className="btn btn-dark btn-full" style={{marginTop:10}} onClick={()=>setCloseoutConfirm(true)}>End Week & Start Fresh</button>)}</div>)}
     </div>
   );
 }
 
-
 function App(){
-  const [role,setRole]=useState(null);
-  const [tab,setTab]=useState('home');
-  const [week,setWeek]=useState(null);
-  const [history,setHistory]=useState({});
-  const [extra,setExtra]=useState([]);
-  const [guestHistory,setGuestHistory]=useState([]);
+  const [role,setRole]=useState(null);const [tab,setTab]=useState('home');
+  const [week,setWeek]=useState(null);const [history,setHistory]=useState({});
+  const [extra,setExtra]=useState([]);const [guestHistory,setGuestHistory]=useState([]);
   const {ready,read,write,push,del,update}=useDB();
-  const isDemo = false;
+  const isDemo=false;
+
+  // Hide loading spinner once app renders
+  useEffect(()=>{const l=document.getElementById('loader');if(l){setTimeout(()=>{l.classList.add('hide');setTimeout(()=>l.remove(),500);},150);}},[]);
 
   useEffect(()=>{
-    if(!ready||isDemo)return;
-    const u=[];
-    u.push(read('week',v=>setWeek(v)));
-    u.push(read('history',v=>setHistory(v||{})));
-    u.push(read('extraPlayers',v=>setExtra(safeArray(v))));
-    u.push(read('guests',v=>setGuestHistory(safeArray(v))));
+    if(!ready||isDemo)return;const u=[];
+    u.push(read('week',v=>setWeek(v)));u.push(read('history',v=>setHistory(v||{})));
+    u.push(read('extraPlayers',v=>setExtra(safeArray(v))));u.push(read('guests',v=>setGuestHistory(safeArray(v))));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
-  function createWeek(data){
-    write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});
-  }
-
-  function clearWeek(){
-    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}};
-    if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);
-  }
+  function createWeek(data){write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});}
+  function clearWeek(){const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}};if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);}
 
   function endWeek(){
-    const updates = {};
-    const newHistory = { ...history };
-    let hasHistoryUpdates = false;
-
-    safeArray(week?.activeDays).forEach((day, index) => {
-      const daySignups = Object.values(week?.signups || {}).filter(s => s.day === day);
-      if(daySignups.length > 0){
-        const dayTeams = safeArray(week?.teams?.[day]);
-        const dayScores = week?.scores?.[day] || null;
-        const dayDate = week?.dates?.[day] || td();
-        const roundData = { day, date: dayDate, teams: dayTeams, scores: dayScores, playerCount: daySignups.length, archivedAt: Date.now() };
-        const k = 'dr_' + Date.now() + '_' + index;
-        if (isDemo) {
-          newHistory[k] = roundData;
-        } else {
-          updates[`history/${k}`] = roundData;
-        }
-        hasHistoryUpdates = true;
-      }
+    const updates={};const newHistory={...history};let hasHistoryUpdates=false;
+    safeArray(week?.activeDays).forEach((day,index)=>{
+      const daySignups=Object.values(week?.signups||{}).filter(s=>s.day===day);
+      if(daySignups.length>0){const dayTeams=safeArray(week?.teams?.[day]);const dayScores=week?.scores?.[day]||null;const dayDate=week?.dates?.[day]||td();
+        const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()};
+        const k='dr_'+Date.now()+'_'+index;
+        if(isDemo){newHistory[k]=roundData;}else{updates['history/'+k]=roundData;}hasHistoryUpdates=true;}
     });
-
-    const emptyWeek = {activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{}};
-
-    if(isDemo){
-      if(hasHistoryUpdates) setHistory(newHistory);
-      setWeek(emptyWeek);
-      setTab('home');
-    } else {
-      updates['week'] = emptyWeek;
-      update(updates);
-      setTab('home');
-    }
+    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{}};
+    if(isDemo){if(hasHistoryUpdates)setHistory(newHistory);setWeek(emptyWeek);setTab('home');}
+    else{updates['week']=emptyWeek;update(updates);setTab('home');}
   }
 
   function archiveDay(day){
-    if(!week)return;
-    const daySignups=Object.values(week.signups||{}).filter(s=>s.day===day);
-    const dayTeams=safeArray(week.teams?.[day]);
-    const dayScores=(week.scores&&week.scores[day])||null;
+    if(!week)return;const daySignups=Object.values(week.signups||{}).filter(s=>s.day===day);
+    const dayTeams=safeArray(week.teams?.[day]);const dayScores=(week.scores&&week.scores[day])||null;
     const dayDate=(week.dates&&week.dates[day])||td();
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()};
     if(isDemo){const k='dr_'+Date.now();setHistory(h=>({...h,[k]:roundData}));}else push('history',roundData);
-    const newWeek={...week};
-    newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
-    const ns={};
-    Object.entries(week.signups||{}).forEach(([k,s])=>{if(s.day!==day)ns[k]=s;});
-    newWeek.signups=ns;
+    const newWeek={...week};newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
+    const ns={};Object.entries(week.signups||{}).forEach(([k,s])=>{if(s.day!==day)ns[k]=s;});newWeek.signups=ns;
     const nt={...(week.teams||{})};delete nt[day];newWeek.teams=nt;
     const nsc={...(week.scores||{})};delete nsc[day];newWeek.scores=nsc;
     const nc={...(week.complete||{})};delete nc[day];newWeek.complete=nc;
     if(isDemo){setWeek(newWeek);}else write('week',newWeek);
   }
 
-  function saveTeams(day,teams){const nw={...week,teams:{...(week.teams||{}),[day]:teams}};if(isDemo){setWeek(nw);}else write(`week/teams/${day}`,teams);}
-
-  function publishAndLockTeams(day, teams) {
-    if (isDemo) {
-      setWeek(w => ({
-        ...w,
-        teams: {...(w?.teams||{}), [day]: teams},
-        teamsPublished: {...(w?.teamsPublished||{}), [day]: true},
-        locked: {...(w?.locked||{}), [day]: true}
-      }));
-    } else {
-      update({
-        [`week/teams/${day}`]: teams,
-        [`week/teamsPublished/${day}`]: true,
-        [`week/locked/${day}`]: true
-      });
-    }
-  }
-
-  function saveScoresAndPayouts(day, scores) {
-    if (isDemo) {
-      setWeek(w => ({
-        ...w,
-        scores: {...(w?.scores||{}), [day]: scores},
-        complete: {...(w?.complete||{}), [day]: true}
-      }));
-    } else {
-      update({
-        [`week/scores/${day}`]: scores,
-        [`week/complete/${day}`]: true
-      });
-    }
-  }
-
+  function saveTeams(day,teams){if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams}}));}else write('week/teams/'+day,teams);}
+  function publishAndLockTeams(day,teams){if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams},teamsPublished:{...(w?.teamsPublished||{}),[day]:true},locked:{...(w?.locked||{}),[day]:true}}));}else{update({['week/teams/'+day]:teams,['week/teamsPublished/'+day]:true,['week/locked/'+day]:true});}}
+  function saveScoresAndPayouts(day,scores){if(isDemo){setWeek(w=>({...w,scores:{...(w?.scores||{}),[day]:scores},complete:{...(w?.complete||{}),[day]:true}}));}else{update({['week/scores/'+day]:scores,['week/complete/'+day]:true});}}
   function markComplete(day){const nw={...week,complete:{...(week.complete||{}),[day]:true}};if(isDemo){setWeek(nw);}else write('week',nw);}
-  
-  function reopenDay(day){
-    if (isDemo) {
-      setWeek(w => {
-        const sc = w?.scores?.[day] || {};
-        return {
-          ...w,
-          complete: {...(w?.complete||{}), [day]: false},
-          scores: {...(w?.scores||{}), [day]: {...sc, payoutsCalculated: false, savedAt: sc.savedAt || null}}
-        };
-      });
-    } else {
-      update({
-        [`week/complete/${day}`]: false,
-        [`week/scores/${day}/payoutsCalculated`]: false
-      });
-    }
-  }
-  
-  function updateTeeTime(day,data){
-    const tt={...(week.teeTimes||{})};
-    if(data===null)delete tt[day];else tt[day]=data;
-    const nw={...week,teeTimes:tt};if(isDemo){setWeek(nw);}else write('week',nw);
-  }
-  
+  function reopenDay(day){if(isDemo){setWeek(w=>{const sc=w?.scores?.[day]||{};return{...w,complete:{...(w?.complete||{}),[day]:false},scores:{...(w?.scores||{}),[day]:{...sc,payoutsCalculated:false,savedAt:sc.savedAt||null}}};});}else{update({['week/complete/'+day]:false,['week/scores/'+day+'/payoutsCalculated']:false});}}
+  function updateTeeTime(day,data){const tt={...(week.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;const nw={...week,teeTimes:tt};if(isDemo){setWeek(nw);}else write('week',nw);}
   function saveScores(day,scores){const nw={...week,scores:{...(week.scores||{}),[day]:scores}};if(isDemo){setWeek(nw);}else write('week',nw);}
-  
   function moveToHistory(day){archiveDay(day);setTab('history');}
   function updateSignup(key,vals){const s=week&&week.signups&&week.signups[key];if(s)write('week/signups/'+key,{...s,...vals});}
-  function addPlayer(p){
-    const newExtra=[...extra,{...p,id:1000+extra.length+1}];
-    write('extraPlayers',newExtra);
-    if(p.isGuest){
-      const existing=safeArray(guestHistory).find(g=>g.name===p.name);
-      if(existing){
-        const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
-        write('guests',updated);
-      } else {
-        write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);
-      }
-    }
-  }
+  function addPlayer(p){const newExtra=[...extra,{...p,id:1000+extra.length+1}];write('extraPlayers',newExtra);if(p.isGuest){const existing=safeArray(guestHistory).find(g=>g.name===p.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);}}}
   function removePlayer(id){write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));}
   function toggleLock(day,locked){const nw={...week,locked:{...(week.locked||{}),[day]:locked}};if(isDemo){setWeek(nw);}else write('week',nw);}
-  function deactivateDay(day){
-    const newWeek={...week,activeDays:safeArray(week.activeDays).filter(d=>d!==day)};
-    const tt={...(week.teeTimes||{})};delete tt[day];
-    newWeek.teeTimes=tt;
-    write('week',newWeek);
-  }
-  function updatePaid(day,playerName,paid){
-    const newPaid={...(week?.paid||{}),[day]:{...((week?.paid||{})[day]||{}),[playerName]:paid}};
-    const nw={...week,paid:newPaid};if(isDemo){setWeek(nw);}else write(`week/paid/${day}/${playerName}`, paid);
-  }
-  function editHistoryRound(key,round){
-    del('history/'+key);
-    const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};
-    if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];
-    newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};
-    if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};
-    if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};
-    newWeek.complete={...(newWeek.complete||{}),[round.day]:true};
-    newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};
-    write('week',newWeek);
-    setTab('scoring');
-  }
+  function deactivateDay(day){const newWeek={...week,activeDays:safeArray(week.activeDays).filter(d=>d!==day)};const tt={...(week.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;write('week',newWeek);}
+  function updatePaid(day,playerName,paid){const nw={...week,paid:{...(week?.paid||{}),[day]:{...((week?.paid||{})[day]||{}),[playerName]:paid}}};if(isDemo){setWeek(nw);}else write('week/paid/'+day+'/'+playerName,paid);}
+  function editHistoryRound(key,round){del('history/'+key);const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};newWeek.complete={...(newWeek.complete||{}),[round.day]:true};newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};write('week',newWeek);setTab('scoring');}
 
-  function buildDemoWeek(){
-    const d=makeDemoData();
-    const wd=getWeekDates();
-    return{activeDays:['Saturday'],dates:{Saturday:wd.Saturday},signups:d.signups,teams:{Saturday:d.teams},scores:{Saturday:d.scores},complete:{Saturday:false},teamsPublished:{Saturday:true},teeTimes:{Saturday:{time:'08:30',lottery:false}},locked:{}};
-  }
-  function startDemoPlayer(){
-    setWeek(buildDemoWeek());
-    setHistory({});
-    setRole('player');setTab('home');
-  }
-  function startDemoAdmin(){
-    setWeek(buildDemoWeek());
-    setHistory({});
-    setRole('admin');setTab('home');
-  }
+  function buildDemoWeek(){const d=makeDemoData();const wd=getWeekDates();return{activeDays:['Saturday'],dates:{Saturday:wd.Saturday},signups:d.signups,teams:{Saturday:d.teams},scores:{Saturday:d.scores},complete:{Saturday:false},teamsPublished:{Saturday:true},teeTimes:{Saturday:{time:'08:30',lottery:false}},locked:{}};}
+  function startDemoPlayer(){setWeek(buildDemoWeek());setHistory({});setRole('player');setTab('home');}
+  function startDemoAdmin(){setWeek(buildDemoWeek());setHistory({});setRole('admin');setTab('home');}
 
-  if(!role){
-    return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');}} onDemoPlayer={startDemoPlayer} onDemoAdmin={startDemoAdmin}/>;
-  }
+  if(!role)return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');}} onDemoPlayer={startDemoPlayer} onDemoAdmin={startDemoAdmin}/>;
 
-  const isAdmin = role === 'admin';
-  const activeDays=safeArray(week?.activeDays);
+  const isAdmin=role==='admin';const activeDays=safeArray(week?.activeDays);
   const hasScores=isDemo||activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].savedAt);
-  const hasPayouts=activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].payoutsCalculated);
   const scoringVisible=isAdmin||hasScores;
 
   const PTABS=[
@@ -2365,106 +1185,21 @@ function App(){
 
   return(
     <div className="app">
-      <div className="hdr">
-        <div className="hdr-curve"></div>
-        <div className="hdr-inner">
-          <div className="hdr-top">
-            <div>
-              <div className="hdr-brand">Clark <em>Golf</em> Group</div>
-              <div className="hdr-week">{getWeekLabel()}</div>
-            </div>
-            <div className="hdr-right">
-              {isAdmin&&<span className="admin-tag">Admin</span>}
-              {isDemo&&<span className="demo-tag">Demo</span>}
-              <button className="switch-btn" onClick={()=>{setRole(null);setIsAdmin(false);setIsDemo(false);}}>Switch</button>
-            </div>
-          </div>
-          <div className="hdr-stats">
-            {activeDays.length>0?sortDays(activeDays).map(d=>{
-              const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;
-              return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;
-            }):[
-              <div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,
-              <div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,
-              <div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>
-            ]}
-          </div>
-          <div style={{marginTop:7}}>
-            {activeDays.length>0?(
-              <div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>
-            ):(
-              <div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <nav className="nav">
-        {TABS.map(t=>(
-          <button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </nav>
-
+      <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
+        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);}}>Switch</button></div></div>
+        <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
+        <div style={{marginTop:7}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}</div>
+      </div></div>
+      <nav className="nav">{TABS.map(t=>(<button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
         {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo}
-          onSignup={d=>{
-              if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}
-              else push('week/signups',d);
-              if(d.isGuest&&d.name){
-                const existing=safeArray(guestHistory).find(g=>g.name===d.name);
-                if(existing){
-                  const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);
-                  write('guests',updated);
-                } else {
-                  write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);
-                }
-              }
-            }}
+          onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
           onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
-          onUpdateSignup={updateSignup}
-          onUpdateTeeTime={updateTeeTime}
-          onMarkComplete={markComplete}
-          onReopenDay={reopenDay}
-          onToggleLock={toggleLock}/>}
-        {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin}
-          onSaveTeams={saveTeams}
-          onPublishAndLock={publishAndLockTeams}
-          onUpdatePaid={updatePaid}
-          onToggleLock={toggleLock}
-          myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
-        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo}
-          onSaveScores={saveScores}
-          onSaveScoresAndPayouts={saveScoresAndPayouts}
-          onMoveToHistory={moveToHistory}
-          onMarkComplete={markComplete}
-          onReopenDay={reopenDay}
-          onUpdatePaid={updatePaid}
-          myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
-        {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin}
-          onDelete={k=>del('history/'+k)}
-          onClearAll={()=>write('history',{})}
-          onEditRound={editHistoryRound}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin}
-          onLogout={()=>{setIsAdmin(false);setRole(null);}}
-          week={week}
-          onCreate={createWeek}
-          onAddPlayer={addPlayer}
-          onRemovePlayer={removePlayer}
-          roster={extra}
-          onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
-          onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}}
-          onUpdateTeeTime={updateTeeTime}
-          onDeactivateDay={deactivateDay}
-          onClearWeek={clearWeek}
-          onEndWeek={endWeek}
-          onGoTo={t=>setTab(t)}
-          guestHistory={guestHistory}
-          onSaveTeams={saveTeams}
-          onPublishTeams={d => update({[`week/teamsPublished/${d}`]: true})}
-          onToggleLock={toggleLock}
-          isDemo={isDemo}/>}
+          onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}/>}
+        {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+        {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={k=>del('history/'+k)} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);}} week={week} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
       </div>
     </div>
   );
