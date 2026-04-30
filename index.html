@@ -1129,11 +1129,28 @@ function App(){
       if(daySignups.length>0){const dayTeams=safeArray(week?.teams?.[day]);const dayScores=week?.scores?.[day]||null;const dayDate=week?.dates?.[day]||td();
         const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()};
         const k='dr_'+Date.now()+'_'+index;
-        if(isDemo){newHistory[k]=roundData;}else{updates['history/'+k]=roundData;}hasHistoryUpdates=true;}
+        if(isDemo){newHistory[k]=roundData;}else{updates['history/'+k]=roundData;}hasHistoryUpdates=true;
+        pushToAttendance(day);}
     });
     const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{}};
     if(isDemo){if(hasHistoryUpdates)setHistory(newHistory);setWeek(emptyWeek);setTab('home');}
     else{updates['week']=emptyWeek;update(updates);setTab('home');}
+  }
+
+  function pushToAttendance(day){
+    if(isDemo)return;
+    const dayTeams=safeArray(week?.teams?.[day]);
+    const dayDate=(week?.dates&&week.dates[day])||td();
+    const playerNames=dayTeams.flatMap(t=>safeArray(t.players).map(p=>p.name)).sort();
+    if(!playerNames.length)return;
+    read('attendance/rounds',existing=>{
+      const arr=Array.isArray(existing)?existing:Object.values(existing||{});
+      // One entry per date - if date already exists, replace it; otherwise append
+      const existingIdx=arr.findIndex(r=>r.date===dayDate);
+      if(existingIdx>=0){arr[existingIdx]={date:dayDate,players:playerNames};}
+      else{arr.push({date:dayDate,players:playerNames});}
+      write('attendance/rounds',arr.sort((a,b)=>b.date.localeCompare(a.date)));
+    });
   }
 
   function archiveDay(day){
@@ -1142,6 +1159,7 @@ function App(){
     const dayDate=(week.dates&&week.dates[day])||td();
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()};
     if(isDemo){const k='dr_'+Date.now();setHistory(h=>({...h,[k]:roundData}));}else push('history',roundData);
+    pushToAttendance(day);
     const newWeek={...week};newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
     const ns={};Object.entries(week.signups||{}).forEach(([k,s])=>{if(s.day!==day)ns[k]=s;});newWeek.signups=ns;
     const nt={...(week.teams||{})};delete nt[day];newWeek.teams=nt;

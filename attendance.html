@@ -257,8 +257,9 @@ function LogRoundModal({onSave,onClose,editRound}){
   );
 }
 
-function RoundCard({round,index,isAdmin,onAuth,onPlayerClick,onEdit,onDelete}){
+function RoundCard({round,index,isAdmin,onAuth,onPlayerClick,onEdit,onDelete,onRemovePlayer}){
   const[open,setOpen]=useState(false);
+  const[confirmRemove,setConfirmRemove]=useState(null);
   const players=round.players||[];
   return(
     <div className="rnd">
@@ -268,14 +269,34 @@ function RoundCard({round,index,isAdmin,onAuth,onPlayerClick,onEdit,onDelete}){
       </div>
       {open&&(<div>
         <div className="rnd-body">
-          {players.map((name,i)=>(<div key={name} className="rnd-player" onClick={()=>onPlayerClick(name)}><div className="rnd-num">{i+1}</div><span>{name}</span></div>))}
+          {players.map((name,i)=>(
+            <div key={name}>
+              <div className="rnd-player" style={{justifyContent:'space-between'}}>
+                <div style={{display:'flex',alignItems:'center',gap:7,flex:1,cursor:'pointer'}} onClick={()=>onPlayerClick(name)}>
+                  <div className="rnd-num">{i+1}</div>
+                  <span>{name}</span>
+                </div>
+                {onRemovePlayer&&confirmRemove!==name&&(
+                  <button style={{background:'none',border:'none',color:'#cbd5e1',fontSize:10,cursor:'pointer',padding:'2px 4px',fontFamily:'DM Sans,sans-serif',fontWeight:600}} onClick={e=>{e.stopPropagation();setConfirmRemove(name);}}>remove</button>
+                )}
+              </div>
+              {confirmRemove===name&&(
+                <div style={{padding:'6px 10px 8px',background:'#fef2f2',borderRadius:6,margin:'2px 0 4px',fontSize:12}}>
+                  <div style={{fontWeight:600,color:'#dc2626',marginBottom:4}}>Remove {name} from this round?</div>
+                  <div style={{fontSize:11,color:'#64748b',marginBottom:6}}>Make sure this is you — this cannot be undone.</div>
+                  <div style={{display:'flex',gap:5}}>
+                    <button className="btn btn-red btn-xs" onClick={()=>{onRemovePlayer(name);setConfirmRemove(null);}}>Yes, remove me</button>
+                    <button className="btn btn-outline btn-xs" onClick={()=>setConfirmRemove(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-        <div className="rnd-actions">
-          {isAdmin&&(<>
-            <button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEdit();}}>Edit</button>
-            <button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();if(confirm('Delete this round?'))onDelete();}}>Delete</button>
-          </>)}
-        </div>
+        {isAdmin&&(<div className="rnd-actions">
+          <button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEdit();}}>Edit</button>
+          <button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();if(confirm('Delete this round?'))onDelete();}}>Delete</button>
+        </div>)}
       </div>)}
     </div>
   );
@@ -404,13 +425,18 @@ function App(){
           {viewingSeason&&(<div className="alert" style={{background:'#fffbeb',border:'1px solid #fde68a',color:'#92400e',marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}><span>Viewing: {archivedSeasons[viewingSeason]?.label||viewingSeason}</span><div style={{display:'flex',gap:5}}>{isAdmin&&<button className="btn btn-red btn-xs" onClick={()=>{if(confirm('Delete this archived season permanently?')){write('attendance/archive/'+viewingSeason,null);setViewingSeason(null);showToast('Archived season deleted');}}}>Delete Season</button>}<button className="btn btn-outline btn-xs" onClick={()=>setViewingSeason(null)}>Back to current</button></div></div>)}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
             <div className="slbl" style={{marginBottom:0}}>{activeRounds.length} Round{activeRounds.length!==1?'s':''}</div>
-            {!viewingSeason&&(<button className="btn btn-green btn-sm" onClick={()=>{if(!isAdmin){setShowAdminPrompt(true);}else{setEditRound(null);setLogModal(true);}}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Log Round</button>)}
+            <div style={{display:'flex',gap:5}}>
+              {!viewingSeason&&isAdmin&&(<button className="btn btn-green btn-sm" onClick={()=>{setEditRound(null);setLogModal(true);}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Log Round</button>)}
+              {!isAdmin&&(<button className="btn btn-outline btn-sm" onClick={()=>setShowAdminPrompt(true)} style={{color:'#f59e0b',borderColor:'#fde68a'}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Admin</button>)}
+              {isAdmin&&(<span style={{fontSize:10,fontWeight:600,color:'#15803d',background:'#ecfdf5',padding:'4px 8px',borderRadius:12,alignSelf:'center'}}>Admin</span>)}
+            </div>
           </div>
           {activeRounds.length===0?(<div className="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{marginBottom:8}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div className="empty-title">No rounds logged</div><div className="empty-sub">{viewingSeason?'This archived season has no data.':'Import data or log a round manually.'}</div></div>):(
             activeRounds.map((r,ri)=><RoundCard key={r.date+ri} round={r} index={ri} isAdmin={!viewingSeason&&isAdmin} onAuth={()=>setIsAdmin(true)}
               onPlayerClick={name=>{const p=standings.find(s=>s.name===name);if(p)setSelectedPlayer(p);}}
               onEdit={()=>{if(!viewingSeason){setEditRound({index:ri,data:r});setLogModal(true);}}}
-              onDelete={()=>{if(!viewingSeason){const u=rounds.filter((_,i)=>i!==ri);saveRounds(u);showToast('Round deleted');}}}/>)
+              onDelete={()=>{if(!viewingSeason){const u=rounds.filter((_,i)=>i!==ri);saveRounds(u);showToast('Round deleted');}}}
+              onRemovePlayer={name=>{if(!viewingSeason){const u=[...rounds];const updated={...u[ri],players:(u[ri].players||[]).filter(p=>p!==name)};if(updated.players.length===0){u.splice(ri,1);}else{u[ri]=updated;}saveRounds(u);showToast(name+' removed from round');}}}/>)
           )}
         </div>)}
 
