@@ -9,675 +9,477 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
 #root{min-height:100%}
 .app{max-width:430px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
-
-/* LOADING */
 .loading-screen{position:fixed;inset:0;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s}
 .loading-screen.hide{opacity:0;pointer-events:none}
 .loading-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.1);border-top-color:#10b981;border-radius:50%;animation:spin 0.7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-brand{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#fff;margin-top:16px}
 .loading-brand em{color:#10b981;font-style:normal}
-
-/* HEADER */
-.hdr{background:#0f172a;padding:20px 16px 0;position:relative;overflow:hidden}
-.hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:18px;background:#fff;border-radius:18px 18px 0 0}
-.hdr-inner{position:relative;z-index:1;padding-bottom:22px}
-.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
-.hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:#fff;line-height:1.15}
+.hdr{background:#0f172a;padding:18px 16px 0;position:relative;overflow:hidden}
+.hdr-curve{position:absolute;bottom:-1px;left:0;right:0;height:16px;background:#fff;border-radius:16px 16px 0 0}
+.hdr-inner{position:relative;z-index:1;padding-bottom:20px}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;line-height:1.15}
 .hdr-brand em{color:#10b981;font-style:normal}
-.hdr-sub{font-size:11px;font-weight:600;letter-spacing:0.12em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:3px}
-.back-link{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 12px;color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
-.back-link:hover{color:#fff}
-
-/* STAT BOXES */
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.stat-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:10px 6px;text-align:center}
-.stat-n{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#10b981}
-.stat-l{font-size:10px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:2px}
-
-/* POT BAR */
-.pot-bar{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:11px 14px;margin-top:10px;display:flex;align-items:center;justify-content:space-between}
-.pot-label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em}
-.pot-sub{font-size:10px;color:rgba(255,255,255,0.3);margin-top:1px}
-.pot-amt{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#f59e0b}
-
-/* NAV */
+.hdr-sub{font-size:10px;font-weight:600;letter-spacing:0.1em;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-top:2px}
+.back-link{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:4px 11px;color:rgba(255,255,255,0.5);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 6px;text-align:center}
+.stat-n{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#10b981}
+.stat-l{font-size:9px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:1px}
+.pot-bar{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 13px;margin-top:8px;display:flex;align-items:center;justify-content:space-between}
+.pot-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em}
+.pot-sub{font-size:9px;color:rgba(255,255,255,0.25);margin-top:1px}
+.pot-amt{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#f59e0b}
 .nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0}
-.nb{flex:1;padding:12px 2px 10px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
-.nb svg{width:19px;height:19px;flex-shrink:0}
+.nb{flex:1;padding:11px 2px 9px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.06em;text-transform:uppercase;position:relative;transition:color 0.15s}
+.nb svg{width:18px;height:18px;flex-shrink:0}
 .nb.on{color:#0f172a}
-.nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
-.content{flex:1;padding:18px 14px 56px;line-height:1.5}
-
-/* LEADERBOARD */
-.lb-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.1s}
-.lb-row:hover{background:#f8fafc}
+.nb.on::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
+.content{flex:1;padding:14px 14px 50px}
+.search-wrap{position:relative;margin-bottom:10px}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8;pointer-events:none}
+.search-input{width:100%;padding:9px 11px 9px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:#f8fafc;color:#0f172a}
+.search-input:focus{border-color:#10b981;background:#fff}
+.lb-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.lb-hdr{padding:10px 13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9}
+.lb-row{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid #f8fafc;cursor:pointer;transition:background 0.1s}
 .lb-row:last-child{border-bottom:none}
-.lb-rank{width:28px;height:28px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
-.lb-rank.gold{background:#f59e0b;color:#0f172a}
-.lb-rank.silver{background:#cbd5e1;color:#0f172a}
-.lb-rank.bronze{background:#d97706;color:#fff}
-.avi{width:34px;height:34px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
-.lb-name{flex:1;font-size:14px;font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lb-rounds{font-size:13px;color:#94a3b8;font-weight:600;min-width:32px;text-align:right}
-.lb-bar-wrap{width:60px;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;flex-shrink:0}
-.lb-bar{height:6px;background:#10b981;border-radius:3px;transition:width 0.4s}
-
-/* HISTORY CARDS */
-.round-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-.round-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
-.round-hdr:active{background:#f8fafc}
-.round-date{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#0f172a}
-.round-meta{font-size:12px;color:#94a3b8;font-weight:500;margin-top:1px}
-.round-pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#10b981;color:#fff;white-space:nowrap}
-.round-chev{width:15px;height:15px;color:#cbd5e1;transition:transform 0.2s;flex-shrink:0;margin-left:6px}
-.round-chev.open{transform:rotate(180deg)}
-.round-body{border-top:1px solid #f1f5f9;padding:10px 14px}
-.round-player{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px;font-weight:500;color:#0f172a}
-.round-player:last-child{border-bottom:none}
-.round-num{width:20px;height:20px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
-
-/* PLAYER DETAIL MODAL */
+.lb-row:active{background:#f8fafc}
+.lb-rank{width:24px;height:24px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
+.lb-rank.r1{background:#f59e0b;color:#0f172a}
+.lb-rank.r2{background:#cbd5e1;color:#0f172a}
+.lb-rank.r3{background:#d97706;color:#fff}
+.avi{width:30px;height:30px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
+.lb-name{flex:1;font-size:13px;font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-bar-w{width:50px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;flex-shrink:0}
+.lb-bar{height:5px;background:#10b981;border-radius:3px;transition:width 0.3s}
+.lb-rounds{font-size:12px;color:#64748b;font-weight:600;min-width:24px;text-align:right;font-family:'Barlow Condensed',sans-serif}
+.rnd{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:8px}
+.rnd-hdr{padding:11px 13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.rnd-hdr:active{background:#f8fafc}
+.rnd-date{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a}
+.rnd-meta{font-size:11px;color:#94a3b8;font-weight:500;margin-top:1px}
+.rnd-right{display:flex;align-items:center;gap:5px}
+.rnd-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#10b981;color:#fff}
+.rnd-chev{width:14px;height:14px;color:#cbd5e1;transition:transform 0.2s;flex-shrink:0}
+.rnd-chev.open{transform:rotate(180deg)}
+.rnd-body{border-top:1px solid #f1f5f9;padding:8px 13px}
+.rnd-player{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:13px;font-weight:500;color:#0f172a;cursor:pointer}
+.rnd-player:last-child{border-bottom:none}
+.rnd-num{width:18px;height:18px;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
+.rnd-actions{border-top:1px solid #f1f5f9;padding:8px 13px;display:flex;gap:6px;justify-content:flex-end}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200}
-.modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:85vh;overflow-y:auto}
-.modal-handle{width:34px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#0f172a;margin-bottom:4px}
-.modal-sub{font-size:13px;color:#94a3b8;font-weight:500;margin-bottom:16px}
-.date-chip{display:inline-block;padding:5px 11px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:500;color:#475569;margin:0 6px 6px 0}
-
-/* SEARCH */
-.sw{position:relative;margin-bottom:12px}
-.sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
-.si{width:100%;padding:10px 12px 10px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;background:#f8fafc}
-.si:focus{border-color:#10b981;background:#fff}
-
-/* IMPORT */
-.import-area{background:#f8fafc;border:2px dashed #e2e8f0;border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:12px}
-.import-area:hover{border-color:#10b981}
-.import-area.dragging{border-color:#10b981;background:#ecfdf5}
-
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:14px 14px 32px;width:100%;max-height:88vh;overflow-y:auto}
+.modal-handle{width:32px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 12px}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;margin-bottom:12px}
+.date-chip{display:inline-block;padding:4px 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-weight:500;color:#475569;margin:0 5px 5px 0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.12s;white-space:nowrap}
 .btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
 .btn-green{background:#10b981;color:#0f172a}
 .btn-dark{background:#0f172a;color:#fff}
 .btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569}
 .btn-red{background:#ef4444;color:#fff}
-.btn-sm{padding:6px 11px;font-size:11px}
-.btn-full{width:100%}
 .btn-gold{background:#f59e0b;color:#0f172a}
-
-/* ALERTS */
-.alert{border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:500}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-xs{padding:3px 8px;font-size:10px}
+.btn-full{width:100%}
+.alert{border-radius:8px;padding:9px 11px;font-size:12px;margin-bottom:8px;font-weight:500}
 .alert-ok{background:#ecfdf5;border:1px solid #bbf7d0;color:#15803d}
-.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
-
-/* TOGGLE */
-.tog{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;margin-bottom:12px}
-.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.03em}
-.tog-opt.on{background:#0f172a;color:#fff}
-
-/* EMPTY */
-.empty{text-align:center;padding:44px 16px}
-.empty svg{width:38px;height:38px;opacity:0.18;margin-bottom:11px}
-.empty-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;margin-bottom:5px}
-.empty-sub{font-size:13px;color:#64748b;line-height:1.55}
-
-/* CARD */
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
-.card-pad{padding:14px}
-.slbl{font-size:11px;font-weight:600;letter-spacing:0.07em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
-
-/* TOAST */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:8px;animation:toastIn 0.25s ease}
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.fl{font-size:10px;font-weight:600;color:#64748b;margin-bottom:3px;display:block;letter-spacing:0.06em;text-transform:uppercase}
+.fi{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none}
+.fi:focus{border-color:#10b981}
+.fg{margin-bottom:10px}
+.pw-box{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center}
+.pw-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px}
+.pw-input{width:100%;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;text-align:center;letter-spacing:0.1em;margin-bottom:8px}
+.pw-input:focus{border-color:#10b981}
+.pw-err{color:#ef4444;font-size:12px;font-weight:600;margin-bottom:6px}
+.import-area{background:#f8fafc;border:2px dashed #e2e8f0;border-radius:10px;padding:20px 14px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:10px}
+.import-area:hover{border-color:#10b981}
+.pp{display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid #f8fafc;cursor:pointer;border-radius:4px}
+.pp:hover{background:#f8fafc}
+.pp.sel{background:#ecfdf5}
+.pp-check{width:16px;height:16px;border-radius:4px;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
+.pp-check.on{background:#10b981;border-color:#10b981}
+.slbl{font-size:10px;font-weight:600;letter-spacing:0.07em;color:#94a3b8;text-transform:uppercase;margin-bottom:6px}
+.empty{text-align:center;padding:36px 16px}
+.empty-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px}
+.empty-sub{font-size:12px;color:#64748b;line-height:1.5}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:8px}
+.card-pad{padding:13px}
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 18px;border-radius:20px;font-size:12px;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:6px;animation:toastIn 0.25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
-<div id="loader" class="loading-screen">
-<div class="loading-spinner"></div>
-<div class="loading-brand">Clark <em>Golf</em> Group</div>
-</div>
+<div id="loader" class="loading-screen"><div class="loading-spinner"></div><div class="loading-brand">Clark <em>Golf</em> Group</div></div>
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useCallback,useMemo}=React;
 
-// ============================================================
-// NAME MAPPING: CSV short names -> your roster full names
-// Update this once your buddy confirms the unknowns
-// ============================================================
-const NAME_MAP = {
-  "John M": "John McCarthy",
-  "Chris A": "Chris Allen",
-  "Rodolfo C": "Rodolfo Camacho",
-  "Clark K": "Clark Kunkle",
-  "Kevin S": "Kevin Scudder",
-  "George D": "George Divver",
-  "Bob L": "Bob Latos",
-  "Jeff S": "Jeff Sarris",         // CONFIRM: Jeff Sarris or Jeff Sandusky?
-  "Duane R": "Duane Robins",
-  "Doug M": "Doug M",              // CONFIRM: full name?
-  "Tom W": "Tom Watson",
-  "Bill C": "Bill Collingwood",
-  "Cesar R": "Cesar R",            // CONFIRM: full name? (Cesar Rodriguez?)
-  "Jim V": "Jim Vaughn",
-  "Frank M": "Frank McGuire",
-  "Mark S": "Mark Shank",
-  "Jacob S": "Jacob Seiter",
-  "Rennie C": "Cory Rennie",
-  "Pedro C": "Pedro C",            // CONFIRM: full name?
-  "Matt H": "Matt Honacki",
-  "Jim W": "Jim Weiskopf",
-  "Phil M": "Phil Moebus",         // CONFIRM: Phil Moebus or Phil Murray?
-  "Ray S": "Ray Sanchez",
-  "John L": "John Jang Lee",
-  "Carl C": "Carl Cutright",
-  "Chris M": "Chris M",            // CONFIRM: full name?
-  "Jared F": "Jared Friend",
-  "Rick K": "Rick Kelly",
-  "Joey T": "Joey Tominovich",
-  "Jeff Y": "Jeff Yeakle",
-  "DJ P": "DJ Park",
-  "Alan F": "Alan Friend",
-  "Marty M": "Marty More",
-  "Tom S": "Tom Steffes",
-  "Bob C": "Robert Chase",
-  "Dave G": "Dave Gularson",
-  "Jim C": "Jim Carroll",
-  "Bill W": "Bill Wood",
-  "Tim M": "Tim Marose",           // CONFIRM: Marose, McMahon, or McNichol?
-  "Jim S": "Jimmy Stables",
-  "Man K": "Man Kim",
-  "Mike B": "Mike Barry",
-  "Jim M": "Jim Muir",
-  "Harry R": "Harry Rieckeman",
-  "Andrew D": "Andrew D",          // CONFIRM: full name? guest?
-  "John G": "John G",              // CONFIRM: full name? guest?
-  "Jang L": "John Jang Lee",       // DUPLICATE of John L - will merge
-  "Bob S": "Bob Sundell",
-  "Orlando M": "Orlando M",        // CONFIRM: full name? guest?
-  "Jon R": "Jon R",                // CONFIRM: full name? guest?
-  "Brian G": "Brian Grimes",
-  "Nico C": "Nico C",              // CONFIRM: full name? guest?
-  "Jim F": "Jimmy Ford",
-  "Pete B": "Pete Bechtel",
-  "Bill B": "Bill Balster",
-  "Tommy V": "Thomas Vyskocil",
-  "Ken S": "Ken Sanquist",
-  "Will P": "Will P",              // CONFIRM: full name? guest?
-  "Sean G": "Sean Gagen",
-  "Jim H": "Jim Harvey",
-  "Bruce Y": "Bruce Yoo",
-  "Joe S": "Joe Sabelhaus",
-  "John R": "John R",              // CONFIRM: full name? guest?
-};
+const ROSTER=[
+  {id:1,name:"Stephen Abbundi"},{id:2,name:"Chris Allen"},{id:3,name:"Bill Balster"},
+  {id:4,name:"Mike Barry"},{id:5,name:"Pete Bechtel"},{id:6,name:"Kyle Benjamin"},
+  {id:7,name:"Brian Dunn"},{id:8,name:"Rodolfo Camacho"},{id:9,name:"Luis Cardenas"},
+  {id:10,name:"Don Carlson"},{id:11,name:"Jim Carroll"},{id:12,name:"Robert Chase"},
+  {id:13,name:"Chip Mace"},{id:14,name:"Eric Cloutier"},{id:15,name:"Damian Cordovez"},
+  {id:16,name:"Carl Cutright"},{id:17,name:"Bill Collingwood"},{id:18,name:"George Divver"},
+  {id:19,name:"Gerald Ford"},{id:20,name:"Jimmy Ford"},{id:21,name:"Darren Franchke"},
+  {id:22,name:"Jared Friend"},{id:23,name:"Alan Friend"},{id:24,name:"Mike Furman"},
+  {id:25,name:"Sean Gagen"},{id:26,name:"Chris Ghion"},{id:27,name:"Tim Gilchrist"},
+  {id:28,name:"Mike Gohn"},{id:29,name:"Jack Goldsby"},{id:30,name:"Devin Grimaldi"},
+  {id:31,name:"Brian Grimes"},{id:32,name:"Dave Gularson"},{id:33,name:"Jim Harvey"},
+  {id:34,name:"Alex Hinson"},{id:35,name:"Matt Honacki"},{id:36,name:"Kevin Hwang"},
+  {id:37,name:"John Jakiun"},{id:38,name:"Craig Beamer Jr."},{id:39,name:"Rick Kelly"},
+  {id:40,name:"Man Kim"},{id:41,name:"Casey King"},{id:42,name:"Koby Kovacs"},
+  {id:43,name:"Clark Kunkle"},{id:44,name:"Bob Latos"},{id:45,name:"John Jang Lee"},
+  {id:46,name:"George Magas"},{id:47,name:"Tim Marose"},{id:48,name:"John McCarthy"},
+  {id:49,name:"Frank McGuire"},{id:50,name:"Tim McMahon"},{id:51,name:"Tim McNichol"},
+  {id:52,name:"Richard Meade"},{id:53,name:"Phil Moebus"},{id:54,name:"Marty More"},
+  {id:55,name:"Nick Mouzakis"},{id:56,name:"Jim Muir"},{id:57,name:"Phil Murray"},
+  {id:58,name:"Frank Owusu"},{id:59,name:"DJ Park"},{id:60,name:"Wally Pellerite"},
+  {id:61,name:"Cory Rennie"},{id:62,name:"Harry Rieckeman"},{id:63,name:"Duane Robins"},
+  {id:64,name:"Michael Roosevelt"},{id:65,name:"Rob Rosenberg"},{id:66,name:"Joe Sabelhaus"},
+  {id:67,name:"Steve Salem"},{id:68,name:"Ray Sanchez"},{id:69,name:"Jeff Sandusky"},
+  {id:70,name:"Ken Sanquist"},{id:71,name:"Jeff Sarris"},{id:72,name:"Kevin Scudder"},
+  {id:73,name:"Jacob Seiter"},{id:74,name:"Mark Shank"},{id:75,name:"Billy Shelton"},
+  {id:76,name:"Jimmy Stables"},{id:77,name:"Tom Steffes"},{id:78,name:"Cody Stewart"},
+  {id:79,name:"Rob Suggs"},{id:80,name:"Bob Sundell"},{id:81,name:"Joey Tominovich"},
+  {id:82,name:"Joe Travagline"},{id:83,name:"Jim Vaughn"},{id:84,name:"Thomas Vyskocil"},
+  {id:85,name:"Tom Watson"},{id:86,name:"Jim Weiskopf"},{id:87,name:"Steve Weiss"},
+  {id:88,name:"Greg Weyman"},{id:89,name:"Paul Will"},{id:90,name:"Steve Wilson"},
+  {id:91,name:"Rick Windon"},{id:92,name:"Bill Wood"},{id:93,name:"Jeff Yeakle"},
+  {id:94,name:"Bruce Yoo"},{id:95,name:"Gary Zgorski"},{id:96,name:"Geoff Zgorski"}
+];
 
-function mapName(csvName) {
-  return NAME_MAP[csvName] || csvName;
+const NAME_MAP={"John M":"John McCarthy","Chris A":"Chris Allen","Rodolfo C":"Rodolfo Camacho","Clark K":"Clark Kunkle","Kevin S":"Kevin Scudder","George D":"George Divver","Bob L":"Bob Latos","Jeff S":"Jeff Sarris","Duane R":"Duane Robins","Doug M":"Doug M","Tom W":"Tom Watson","Bill C":"Bill Collingwood","Cesar R":"Cesar R","Jim V":"Jim Vaughn","Frank M":"Frank McGuire","Mark S":"Mark Shank","Jacob S":"Jacob Seiter","Rennie C":"Cory Rennie","Pedro C":"Pedro C","Matt H":"Matt Honacki","Jim W":"Jim Weiskopf","Phil M":"Phil Moebus","Ray S":"Ray Sanchez","John L":"John Jang Lee","Carl C":"Carl Cutright","Chris M":"Chris M","Jared F":"Jared Friend","Rick K":"Rick Kelly","Joey T":"Joey Tominovich","Jeff Y":"Jeff Yeakle","DJ P":"DJ Park","Alan F":"Alan Friend","Marty M":"Marty More","Tom S":"Tom Steffes","Bob C":"Robert Chase","Dave G":"Dave Gularson","Jim C":"Jim Carroll","Bill W":"Bill Wood","Tim M":"Tim Marose","Jim S":"Jimmy Stables","Man K":"Man Kim","Mike B":"Mike Barry","Jim M":"Jim Muir","Harry R":"Harry Rieckeman","Andrew D":"Andrew D","John G":"John G","Jang L":"John Jang Lee","Bob S":"Bob Sundell","Orlando M":"Orlando M","Jon R":"Jon R","Brian G":"Brian Grimes","Nico C":"Nico C","Jim F":"Jimmy Ford","Pete B":"Pete Bechtel","Bill B":"Bill Balster","Tommy V":"Thomas Vyskocil","Ken S":"Ken Sanquist","Will P":"Will P","Sean G":"Sean Gagen","Jim H":"Jim Harvey","Bruce Y":"Bruce Yoo","Joe S":"Joe Sabelhaus","John R":"John R"};
+function mapName(n){return NAME_MAP[n]||n;}
+
+const ADMIN_PW='clark';
+const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function parseDate(str){const p=str.trim().match(/(\w+)\s+(\d+),?\s*(\d{4})/);if(!p)return null;const mi=MO.indexOf(p[1]);if(mi===-1)return null;return p[3]+'-'+String(mi+1).padStart(2,'0')+'-'+String(parseInt(p[2])).padStart(2,'0');}
+function fmtDate(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return MO[parseInt(m)-1]+' '+parseInt(d)+', '+y;}
+function todayISO(){return new Date().toISOString().split('T')[0];}
+
+function useDB(){
+  const[db,setDb]=useState(null);const[ready,setReady]=useState(false);
+  useEffect(()=>{try{if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"});setDb(firebase.database());setReady(true);}catch(e){setReady(true);}},[]);
+  const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
+  const write=useCallback((p,v)=>{if(!db){localStorage.setItem(p,JSON.stringify(v));return Promise.resolve();}return db.ref(p).set(v);},[db]);
+  return{ready,read,write};
 }
 
-// ============================================================
-// FIREBASE
-// ============================================================
-function useDB() {
-  const [db, setDb] = useState(null);
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    try {
-      if (!firebase.apps.length) firebase.initializeApp({
-        apiKey: "AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",
-        authDomain: "clark-group-dd15e.firebaseapp.com",
-        databaseURL: "https://clark-group-dd15e-default-rtdb.firebaseio.com",
-        projectId: "clark-group-dd15e",
-        storageBucket: "clark-group-dd15e.firebasestorage.app",
-        messagingSenderId: "92891899165",
-        appId: "1:92891899165:web:817f5f164f3fc50b506df4"
-      });
-      setDb(firebase.database());
-      setReady(true);
-    } catch (e) { setReady(true); }
-  }, []);
-
-  const read = useCallback((p, cb) => {
-    if (!db) { cb(JSON.parse(localStorage.getItem(p) || 'null')); return () => {}; }
-    const r = db.ref(p);
-    r.on('value', s => cb(s.val()));
-    return () => r.off();
-  }, [db]);
-
-  const write = useCallback((p, v) => {
-    if (!db) { localStorage.setItem(p, JSON.stringify(v)); return Promise.resolve(); }
-    return db.ref(p).set(v);
-  }, [db]);
-
-  return { ready, read, write };
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-const ini = n => n.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function parseDate(str) {
-  // Handles "Apr 24, 2025" format
-  const parts = str.trim().match(/(\w+)\s+(\d+),?\s*(\d{4})/);
-  if (!parts) return null;
-  const mi = MO.indexOf(parts[1]);
-  if (mi === -1) return null;
-  const y = parseInt(parts[3]);
-  const d = parseInt(parts[2]);
-  return `${y}-${String(mi + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-}
-
-function fmtDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return MO[parseInt(m) - 1] + ' ' + parseInt(d) + ', ' + y;
-}
-
-function fmtDateShort(iso) {
-  if (!iso) return '';
-  const [, m, d] = iso.split('-');
-  return MO[parseInt(m) - 1] + ' ' + parseInt(d);
-}
-
-// ============================================================
-// CSV PARSER
-// ============================================================
-function parseCSV(text) {
-  // Parse the CSV export from the friend's app
-  // Format: Rank, Player, Total Rounds, Dates Played
-  const lines = text.split('\n').filter(l => l.trim());
-  const rounds = {}; // date -> [player names]
-
-  for (let i = 1; i < lines.length; i++) {
-    // Parse CSV with quoted fields
-    const matches = [];
-    const re = /("([^"]*)"|([^,]+))/g;
-    let m;
-    while ((m = re.exec(lines[i])) !== null) {
-      matches.push((m[2] || m[3] || '').trim());
-    }
-    if (matches.length < 4) continue;
-
-    const csvName = matches[1];
-    const datesStr = matches[3];
-    const fullName = mapName(csvName);
-    const dates = datesStr.split('|').map(d => d.trim()).filter(Boolean);
-
-    dates.forEach(dateStr => {
-      const iso = parseDate(dateStr);
-      if (!iso) return;
-      if (!rounds[iso]) rounds[iso] = [];
-      if (!rounds[iso].includes(fullName)) {
-        rounds[iso].push(fullName);
-      }
-    });
+function parseCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());const rounds={};
+  for(let i=1;i<lines.length;i++){
+    const matches=[];const re=/("([^"]*)"|([^,]+))/g;let m;
+    while((m=re.exec(lines[i]))!==null)matches.push((m[2]||m[3]||'').trim());
+    if(matches.length<4)continue;
+    const fullName=mapName(matches[1]);const datesStr=matches[3];
+    datesStr.split('|').map(d=>d.trim()).filter(Boolean).forEach(ds=>{const iso=parseDate(ds);if(!iso)return;if(!rounds[iso])rounds[iso]=[];if(!rounds[iso].includes(fullName))rounds[iso].push(fullName);});
   }
-
-  // Convert to array sorted by date desc
-  return Object.entries(rounds)
-    .map(([date, players]) => ({ date, players: players.sort() }))
-    .sort((a, b) => b.date.localeCompare(a.date));
+  return Object.entries(rounds).map(([date,players])=>({date,players:players.sort()})).sort((a,b)=>b.date.localeCompare(a.date));
 }
 
-// ============================================================
-// MAIN APP
-// ============================================================
-function App() {
-  const [tab, setTab] = useState('standings');
-  const [rounds, setRounds] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [search, setSearch] = useState('');
-  const [toast, setToast] = useState(null);
-  const [importMode, setImportMode] = useState(false);
-  const { ready, read, write } = useDB();
+function AdminGate({children,isAdmin,onAuth}){
+  const[pw,setPw]=useState('');const[err,setErr]=useState(false);
+  if(isAdmin)return children;
+  function tryPw(){if(pw.toLowerCase()===ADMIN_PW)onAuth();else{setErr(true);setTimeout(()=>setErr(false),1500);}}
+  return(<div className="pw-box"><div className="pw-title">Admin access required</div><input type="password" className="pw-input" placeholder="Password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryPw()} autoFocus/>{err&&<div className="pw-err">Wrong password</div>}<button className="btn btn-green btn-full" onClick={tryPw}>Unlock</button></div>);
+}
 
-  // Hide loader
-  useEffect(() => {
-    const l = document.getElementById('loader');
-    if (l) { setTimeout(() => { l.classList.add('hide'); setTimeout(() => l.remove(), 500); }, 150); }
-  }, []);
+function LogRoundModal({onSave,onClose,editRound}){
+  const[date,setDate]=useState(editRound?editRound.date:todayISO());
+  const[selected,setSelected]=useState(editRound?new Set(editRound.players):new Set());
+  const[q,setQ]=useState('');
+  const[guestName,setGuestName]=useState('');
 
-  // Load data
-  useEffect(() => {
-    if (!ready) return;
-    return read('attendance/rounds', v => {
-      if (v) {
-        const arr = Array.isArray(v) ? v : Object.values(v);
-        setRounds(arr.sort((a, b) => b.date.localeCompare(a.date)));
-      }
-    });
-  }, [ready]);
+  const allNames=ROSTER.map(r=>r.name);
+  const extraGuests=[...selected].filter(n=>!allNames.includes(n));
+  const filtered=allNames.filter(n=>n.toLowerCase().includes(q.toLowerCase()));
 
-  // Compute standings
-  const standings = useMemo(() => {
-    const players = {};
-    rounds.forEach(r => {
-      (r.players || []).forEach(name => {
-        if (!players[name]) players[name] = { name, rounds: 0, dates: [] };
-        players[name].rounds++;
-        players[name].dates.push(r.date);
-      });
-    });
-    return Object.values(players).sort((a, b) => b.rounds - a.rounds);
-  }, [rounds]);
+  function toggle(name){const s=new Set(selected);if(s.has(name))s.delete(name);else s.add(name);setSelected(s);}
+  function addGuest(){if(!guestName.trim())return;const s=new Set(selected);s.add(guestName.trim());setSelected(s);setGuestName('');}
 
-  const totalRoundEntries = rounds.reduce((s, r) => s + (r.players || []).length, 0);
-  const maxRounds = standings.length > 0 ? standings[0].rounds : 1;
-  const potTotal = totalRoundEntries; // $1 per player per round
+  return(
+    <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal">
+        <div className="modal-handle"></div>
+        <div className="modal-title">{editRound?'Edit Round':'Log a Round'}</div>
 
-  // CSV Import
-  function handleImport(text) {
-    try {
-      const parsed = parseCSV(text);
-      if (!parsed.length) {
-        setToast('No rounds found in CSV');
-        setTimeout(() => setToast(null), 3000);
-        return;
-      }
-      write('attendance/rounds', parsed);
-      setRounds(parsed);
-      setImportMode(false);
-      setToast(parsed.length + ' rounds imported!');
-      setTimeout(() => setToast(null), 3000);
-    } catch (e) {
-      setToast('Error parsing CSV');
-      setTimeout(() => setToast(null), 3000);
-    }
-  }
+        <div className="fg">
+          <label className="fl">Date</label>
+          <input className="fi" type="date" value={date} onChange={e=>setDate(e.target.value)}/>
+        </div>
 
-  function handleFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => handleImport(ev.target.result);
-    reader.readAsText(file);
-  }
-
-  function clearData() {
-    if (confirm('Clear all attendance data? This cannot be undone.')) {
-      write('attendance/rounds', null);
-      setRounds([]);
-      setToast('Data cleared');
-      setTimeout(() => setToast(null), 3000);
-    }
-  }
-
-  // CSV Export
-  function exportCSV() {
-    let csv = '"Rank","Player","Total Rounds","Dates Played"\n';
-    standings.forEach((p, i) => {
-      const dates = p.dates.sort().map(d => fmtDate(d)).join(' | ');
-      csv += `"${i + 1}","${p.name}","${p.rounds}","${dates}"\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'clark_group_attendance.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  const TABS = [
-    { id: 'standings', label: 'Standings', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> },
-    { id: 'history', label: 'History', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
-    { id: 'lookup', label: 'Lookup', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> },
-    { id: 'import', label: 'Import', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> },
-  ];
-
-  return (
-    <div className="app">
-      {/* HEADER */}
-      <div className="hdr">
-        <div className="hdr-curve"></div>
-        <div className="hdr-inner">
-          <div className="hdr-top">
-            <div>
-              <div className="hdr-brand">Clark <em>Golf</em> Group</div>
-              <div className="hdr-sub">Season Attendance</div>
-            </div>
-            <a href="index.html" className="back-link">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              Main App
-            </a>
+        <div className="fg">
+          <label className="fl">Players ({selected.size} selected)</label>
+          <div className="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input className="search-input" placeholder="Search roster..." value={q} onChange={e=>setQ(e.target.value)}/>
           </div>
-          <div className="stat-row">
-            <div className="stat-box">
-              <div className="stat-n">{standings.length}</div>
-              <div className="stat-l">Players</div>
-            </div>
-            <div className="stat-box">
-              <div className="stat-n">{rounds.length}</div>
-              <div className="stat-l">Rounds</div>
-            </div>
-            <div className="stat-box">
-              <div className="stat-n">{maxRounds}</div>
-              <div className="stat-l">Top Played</div>
-            </div>
+          <div style={{maxHeight:220,overflowY:'auto',border:'1px solid #e2e8f0',borderRadius:8,marginBottom:8}}>
+            {extraGuests.map(name=>(
+              <div key={name} className="pp sel" onClick={()=>toggle(name)}>
+                <div className="pp-check on"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg></div>
+                <span style={{fontSize:12,fontWeight:500,flex:1}}>{name}</span>
+                <span style={{fontSize:10,color:'#94a3b8',background:'#f1f5f9',padding:'1px 6px',borderRadius:10}}>Guest</span>
+              </div>
+            ))}
+            {filtered.map(name=>{
+              const on=selected.has(name);
+              return(<div key={name} className={'pp'+(on?' sel':'')} onClick={()=>toggle(name)}>
+                <div className={'pp-check'+(on?' on':'')}>{on&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}</div>
+                <span style={{fontSize:12,fontWeight:500}}>{name}</span>
+              </div>);
+            })}
           </div>
-          <div className="pot-bar">
-            <div>
-              <div className="pot-label">Year-End Tournament Pot</div>
-              <div className="pot-sub">$1 per player per round</div>
-            </div>
-            <div className="pot-amt">${potTotal}</div>
+          <div style={{display:'flex',gap:6}}>
+            <input className="fi" style={{flex:1,fontSize:12}} placeholder="Add guest name..." value={guestName} onChange={e=>setGuestName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addGuest();}}/>
+            <button className="btn btn-outline btn-sm" onClick={addGuest} disabled={!guestName.trim()}>+ Guest</button>
           </div>
         </div>
+
+        <button className="btn btn-green btn-full" onClick={()=>{if(!date||selected.size===0)return;onSave({date,players:[...selected].sort()});onClose();}} disabled={!date||selected.size===0} style={{opacity:(!date||selected.size===0)?0.4:1,marginTop:8}}>
+          {editRound?'Save Changes':'Log Round ('+selected.size+' players)'}
+        </button>
       </div>
-
-      {/* NAV */}
-      <nav className="nav">
-        {TABS.map(t => (
-          <button key={t.id} className={'nb' + (tab === t.id ? ' on' : '')} onClick={() => setTab(t.id)}>
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* CONTENT */}
-      <div className="content">
-
-        {/* STANDINGS TAB */}
-        {tab === 'standings' && (
-          <div>
-            {standings.length === 0 ? (
-              <div className="empty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-                <div className="empty-title">No attendance data yet</div>
-                <div className="empty-sub">Import a CSV from the attendance tracker to get started.</div>
-              </div>
-            ) : (
-              <div className="card">
-                <div style={{padding:'12px 14px 6px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid #f1f5f9'}}>
-                  <div className="slbl" style={{marginBottom:0}}>Season Standings</div>
-                  <button className="btn btn-outline btn-sm" onClick={exportCSV}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Export
-                  </button>
-                </div>
-                {standings.map((p, i) => (
-                  <div key={p.name} className="lb-row" onClick={() => setSelectedPlayer(p)}>
-                    <div className={'lb-rank' + (i === 0 ? ' gold' : i === 1 ? ' silver' : i === 2 ? ' bronze' : '')}>{i + 1}</div>
-                    <div className="avi">{ini(p.name)}</div>
-                    <div className="lb-name">{p.name}</div>
-                    <div className="lb-bar-wrap">
-                      <div className="lb-bar" style={{width: Math.round((p.rounds / maxRounds) * 100) + '%'}}></div>
-                    </div>
-                    <div className="lb-rounds">{p.rounds}r</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* HISTORY TAB */}
-        {tab === 'history' && (
-          <div>
-            {rounds.length === 0 ? (
-              <div className="empty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <div className="empty-title">No rounds logged</div>
-                <div className="empty-sub">Import data to see round history.</div>
-              </div>
-            ) : (
-              rounds.map((r, ri) => <RoundCard key={r.date + ri} round={r} onPlayerClick={name => {
-                const p = standings.find(s => s.name === name);
-                if (p) setSelectedPlayer(p);
-              }}/>)
-            )}
-          </div>
-        )}
-
-        {/* LOOKUP TAB */}
-        {tab === 'lookup' && (
-          <div>
-            <div className="sw">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input className="si" placeholder="Search player name..." value={search} onChange={e => setSearch(e.target.value)} autoFocus/>
-            </div>
-            {standings.length === 0 ? (
-              <div className="empty">
-                <div className="empty-title">No players yet</div>
-                <div className="empty-sub">Import attendance data first.</div>
-              </div>
-            ) : (
-              <div className="card">
-                {standings
-                  .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-                  .map((p, i) => (
-                    <div key={p.name} className="lb-row" onClick={() => setSelectedPlayer(p)}>
-                      <div className="avi">{ini(p.name)}</div>
-                      <div className="lb-name">{p.name}</div>
-                      <div className="lb-rounds">{p.rounds} round{p.rounds !== 1 ? 's' : ''}</div>
-                    </div>
-                  ))
-                }
-                {standings.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
-                  <div style={{padding:20,textAlign:'center',color:'#94a3b8',fontSize:13}}>No matches for "{search}"</div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* IMPORT TAB */}
-        {tab === 'import' && (
-          <div>
-            <div className="card card-pad">
-              <div className="slbl">Import CSV</div>
-              <p style={{fontSize:13,color:'#64748b',marginBottom:14}}>
-                Export a CSV from the attendance tracker app, then upload it here. Names will be automatically matched to the Clark Group roster.
-              </p>
-              <div className="import-area" onClick={() => document.getElementById('csv-input').click()}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" style={{marginBottom:8}}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <div style={{fontSize:14,fontWeight:600,color:'#0f172a',marginBottom:2}}>Tap to upload CSV</div>
-                <div style={{fontSize:12,color:'#94a3b8'}}>From the attendance tracker's Export button</div>
-                <input id="csv-input" type="file" accept=".csv" style={{display:'none'}} onChange={handleFile}/>
-              </div>
-              {rounds.length > 0 && (
-                <div className="alert alert-ok">
-                  Currently loaded: {rounds.length} rounds, {standings.length} players, ${potTotal} pot
-                </div>
-              )}
-            </div>
-
-            <div className="card card-pad">
-              <div className="slbl">Re-import / Update</div>
-              <p style={{fontSize:13,color:'#64748b',marginBottom:10}}>
-                You can re-import anytime — the new CSV fully replaces the old data. Use this when your buddy's tracker has new rounds logged.
-              </p>
-              <button className="btn btn-gold btn-full" onClick={() => document.getElementById('csv-input').click()}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Upload New CSV
-              </button>
-            </div>
-
-            {rounds.length > 0 && (
-              <div className="card card-pad">
-                <div className="slbl" style={{color:'#dc2626'}}>Danger Zone</div>
-                <button className="btn btn-red btn-sm" onClick={clearData}>Clear All Data</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* PLAYER DETAIL MODAL */}
-      {selectedPlayer && (
-        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) setSelectedPlayer(null); }}>
-          <div className="modal">
-            <div className="modal-handle"></div>
-            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
-              <div className="avi" style={{width:44,height:44,fontSize:14}}>{ini(selectedPlayer.name)}</div>
-              <div>
-                <div className="modal-title">{selectedPlayer.name}</div>
-                <div className="modal-sub" style={{marginBottom:0}}>
-                  {selectedPlayer.rounds} round{selectedPlayer.rounds !== 1 ? 's' : ''} played
-                  {' '}·{' '}${selectedPlayer.rounds} to pot
-                </div>
-              </div>
-            </div>
-            <div style={{marginTop:16}}>
-              <div className="slbl">Dates Played</div>
-              <div style={{display:'flex',flexWrap:'wrap'}}>
-                {selectedPlayer.dates.sort().map(d => (
-                  <span key={d} className="date-chip">{fmtDate(d)}</span>
-                ))}
-              </div>
-            </div>
-            <button className="btn btn-outline btn-full" style={{marginTop:16}} onClick={() => setSelectedPlayer(null)}>Close</button>
-          </div>
-        </div>
-      )}
-
-      {/* TOAST */}
-      {toast && (
-        <div className="toast">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
 
-// Round card component for history
-function RoundCard({ round, onPlayerClick }) {
-  const [open, setOpen] = useState(false);
-  const players = round.players || [];
-
-  return (
-    <div className="round-card">
-      <div className="round-hdr" onClick={() => setOpen(!open)}>
-        <div>
-          <div className="round-date">{fmtDate(round.date)}</div>
-          <div className="round-meta">{players.length} player{players.length !== 1 ? 's' : ''} · ${players.length} to pot</div>
-        </div>
-        <div style={{display:'flex',alignItems:'center'}}>
-          <span className="round-pill">{players.length}</span>
-          <svg className={'round-chev' + (open ? ' open' : '')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
+function RoundCard({round,index,isAdmin,onAuth,onPlayerClick,onEdit,onDelete}){
+  const[open,setOpen]=useState(false);
+  const players=round.players||[];
+  return(
+    <div className="rnd">
+      <div className="rnd-hdr" onClick={()=>setOpen(!open)}>
+        <div><div className="rnd-date">{fmtDate(round.date)}</div><div className="rnd-meta">{players.length} player{players.length!==1?'s':''} · ${players.length} to pot</div></div>
+        <div className="rnd-right"><span className="rnd-pill">{players.length}</span><svg className={'rnd-chev'+(open?' open':'')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       </div>
-      {open && (
-        <div className="round-body">
-          {players.map((name, i) => (
-            <div key={name} className="round-player" onClick={() => onPlayerClick(name)} style={{cursor:'pointer'}}>
-              <div className="round-num">{i + 1}</div>
-              <span>{name}</span>
-            </div>
-          ))}
+      {open&&(<div>
+        <div className="rnd-body">
+          {players.map((name,i)=>(<div key={name} className="rnd-player" onClick={()=>onPlayerClick(name)}><div className="rnd-num">{i+1}</div><span>{name}</span></div>))}
         </div>
-      )}
+        <div className="rnd-actions">
+          {isAdmin&&(<>
+            <button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();onEdit();}}>Edit</button>
+            <button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();if(confirm('Delete this round?'))onDelete();}}>Delete</button>
+          </>)}
+        </div>
+      </div>)}
+    </div>
+  );
+}
+
+function App(){
+  const[tab,setTab]=useState('standings');
+  const[rounds,setRounds]=useState([]);
+  const[selectedPlayer,setSelectedPlayer]=useState(null);
+  const[search,setSearch]=useState('');
+  const[toast,setToast]=useState(null);
+  const[isAdmin,setIsAdmin]=useState(false);
+  const[logModal,setLogModal]=useState(false);
+  const[editRound,setEditRound]=useState(null);
+  const[archivedSeasons,setArchivedSeasons]=useState({});
+  const[viewingSeason,setViewingSeason]=useState(null);
+  const[deleteText,setDeleteText]=useState('');
+  const[showEndSeason,setShowEndSeason]=useState(false);
+  const[showAdminPrompt,setShowAdminPrompt]=useState(false);
+  const{ready,read,write}=useDB();
+
+  useEffect(()=>{const l=document.getElementById('loader');if(l){setTimeout(()=>{l.classList.add('hide');setTimeout(()=>l.remove(),500);},150);}},[]);
+  useEffect(()=>{if(!ready)return;const u=[];
+    u.push(read('attendance/rounds',v=>{if(v){const arr=Array.isArray(v)?v:Object.values(v);setRounds(arr.sort((a,b)=>b.date.localeCompare(a.date)));}else{setRounds([]);}}));
+    u.push(read('attendance/archive',v=>setArchivedSeasons(v||{})));
+    return()=>u.forEach(f=>{if(typeof f==='function')f();});
+  },[ready]);
+
+  const displayRounds=useMemo(()=>{
+    if(!viewingSeason)return rounds;
+    const s=archivedSeasons[viewingSeason];
+    if(!s||!s.rounds)return[];
+    const arr=Array.isArray(s.rounds)?s.rounds:Object.values(s.rounds);
+    return arr.sort((a,b)=>b.date.localeCompare(a.date));
+  },[rounds,viewingSeason,archivedSeasons]);
+
+  function saveRounds(nr){const sorted=[...nr].sort((a,b)=>b.date.localeCompare(a.date));write('attendance/rounds',sorted);setRounds(sorted);}
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),3000);}
+
+  function archiveSeason(){
+    if(rounds.length===0)return;
+    const year=rounds[0].date.split('-')[0];
+    const label=year+' Season';
+    write('attendance/archive/'+year,{label,rounds,archivedAt:Date.now(),playerCount:standings.length,roundCount:rounds.length,potTotal:totalEntries});
+    write('attendance/rounds',null);
+    setRounds([]);
+    setViewingSeason(null);
+    showToast('Season archived as '+label);
+  }
+
+  function clearAllData(){
+    write('attendance/rounds',null);
+    setRounds([]);
+    setDeleteText('');
+    showToast('All data cleared');
+  }
+
+  const seasonKeys=Object.keys(archivedSeasons).sort().reverse();
+
+  const activeRounds=viewingSeason?displayRounds:rounds;
+
+  const standings=useMemo(()=>{
+    const p={};activeRounds.forEach(r=>{(r.players||[]).forEach(name=>{if(!p[name])p[name]={name,rounds:0,dates:[]};p[name].rounds++;p[name].dates.push(r.date);});});
+    return Object.values(p).sort((a,b)=>b.rounds-a.rounds);
+  },[activeRounds]);
+
+  const totalEntries=activeRounds.reduce((s,r)=>s+(r.players||[]).length,0);
+  const maxR=standings.length>0?standings[0].rounds:1;
+
+  function handleFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const parsed=parseCSV(ev.target.result);if(!parsed.length){showToast('No rounds found');return;}saveRounds(parsed);showToast(parsed.length+' rounds imported!');}catch(er){showToast('Error parsing CSV');}};r.readAsText(f);e.target.value='';}
+
+  function exportCSV(){
+    let csv='"Rank","Player","Total Rounds","Dates Played"\n';
+    standings.forEach((p,i)=>{csv+='"'+(i+1)+'","'+p.name+'","'+p.rounds+'","'+p.dates.sort().map(d=>fmtDate(d)).join(' | ')+'"\n';});
+    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clark_group_attendance.csv';a.click();URL.revokeObjectURL(url);
+  }
+
+  const TABS=[
+    {id:'standings',label:'Standings',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>},
+    {id:'history',label:'History',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
+    {id:'import',label:'Import',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>},
+  ];
+
+  return(
+    <div className="app">
+      <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
+        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-sub">Season Attendance</div></div><a href="index.html" className="back-link"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>Main App</a></div>
+        <div className="stat-row"><div className="stat-box"><div className="stat-n">{standings.length}</div><div className="stat-l">Players</div></div><div className="stat-box"><div className="stat-n">{rounds.length}</div><div className="stat-l">Rounds</div></div><div className="stat-box"><div className="stat-n">{maxR}</div><div className="stat-l">Top Played</div></div></div>
+        <div className="pot-bar"><div><div className="pot-label">Year-End Tournament Pot</div><div className="pot-sub">$1 per player per round</div></div><div className="pot-amt">${totalEntries}</div></div>
+        {seasonKeys.length>0&&(
+          <div style={{marginTop:8,display:'flex',alignItems:'center',gap:6}}>
+            <button onClick={()=>setViewingSeason(null)} style={{padding:'4px 10px',borderRadius:16,border:'1px solid',borderColor:!viewingSeason?'#10b981':'rgba(255,255,255,0.12)',background:!viewingSeason?'rgba(16,185,129,0.15)':'rgba(255,255,255,0.05)',color:!viewingSeason?'#10b981':'rgba(255,255,255,0.4)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Current</button>
+            {seasonKeys.map(k=>{const s=archivedSeasons[k];return(
+              <button key={k} onClick={()=>setViewingSeason(k)} style={{padding:'4px 10px',borderRadius:16,border:'1px solid',borderColor:viewingSeason===k?'#f59e0b':'rgba(255,255,255,0.12)',background:viewingSeason===k?'rgba(245,158,11,0.15)':'rgba(255,255,255,0.05)',color:viewingSeason===k?'#f59e0b':'rgba(255,255,255,0.4)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{s.label||k}</button>
+            );})}
+          </div>
+        )}
+      </div></div>
+
+      <nav className="nav">{TABS.map(t=><button key={t.id} className={'nb'+(tab===t.id?' on':'')} onClick={()=>setTab(t.id)}>{t.icon}{t.label}</button>)}</nav>
+
+      <div className="content">
+        {/* STANDINGS */}
+        {tab==='standings'&&(<div>
+          {viewingSeason&&(<div className="alert" style={{background:'#fffbeb',border:'1px solid #fde68a',color:'#92400e',marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}><span>Viewing: {archivedSeasons[viewingSeason]?.label||viewingSeason}</span><button className="btn btn-outline btn-xs" onClick={()=>setViewingSeason(null)}>Back to current</button></div>)}
+          {standings.length===0?(<div className="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{marginBottom:8}}><path d="M18 20V10M12 20V4M6 20v-6"/></svg><div className="empty-title">No attendance data</div><div className="empty-sub">Import a CSV or log a round to get started.</div></div>):(<div>
+            <div className="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input className="search-input" placeholder="Search players..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+            <div className="lb-card">
+              <div className="lb-hdr"><div className="slbl" style={{marginBottom:0}}>Season Standings</div><button className="btn btn-outline btn-xs" onClick={exportCSV}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Export</button></div>
+              {standings.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())).map((p,i)=>(
+                <div key={p.name} className="lb-row" onClick={()=>setSelectedPlayer(p)}>
+                  <div className={'lb-rank'+(i===0?' r1':i===1?' r2':i===2?' r3':'')}>{i+1}</div>
+                  <div className="avi">{ini(p.name)}</div>
+                  <div className="lb-name">{p.name}</div>
+                  <div className="lb-bar-w"><div className="lb-bar" style={{width:Math.round((p.rounds/maxR)*100)+'%'}}></div></div>
+                  <div className="lb-rounds">{p.rounds}</div>
+                </div>
+              ))}
+              {standings.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())).length===0&&(<div style={{padding:14,textAlign:'center',color:'#94a3b8',fontSize:12}}>No matches</div>)}
+            </div>
+          </div>)}
+        </div>)}
+
+        {/* HISTORY */}
+        {tab==='history'&&(<div>
+          {viewingSeason&&(<div className="alert" style={{background:'#fffbeb',border:'1px solid #fde68a',color:'#92400e',marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}><span>Viewing: {archivedSeasons[viewingSeason]?.label||viewingSeason}</span><button className="btn btn-outline btn-xs" onClick={()=>setViewingSeason(null)}>Back to current</button></div>)}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div className="slbl" style={{marginBottom:0}}>{activeRounds.length} Round{activeRounds.length!==1?'s':''}</div>
+            {!viewingSeason&&(<button className="btn btn-green btn-sm" onClick={()=>{if(!isAdmin){setShowAdminPrompt(true);}else{setEditRound(null);setLogModal(true);}}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Log Round</button>)}
+          </div>
+          {activeRounds.length===0?(<div className="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{marginBottom:8}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div className="empty-title">No rounds logged</div><div className="empty-sub">{viewingSeason?'This archived season has no data.':'Import data or log a round manually.'}</div></div>):(
+            activeRounds.map((r,ri)=><RoundCard key={r.date+ri} round={r} index={ri} isAdmin={!viewingSeason&&isAdmin} onAuth={()=>setIsAdmin(true)}
+              onPlayerClick={name=>{const p=standings.find(s=>s.name===name);if(p)setSelectedPlayer(p);}}
+              onEdit={()=>{if(!viewingSeason){setEditRound({index:ri,data:r});setLogModal(true);}}}
+              onDelete={()=>{if(!viewingSeason){const u=rounds.filter((_,i)=>i!==ri);saveRounds(u);showToast('Round deleted');}}}/>)
+          )}
+        </div>)}
+
+        {/* IMPORT */}
+        {tab==='import'&&(<div>
+          <AdminGate isAdmin={isAdmin} onAuth={()=>setIsAdmin(true)}>
+            <div className="card card-pad">
+              <div className="slbl">Import CSV</div>
+              <p style={{fontSize:12,color:'#64748b',marginBottom:10}}>Export a CSV from the attendance tracker app, then upload it here. This replaces all existing data.</p>
+              <div className="import-area" onClick={()=>document.getElementById('csv-input').click()}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" style={{marginBottom:6}}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <div style={{fontSize:13,fontWeight:600,color:'#0f172a',marginBottom:2}}>Tap to upload CSV</div>
+                <div style={{fontSize:11,color:'#94a3b8'}}>From the attendance tracker export</div>
+                <input id="csv-input" type="file" accept=".csv" style={{display:'none'}} onChange={handleFile}/>
+              </div>
+              {rounds.length>0&&(<div className="alert alert-ok">Loaded: {rounds.length} rounds, {standings.length} players, ${totalEntries} pot</div>)}
+            </div>
+            <div className="card card-pad">
+              <div className="slbl">Re-import / Update</div>
+              <p style={{fontSize:12,color:'#64748b',marginBottom:8}}>Re-import anytime to refresh with latest data.</p>
+              <button className="btn btn-gold btn-full" onClick={()=>document.getElementById('csv-input').click()}>Upload New CSV</button>
+            </div>
+            {rounds.length>0&&(<div className="card card-pad">
+              <div className="slbl">End Season</div>
+              <p style={{fontSize:12,color:'#64748b',marginBottom:8}}>Archive this season's data and start fresh for next year. The archived season stays viewable from the header.</p>
+              {showEndSeason?(<div>
+                <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:8,padding:10,marginBottom:8}}><div style={{fontSize:12,fontWeight:600,color:'#92400e',marginBottom:4}}>Archive {rounds.length} rounds and {standings.length} players?</div><div style={{fontSize:11,color:'#92400e'}}>Current data moves to archive. Board resets for the new season.</div></div>
+                <div style={{display:'flex',gap:6}}><button className="btn btn-gold btn-sm" onClick={()=>{archiveSeason();setShowEndSeason(false);}}>Archive & Start Fresh</button><button className="btn btn-outline btn-sm" onClick={()=>setShowEndSeason(false)}>Cancel</button></div>
+              </div>):(<button className="btn btn-gold btn-sm" onClick={()=>setShowEndSeason(true)}>End Season & Archive</button>)}
+            </div>)}
+            {rounds.length>0&&(<div className="card card-pad">
+              <div className="slbl" style={{color:'#dc2626'}}>Danger Zone</div>
+              <p style={{fontSize:12,color:'#64748b',marginBottom:8}}>Permanently delete all current attendance data. This cannot be undone.</p>
+              <div style={{display:'flex',gap:6,alignItems:'flex-end'}}>
+                <div style={{flex:1}}><label className="fl">Type DELETE to confirm</label><input className="fi" style={{fontSize:12}} placeholder="DELETE" value={deleteText} onChange={e=>setDeleteText(e.target.value)}/></div>
+                <button className="btn btn-red btn-sm" disabled={deleteText!=='DELETE'} style={{opacity:deleteText==='DELETE'?1:0.35}} onClick={()=>{clearAllData();setDeleteText('');}}>Clear All Data</button>
+              </div>
+            </div>)}
+          </AdminGate>
+        </div>)}
+      </div>
+
+      {/* PLAYER DETAIL */}
+      {selectedPlayer&&(<div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setSelectedPlayer(null);}}>
+        <div className="modal">
+          <div className="modal-handle"></div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+            <div className="avi" style={{width:40,height:40,fontSize:13}}>{ini(selectedPlayer.name)}</div>
+            <div><div className="modal-title" style={{marginBottom:0}}>{selectedPlayer.name}</div><div style={{fontSize:12,color:'#94a3b8',fontWeight:500}}>{selectedPlayer.rounds} round{selectedPlayer.rounds!==1?'s':''} · ${selectedPlayer.rounds} to pot</div></div>
+          </div>
+          <div className="slbl">Dates Played</div>
+          <div style={{display:'flex',flexWrap:'wrap'}}>{selectedPlayer.dates.sort().map(d=><span key={d} className="date-chip">{fmtDate(d)}</span>)}</div>
+          <button className="btn btn-outline btn-full" style={{marginTop:14}} onClick={()=>setSelectedPlayer(null)}>Close</button>
+        </div>
+      </div>)}
+
+      {/* LOG/EDIT MODAL */}
+      {logModal&&(<LogRoundModal editRound={editRound?editRound.data:null} onSave={data=>{if(editRound){const u=[...rounds];u[editRound.index]=data;saveRounds(u);showToast('Round updated');}else{saveRounds([...rounds,data]);showToast('Round logged - '+data.players.length+' players');}}} onClose={()=>{setLogModal(false);setEditRound(null);}}/>)}
+
+      {/* ADMIN PROMPT */}
+      {showAdminPrompt&&(<div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setShowAdminPrompt(false);}}>
+        <div className="modal"><div className="modal-handle"></div>
+          <AdminGate isAdmin={false} onAuth={()=>{setIsAdmin(true);setShowAdminPrompt(false);setEditRound(null);setLogModal(true);}}>
+            <span></span>
+          </AdminGate>
+        </div>
+      </div>)}
+
+      {toast&&<div className="toast"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>{toast}</div>}
     </div>
   );
 }

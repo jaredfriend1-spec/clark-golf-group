@@ -486,8 +486,6 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
             <div className="land-demo-divider" style={{marginTop:24}}>Need Help?</div>
             <div style={{textAlign:'center'}}>
               <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
-              <br/>
-              <a href="attendance.html" style={{color:'#f59e0b',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Season Attendance Tracker</a>
             </div>
           </div>
         ):(
@@ -1192,7 +1190,7 @@ function App(){
       <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
         <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);}}>Switch</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
-        <div style={{marginTop:7}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}</div>
+        <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}}>Season Attendance →</a></div>
       </div></div>
       <nav className="nav">{TABS.map(t=>(<button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
