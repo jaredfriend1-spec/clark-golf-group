@@ -566,7 +566,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
     setToast(msg);setTimeout(()=>setToast(null),3000);
   }
 
-  const avail=ROSTER.filter(p=>p.name.toLowerCase().includes(q.toLowerCase()));
+  const avail=ROSTER.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
   const selPlayer=sel?ROSTER.find(p=>p.id==sel):null;
 
   return(
@@ -1019,7 +1019,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
   const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
 
   const wd=getWeekDates();
-  const rosterSearch=[...ROSTER,...(safeArray(roster).filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).slice(0,12);
+  const rosterSearch=[...ROSTER,...(safeArray(roster).filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,12);
   const activeDays=sortDays(safeArray(week?.activeDays));
   const allSignups=Object.entries(week?.signups||{});
 
@@ -1092,7 +1092,7 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
           {safeArray(guestHistory).length>0&&(<div style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}><div className="slbl">Guest history</div>{safeArray(guestHistory).sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((g,i)=>(<div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}><span style={{fontWeight:500}}>{g.name}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontSize:11,color:'#94a3b8'}}>{g.rounds||1} round{(g.rounds||1)!==1?'s':''}</span><span className="guest-tag">Guest</span></div></div>))}</div>)}
           <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Default Tees</label><select className="fs" value={np.tee} onChange={e=>setNp({...np,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div>
           <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button></div></div>
-          <div style={{maxHeight:220,overflowY:'auto',marginTop:8}}>{[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].map(p=>(<div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}><span style={{fontWeight:500}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</span><div style={{display:'flex',gap:5,alignItems:'center'}}>{p.id>96&&<span className="pill-green">New</span>}{p.id>96&&<button className="rm-btn" onClick={()=>onRemovePlayer(p.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>}</div></div>))}</div>
+          <div style={{maxHeight:220,overflowY:'auto',marginTop:8}}>{[...ROSTER,...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>(<div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}><span style={{fontWeight:500}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</span><div style={{display:'flex',gap:5,alignItems:'center'}}>{p.id>96&&<span className="pill-green">New</span>}{p.id>96&&<button className="rm-btn" onClick={()=>onRemovePlayer(p.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>}</div></div>))}</div>
         </div>)}
       </div>
 
