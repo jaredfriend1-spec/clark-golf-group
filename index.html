@@ -520,6 +520,7 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
   const [teeModal,setTeeModal]=useState(null);
+  const [confirmRemoveKey,setConfirmRemoveKey]=useState(null);
   const [editTeeModal,setEditTeeModal]=useState(null);
   const [isGuest,setIsGuest]=useState(false);
   const [sel,setSel]=useState('');
@@ -611,17 +612,30 @@ function WeekView({week,isAdmin,isDemo,onSignup,onRemove,onUpdateSignup,onUpdate
                 {dayComplete&&(<div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>{isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(day)}>Reopen</button>}</div>)}
                 {cnt===0&&<div style={{padding:'13px 14px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No sign-ups yet for {day}</div>}
                 {daySignups.map(([key,s])=>(
-                  <div key={key} className="p-row">
-                    <div className="avi">{ini(s.name)}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
-                      {editKey===key?(
-                        <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
-                      ):(
-                        <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
-                      )}
+                  <div key={key}>
+                    <div className="p-row">
+                      <div className="avi">{ini(s.name)}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
+                        {editKey===key?(
+                          <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
+                        ):(
+                          <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
+                        )}
+                      </div>
+                      {isAdmin&&<button className="rm-btn" title="Remove sign-up" onClick={()=>onRemove(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
+                      {!isAdmin&&myName===s.name&&<button className="rm-btn" title="Remove sign-up" onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
                     </div>
-                    {(isAdmin||myName===s.name)&&<button className="rm-btn" title="Remove sign-up" onClick={()=>onRemove(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
+                    {confirmRemoveKey===key&&!isAdmin&&(
+                      <div style={{margin:'0 14px 8px',padding:'8px 12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'#dc2626',marginBottom:4}}>Remove {s.name} from {day}?</div>
+                        <div style={{fontSize:11,color:'#64748b',marginBottom:6}}>Make sure this is you — this cannot be undone.</div>
+                        <div style={{display:'flex',gap:6}}>
+                          <button className="btn btn-red btn-sm" onClick={()=>{onRemove(key);setConfirmRemoveKey(null);}}>Yes, remove me</button>
+                          <button className="btn btn-outline btn-sm" onClick={()=>setConfirmRemoveKey(null)}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="day-actions">

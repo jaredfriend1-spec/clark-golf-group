@@ -259,7 +259,6 @@ function LogRoundModal({onSave,onClose,editRound}){
 
 function RoundCard({round,index,isAdmin,onAuth,onPlayerClick,onEdit,onDelete,onRemovePlayer}){
   const[open,setOpen]=useState(false);
-  const[confirmRemove,setConfirmRemove]=useState(null);
   const players=round.players||[];
   return(
     <div className="rnd">
@@ -270,25 +269,13 @@ function RoundCard({round,index,isAdmin,onAuth,onPlayerClick,onEdit,onDelete,onR
       {open&&(<div>
         <div className="rnd-body">
           {players.map((name,i)=>(
-            <div key={name}>
-              <div className="rnd-player" style={{justifyContent:'space-between'}}>
-                <div style={{display:'flex',alignItems:'center',gap:7,flex:1,cursor:'pointer'}} onClick={()=>onPlayerClick(name)}>
-                  <div className="rnd-num">{i+1}</div>
-                  <span>{name}</span>
-                </div>
-                {onRemovePlayer&&confirmRemove!==name&&(
-                  <button style={{background:'none',border:'none',color:'#cbd5e1',fontSize:10,cursor:'pointer',padding:'2px 4px',fontFamily:'DM Sans,sans-serif',fontWeight:600}} onClick={e=>{e.stopPropagation();setConfirmRemove(name);}}>remove</button>
-                )}
+            <div key={name} className="rnd-player" style={{justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:7,flex:1,cursor:'pointer'}} onClick={()=>onPlayerClick(name)}>
+                <div className="rnd-num">{i+1}</div>
+                <span>{name}</span>
               </div>
-              {confirmRemove===name&&(
-                <div style={{padding:'6px 10px 8px',background:'#fef2f2',borderRadius:6,margin:'2px 0 4px',fontSize:12}}>
-                  <div style={{fontWeight:600,color:'#dc2626',marginBottom:4}}>Remove {name} from this round?</div>
-                  <div style={{fontSize:11,color:'#64748b',marginBottom:6}}>Make sure this is you — this cannot be undone.</div>
-                  <div style={{display:'flex',gap:5}}>
-                    <button className="btn btn-red btn-xs" onClick={()=>{onRemovePlayer(name);setConfirmRemove(null);}}>Yes, remove me</button>
-                    <button className="btn btn-outline btn-xs" onClick={()=>setConfirmRemove(null)}>Cancel</button>
-                  </div>
-                </div>
+              {isAdmin&&onRemovePlayer&&(
+                <button style={{background:'none',border:'none',color:'#cbd5e1',fontSize:10,cursor:'pointer',padding:'2px 4px',fontFamily:'DM Sans,sans-serif',fontWeight:600}} onClick={e=>{e.stopPropagation();if(confirm('Remove '+name+' from this round?'))onRemovePlayer(name);}}>remove</button>
               )}
             </div>
           ))}
