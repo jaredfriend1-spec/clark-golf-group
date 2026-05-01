@@ -18,13 +18,16 @@
   .section h2{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#0f172a;margin-bottom:8px;border-bottom:2px solid #10b981;padding-bottom:8px;display:inline-block;}
   .section p{font-size:15px;color:#475569;margin-bottom:16px;}
   .feature{margin-bottom:28px;}
+  .feature:last-child{margin-bottom:0;}
   .feature h3{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
   .feature-num{background:#10b981;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'Barlow Condensed',sans-serif;flex-shrink:0;}
+  .feature-num.gold{background:#f59e0b;}
   .mock-ui{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.02);}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;}
   .btn-green{background:#10b981;color:#0f172a;}
   .btn-dark{background:#0f172a;color:#fff;}
   .btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;}
+  .btn-red{background:#ef4444;color:#fff;font-size:11px;padding:6px 11px;}
   .btn-full{width:100%;}
   .btn-sm{padding:6px 11px;font-size:11px;}
   .btn-gold{background:#f59e0b;color:#0f172a;}
@@ -45,22 +48,32 @@
   .admin-lbl{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px;}
   .blind-bar{padding:10px 13px;background:#fffbeb;border-top:1px solid #fde68a;display:flex;align-items:center;justify-content:space-between;}
   .pay-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px;}
-  .pay-btn{padding:5px 12px;border-radius:7px;border:1.5px solid #10b981;background:#fff;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;}
+  .pay-btn{padding:5px 12px;border-radius:7px;border:1.5px solid #10b981;background:#fff;color:#10b981;font-size:12px;font-weight:700;}
   .lb-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f8fafc;background:#fff;}
   .lb-rank{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#0f172a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:"Barlow Condensed",sans-serif;}
   .lb-name{flex:1;font-size:13px;font-weight:600;color:#0f172a;}
-  .email-callout{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:10px;}
-  .email-callout strong{color:#1e40af;display:block;margin-bottom:4px;}
-  .email-callout p{margin:0;font-size:14px;color:#1e3a8a;}
-  /* Selected chip mock */
   .sel-chip-mock{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px;}
   .sel-chip-mock .avi{width:34px;height:34px;font-size:12px;}
-  .sel-chip-mock-info{flex:1;}
   .sel-chip-mock-name{font-size:14px;font-weight:700;color:#0f172a;}
   .sel-chip-mock-status{font-size:11px;color:#15803d;font-weight:600;margin-top:1px;}
   .sel-chip-mock-change{background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;color:#64748b;}
+  .email-callout{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:10px;}
+  .email-callout strong{color:#1e40af;display:block;margin-bottom:4px;}
+  .email-callout p{margin:0;font-size:14px;color:#1e3a8a;}
+  .warn-box{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-top:10px;}
+  .warn-box strong{color:#dc2626;display:block;margin-bottom:4px;font-size:13px;}
+  .warn-box p{margin:0;font-size:13px;color:#64748b;}
+  .confirm-mock{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-top:8px;}
+  .confirm-title{font-size:13px;font-weight:600;color:#dc2626;margin-bottom:4px;}
+  .confirm-sub{font-size:11px;color:#64748b;margin-bottom:6px;}
+  .pot-mock{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 13px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+  .pot-label{font-size:11px;font-weight:600;color:#92400e;text-transform:uppercase;}
+  .pot-sub{font-size:10px;color:#94a3b8;margin-top:1px;}
+  .pot-amt{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#f59e0b;}
   .back-btn{display:block;width:100%;text-align:center;padding:14px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;margin-top:20px;transition:background 0.2s;}
   .back-btn:hover{background:#1e293b;}
+  .link-row{display:flex;gap:10px;margin-top:12px;}
+  .link-row a{flex:1;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;}
 </style>
 </head>
 <body>
@@ -70,47 +83,62 @@
     <div class="hdr-sub">How It Works</div>
   </div>
   <div class="content">
+
+    <!-- ===================== PLAYERS ===================== -->
     <div class="section">
       <h2>For the Players</h2>
       <p>No more messy email chains or forgetting who is playing what tees. Sign up in seconds and see the results instantly.</p>
+
       <div class="feature">
         <h3><span class="feature-num">1</span> Pick Your Name</h3>
-        <p>Tap <b>+ Sign up</b>, search for your name, and tap it. Your selection locks in with a green confirmation chip so you always know who you are signing up as.</p>
+        <p>Tap <b>+ Sign up</b>, search for your name, and tap it. Your selection locks in with a green confirmation chip so you always know who you're signing up as.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="sel-chip-mock">
             <div class="avi" style="width:34px;height:34px;font-size:12px;">MH</div>
-            <div class="sel-chip-mock-info">
-              <div class="sel-chip-mock-name">Matt Honacki</div>
-              <div class="sel-chip-mock-status">✓ Selected</div>
-            </div>
+            <div style="flex:1"><div class="sel-chip-mock-name">Matt Honacki</div><div class="sel-chip-mock-status">✓ Selected</div></div>
             <div class="sel-chip-mock-change">Change</div>
           </div>
         </div>
       </div>
+
       <div class="feature">
         <h3><span class="feature-num">2</span> Choose Days, Tees & Handicap</h3>
         <p>Once your name is confirmed, the day checkboxes and tee/handicap fields appear right below — no scrolling required. Check the days you want, pick your tees, enter your handicap, and hit confirm.</p>
-        <div class="mock-ui">
-          <button class="btn btn-green btn-full">Confirm sign-up</button>
-        </div>
+        <div class="mock-ui"><button class="btn btn-green btn-full">Confirm sign-up</button></div>
       </div>
+
       <div class="feature">
         <h3><span class="feature-num">3</span> Bringing a Guest? Easy.</h3>
         <p>Toggle over to "Guest", type in their name and handicap, and they are instantly added to the roster.</p>
-        <div class="mock-ui">
-          <div class="tog"><div class="tog-opt">Member</div><div class="tog-opt on">Guest</div></div>
+        <div class="mock-ui"><div class="tog"><div class="tog-opt">Member</div><div class="tog-opt on">Guest</div></div></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">4</span> Need to Remove Someone?</h3>
+        <p>Any player can remove any sign-up by tapping the X next to their name. A confirmation pops up to make sure you meant to do it — just in case you accidentally tap the wrong person.</p>
+        <div class="mock-ui" style="padding:0;border:none;background:none;">
+          <div class="confirm-mock">
+            <div class="confirm-title">Remove Matt Honacki from Saturday?</div>
+            <div class="confirm-sub">Are you sure you want to remove this player? This cannot be undone.</div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn-red" style="border:none;border-radius:6px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">Yes, remove</button>
+              <button class="btn-outline" style="border-radius:6px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:11px;cursor:pointer;">Cancel</button>
+            </div>
+          </div>
         </div>
       </div>
+
       <div class="feature">
-        <h3><span class="feature-num">4</span> See the Teams Live</h3>
+        <h3><span class="feature-num">5</span> See the Teams Live</h3>
         <p>Once the admin publishes the groups, check the <b>Teams</b> tab to see exactly who you are grouped with, what position they are in, and the total team handicap.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="team-card"><div class="team-hdr"><span class="team-nm">Team One</span><span class="team-hcp">HCP 35.0</span></div><div class="team-row"><span class="slot">A</span><div class="avi">CA</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div></div></div>
         </div>
       </div>
+
       <div class="feature">
-        <h3><span class="feature-num">5</span> Track Your Season Stats</h3>
-        <p>Hop over to the <b>History</b> tab anytime. The app keeps a rolling Leaderboard tracking how many rounds you've played and total cash won over the whole season.</p>
+        <h3><span class="feature-num">6</span> Track Your Season Stats</h3>
+        <p>The <b>History</b> tab keeps a rolling Leaderboard tracking how many rounds you've played and total cash won. Plus, the <b>Season Attendance</b> page (linked in the header) tracks every player's rounds played and the year-end tournament pot.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="team-card">
             <div class="lb-row"><div class="lb-rank">1</div><div class="lb-name">Chris Allen</div><div style="font-size:11px;color:#94a3b8;margin-right:15px;">5r</div><div style="font-size:14px;font-weight:700;color:#15803d;font-family:'Barlow Condensed',sans-serif;">$145</div></div>
@@ -120,55 +148,120 @@
       </div>
     </div>
 
+    <!-- ===================== ADMINS ===================== -->
     <div class="section">
       <h2>For the Admins</h2>
       <p>The app does the heavy lifting, math, and sorting for you. You just drag, drop, and push the buttons.</p>
+
       <div class="feature">
         <h3><span class="feature-num">1</span> Set Up Your Days</h3>
         <p>The Admin tab opens straight to <b>Manage Days</b> — the first thing you need. Click <b>Set up Saturday</b> (or any day) and a step-by-step wizard walks you through setting the tee time, locking sign-ups, and generating teams.</p>
         <div class="mock-ui"><button class="btn btn-green btn-full">Set up Saturday</button></div>
       </div>
+
       <div class="feature">
-        <h3><span class="feature-num">2</span> Auto-Balancing Teams</h3>
-        <p>Hit "Auto-generate" and the app sorts the entire roster by handicap and evenly distributes A, B, C, and D players into groups.</p>
-        <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="admin-bar"><div class="admin-lbl">Team builder - Saturday</div><div style="display:flex;gap:7px;flex-wrap:wrap;"><button class="btn btn-dark btn-sm">Auto-generate</button></div></div></div>
+        <h3><span class="feature-num">2</span> Build Teams: Auto or Manual</h3>
+        <p>You have two options for building teams:</p>
+        <p><b>Auto-generate</b> sorts the roster by handicap and evenly distributes A, B, C, and D players into balanced groups with one click.</p>
+        <p><b>Manual build</b> lets you pick how many players per team (3, 4, or 5), creates empty groups, and lets you hand-pick each player from a searchable list. Perfect when you want specific matchups.</p>
+        <div class="mock-ui" style="padding:0;border:none;background:none;">
+          <div class="admin-bar">
+            <div class="admin-lbl">Team builder - Saturday (16 players)</div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+              <button class="btn btn-dark btn-sm">Auto-generate</button>
+              <button class="btn btn-outline btn-sm">Manual build</button>
+            </div>
+          </div>
+        </div>
       </div>
+
       <div class="feature">
         <h3><span class="feature-num">3</span> Fine-Tuning & Reordering</h3>
         <p>Want to swap a player to a different team? Just grab the drag handle (<b>&vellip;</b>) next to their name and drop them into a new group. Need to change who tees off first? Use the Group Dropdown in the header.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
-          <div class="team-card"><div class="team-hdr"><span class="team-nm" style="font-size:13px;"><span style="color:#94a3b8;font-size:11px;margin-right:5px;">GROUP</span><span style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#fff;">1 &nbsp; &#9662;</span></span><span class="team-hcp">HCP 35.0</span></div><div class="team-row" style="border:none;"><span style="color:#cbd5e1;font-size:18px;font-weight:700;cursor:grab;">&vellip;</span><span class="slot">A</span><div class="avi">CA</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div></div></div>
+          <div class="team-card"><div class="team-hdr"><span class="team-nm" style="font-size:13px;"><span style="color:#94a3b8;font-size:11px;margin-right:5px;">GROUP</span><span style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#fff;">1 &nbsp; &#9662;</span></span><span class="team-hcp">HCP 35.0</span></div><div class="team-row" style="border:none;"><span style="color:#cbd5e1;font-size:18px;font-weight:700;">⋮</span><span class="slot">A</span><div class="avi">CA</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div></div></div>
         </div>
       </div>
+
       <div class="feature">
         <h3><span class="feature-num">4</span> The Blind Draw</h3>
         <p>Have an uneven number of players? The app automatically detects this and adds a "Blind Draw" slot to the short group. You can manually assign any player from another group to fill the slot.</p>
-        <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="team-card"><div class="blind-bar"><div><div style="font-size:13px;font-weight:600;color:#d97706">Blind Draw TBD</div><div style="font-size:11px;color:#92400e;margin-top:1px">Assign on the day</div></div><button class="btn btn-gold btn-xs">Assign</button></div></div></div>
+        <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="team-card"><div class="blind-bar"><div><div style="font-size:13px;font-weight:600;color:#d97706">Blind Draw TBD</div><div style="font-size:11px;color:#92400e;margin-top:1px">Assign on the day</div></div><button class="btn btn-gold btn-sm">Assign</button></div></div></div>
       </div>
+
       <div class="feature">
         <h3><span class="feature-num">5</span> Publish & Lock</h3>
-        <p>Once you are happy with the groups, hit <b>Publish & Lock Teams</b>. It instantly assigns the official names (Team One, Team Two) and locks the roster so nobody can change it.</p>
+        <p>Once you are happy with the groups, hit <b>Publish & Lock Teams</b>. It assigns the official names (Team One, Team Two) and locks the roster.</p>
         <div class="email-callout"><strong>Still love sending the weekly email?</strong><p>No problem! Once teams are published, just hit the "Copy teams" button. It formats perfectly so you can paste it right into Gmail or iMessage.</p></div>
       </div>
+
       <div class="feature">
-        <h3><span class="feature-num">6</span> Payment Tracking</h3>
-        <p>When you are at the course, use the <b>Scoring</b> tab to collect money. A quick tracker lets you mark off who has paid their $25 with a single tap.</p>
+        <h3><span class="feature-num">6</span> Made a Mistake? Reset Teams</h3>
+        <p>If something goes wrong after publishing — wrong player, bad grouping, whatever — just tap <b>Reset Teams</b>. It unpublishes and reopens the team builder so you can rebuild. All player sign-ups stay intact, nobody has to re-sign-up.</p>
+        <div class="mock-ui">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <button class="btn-red" style="border:none;border-radius:8px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:11px;">Reset Teams</button>
+            <button class="btn btn-outline btn-sm">Copy teams</button>
+          </div>
+        </div>
+        <div class="warn-box"><strong>Sign-ups are always safe</strong><p>Reset Teams only clears the team groupings. It never deletes player sign-ups. You can rebuild as many times as you need.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">7</span> Payment Tracking</h3>
+        <p>At the course, use the <b>Scoring</b> tab to collect money. A quick tracker lets you mark off who has paid their $25 with a single tap.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="pay-bar"><div><div style="font-size:13px;font-weight:600;color:#0f172a">Payment tracking</div><div style="font-size:11px;color:#64748b;margin-top:1px">8 of 16 paid - $200 collected</div></div><button class="pay-btn">Hide</button></div></div>
       </div>
+
       <div class="feature">
-        <h3><span class="feature-num">7</span> Instant Scoring & Payouts</h3>
-        <p>Enter the team scores (Front, Back, Overall) and tap the Skins buttons. The app instantly calculates the total pot, splits ties evenly, and calculates exact dollar payouts per player.</p>
+        <h3><span class="feature-num">8</span> Instant Scoring & Payouts</h3>
+        <p>Enter the team scores (Front, Back, Overall) and tap the Skins buttons. The app instantly calculates the total pot, splits ties, and shows exact dollar payouts per player.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="sc-grid"><div style="font-size:12px;font-weight:700">Team One <span style="font-weight:400;color:#94a3b8;font-size:10px">- Allen, Sarris</span></div><div class="sp"><span style="color:#475569;font-weight:700">-</span><span class="sp-val" style="color:#15803d">-4</span><span style="color:#475569;font-weight:700">+</span></div><div class="sp"><span style="color:#475569;font-weight:700">-</span><span class="sp-val" style="color:#15803d">-2</span><span style="color:#475569;font-weight:700">+</span></div><div class="sp"><span style="color:#475569;font-weight:700">-</span><span class="sp-val" style="color:#15803d">-6</span><span style="color:#475569;font-weight:700">+</span></div></div>
         </div>
       </div>
+
       <div class="feature">
-        <h3><span class="feature-num">8</span> End of Week Closeout</h3>
-        <p>When the weekend is over, just click <b>End Week & Start Fresh</b> in the Admin panel. The app automatically grabs all the games, securely saves them to History, updates everyone's Season Leaderboard stats, and perfectly resets the board for Monday.</p>
+        <h3><span class="feature-num">9</span> End of Week Closeout</h3>
+        <p>When the weekend is over, click <b>End Week & Start Fresh</b> in the Admin panel. The app saves all games to History, updates the Season Leaderboard, pushes player attendance to the Season Attendance tracker, and resets the board for next week.</p>
         <div class="mock-ui"><button class="btn btn-dark btn-full">End Week & Start Fresh</button></div>
       </div>
     </div>
-    <a href="index.html" class="back-btn">Back to the App</a>
+
+    <!-- ===================== ATTENDANCE ===================== -->
+    <div class="section">
+      <h2>Season Attendance</h2>
+      <p>A separate tracker that follows every player across the whole season — how many rounds they've played and the year-end tournament pot.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">1</span> Automatic Tracking</h3>
+        <p>Every time a round is moved to history or the week is closed out, the players from that round are automatically pushed to the attendance tracker. No extra work needed.</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">2</span> Season Standings</h3>
+        <p>A searchable leaderboard ranked by rounds played. Tap any player to see every date they played. Gold, silver, and bronze badges for the top three.</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">3</span> Year-End Tournament Pot</h3>
+        <p>The pot tracks $1 per player per round automatically. It's always visible in the header so everyone knows the stakes.</p>
+        <div class="mock-ui" style="padding:0;border:none;background:none;">
+          <div class="pot-mock"><div><div class="pot-label">Year-End Tournament Pot</div><div class="pot-sub">$1 per player per round</div></div><div class="pot-amt">$217</div></div>
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">4</span> Admin Controls</h3>
+        <p>Admins (password protected) can manually log rounds, edit or delete existing rounds, import data from CSV, and archive seasons at year-end. Players can view everything but can't edit.</p>
+      </div>
+    </div>
+
+    <div class="link-row">
+      <a href="index.html" class="back-btn" style="flex:1;">Back to the App</a>
+      <a href="attendance.html" class="back-btn" style="flex:1;background:#f59e0b;color:#0f172a;">Attendance Tracker</a>
+    </div>
+
   </div>
 </div>
 </body>
