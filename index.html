@@ -821,7 +821,7 @@ function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   return(<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>{showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}</div><button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer'}}>{showPaid?'Hide':'Track payments'}</button></div>);
 }
 
-function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,myName}){
+function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,myName}){
   const [activeDay,setActiveDay]=useState(null);const [editTeams,setEditTeams]=useState(null);const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
@@ -884,7 +884,6 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,myName
     <div>
       {activeDays.length>1&&(<div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>{setActiveDay(d);setEditTeams(null);setManualTeams(null);setManualMode(false);setEditKey(null);}}>{d.slice(0,3)}</button>)}</div>)}
       <div className="stat-row"><div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div><div className="stat-box"><div className="stat-n">{currentDisplay.length}</div><div className="stat-l">Teams</div></div><div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div></div>
-      {published&&currentDisplay.length>0&&(<div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><button className="btn btn-outline btn-sm" onClick={copyTeams}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>{copied?'Copied!':'Copy teams'}</button></div>)}
 
       {/* ADMIN TEAM BUILDER - shows whenever admin + not published */}
       {isAdmin&&!published&&(
@@ -957,8 +956,11 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,myName
 
       {/* Published admin actions */}
       {isAdmin&&published&&(
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-          <button className="btn btn-outline btn-sm" style={{color:'#dc2626',borderColor:'#fecaca'}} onClick={()=>{if(confirm('Unpublish teams and reopen for editing? Sign-ups are preserved.')){onUnpublish(activeDay);}}}>Reset Teams</button>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,flexWrap:'wrap',gap:6}}>
+          <div style={{display:'flex',gap:6}}>
+            <button className="btn btn-dark btn-sm" onClick={()=>onEditInPlace(activeDay)}>Edit Teams</button>
+            <button className="btn btn-outline btn-sm" style={{color:'#dc2626',borderColor:'#fecaca'}} onClick={()=>{if(confirm('Clear all teams and start over? Sign-ups are preserved.')){onUnpublish(activeDay);}}}>Reset Teams</button>
+          </div>
           <button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>
         </div>
       )}
@@ -1355,6 +1357,11 @@ function App(){
     if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:null},teamsPublished:{...(w?.teamsPublished||{}),[day]:false},locked:{...(w?.locked||{}),[day]:false}}));}
     else{update({['week/teams/'+day]:null,['week/teamsPublished/'+day]:false,['week/locked/'+day]:false});}
   }
+
+  function editTeamsInPlace(day){
+    if(isDemo){setWeek(w=>({...w,teamsPublished:{...(w?.teamsPublished||{}),[day]:false},locked:{...(w?.locked||{}),[day]:false}}));}
+    else{update({['week/teamsPublished/'+day]:false,['week/locked/'+day]:false});}
+  }
   function saveScoresAndPayouts(day,scores){if(isDemo){setWeek(w=>({...w,scores:{...(w?.scores||{}),[day]:scores},complete:{...(w?.complete||{}),[day]:true}}));}else{update({['week/scores/'+day]:scores,['week/complete/'+day]:true});}}
   function markComplete(day){const nw={...week,complete:{...(week.complete||{}),[day]:true}};if(isDemo){setWeek(nw);}else write('week',nw);}
   function reopenDay(day){if(isDemo){setWeek(w=>{const sc=w?.scores?.[day]||{};return{...w,complete:{...(w?.complete||{}),[day]:false},scores:{...(w?.scores||{}),[day]:{...sc,payoutsCalculated:false,savedAt:sc.savedAt||null}}};});}else{update({['week/complete/'+day]:false,['week/scores/'+day+'/payoutsCalculated']:false});}}
@@ -1401,7 +1408,7 @@ function App(){
           onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
           onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
           onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}/>}
-        {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+        {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={k=>del('history/'+k)} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound}/>}
         {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);}} week={week} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
