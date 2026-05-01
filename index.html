@@ -554,7 +554,7 @@ function buildPayouts(pot,places,teams,scores,seg,custom1,custom2){
   const w=getWinners(teams,scores,seg);
   if(!w)return places===1?[{label:'1st place',amt:first,teams:[],isTie:false}]:[{label:'1st place',amt:first,teams:[],isTie:false},{label:'2nd place',amt:second,teams:[],isTie:false}];
   const rows=[];
-  if(w.tied.length>1){const split=places===1?first:(first+second)/w.tied.length;rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});}
+  if(w.tied.length>1){const split=places===1?first/w.tied.length:(first+second)/w.tied.length;rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});}
   else{rows.push({label:'1st',amt:first,teams:w.tied,isTie:false});if(places===2&&w.second)rows.push({label:'2nd',amt:second,teams:[w.second],isTie:false});}
   return rows;
 }
@@ -1279,7 +1279,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
         const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return;
         sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
         const first=pl===1?p:p*0.6;const sec=p*0.4;
-        if(tied.length>1){const split=(first+sec)/tied.length;tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));}
+        if(tied.length>1){const split=pl===1?first/tied.length:(first+sec)/tied.length;tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));}
         else{safeArray(tied[0].players).forEach(p=>{if(players[p.name])players[p.name].won+=first/safeArray(tied[0].players).length;});if(pl===2&&second)safeArray(second.players).forEach(p=>{if(players[p.name])players[p.name].won+=sec/safeArray(second.players).length;});}
       });
       const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
