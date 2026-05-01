@@ -513,12 +513,27 @@ function getWeekDates(){
 }
 function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);}
 
-function buildTeams(players){
+function buildTeams(players,perTeam){
+  perTeam=perTeam||4;
   const sorted=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
   const n=sorted.length;if(n<3)return[];
-  const nt=Math.ceil(n/4);
-  const teams=Array.from({length:nt},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
-  sorted.forEach((p,idx)=>{const round=Math.floor(idx/nt);const pos=idx%nt;const ti=round%2===0?pos:nt-1-pos;teams[ti].players.push({...p,slot:['A','B','C','D'][Math.min(round,3)]});teams[ti].totalHcp+=parseFloat(p.handicap)||0;});
+  const numTeams=Math.ceil(n/perTeam);
+  const remainder=n%perTeam;
+  const slots=['A','B','C','D','E'];
+  const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
+  // Snake draft respecting target sizes: full teams get perTeam, last team gets remainder
+  let pi=0;
+  for(let round=0;round<perTeam&&pi<n;round++){
+    const order=round%2===0?Array.from({length:numTeams},(_,i)=>i):Array.from({length:numTeams},(_,i)=>numTeams-1-i);
+    for(const ti of order){
+      if(pi>=n)break;
+      const target=(remainder>0&&ti===numTeams-1)?remainder:perTeam;
+      if(teams[ti].players.length<target){
+        const p=sorted[pi];teams[ti].players.push({...p,slot:slots[Math.min(teams[ti].players.length,perTeam-1)]});
+        teams[ti].totalHcp+=parseFloat(p.handicap)||0;pi++;
+      }
+    }
+  }
   return teams;
 }
 
@@ -918,6 +933,8 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
   const [manualTeams,setManualTeams]=useState(null);
   const [pickingTeam,setPickingTeam]=useState(null);
   const [pickQ,setPickQ]=useState('');
+  const [showAutoOpts,setShowAutoOpts]=useState(false);
+  const [autoSize,setAutoSize]=useState('4');
   const activeDays=sortDays(safeArray(week?.activeDays));
   useEffect(()=>{if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);},[activeDays.join(',')]);
   if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
@@ -938,7 +955,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
     display.forEach((team,i)=>{const tName=published?team.name:'Group '+(i+1);text+=tName+nl;safeArray(team.players).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});text+=nl;});
     navigator.clipboard.writeText(text.trim()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}).catch(()=>{});
   }
-  function gen(){if(daySignups.length<3)return;setManualTeams(null);setManualMode(false);setEditTeams(buildTeams(daySignups));}
+  function gen(size){if(daySignups.length<3)return;const s=parseInt(size||autoSize)||4;setManualTeams(null);setManualMode(false);setEditTeams(buildTeams(daySignups,s));setShowAutoOpts(false);}
   function moveTeam(fromIdx,toIdx){if(fromIdx===toIdx)return;const base=editTeams||manualTeams||savedTeams;const reordered=[...base];const[moved]=reordered.splice(fromIdx,1);reordered.splice(toIdx,0,moved);if(manualMode)setManualTeams(reordered);else setEditTeams(reordered);}
   function drop(ti,pi){if(!drag||!isAdmin||published)return;const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));const p=u[drag.ti].players[drag.pi];u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});if(manualMode)setManualTeams(u);else setEditTeams(u);setDrag(null);}
   function savePlayerEdit(ti,pi){const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);u[ti].players[pi].tee=editVal.tee;u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);if(manualMode)setManualTeams(u);else if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);setEditKey(null);}
@@ -981,11 +998,38 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
           {/* Mode toggle: Auto vs Manual */}
           {!manualMode&&!editTeams&&currentDisplay.length===0&&(
             <div>
-              <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:10}}>
-                <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>{currentDisplay.length?'Regenerate':'Auto-generate'}</button>
-                <button className="btn btn-outline btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>
-              </div>
-              {cnt<3&&cnt>0&&<div style={{fontSize:11,color:'#d97706'}}>Need at least 3 players to auto-generate</div>}
+              {!showAutoOpts?(
+                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:10}}>
+                  <button className="btn btn-dark btn-sm" onClick={()=>setShowAutoOpts(true)} disabled={cnt<3}>Auto-generate</button>
+                  <button className="btn btn-outline btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>
+                </div>
+              ):(
+                <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,padding:12,marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>How many players per team?</div>
+                  <div style={{display:'flex',gap:6,marginBottom:10}}>
+                    {['3','4','5'].map(n=>{
+                      const numTeams=Math.ceil(cnt/parseInt(n));
+                      const remainder=cnt%parseInt(n);
+                      return(
+                        <button key={n} onClick={()=>setAutoSize(n)} style={{padding:'10px 14px',borderRadius:8,border:'1.5px solid',borderColor:autoSize===n?'#10b981':'#e2e8f0',background:autoSize===n?'#ecfdf5':'#fff',color:autoSize===n?'#15803d':'#475569',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',flex:1,textAlign:'center'}}>
+                          {n}
+                          <div style={{fontSize:10,fontWeight:500,marginTop:2,color:autoSize===n?'#15803d':'#94a3b8'}}>{numTeams} team{numTeams!==1?'s':''}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const remainder=cnt%s;const full=remainder===0?numTeams:numTeams-1;return(
+                    <div style={{fontSize:12,color:'#64748b',marginBottom:10,lineHeight:1.6}}>
+                      <b>{cnt} players</b> → {remainder===0?(<span><b>{numTeams} teams</b> of <b>{s}</b><span style={{color:'#15803d',fontWeight:600}}> — perfect split</span></span>):(<span><b>{full} teams</b> of <b>{s}</b> + <b>1 team</b> of <b>{remainder}</b><span style={{color:'#d97706',fontWeight:600}}> — needs {s-remainder} blind draw{s-remainder>1?'s':''}</span></span>)}
+                    </div>
+                  );})()}
+                  <div style={{display:'flex',gap:6}}>
+                    <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>gen(autoSize)}>Generate {Math.ceil(cnt/parseInt(autoSize))} teams of {autoSize}</button>
+                    <button className="btn btn-outline btn-sm" onClick={()=>setShowAutoOpts(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+              {!showAutoOpts&&cnt<3&&cnt>0&&<div style={{fontSize:11,color:'#d97706'}}>Need at least 3 players to auto-generate</div>}
             </div>
           )}
 
@@ -1013,7 +1057,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
           {manualMode&&manualTeams&&(
             <div>
               <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:8}}>
-                <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>Switch to auto</button>
+                <button className="btn btn-dark btn-sm" onClick={()=>{setManualTeams(null);setManualMode(false);setShowAutoOpts(true);}}>Switch to auto</button>
                 <button className="btn btn-outline btn-sm" onClick={()=>{onSaveTeams(activeDay,manualTeams);}}>Save Draft</button>
                 {manualTeams.some(t=>t.players.length>0)&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish & Lock</button>}
                 <button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>
@@ -1029,12 +1073,31 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
 
           {/* Auto-generate mode with existing teams */}
           {!manualMode&&(editTeams||currentDisplay.length>0)&&(
-            <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-              <button className="btn btn-dark btn-sm" onClick={gen} disabled={cnt<3}>Regenerate</button>
-              <button className="btn btn-outline btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>
-              {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save Draft</button>}
-              {currentDisplay.length>0&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish & Lock</button>}
-              {currentDisplay.length>0&&<button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>}
+            <div>
+              {showAutoOpts?(
+                <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,padding:12,marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Regenerate — how many per team?</div>
+                  <div style={{display:'flex',gap:6,marginBottom:10}}>
+                    {['3','4','5'].map(n=>{
+                      const numTeams=Math.ceil(cnt/parseInt(n));
+                      return(<button key={n} onClick={()=>setAutoSize(n)} style={{padding:'10px 14px',borderRadius:8,border:'1.5px solid',borderColor:autoSize===n?'#10b981':'#e2e8f0',background:autoSize===n?'#ecfdf5':'#fff',color:autoSize===n?'#15803d':'#475569',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',flex:1,textAlign:'center'}}>{n}<div style={{fontSize:10,fontWeight:500,marginTop:2,color:autoSize===n?'#15803d':'#94a3b8'}}>{numTeams} team{numTeams!==1?'s':''}</div></button>);
+                    })}
+                  </div>
+                  {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const remainder=cnt%s;const full=remainder===0?numTeams:numTeams-1;return(<div style={{fontSize:12,color:'#64748b',marginBottom:10}}>{remainder===0?<span><b>{numTeams} teams</b> of <b>{s}</b> — perfect split</span>:<span><b>{full}</b> of <b>{s}</b> + <b>1</b> of <b>{remainder}</b> — needs {s-remainder} draw{s-remainder>1?'s':''}</span>}</div>);})()}
+                  <div style={{display:'flex',gap:6}}>
+                    <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>gen(autoSize)}>Regenerate</button>
+                    <button className="btn btn-outline btn-sm" onClick={()=>setShowAutoOpts(false)}>Cancel</button>
+                  </div>
+                </div>
+              ):(
+                <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
+                  <button className="btn btn-dark btn-sm" onClick={()=>setShowAutoOpts(true)} disabled={cnt<3}>Regenerate</button>
+                  <button className="btn btn-outline btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>
+                  {editTeams&&<button className="btn btn-outline btn-sm" onClick={()=>{onSaveTeams(activeDay,editTeams);setEditTeams(null);}}>Save Draft</button>}
+                  {currentDisplay.length>0&&<button className="btn btn-green btn-sm" onClick={publishAndLock}>Publish & Lock</button>}
+                  {currentDisplay.length>0&&<button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>}
+                </div>
+              )}
             </div>
           )}
 
