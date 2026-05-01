@@ -299,44 +299,132 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 /* DESKTOP */
 @media(min-width:768px){
-  .app{max-width:680px;box-shadow:0 0 40px rgba(0,0,0,0.08)}
-  .land-title{font-size:52px}
-  .land-week{font-size:14px;margin-bottom:50px}
-  .land-btn{padding:20px 24px;border-radius:16px;font-size:16px}
-  .land-btn-main{font-size:16px}
+  .app{max-width:1100px;box-shadow:0 0 60px rgba(0,0,0,0.06);border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0}
+  /* Landing */
+  .land{padding:60px 40px}
+  .land-title{font-size:64px;margin-bottom:8px}
+  .land-week{font-size:15px;margin-bottom:56px}
+  .land-btn{padding:22px 28px;border-radius:16px;font-size:16px;max-width:480px;margin-left:auto;margin-right:auto}
+  .land-btn-main{font-size:17px}
   .land-btn-sub{font-size:13px}
-  .land-btn-icon{width:44px;height:44px;border-radius:12px}
-  .hdr-brand{font-size:24px}
-  .hdr-stats{gap:10px}
-  .hdr-stat{padding:12px 8px}
-  .hdr-stat-n{font-size:26px}
+  .land-btn-icon{width:48px;height:48px;border-radius:12px}
+  .land-btn-icon svg{width:22px;height:22px}
+  .land-demo-divider{margin:22px 0 12px}
+  /* Header */
+  .hdr{padding:24px 32px 0}
+  .hdr-inner{padding-bottom:24px}
+  .hdr-brand{font-size:28px}
+  .hdr-week{font-size:12px;margin-top:4px}
+  .hdr-stats{gap:12px;max-width:600px}
+  .hdr-stat{padding:14px 12px;border-radius:12px}
+  .hdr-stat-n{font-size:30px}
   .hdr-stat-l{font-size:12px}
-  .nb{font-size:11px;padding:14px 2px 12px}
+  .hdr-pill{font-size:12px;padding:5px 14px}
+  .hdr-curve{height:22px;border-radius:22px 22px 0 0}
+  /* Nav */
+  .nav{padding:0 20px;gap:4px;justify-content:center;border-bottom:2px solid #e2e8f0}
+  .nb{flex:none;padding:14px 24px 12px;font-size:12px;gap:5px;min-width:120px}
   .nb svg{width:20px;height:20px}
-  .content{padding:22px 20px 60px}
-  .stat-row{gap:10px;margin-bottom:18px}
-  .stat-box{padding:14px 8px}
-  .stat-n{font-size:28px}
+  .nb.on::after{left:12%;right:12%;height:3px}
+  /* Content */
+  .content{padding:28px 32px 60px;font-size:15px}
+  /* Stats */
+  .stat-row{gap:12px;margin-bottom:20px;max-width:600px}
+  .stat-box{padding:16px 10px;border-radius:12px}
+  .stat-n{font-size:32px}
   .stat-l{font-size:12px}
-  .day-card{border-radius:16px;margin-bottom:14px}
-  .day-title{font-size:20px}
-  .p-row{padding:14px 20px}
-  .p-name{font-size:15px}
-  .team-card{border-radius:14px;margin-bottom:12px}
-  .team-hdr{padding:12px 18px}
-  .team-nm{font-size:18px}
-  .team-row{padding:14px 18px}
-  .card{border-radius:14px;margin-bottom:12px}
-  .card-pad{padding:18px}
-  .modal{max-width:520px;margin:0 auto;border-radius:18px 18px 0 0;padding:20px 20px 40px}
-  .sc-grid{grid-template-columns:1fr 90px 90px 90px;gap:10px}
-  .skin-grid{grid-template-columns:repeat(4,1fr);gap:10px}
-  .admin-bar{padding:16px;border-radius:12px}
-  .btn{padding:11px 18px;font-size:13px;border-radius:10px}
-  .alert{padding:12px 16px;font-size:14px;border-radius:10px}
+  /* Day cards */
+  .day-card{border-radius:16px;margin-bottom:16px}
+  .day-hdr{padding:16px 20px}
+  .day-title{font-size:22px}
+  .day-sub{font-size:12px;gap:8px}
+  .day-pill{font-size:12px;padding:4px 12px}
+  .day-body{padding:0}
+  .day-actions{padding:14px 20px}
+  /* Player rows */
+  .p-row{padding:14px 24px}
+  .avi{width:40px;height:40px;font-size:13px}
+  .p-name{font-size:16px}
+  .p-meta{font-size:13px;margin-top:4px}
+  .tee-dot{width:8px;height:8px}
+  /* Teams */
+  .team-card{border-radius:14px;margin-bottom:14px}
+  .team-hdr{padding:14px 20px}
+  .team-nm{font-size:20px}
+  .team-hcp{font-size:12px;padding:3px 10px}
+  .team-row{padding:14px 20px;gap:12px}
+  .slot{font-size:11px;padding:3px 8px}
+  /* Cards */
+  .card{border-radius:14px;margin-bottom:14px}
+  .card-pad{padding:20px}
+  /* Scoring */
+  .sc-grid{grid-template-columns:1fr 100px 100px 100px;gap:12px}
+  .sc-hd{font-size:12px}
+  .sp button{padding:8px 14px;font-size:20px}
+  .sp-val{font-size:17px}
+  .skin-grid{grid-template-columns:repeat(4,1fr);gap:12px}
+  .skin-btn{padding:20px 10px;border-radius:14px}
+  .skin-num{font-size:48px}
+  .skin-team{font-size:12px}
+  /* Admin */
+  .admin-bar{padding:20px;border-radius:14px;margin-bottom:14px}
+  .admin-lbl{font-size:12px;margin-bottom:10px}
+  /* Forms */
+  .fi{padding:12px 14px;font-size:15px;border-radius:10px}
+  .fs{padding:12px 14px;font-size:15px;border-radius:10px}
+  .fl{font-size:11px;margin-bottom:5px}
+  .fg{margin-bottom:14px}
+  .si{padding:12px 14px 12px 34px;font-size:15px}
+  /* Buttons */
+  .btn{padding:12px 20px;font-size:14px;border-radius:10px}
+  .btn-sm{padding:8px 14px;font-size:12px}
+  .btn-xs{padding:5px 12px;font-size:11px}
+  .signup-btn{padding:12px 22px;font-size:14px;border-radius:12px}
+  .teeadd-btn{padding:12px 16px;font-size:13px}
+  /* Alerts */
+  .alert{padding:14px 18px;font-size:14px;border-radius:12px}
+  /* Modal */
   .overlay{align-items:center;justify-content:center}
-  .modal{max-height:80vh;border-radius:18px}
-  .pw-box{padding:28px}
+  .modal{max-width:560px;margin:0 auto;max-height:80vh;border-radius:20px;padding:24px 24px 40px}
+  .modal-handle{margin-bottom:16px}
+  .modal-title{font-size:22px;margin-bottom:16px}
+  /* History */
+  .hi{border-radius:14px;margin-bottom:12px}
+  .hi-hdr{padding:14px 18px}
+  .hi-title{font-size:17px}
+  .hi-body{padding:16px 18px}
+  .lb-row{padding:12px 18px;gap:12px}
+  .lb-rank{width:28px;height:28px;font-size:13px}
+  .lb-name{font-size:15px}
+  .lb-money{font-size:16px;min-width:56px}
+  /* Payouts */
+  .pay-row{padding:10px 0;font-size:14px}
+  .pay-lbl{font-size:14px}
+  .pay-amt{font-size:16px}
+  .pay-total{font-size:17px;padding-top:12px}
+  /* Toggle */
+  .tog{padding:4px;border-radius:24px;margin-bottom:14px}
+  .tog-opt{padding:9px 12px;font-size:13px;border-radius:20px}
+  /* Checklist */
+  .chk-card{border-radius:16px;margin-bottom:14px}
+  .chk-hdr{padding:16px 20px 10px}
+  .chk-item{padding:14px 20px;gap:14px}
+  .chk-label{font-size:14px}
+  .chk-sub{font-size:12px}
+  /* Password */
+  .pw-box{padding:32px;max-width:400px;margin:0 auto}
+  .pw-input{font-size:18px;padding:14px}
+  /* Misc */
+  .slbl{font-size:11px;margin-bottom:8px}
+  .section-btn{padding:14px 18px}
+  .section-title{font-size:16px}
+  .section-body{padding:16px 18px}
+  .empty{padding:60px 24px}
+  .empty-title{font-size:20px}
+  .empty-sub{font-size:14px}
+  .toast{font-size:14px;padding:14px 24px;border-radius:28px;bottom:40px}
+  .edit-btn{font-size:12px}
+  .guest-tag{font-size:12px;padding:2px 8px}
 }
 </style>
 </head>
