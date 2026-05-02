@@ -1557,6 +1557,13 @@ function renderEmailHTML(week,notes,subject){
   // Intro
   html+=`<div style="padding:22px 28px 4px;font-size:15px;color:#334155;line-height:1.5;">${intro}</div>`;
 
+  // CTA - prominent, right after intro
+  html+=`<div style="margin:16px 28px 4px;padding:16px 20px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;text-align:center;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;">Manage Your Sign-ups</div>
+    <div style="margin-top:4px;font-size:13px;color:#78350f;">View live updates, sign up for the days you missed, or change your tees.</div>
+    <a href="https://clark-golf-group-two.vercel.app/" style="display:inline-block;margin-top:12px;padding:11px 22px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;letter-spacing:0.3px;">Open the App \u2192</a>
+  </div>`;
+
   // Day cards
   days.forEach(day=>{
     const date=week.dates&&week.dates[day];
@@ -1625,11 +1632,9 @@ function renderEmailHTML(week,notes,subject){
     html+=`</div>`;
   });
 
-  // CTA
-  html+=`<div style="margin:24px 28px 8px;padding:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;text-align:center;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;">Manage Your Sign-ups</div>
-    <div style="margin-top:4px;font-size:13px;color:#78350f;">View live updates, sign up for the days you missed, or change your tees.</div>
-    <a href="https://clark-golf-group-two.vercel.app/" style="display:inline-block;margin-top:12px;padding:11px 22px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;letter-spacing:0.3px;">Open the App \u2192</a>
+  // Bottom link
+  html+=`<div style="margin:20px 28px 8px;text-align:center;">
+    <a href="https://clark-golf-group-two.vercel.app/" style="font-size:13px;font-weight:600;color:#0f172a;text-decoration:underline;">Open the App \u2192</a>
   </div>`;
 
   // Footer
@@ -1656,6 +1661,8 @@ function renderEmailPlainText(week,notes,subject){
   if(lockedDays.length&&openDays.length)txt+=lockedDays.join(' and ')+' teams are locked. Sign-ups open for '+openDays.join(' and ')+'.'+nl;
   else if(lockedDays.length)txt+='All teams locked for the weekend.'+nl;
   else if(openDays.length)txt+='Sign-ups are open for the weekend.'+nl;
+
+  txt+=nl+'\u2192 Manage sign-ups: https://clark-golf-group-two.vercel.app/'+nl;
 
   days.forEach(day=>{
     const date=week.dates&&week.dates[day];
