@@ -1379,7 +1379,7 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
     setB1v(sc.b1!==undefined?String(sc.b1):'');setB2v(sc.b2!==undefined?String(sc.b2):'');
     setO1v(sc.o1!==undefined?String(sc.o1):'');setO2v(sc.o2!==undefined?String(sc.o2):'');
     setJustSaved(false);
-  },[activeDay,forceRefresh]);
+  },[activeDay,forceRefresh,week?.scores?.[activeDay]?.savedAt]);
   if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
   const dayTeams=safeArray(week?.teams?.[activeDay]);const daySignups=Object.values(week.signups||{}).filter(s=>s.day===activeDay);
   const pc=daySignups.length;const pot=calcPot(pc);const dayScores=(week.scores&&week.scores[activeDay])||{};
@@ -1388,7 +1388,15 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
   const snet=Math.max(0,parseFloat(sv||0)-pc);const tsk=Object.values(sk).reduce((s,c)=>s+c,0);const perSk=tsk>0?snet/tsk:0;
   function tap(id){if(!isAdmin)return;setSk(p=>({...p,[id]:(p[id]||0)+1}));}
   function untap(id){setSk(p=>({...p,[id]:Math.max(0,(p[id]||0)-1)}));}
-  function handleSaveAndPublish(){const da=parseFloat(drawAdj)||0;const data={teamScores:ts,skinCounts:sk,frontPot:parseFloat(fv)||0,backPot:parseFloat(bv)||0,overallPot:parseFloat(ov)||0,skinsPot:parseFloat(sv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,f1:parseFloat(f1v)||0,f2:parseFloat(f2v)||0,b1:parseFloat(b1v)||0,b2:parseFloat(b2v)||0,o1:parseFloat(o1v)||0,o2:parseFloat(o2v)||0,tournFund:pc,playerCount:pc,drawAdj:da,savedAt:Date.now(),payoutsCalculated:true,payoutsAt:Date.now()};onSaveScoresAndPayouts(activeDay,data);setJustSaved(true);setTimeout(()=>setJustSaved(false),2500);}
+  function handleSaveAndPublish(){
+    // Auto-fill pot values from calculated amounts if admin left them blank
+    const useFv=fv||String(pot.front);const useBv=bv||String(pot.back);
+    const useOv=ov||String(pot.overall);const useSv=sv||String(pot.skins);
+    if(!fv)setFv(useFv);if(!bv)setBv(useBv);if(!ov)setOv(useOv);if(!sv)setSv(useSv);
+    const da=parseFloat(drawAdj)||0;
+    const data={teamScores:ts,skinCounts:sk,frontPot:parseFloat(useFv)||0,backPot:parseFloat(useBv)||0,overallPot:parseFloat(useOv)||0,skinsPot:parseFloat(useSv)||0,frontPlaces:fp,backPlaces:bp,overallPlaces:op,f1:parseFloat(f1v)||0,f2:parseFloat(f2v)||0,b1:parseFloat(b1v)||0,b2:parseFloat(b2v)||0,o1:parseFloat(o1v)||0,o2:parseFloat(o2v)||0,tournFund:pc,playerCount:pc,drawAdj:da,savedAt:Date.now(),payoutsCalculated:true,payoutsAt:Date.now()};
+    onSaveScoresAndPayouts(activeDay,data);setJustSaved(true);setTimeout(()=>setJustSaved(false),2500);
+  }
   function autoPot(){setFv(String(pot.front));setBv(String(pot.back));setOv(String(pot.overall));setSv(String(pot.skins));}
   const showPayouts=payoutsCalculated||(isAdmin&&(fv||bv||ov||sv));
 
