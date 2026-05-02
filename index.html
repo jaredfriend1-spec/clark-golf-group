@@ -235,8 +235,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .alert-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
 
 /* MODAL */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200}
-.modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:88vh;overflow-y:auto}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200;padding-top:10vh}
+.modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:85vh;overflow-y:auto}
 .modal-handle{width:34px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
 .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;margin-bottom:13px;letter-spacing:0.01em}
 .p-pick{display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #f1f5f9;cursor:pointer}
@@ -900,7 +900,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
             ):(
               <div className="fg">
                 <label className="fl">Guest name</label>
-                <input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)}/>
+                <input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)} onFocus={e=>setTimeout(()=>e.target.scrollIntoView({behavior:'smooth',block:'center'}),300)}/>
               </div>
             )}
 
@@ -930,13 +930,13 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                   <div className="fg"><label className="fl">Tees</label><select className="fs" value={tee} onChange={e=>setTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
                   <div className="fg">
                     <label className="fl">Handicap{hcpMemory&&!isGuest&&<span style={{fontWeight:400,color:'#10b981',marginLeft:6,textTransform:'none',letterSpacing:0}}>(last: {hcpMemory.hcp})</span>}</label>
-                    <input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
+                    <input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)} onFocus={e=>setTimeout(()=>e.target.scrollIntoView({behavior:'smooth',block:'center'}),300)}/>
                   </div>
                 </div>
                 {/* Tee time preference - optional */}
                 {!showTeePref?(
                   <div style={{textAlign:'center',marginBottom:10}}>
-                    <button onClick={()=>setShowTeePref(true)} style={{background:'none',border:'none',color:'#94a3b8',fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:'DM Sans,sans-serif',padding:'4px 0',textDecoration:'underline',textUnderlineOffset:2}}>Do you need to play in the first or last group?</button>
+                    <button onClick={()=>setShowTeePref(true)} style={{background:'#fef2f2',border:'1.5px solid #fecaca',color:'#dc2626',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',padding:'7px 14px',borderRadius:20,letterSpacing:'0.02em'}}>Do you need to play in the first or last group?</button>
                   </div>
                 ):(
                   <div style={{marginBottom:10,padding:'10px 12px',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9}}>
