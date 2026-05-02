@@ -103,7 +103,22 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">5</span> See the Teams Live</h3>
+        <h3><span class="feature-num">5</span> Need a Specific Tee Time?</h3>
+        <p>If you need to play in the first or last group, there's a subtle link during sign-up: <em>"Do you need to play in the first or last group?"</em> Tap it and pick First or Last. Your request goes to the admin for approval — it's not guaranteed, but the algorithm will try to accommodate it.</p>
+        <div class="mock-ui">
+          <div style="padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;">
+            <div style="font-size:12px;font-weight:600;color:#0f172a;margin-bottom:6px;">Tee time preference</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <div style="flex:1;padding:8px 6px;border-radius:7px;border:1.5px solid #10b981;background:#ecfdf5;color:#15803d;font-size:12px;font-weight:600;text-align:center;">First group</div>
+              <div style="flex:1;padding:8px 6px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-size:12px;font-weight:600;text-align:center;">Last group</div>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;text-align:center;">Tee time requests require admin approval</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">6</span> See the Teams Live</h3>
         <p>Once the admin publishes, check the <b>Teams</b> tab to see exactly who you are grouped with, positions, and team handicap.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="tc"><div class="tc-h"><span class="tc-nm">Team One</span><span class="tc-hcp">HCP 35.0</span></div><div class="tc-row"><span class="slot-m">A</span><div class="avi-m">CA</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div></div></div>
@@ -111,7 +126,7 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">6</span> Track Your Season</h3>
+        <h3><span class="feature-num">7</span> Track Your Season</h3>
         <p>The <b>History</b> tab tracks rounds played and total cash won. The <b>Season Attendance</b> page (linked in the header) tracks every player's total rounds and the year-end tournament pot.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="tc"><div class="lb-m"><div class="lb-rk">1</div><div class="lb-nm">Chris Allen</div><div style="font-size:11px;color:#94a3b8;margin-right:15px;">5r</div><div style="font-size:14px;font-weight:700;color:#15803d;font-family:'Barlow Condensed',sans-serif;">$145</div></div><div class="lb-m" style="border:none;"><div class="lb-rk" style="background:#f1f5f9;color:#64748b;">2</div><div class="lb-nm">Jeff Sarris</div><div style="font-size:11px;color:#94a3b8;margin-right:15px;">4r</div><div style="font-size:14px;font-weight:700;color:#15803d;font-family:'Barlow Condensed',sans-serif;">$90</div></div></div>
@@ -132,15 +147,46 @@
 
       <div class="feature">
         <h3><span class="feature-num">2</span> Build Teams: Auto or Manual</h3>
-        <p><b>Auto-generate</b> sorts the roster by handicap and distributes A, B, C, and D players into balanced groups with one click.</p>
-        <p><b>Manual build</b> lets you pick how many players per team (3, 4, or 5), creates empty groups, and lets you hand-pick each player from a searchable list. The app tracks how many players are still unassigned.</p>
+        <p><b>Auto-generate</b> sorts the roster by handicap and distributes A, B, C, and D players into balanced groups with one click. Pick team size (3, 4, or 5) and the app shows you the exact breakdown before committing.</p>
+        <p><b>Manual build</b> lets you create empty groups and hand-pick each player from a searchable list.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="ab"><div class="ab-l">Team builder - Saturday (16 players)</div><div style="display:flex;gap:7px;"><div class="btn-m dark sm">Auto-generate</div><div class="btn-m outline sm">Manual build</div></div></div>
         </div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">3</span> Fine-Tuning & Reordering</h3>
+        <h3><span class="feature-num">3</span> Tee Time Approvals</h3>
+        <p>If any players requested first or last group during sign-up, an approval section appears before auto-generate. Approve or deny each request — approved players get pinned to Group 1 or the last group. If a group fills up, overflow goes to the next closest group.</p>
+        <div class="mock-ui" style="padding:0;border:none;background:none;">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+              <span style="color:#f59e0b;">⏱</span> Tee Time Requests (2)
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f8fafc;">
+              <div><span style="font-size:13px;font-weight:600;">Chris Allen</span><span style="display:inline-block;padding:1px 6px;background:#dbeafe;color:#1d4ed8;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px;">First group</span></div>
+              <div style="display:flex;gap:4px;">
+                <div style="padding:4px 10px;border-radius:6px;border:1.5px solid #10b981;background:#ecfdf5;color:#15803d;font-size:11px;font-weight:600;">✓ Approved</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;">
+              <div><span style="font-size:13px;font-weight:600;">Tom Watson</span><span style="display:inline-block;padding:1px 6px;background:#fef3c7;color:#d97706;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px;">Last group</span></div>
+              <div style="display:flex;gap:4px;">
+                <div style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:11px;font-weight:600;">Approve</div>
+                <div style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#94a3b8;font-size:11px;font-weight:600;">Deny</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">4</span> Smart Team Mixing</h3>
+        <p>The auto-generate algorithm checks your round history and avoids putting the same players together week after week. Over time, everyone naturally rotates through different groups while still keeping teams balanced by handicap.</p>
+        <div class="info-m"><strong>Gets smarter over time</strong><p>The more rounds in your history, the better the mixing works. Early on with little data, it focuses on handicap balance. As history builds up, it increasingly prioritizes fresh matchups.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">5</span> Fine-Tuning & Reordering</h3>
         <p>Drag the handle (<b>⋮</b>) next to any player's name to move them between teams. Use the <b>Group Dropdown</b> in each team header to change the tee-off order. Works in both auto and manual modes.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="tc"><div class="tc-h"><span class="tc-nm" style="font-size:13px;"><span style="color:#94a3b8;font-size:11px;margin-right:5px;">GROUP</span><span style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#fff;">1 &#9662;</span></span><span class="tc-hcp">HCP 35.0</span></div><div class="tc-row" style="border:none;"><span style="color:#cbd5e1;font-size:18px;font-weight:700;">⋮</span><span class="slot-m">A</span><div class="avi-m">CA</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div></div></div>
@@ -148,19 +194,19 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">4</span> The Blind Draw</h3>
+        <h3><span class="feature-num">6</span> The Blind Draw</h3>
         <p>Uneven number of players? The app detects this and adds a "Blind Draw" slot to the short group. Assign any player from another team to fill it.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="tc"><div style="padding:10px 13px;background:#fffbeb;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:13px;font-weight:600;color:#d97706">Blind Draw TBD</div><div style="font-size:11px;color:#92400e;">Assign on the day</div></div><div class="btn-m gold sm">Assign</div></div></div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">5</span> Publish & Lock</h3>
+        <h3><span class="feature-num">7</span> Publish & Lock</h3>
         <p>Hit <b>Publish & Lock Teams</b> to assign official names (Team One, Team Two) and lock the roster. Use <b>Copy teams</b> to paste formatted groups into Gmail or iMessage.</p>
         <div class="callout"><strong>Still love sending the weekly email?</strong><p>Once teams are published, the "Copy teams" button formats everything perfectly for pasting.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">6</span> Edit or Reset Published Teams</h3>
+        <h3><span class="feature-num">8</span> Edit or Reset Published Teams</h3>
         <p>Need a last-minute change after publishing? Two options:</p>
         <p><b>Edit Teams</b> — unlocks the existing teams for rearranging. Drag players, reorder groups, then re-publish. No regenerating needed.</p>
         <p><b>Reset Teams</b> — clears all teams and starts over from scratch. Sign-ups are always preserved — nobody has to re-sign-up either way.</p>
@@ -170,7 +216,7 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">7</span> Roster Management</h3>
+        <h3><span class="feature-num">9</span> Roster Management</h3>
         <p>The admin can manage the full player roster from the Admin tab:</p>
         <p><b>Edit names</b> — tap "edit" next to any player to correct a spelling or update a name. Changes appear everywhere instantly.</p>
         <p><b>Delete players</b> — remove a player from the roster. Base roster members are hidden (and can be restored later). Custom-added players are permanently removed.</p>
@@ -179,13 +225,13 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">8</span> Payment Tracking</h3>
+        <h3><span class="feature-num">10</span> Payment Tracking</h3>
         <p>At the course, use the <b>Scoring</b> tab to collect money. Mark off who has paid their $25 with a single tap.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="pay-m"><div><div style="font-size:13px;font-weight:600;color:#0f172a">Payment tracking</div><div style="font-size:11px;color:#64748b;">8 of 16 paid - $200 collected</div></div><div style="padding:5px 12px;border-radius:7px;border:1.5px solid #10b981;background:#fff;color:#10b981;font-size:12px;font-weight:700;">Hide</div></div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">9</span> Instant Scoring & Payouts</h3>
+        <h3><span class="feature-num">11</span> Instant Scoring & Payouts</h3>
         <p>Enter team scores (Front, Back, Overall) and tap the Skins buttons. The app calculates the pot, splits ties, and shows exact dollar payouts per player.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="sc-m"><div style="font-size:12px;font-weight:700">Team One <span style="font-weight:400;color:#94a3b8;font-size:10px">- Allen, Sarris</span></div><div class="sp-m"><span style="color:#475569;font-weight:700">-</span><span style="color:#15803d">-4</span><span style="color:#475569;font-weight:700">+</span></div><div class="sp-m"><span style="color:#475569;font-weight:700">-</span><span style="color:#15803d">-2</span><span style="color:#475569;font-weight:700">+</span></div><div class="sp-m"><span style="color:#475569;font-weight:700">-</span><span style="color:#15803d">-6</span><span style="color:#475569;font-weight:700">+</span></div></div>
@@ -193,7 +239,7 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">10</span> End of Week Closeout</h3>
+        <h3><span class="feature-num">12</span> End of Week Closeout</h3>
         <p>Click <b>End Week & Start Fresh</b> in the Admin panel. The app saves all games to History, updates the Season Leaderboard, automatically pushes player attendance to the Season Attendance tracker, and resets the board for next week.</p>
         <div class="mock-ui"><div class="btn-m dark full">End Week & Start Fresh</div></div>
       </div>
