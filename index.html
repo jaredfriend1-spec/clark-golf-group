@@ -517,7 +517,10 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
   perTeam=perTeam||4;
   const n=players.length;if(n<3)return[];
   const numTeams=Math.ceil(n/perTeam);
-  const remainder=n%perTeam;
+  const base=Math.floor(n/numTeams);
+  const extra=n%numTeams;
+  // First 'extra' teams get base+1, rest get base — max 1 difference
+  function teamTarget(i){return i<extra?base+1:base;}
   const slots=['A','B','C','D','E'];
   const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
 
@@ -527,48 +530,37 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
   const pinnedNames=new Set((pinned||[]).map(p=>p.name));
   const unpinned=players.filter(p=>!pinnedNames.has(p.name));
 
-  // Place first-group players into Group 1, overflow to Group 2
   pinnedFirst.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
-    const target=teams[0].players.length<perTeam?0:(numTeams>1?1:0);
+    const target=teams[0].players.length<teamTarget(0)?0:(numTeams>1?1:0);
     teams[target].players.push({...player,slot:slots[teams[target].players.length]||'D'});
     teams[target].totalHcp+=parseFloat(player.handicap)||0;
   });
 
-  // Place last-group players into last group, overflow to second-to-last
   pinnedLast.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
     const lastIdx=numTeams-1;
-    const lastTarget=(remainder>0?remainder:perTeam);
-    const target=teams[lastIdx].players.length<lastTarget?lastIdx:(numTeams>1?lastIdx-1:lastIdx);
+    const target=teams[lastIdx].players.length<teamTarget(lastIdx)?lastIdx:(numTeams>1?lastIdx-1:lastIdx);
     teams[target].players.push({...player,slot:slots[teams[target].players.length]||'D'});
     teams[target].totalHcp+=parseFloat(player.handicap)||0;
   });
 
-  // Step 2: Sort remaining by handicap and snake-draft with history awareness
+  // Step 2: Sort remaining by handicap and draft with history awareness
   const sorted=[...unpinned].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
 
   sorted.forEach(player=>{
-    // Find eligible teams (not full)
-    const eligible=teams.map((t,i)=>{
-      const target=(remainder>0&&i===numTeams-1)?remainder:perTeam;
-      return{idx:i,spotsLeft:target-t.players.length,team:t};
-    }).filter(e=>e.spotsLeft>0);
-
+    const eligible=teams.map((t,i)=>({idx:i,spotsLeft:teamTarget(i)-t.players.length,team:t})).filter(e=>e.spotsLeft>0);
     if(!eligible.length)return;
 
     if(pairingCounts&&Object.keys(pairingCounts).length>0){
-      // Score each team: lower = fewer past pairings with this player
       eligible.forEach(e=>{
         e.pairScore=e.team.players.reduce((sum,tp)=>{
           const key=[player.name,tp.name].sort().join('|');
           return sum+(pairingCounts[key]||0);
         },0);
       });
-      // Sort by pair score (least paired first), then by handicap balance
       eligible.sort((a,b)=>a.pairScore-b.pairScore||(a.team.totalHcp-b.team.totalHcp));
     } else {
-      // No history: balance by handicap (snake draft)
       eligible.sort((a,b)=>a.team.totalHcp-b.team.totalHcp);
     }
 
@@ -577,10 +569,35 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
     teams[ti].totalHcp+=parseFloat(player.handicap)||0;
   });
 
-  // Re-sort players within each team by handicap and reassign slots
   teams.forEach(t=>{
     t.players.sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
     t.players.forEach((p,i)=>{p.slot=slots[i]||'D';});
+  });
+
+  // Step 3: Auto-suggest blind draws for short teams
+  const avgHcp=teams.reduce((s,t)=>s+t.totalHcp,0)/numTeams;
+  const usedDrawNames=new Set();
+
+  teams.forEach((team,ti)=>{
+    if(team.players.length>=perTeam)return; // full team, no draw needed
+    // Find ideal handicap to balance this team to the average
+    const idealHcp=avgHcp-team.totalHcp;
+    // Get all players from full teams not already used as a draw
+    const candidates=[];
+    teams.forEach((other,oi)=>{
+      if(oi===ti||other.players.length<perTeam)return;
+      other.players.forEach(p=>{
+        if(!usedDrawNames.has(p.name)){
+          candidates.push({...p,fromTeamIdx:oi,fromTeamName:other.name||('Group '+(oi+1))});
+        }
+      });
+    });
+    if(!candidates.length)return;
+    // Pick the candidate whose handicap is closest to the ideal
+    candidates.sort((a,b)=>Math.abs(parseFloat(a.handicap)-idealHcp)-Math.abs(parseFloat(b.handicap)-idealHcp));
+    const best=candidates[0];
+    usedDrawNames.add(best.name);
+    team.blindDraw={name:best.name,handicap:best.handicap,tee:best.tee||'Whites',fromDraw:true,suggested:true};
   });
 
   return teams;
@@ -601,10 +618,10 @@ function buildPayouts(pot,places,teams,scores,seg,custom1,custom2){
   const amt1=parseFloat(custom1)||0;const amt2=parseFloat(custom2)||0;
   const first=amt1>0?amt1:(places===1?p:p*0.6);const second=amt2>0?amt2:p*0.4;
   const w=getWinners(teams,scores,seg);
-  if(!w)return places===1?[{label:'1st place',amt:first,teams:[],isTie:false}]:[{label:'1st place',amt:first,teams:[],isTie:false},{label:'2nd place',amt:second,teams:[],isTie:false}];
+  if(!w)return places===1?[{label:'1st place',amt:Math.floor(first),teams:[],isTie:false}]:[{label:'1st place',amt:Math.floor(first),teams:[],isTie:false},{label:'2nd place',amt:Math.floor(second),teams:[],isTie:false}];
   const rows=[];
-  if(w.tied.length>1){const split=places===1?first/w.tied.length:(first+second)/w.tied.length;rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});}
-  else{rows.push({label:'1st',amt:first,teams:w.tied,isTie:false});if(places===2&&w.second)rows.push({label:'2nd',amt:second,teams:[w.second],isTie:false});}
+  if(w.tied.length>1){const split=Math.floor(places===1?first/w.tied.length:(first+second)/w.tied.length);rows.push({label:'1st (Tie)',amt:split,teams:w.tied,isTie:true});}
+  else{rows.push({label:'1st',amt:Math.floor(first),teams:w.tied,isTie:false});if(places===2&&w.second)rows.push({label:'2nd',amt:Math.floor(second),teams:[w.second],isTie:false});}
   return rows;
 }
 
@@ -1157,9 +1174,16 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
                       );
                     })}
                   </div>
-                  {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const remainder=cnt%s;const full=remainder===0?numTeams:numTeams-1;return(
+                  {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const base=Math.floor(cnt/numTeams);const extra=cnt%numTeams;const fullTeams=extra;const shortTeams=numTeams-extra;const drawsNeeded=shortTeams;return(
                     <div style={{fontSize:12,color:'#64748b',marginBottom:10,lineHeight:1.6}}>
-                      <b>{cnt} players</b> → {remainder===0?(<span><b>{numTeams} teams</b> of <b>{s}</b><span style={{color:'#15803d',fontWeight:600}}> — perfect split</span></span>):(<span><b>{full} teams</b> of <b>{s}</b> + <b>1 team</b> of <b>{remainder}</b><span style={{color:'#d97706',fontWeight:600}}> — needs {s-remainder} blind draw{s-remainder>1?'s':''}</span></span>)}
+                      <b>{cnt} players</b> → {extra===0?(<span><b>{numTeams} teams</b> of <b>{s}</b><span style={{color:'#15803d',fontWeight:600}}> — perfect split</span></span>):(
+                        <span>
+                          {fullTeams>0&&<span><b>{fullTeams}</b> of <b>{base+1}</b></span>}
+                          {fullTeams>0&&shortTeams>0&&' + '}
+                          {shortTeams>0&&<span><b>{shortTeams}</b> of <b>{base}</b></span>}
+                          <span style={{color:'#d97706',fontWeight:600}}> — {drawsNeeded} team{drawsNeeded!==1?'s':''} need{drawsNeeded===1?'s':''} 1 draw each</span>
+                        </span>
+                      )}
                       {Object.keys(pairingCounts).length>0&&<div style={{fontSize:10,color:'#94a3b8',marginTop:4}}>Teams will be mixed based on past round history</div>}
                     </div>
                   );})()}
@@ -1183,8 +1207,7 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
                 ))}
               </div>
               <div style={{fontSize:11,color:'#94a3b8',marginBottom:8}}>
-                {cnt} players ÷ {teamSize} per team = {Math.ceil(cnt/parseInt(teamSize||4))} teams
-                {cnt%parseInt(teamSize||4)!==0&&' ('+cnt%parseInt(teamSize||4)+' in last team - blind draw)'}
+                {(()=>{const s=parseInt(teamSize||4);const nt=Math.ceil(cnt/s);const base=Math.floor(cnt/nt);const extra=cnt%nt;const short=nt-extra;return cnt%s===0?`${cnt} players ÷ ${s} per team = ${nt} teams — even`:`${cnt} players → ${extra} of ${base+1} + ${short} of ${base} — ${short} need 1 draw each`;})()}
               </div>
               <div style={{display:'flex',gap:6}}>
                 <button className="btn btn-green btn-sm" onClick={startManual}>Create {Math.ceil(cnt/parseInt(teamSize||4))} empty teams</button>
@@ -1223,7 +1246,7 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
                       return(<button key={n} onClick={()=>setAutoSize(n)} style={{padding:'10px 14px',borderRadius:8,border:'1.5px solid',borderColor:autoSize===n?'#10b981':'#e2e8f0',background:autoSize===n?'#ecfdf5':'#fff',color:autoSize===n?'#15803d':'#475569',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',flex:1,textAlign:'center'}}>{n}<div style={{fontSize:10,fontWeight:500,marginTop:2,color:autoSize===n?'#15803d':'#94a3b8'}}>{numTeams} team{numTeams!==1?'s':''}</div></button>);
                     })}
                   </div>
-                  {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const remainder=cnt%s;const full=remainder===0?numTeams:numTeams-1;return(<div style={{fontSize:12,color:'#64748b',marginBottom:10}}>{remainder===0?<span><b>{numTeams} teams</b> of <b>{s}</b> — perfect split</span>:<span><b>{full}</b> of <b>{s}</b> + <b>1</b> of <b>{remainder}</b> — needs {s-remainder} draw{s-remainder>1?'s':''}</span>}</div>);})()}
+                  {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const base=Math.floor(cnt/numTeams);const extra=cnt%numTeams;const shortTeams=numTeams-extra;return(<div style={{fontSize:12,color:'#64748b',marginBottom:10}}>{extra===0?<span><b>{numTeams} teams</b> of <b>{s}</b> — perfect split</span>:<span><b>{extra}</b> of <b>{base+1}</b> + <b>{shortTeams}</b> of <b>{base}</b> — {shortTeams} draw{shortTeams!==1?'s':''}</span>}</div>);})()}
                   <div style={{display:'flex',gap:6}}>
                     <button className="btn btn-green btn-sm" style={{flex:1}} onClick={()=>gen(autoSize)}>Regenerate</button>
                     <button className="btn btn-outline btn-sm" onClick={()=>setShowAutoOpts(false)}>Cancel</button>
@@ -1336,7 +1359,7 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
             ))}
             {team.players.length===0&&(<div style={{padding:'12px 16px',textAlign:'center',fontSize:12,color:'#94a3b8'}}>No players yet — tap + Add above</div>)}
             {hasBlind&&!blindDraw&&team.players.length>0&&(<div style={{padding:'10px 13px',background:'#fffbeb',borderTop:'1px solid #fde68a',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:13,fontWeight:600,color:'#d97706'}}>Blind Draw TBD</div><div style={{fontSize:11,color:'#92400e',marginTop:1}}>Assign on the day</div></div>{isAdmin&&!published&&<button className="btn btn-gold btn-xs" onClick={()=>setBlindModal({teamIdx:ti,teamId:team.id})}>Assign</button>}</div>)}
-            {blindDraw&&(<div style={{padding:'10px 13px',background:'#ecfdf5',borderTop:'1px solid #bbf7d0',display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:13,fontWeight:600,color:'#15803d'}}>{blindDraw.name} <span style={{fontWeight:400,color:'#64748b',fontSize:11}}>(added from draw)</span></div><div style={{fontSize:11,color:'#64748b',marginTop:1}}>{blindDraw.tee} HCP {blindDraw.handicap}</div></div>{isAdmin&&!published&&<button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||manualTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);onSaveTeams(activeDay,u);if(manualMode)setManualTeams(u);else setEditTeams(u);}}>Clear</button>}</div>)}
+            {blindDraw&&(<div style={{padding:'10px 13px',background:blindDraw.suggested?'#fffbeb':'#ecfdf5',borderTop:'1px solid '+(blindDraw.suggested?'#fde68a':'#bbf7d0'),display:'flex',alignItems:'center',justifyContent:'space-between'}}><div><div style={{fontSize:13,fontWeight:600,color:blindDraw.suggested?'#d97706':'#15803d'}}>{blindDraw.name} <span style={{fontWeight:400,color:'#64748b',fontSize:11}}>({blindDraw.suggested?'suggested draw':'draw player'})</span></div><div style={{fontSize:11,color:'#64748b',marginTop:1}}>{blindDraw.tee} HCP {blindDraw.handicap}{blindDraw.suggested?' — best balance for this team':''}</div></div>{isAdmin&&!published&&(<div style={{display:'flex',gap:4}}>{blindDraw.suggested&&<button className="btn btn-green btn-xs" onClick={()=>{const base=editTeams||manualTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:{...t.blindDraw,suggested:false,fromDraw:true}}:t);if(manualMode)setManualTeams(u);else setEditTeams(u);}}>Accept</button>}<button className="btn btn-outline btn-xs" onClick={()=>setBlindModal({teamIdx:ti,teamId:team.id})}>Change</button><button className="btn btn-outline btn-xs" onClick={()=>{const base=editTeams||manualTeams||savedTeams;const u=base.map((t,i)=>i===ti?{...t,blindDraw:null}:t);if(manualMode)setManualTeams(u);else setEditTeams(u);}}>Clear</button></div>)}</div>)}
           </div>
         );
       })}
@@ -1425,13 +1448,32 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
         {[{l:'Front 9',pot:fv,v:fp,s:setFp,f1:f1v,sf1:setF1v,f2:f2v,sf2:setF2v},{l:'Back 9',pot:bv,v:bp,s:setBp,f1:b1v,sf1:setB1v,f2:b2v,sf2:setB2v},{l:'Overall',pot:ov,v:op,s:setOp,f1:o1v,sf1:setO1v,f2:o2v,sf2:setO2v}].map(({l,pot,v,s,f1,sf1,f2,sf2})=>{const p=parseFloat(pot||0);return(<div key={l} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}><span style={{fontSize:13,fontWeight:600}}>{l}{p>0?' - '+f$(p):''}</span><div className="tog" style={{width:155,marginBottom:0}}><button className={'tog-opt'+(v===1?' on':'')} onClick={()=>s(1)}>1st only</button><button className={'tog-opt'+(v===2?' on':'')} onClick={()=>s(2)}>1st + 2nd</button></div></div>{p>0&&(<div className="fr" style={{gap:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">1st place $</label><input className="fi" type="number" placeholder={v===1?f$(p):f$(p*0.6)} value={f1} onChange={e=>sf1(e.target.value)}/></div>{v===2&&(<div className="fg" style={{marginBottom:0}}><label className="fl">2nd place $</label><input className="fi" type="number" placeholder={f$(p*0.4)} value={f2} onChange={e=>sf2(e.target.value)}/></div>)}</div>)}</div>);})}
       </div>)}
       {(isAdmin||scoresSaved)&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Team scores - {activeDay}</div><div className="sc-grid" style={{marginBottom:8}}><div></div><div className="sc-hd">Front</div><div className="sc-hd">Back</div><div className="sc-hd">Overall</div></div>{dayTeams.map((t,ti)=>(<div key={t.id||ti} className="sc-grid" style={{marginBottom:10,alignItems:'center'}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}><span style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>{t.name||('Group '+(ti+1))}</span><div style={{fontSize:10,fontWeight:400,color:'#94a3b8'}}>- {teamLabel(t)}</div></div>{['front','back','overall'].map(seg=>(<ScorePicker key={seg} value={ts[t.id]?ts[t.id][seg]:undefined} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>))}</div>))}{!dayTeams.length&&<div style={{textAlign:'center',color:'#94a3b8',fontSize:13,padding:'8px 0'}}>Teams not published yet</div>}</div>)}
-      {(isAdmin||scoresSaved)&&dayTeams.length>0&&(<div className="card card-pad" style={{marginBottom:10}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}><div className="slbl" style={{marginBottom:0}}>Skins tapper</div><div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div></div><div className="skin-grid">{dayTeams.map((t,ti)=>(<div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}><div className="skin-team">{t.name||('Group '+(ti+1))}</div><div className="skin-num">{sk[t.id]||0}</div><div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>{isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}</div>))}</div>{sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(perSk.toFixed(2))+' per skin':''}</div>}</div>)}
-      {showPayouts&&(fv||bv||ov||sv)&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
-        {[{l:'Front 9',pot:fv,pl:fp,seg:'front'},{l:'Back 9',pot:bv,pl:bp,seg:'back'},{l:'Overall',pot:ov,pl:op,seg:'overall'}].map(({l,pot,pl,seg})=>{const rows=buildPayouts(pot,pl,dayTeams,ts,seg,seg==='front'?f1v:seg==='back'?b1v:o1v,seg==='front'?f2v:seg==='back'?b2v:o2v);if(!rows.length)return null;return(<div key={l} style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>{rows.map((row,i)=>(<div key={i} className="pay-row"><span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' - '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span><span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
-        {parseFloat(sv||0)>0&&(<div style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div><div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt win">{f$(snet)}</span></div>{tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(perSk.toFixed(2))}</span></div>}{Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{const t=dayTeams.find(t=>String(t.id)===String(tid));return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} - {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*perSk)}</span></div>:null;})}<div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund</span><span className="pay-amt tie">{f$(pc)}</span></div></div>)}
+      {(isAdmin||scoresSaved)&&dayTeams.length>0&&(<div className="card card-pad" style={{marginBottom:10}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}><div className="slbl" style={{marginBottom:0}}>Skins tapper</div><div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div></div><div className="skin-grid">{dayTeams.map((t,ti)=>(<div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}><div className="skin-team">{t.name||('Group '+(ti+1))}</div><div className="skin-num">{sk[t.id]||0}</div><div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>{isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}</div>))}</div>{sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(Math.floor(snet/tsk))+' per skin':''}</div>}</div>)}
+      {showPayouts&&(fv||bv||ov||sv)&&(()=>{
+        // Calculate all payouts with rounding
+        const allPayoutRows=[];let totalDistributed=0;
+        [{l:'Front 9',pot:fv,pl:fp,seg:'front'},{l:'Back 9',pot:bv,pl:bp,seg:'back'},{l:'Overall',pot:ov,pl:op,seg:'overall'}].forEach(({l,pot,pl,seg})=>{
+          const rows=buildPayouts(pot,pl,dayTeams,ts,seg,seg==='front'?f1v:seg==='back'?b1v:o1v,seg==='front'?f2v:seg==='back'?b2v:o2v);
+          rows.forEach(r=>{const paid=r.isTie?r.amt*r.teams.length:r.amt;totalDistributed+=paid;});
+          allPayoutRows.push({l,rows});
+        });
+        // Floor skins
+        const flooredPerSk=tsk>0?Math.floor(snet/tsk):0;
+        const skinsDistributed=flooredPerSk*tsk;
+        totalDistributed+=skinsDistributed;
+        // Rounding surplus goes to tournament fund
+        const baseFund=pc;
+        const totalIn=pc*25-(parseFloat(drawAdj)||0);
+        const roundingSurplus=Math.max(0,totalIn-totalDistributed-baseFund);
+        const totalFund=baseFund+roundingSurplus;
+
+        return(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
+        {allPayoutRows.map(({l,rows})=>{if(!rows.length)return null;return(<div key={l} style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>{rows.map((row,i)=>(<div key={i} className="pay-row"><span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' - '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span><span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
+        {parseFloat(sv||0)>0&&(<div style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div><div className="pay-row"><span className="pay-lbl">Net skins pot</span><span className="pay-amt win">{f$(snet)}</span></div>{tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(flooredPerSk)}</span></div>}{Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{const t=dayTeams.find(t=>String(t.id)===String(tid));return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} - {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*flooredPerSk)}</span></div>:null;})}</div>)}
+        <div className="pay-row" style={{borderTop:'1px solid #fde68a',paddingTop:8,marginTop:4}}><span className="pay-lbl" style={{color:'#f59e0b',fontWeight:700}}>Tournament fund</span><span className="pay-amt tie">{f$(totalFund)}{roundingSurplus>0?' (incl. $'+roundingSurplus.toFixed(0)+' rounding)':''}</span></div>
         {parseFloat(drawAdj||0)>0&&(<div className="pay-row" style={{color:'#d97706'}}><span className="pay-lbl" style={{color:'#d97706'}}>Manual pot adjustment</span><span className="pay-amt tie">-{f$(drawAdj)}</span></div>)}
-        <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(pc*25-(parseFloat(drawAdj)||0))}</span></div>
-      </div>)}
+        <div className="pay-total"><span>Total pot</span><span style={{color:'#15803d'}}>{f$(totalIn)}</span></div>
+      </div>);})()}
       {isAdmin&&!isDemo&&(<div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}><button className="btn btn-dark btn-full" onClick={handleSaveAndPublish}>{scoresSaved?'Update & Publish Results':'Save & Publish Results'}</button>{justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores and payouts.</div>}{scoresSaved&&(<button className="btn btn-outline btn-full" onClick={()=>onMoveToHistory(activeDay)}>Move to History</button>)}{scoresSaved&&(<button className="btn btn-outline btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>Edit Scores</button>)}</div>)}
     </div>
   );
@@ -1450,17 +1492,17 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
         const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return;
         sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
         const first=pl===1?p:p*0.6;const sec=p*0.4;
-        if(tied.length>1){const split=pl===1?first/tied.length:(first+sec)/tied.length;tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));}
-        else{safeArray(tied[0].players).forEach(p=>{if(players[p.name])players[p.name].won+=first/safeArray(tied[0].players).length;});if(pl===2&&second)safeArray(second.players).forEach(p=>{if(players[p.name])players[p.name].won+=sec/safeArray(second.players).length;});}
+        if(tied.length>1){const split=Math.floor(pl===1?first/tied.length:(first+sec)/tied.length);tied.forEach(t=>safeArray(t.players).forEach(p=>{if(players[p.name])players[p.name].won+=split/safeArray(t.players).length;}));}
+        else{safeArray(tied[0].players).forEach(p=>{if(players[p.name])players[p.name].won+=Math.floor(first)/safeArray(tied[0].players).length;});if(pl===2&&second)safeArray(second.players).forEach(p=>{if(players[p.name])players[p.name].won+=Math.floor(sec)/safeArray(second.players).length;});}
       });
       const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
-      if(tsk>0){Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{if(!cnt)return;const team=r.teams.find(t=>String(t.id)===String(tid));if(!team)return;safeArray(team.players).forEach(p=>{if(players[p.name])players[p.name].won+=(snet/tsk*cnt)/safeArray(team.players).length;});});}
+      if(tsk>0){const flooredPsk=Math.floor(snet/tsk);Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{if(!cnt)return;const team=r.teams.find(t=>String(t.id)===String(tid));if(!team)return;safeArray(team.players).forEach(p=>{if(players[p.name])players[p.name].won+=(flooredPsk*cnt)/safeArray(team.players).length;});});}
     });return Object.values(players).sort((a,b)=>b.won-a.won);
   },[rounds.length]);
 
   if(!rounds.length)return(<div className="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div className="empty-title">No rounds yet</div><div className="empty-sub">Completed rounds appear here.</div></div>);
 
-  function calcHistPay(scores,teams,pot,places,seg){const p=parseFloat(pot||0);if(!p||!teams)return[];const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return[];sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);const rows=[];if(tied.length>1){const split=places===1?p/tied.length:(p*0.6+p*0.4)/tied.length;rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:places===1?p:p*0.6,isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:p*0.4,isTie:false});}return rows;}
+  function calcHistPay(scores,teams,pot,places,seg){const p=parseFloat(pot||0);if(!p||!teams)return[];const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return[];sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);const rows=[];if(tied.length>1){const split=Math.floor(places===1?p/tied.length:(p*0.6+p*0.4)/tied.length);rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:Math.floor(places===1?p:p*0.6),isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:Math.floor(p*0.4),isTie:false});}return rows;}
 
   return(
     <div>
@@ -1476,7 +1518,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound}){
             {r.scores&&r.teams&&(<div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}><div className="slbl">Scores</div><div style={{display:'grid',gridTemplateColumns:'1fr repeat(3,44px)',gap:'3px 5px',fontSize:12,marginBottom:11}}><div style={{color:'#94a3b8',fontWeight:600}}>Team</div>{['Front','Back','Ovr'].map(h=><div key={h} style={{color:'#94a3b8',textAlign:'center',fontWeight:600}}>{h}</div>)}{r.teams.map(t=>{const sc=(r.scores.teamScores&&r.scores.teamScores[t.id])||{};return(<React.Fragment key={t.id}><div style={{fontWeight:600}}>{t.name}</div>{['front','back','overall'].map(s=>{const v=sc[s];return<div key={s} style={{textAlign:'center',fontWeight:600,color:typeof v==='number'?v<0?'#15803d':v>0?'#dc2626':'#0f172a':'#94a3b8'}}>{typeof v==='number'?(v>0?'+'+v:v):'--'}</div>;})}</React.Fragment>);})}</div>
               <div className="slbl">Payouts</div>
               {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||1,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,seg:'overall'}].map(({l,pot,pl,seg})=>{const rows=calcHistPay(r.scores,r.teams,pot,pl,seg);if(!rows.length)return null;return(<div key={l} style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{l}</div>{rows.map((row,i)=>(<div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{row.label}{row.names?' - '+row.names:''}</span><span style={{fontWeight:700,color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
-              {parseFloat(r.scores.skinsPot||0)>0&&(<div style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div>{Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{const t=r.teams.find(t=>String(t.id)===String(tid));const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(total>0?(net/total)*c:0)}</span></div>:null;})}</div>)}
+              {parseFloat(r.scores.skinsPot||0)>0&&(<div style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div>{Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{const t=r.teams.find(t=>String(t.id)===String(tid));const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);const psk=total>0?Math.floor(net/total):0;return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(psk*c)}</span></div>:null;})}</div>)}
               <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,borderTop:'2px solid #0f172a',paddingTop:8}}><span>Total pot</span><span style={{color:'#15803d'}}>{f$((r.playerCount||0)*25)}</span></div>
             </div>)}
           </div>)}
