@@ -1501,6 +1501,350 @@ function SetupWizard({day,week,onClose,onUpdateTeeTime,onToggleLock,onGoTo}){
 }
 
 // -- ADMIN VIEW (REORDERED: Manage Days first, then collapsible checklists) ---
+/* ===== EMAIL FEATURE ===== */
+function getUpcomingDays(week){
+  if(!week)return[];
+  const today=td();
+  return sortDays(safeArray(week.activeDays)).filter(d=>{
+    const date=week.dates&&week.dates[d];
+    return date&&date>=today;
+  });
+}
+
+function getDateRange(week,days){
+  if(!days.length)return'';
+  const dates=days.map(d=>(week.dates&&week.dates[d])||'').filter(Boolean).sort();
+  if(!dates.length)return'';
+  const first=dates[0];const last=dates[dates.length-1];
+  const[,m1,d1]=first.split('-');const[,m2,d2]=last.split('-');
+  const mo=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if(m1===m2)return mo[parseInt(m1)-1]+' '+parseInt(d1)+' – '+parseInt(d2);
+  return mo[parseInt(m1)-1]+' '+parseInt(d1)+' – '+mo[parseInt(m2)-1]+' '+parseInt(d2);
+}
+
+function getShortDateRange(week,days){
+  if(!days.length)return'';
+  const dates=days.map(d=>(week.dates&&week.dates[d])||'').filter(Boolean).sort();
+  if(!dates.length)return'';
+  const first=dates[0];const last=dates[dates.length-1];
+  const[,m1,d1]=first.split('-');const[,m2,d2]=last.split('-');
+  if(m1===m2)return MO[parseInt(m1)-1]+' '+parseInt(d1)+'-'+parseInt(d2);
+  return MO[parseInt(m1)-1]+' '+parseInt(d1)+'-'+MO[parseInt(m2)-1]+' '+parseInt(d2);
+}
+
+function renderEmailHTML(week,notes,subject){
+  const days=getUpcomingDays(week);
+  const dateRange=getDateRange(week,days);
+  const allSignups=week?.signups||{};
+
+  // Count state summary for intro
+  const lockedDays=days.filter(d=>week.teamsPublished&&week.teamsPublished[d]);
+  const openDays=days.filter(d=>!(week.teamsPublished&&week.teamsPublished[d]));
+  let intro='Here\u2019s where things stand for the weekend.';
+  if(lockedDays.length&&openDays.length)intro='Here\u2019s where things stand for the weekend. '+lockedDays.map(d=>d).join(' and ')+' teams are locked in below, and sign-ups are still open for '+openDays.join(' and ')+'.';
+  else if(lockedDays.length)intro='All teams are locked in for the weekend. See your groups below.';
+  else if(openDays.length)intro='Sign-ups are open for the weekend. Check the list below and join if you haven\u2019t already.';
+
+  let html=`<div style="font-family:'DM Sans',-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">`;
+  // Header
+  html+=`<div style="background:#0f172a;color:#fff;padding:28px 28px 24px;text-align:center;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Clark <em style="color:#f59e0b;font-style:italic;font-weight:600;">Golf</em> Group</div>
+    <div style="margin-top:6px;color:#94a3b8;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Weekly Update</div>
+    <div style="margin-top:4px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:600;color:#fff;">${dateRange}</div>
+  </div>`;
+  // Intro
+  html+=`<div style="padding:22px 28px 4px;font-size:15px;color:#334155;line-height:1.5;">${intro}</div>`;
+
+  // Day cards
+  days.forEach(day=>{
+    const date=week.dates&&week.dates[day];
+    const isLocked=week.teamsPublished&&week.teamsPublished[day];
+    const daySignups=Object.values(allSignups).filter(s=>s.day===day);
+    const teams=safeArray(week.teams&&week.teams[day]);
+    const teeInfo=week.teeTimes&&week.teeTimes[day];
+    const teeStr=teeInfo?(teeInfo.lottery?'Lottery':teeInfo.time):'TBD';
+    const playerCount=isLocked?teams.reduce((s,t)=>s+safeArray(t.players).length,0):daySignups.length;
+    const note=(notes&&notes[day])||'';
+    const dateFmt=fmtDFull(date);
+
+    html+=`<div style="margin:18px 28px;border-radius:12px;overflow:hidden;border:1px solid ${isLocked?'#fde68a':'#e2e8f0'};">`;
+    // Day header
+    html+=`<div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;background:${isLocked?'#fffbeb':'#f8fafc'};border-bottom:1px solid ${isLocked?'#fde68a':'#e2e8f0'};">
+      <div style="display:flex;align-items:baseline;gap:10px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">${day}</span>
+        <span style="font-size:13px;font-weight:600;color:#64748b;">${dateFmt}</span>
+      </div>
+      <span style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;${isLocked?'background:#f59e0b;color:#fff;':'background:#dcfce7;color:#15803d;'}">${isLocked?'Teams Locked':'Sign-ups Open'}</span>
+    </div>`;
+    // Tee bar
+    html+=`<div style="padding:12px 18px;background:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;">
+      <div><div style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Tee Time</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#0f172a;">${teeStr}</div></div>
+      <div style="font-size:12px;font-weight:600;color:#475569;background:#f1f5f9;padding:4px 10px;border-radius:6px;"><strong style="color:#0f172a;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-right:2px;">${playerCount}</strong> ${isLocked?'players':'signed up'}</div>
+    </div>`;
+    // Note
+    if(note.trim()){
+      html+=`<div style="margin:14px 18px;padding:12px 14px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:13.5px;color:#78350f;line-height:1.45;">
+        <strong style="color:#92400e;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;display:block;margin-bottom:3px;">Note from the admin</strong>${note.trim()}
+      </div>`;
+    }
+    // Teams or signup list
+    if(isLocked&&teams.length){
+      html+=`<div style="padding:4px 14px 14px;">`;
+      teams.forEach(t=>{
+        html+=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-top:10px;overflow:hidden;">
+          <div style="padding:8px 14px;background:#0f172a;color:#fff;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${t.name||'Group '+t.id}</span>
+            <span style="font-size:11px;color:#f59e0b;font-weight:600;">HCP ${(t.totalHcp||0).toFixed(0)}</span>
+          </div>`;
+        safeArray(t.players).forEach((p,i)=>{
+          html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;${i?'border-top:1px solid #f1f5f9;':''}">
+            <span style="width:22px;height:22px;border-radius:5px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">${p.slot||'A'}</span>
+            <span style="flex:1;font-size:14px;font-weight:600;color:#0f172a;">${p.name}</span>
+            <span style="font-size:11px;color:#94a3b8;font-weight:500;">${p.tee||'Whites'} &middot; HCP ${p.handicap||0}</span>
+          </div>`;
+        });
+        html+=`</div>`;
+      });
+      html+=`</div>`;
+    } else {
+      const names=daySignups.map(s=>s.name).sort((a,b)=>a.localeCompare(b));
+      if(names.length){
+        html+=`<div style="padding:8px 18px 16px;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;">`;
+        names.forEach(n=>{
+          html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13.5px;color:#1e293b;font-weight:500;">
+            <span style="width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0;display:inline-block;"></span>${n}
+          </div>`;
+        });
+        html+=`</div></div>`;
+      } else {
+        html+=`<div style="text-align:center;padding:14px 8px;color:#94a3b8;font-size:13px;font-style:italic;">No sign-ups yet</div>`;
+      }
+    }
+    html+=`</div>`;
+  });
+
+  // CTA
+  html+=`<div style="margin:24px 28px 8px;padding:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;text-align:center;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;">Manage Your Sign-ups</div>
+    <div style="margin-top:4px;font-size:13px;color:#78350f;">View live updates, sign up for the days you missed, or change your tees.</div>
+    <a href="https://clark-golf-group-two.vercel.app/" style="display:inline-block;margin-top:12px;padding:11px 22px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;letter-spacing:0.3px;">Open the App \u2192</a>
+  </div>`;
+
+  // Footer
+  html+=`<div style="padding:22px 28px 26px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;margin-top:14px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#475569;letter-spacing:1px;margin-bottom:4px;">CLARK GOLF GROUP</div>
+    Weekly update sent every week during the season.<br>Reply to this email with any questions.
+  </div></div>`;
+
+  return html;
+}
+
+function renderEmailPlainText(week,notes,subject){
+  const days=getUpcomingDays(week);
+  const dateRange=getShortDateRange(week,days);
+  const allSignups=week?.signups||{};
+  const nl='\n';
+  const div1='\u2550'.repeat(39);
+  const div2='\u2500'.repeat(39);
+
+  let txt=div1+nl+'   CLARK GOLF GROUP'+nl+'   Weekly Update \u00B7 '+dateRange+nl+div1+nl+nl;
+
+  const lockedDays=days.filter(d=>week.teamsPublished&&week.teamsPublished[d]);
+  const openDays=days.filter(d=>!(week.teamsPublished&&week.teamsPublished[d]));
+  if(lockedDays.length&&openDays.length)txt+=lockedDays.join(' and ')+' teams are locked. Sign-ups open for '+openDays.join(' and ')+'.'+nl;
+  else if(lockedDays.length)txt+='All teams locked for the weekend.'+nl;
+  else if(openDays.length)txt+='Sign-ups are open for the weekend.'+nl;
+
+  days.forEach(day=>{
+    const date=week.dates&&week.dates[day];
+    const isLocked=week.teamsPublished&&week.teamsPublished[day];
+    const daySignups=Object.values(allSignups).filter(s=>s.day===day);
+    const teams=safeArray(week.teams&&week.teams[day]);
+    const teeInfo=week.teeTimes&&week.teeTimes[day];
+    const teeStr=teeInfo?(teeInfo.lottery?'LOTTERY':teeInfo.time):'TBD';
+    const playerCount=isLocked?teams.reduce((s,t)=>s+safeArray(t.players).length,0):daySignups.length;
+    const note=(notes&&notes[day])||'';
+    const dateFmt=fmtDFull(date);
+
+    txt+=nl+nl+div2+nl;
+    txt+=day.toUpperCase()+' \u00B7 '+dateFmt.toUpperCase()+nl;
+    txt+=(isLocked?'TEAMS LOCKED':'SIGN-UPS OPEN')+' \u00B7 '+playerCount+' '+(isLocked?'PLAYERS':'SIGNED UP')+' \u00B7 TEE '+teeStr+nl;
+    txt+=div2+nl;
+
+    if(note.trim()){
+      txt+=nl+'NOTE FROM THE ADMIN:'+nl+note.trim()+nl;
+    }
+
+    if(isLocked&&teams.length){
+      teams.forEach(t=>{
+        txt+=nl+(t.name||'Group '+t.id).toUpperCase()+'  (HCP '+(t.totalHcp||0).toFixed(0)+')'+nl;
+        safeArray(t.players).forEach(p=>{
+          const nm=(p.name||'').padEnd(20);
+          txt+='  '+p.slot+' \u00B7 '+nm+(p.tee||'Whites')+' \u00B7 HCP '+p.handicap+nl;
+        });
+      });
+    } else {
+      const names=daySignups.map(s=>s.name).sort((a,b)=>a.localeCompare(b));
+      txt+=nl;
+      for(let i=0;i<names.length;i+=2){
+        const left='  \u2022 '+(names[i]||'').padEnd(24);
+        const right=names[i+1]?'\u2022 '+names[i+1]:'';
+        txt+=left+right+nl;
+      }
+    }
+  });
+
+  txt+=nl+nl+'\u2192 Manage sign-ups: https://clark-golf-group-two.vercel.app/'+nl;
+  return txt;
+}
+
+function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject}){
+  const[notes,setNotes]=useState({});
+  const[subject,setSubject]=useState('');
+  const[copiedMain,setCopiedMain]=useState(false);
+  const[copiedText,setCopiedText]=useState(false);
+  const debounceRef=React.useRef(null);
+
+  const days=getUpcomingDays(week);
+  const dateRange=getShortDateRange(week,days);
+  const defaultSubject='Clark Golf \u2014 Week of '+dateRange+' Update';
+
+  // Load notes and subject from week state
+  useEffect(()=>{
+    setNotes(week?.emailNotes||{});
+    setSubject(week?.emailSubject||defaultSubject);
+  },[week?.emailNotes,week?.emailSubject]);
+
+  function updateNote(day,val){
+    if(val.length>280)return;
+    const updated={...notes,[day]:val};
+    setNotes(updated);
+    if(debounceRef.current)clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSaveNotes(updated),500);
+  }
+
+  function clearNote(day){
+    const updated={...notes,[day]:''};
+    setNotes(updated);
+    onSaveNotes(updated);
+  }
+
+  function updateSubject(val){
+    setSubject(val);
+    if(debounceRef.current)clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSaveSubject(val),500);
+  }
+
+  async function copyEmail(){
+    try{
+      const html=renderEmailHTML(week,notes,subject);
+      const plain=renderEmailPlainText(week,notes,subject);
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);
+      setCopiedMain(true);setTimeout(()=>setCopiedMain(false),2500);
+    }catch(e){console.error(e);}
+  }
+
+  async function copyPlainText(){
+    try{
+      const plain=renderEmailPlainText(week,notes,subject);
+      await navigator.clipboard.writeText(plain);
+      setCopiedText(true);setTimeout(()=>setCopiedText(false),2500);
+    }catch(e){console.error(e);}
+  }
+
+  const emailHTML=renderEmailHTML(week,notes,subject);
+  const previewDoc='<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>body{margin:0;padding:12px;background:#f1f5f9;font-family:"DM Sans",sans-serif;}</style></head><body>'+emailHTML+'</body></html>';
+
+  if(!days.length)return(
+    <div className="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{marginBottom:8}}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      <div className="empty-title">No upcoming play days</div>
+      <div className="empty-sub">Set up days in the Admin tab first, or all days have already passed.</div>
+    </div>
+  );
+
+  return(
+    <div style={{paddingBottom:80}}>
+      {/* Status strip */}
+      <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,padding:'12px 14px',marginBottom:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#94a3b8',letterSpacing:1}}>Includes</span>
+          <span>{days.map(d=>{
+            const isLocked=week.teamsPublished&&week.teamsPublished[d];
+            return <span key={d} style={{display:'inline-block',padding:'2px 8px',borderRadius:5,fontSize:11,fontWeight:700,marginLeft:4,background:isLocked?'#f59e0b':d?'#dcfce7':'#f1f5f9',color:isLocked?'#fff':'#15803d'}}>{d.slice(0,3).toUpperCase()}</span>;
+          })}</span>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6,paddingTop:6,borderTop:'1px solid #f1f5f9'}}>
+          <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#94a3b8',letterSpacing:1}}>Today</span>
+          <span style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}</span>
+        </div>
+      </div>
+
+      {/* Subject line */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Subject Line</div>
+        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>Editable</div>
+      </div>
+      <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,padding:'12px 14px'}}>
+        <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#94a3b8',letterSpacing:1,marginBottom:4}}>Subject</div>
+        <input value={subject} onChange={e=>updateSubject(e.target.value)} style={{width:'100%',border:'none',outline:'none',fontFamily:'DM Sans,sans-serif',fontSize:14,fontWeight:600,color:'#0f172a',padding:0,background:'transparent'}}/>
+        <div style={{marginTop:6,fontSize:11,color:'#94a3b8',fontStyle:'italic'}}>Auto-generated from current state. Edit to customize.</div>
+      </div>
+
+      {/* Day notes */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Day Notes</div>
+        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>Optional</div>
+      </div>
+
+      {days.map(day=>{
+        const isLocked=week.teamsPublished&&week.teamsPublished[day];
+        const date=week.dates&&week.dates[day];
+        const val=notes[day]||'';
+        return(
+          <div key={day} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,marginBottom:10,overflow:'hidden'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:isLocked?'#fffbeb':'#f8fafc',borderBottom:'1px solid '+(isLocked?'#fde68a':'#e2e8f0')}}>
+              <div>
+                <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:0.5}}>{day}</span>
+                <span style={{fontSize:11,color:'#64748b',fontWeight:500,marginLeft:6}}>{fmtD(date)}</span>
+              </div>
+              <span style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:4,textTransform:'uppercase',letterSpacing:0.5,background:isLocked?'#f59e0b':'#dcfce7',color:isLocked?'#fff':'#15803d'}}>{isLocked?'Teams Locked':'Sign-ups Open'}</span>
+            </div>
+            <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Add a note for '+day+'...'} style={{width:'100%',border:'none',outline:'none',padding:'11px 14px',fontFamily:'DM Sans,sans-serif',fontSize:13,color:'#1e293b',resize:'none',minHeight:60,background:'#fff'}}/>
+            <div style={{padding:'6px 14px',borderTop:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10,color:'#94a3b8'}}>
+              <span>{val.length} / 280 characters</span>
+              <button onClick={()=>clearNote(day)} style={{color:'#94a3b8',background:'transparent',border:'none',fontSize:10,fontWeight:600,textTransform:'uppercase',cursor:'pointer',letterSpacing:0.5,opacity:val?1:0.3,fontFamily:'DM Sans,sans-serif'}}>Clear</button>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Preview */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Preview</div>
+        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>What recipients see</div>
+      </div>
+      <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,overflow:'hidden'}}>
+        <div style={{background:'#f8fafc',padding:'8px 12px',borderBottom:'1px solid #e2e8f0',display:'flex',alignItems:'center',gap:6,fontSize:10,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:1}}>
+          <span style={{width:8,height:8,borderRadius:'50%',background:'#10b981',flexShrink:0,display:'inline-block'}}></span>Live Preview
+        </div>
+        <div style={{padding:12,background:'#f1f5f9',maxHeight:400,overflowY:'auto'}}>
+          <iframe srcDoc={previewDoc} style={{width:'100%',border:'none',minHeight:500,borderRadius:8,background:'#fff'}} title="Email Preview"/>
+        </div>
+      </div>
+
+      {/* Sticky action bar */}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'1px solid #e2e8f0',padding:'12px 16px',display:'flex',gap:8,boxShadow:'0 -4px 12px rgba(0,0,0,0.04)',zIndex:50,maxWidth:1100,margin:'0 auto'}}>
+        <button onClick={copyEmail} style={{flex:1,padding:12,borderRadius:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:copiedMain?'#10b981':'#0f172a',color:'#fff',transition:'background 0.2s'}}>
+          {copiedMain?(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>):(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy Email</>)}
+        </button>
+        <button onClick={copyPlainText} style={{flex:1,padding:12,borderRadius:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,border:'1.5px solid #e2e8f0',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:copiedText?'#ecfdf5':'#fff',color:copiedText?'#15803d':'#475569',transition:'background 0.2s'}}>
+          {copiedText?(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>):(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Plain Text</>)}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo}){
   const [addQ,setAddQ]=useState('');const [quickAddSel,setQuickAddSel]=useState(null);const [quickAddTee,setQuickAddTee]=useState('Whites');
   const [editRosterId,setEditRosterId]=useState(null);const [editRosterVal,setEditRosterVal]=useState('');
@@ -1672,7 +2016,7 @@ function App(){
   }
 
   function createWeek(data){write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});}
-  function clearWeek(){const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{}};if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);}
+  function clearWeek(){const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},emailNotes:null,emailSubject:null};if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);}
 
   function endWeek(){
     const updates={};const newHistory={...history};let hasHistoryUpdates=false;
@@ -1684,7 +2028,7 @@ function App(){
         if(isDemo){newHistory[k]=roundData;}else{updates['history/'+k]=roundData;}hasHistoryUpdates=true;
         pushToAttendance(day);}
     });
-    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{}};
+    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{},emailNotes:null,emailSubject:null};
     if(isDemo){if(hasHistoryUpdates)setHistory(newHistory);setWeek(emptyWeek);setTab('home');}
     else{updates['week']=emptyWeek;update(updates);setTab('home');}
   }
@@ -1762,7 +2106,7 @@ function App(){
     {id:'scoring',label:'Scoring',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,locked:!scoringVisible},
     {id:'history',label:'History',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   ];
-  const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>}];
+  const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'email',label:'Email',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>}];
   const TABS=role==='admin'?ATABS:PTABS;
 
   return(
@@ -1781,6 +2125,7 @@ function App(){
         {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={k=>del('history/'+k)} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound}/>}
+        {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveSubject={s=>{if(!isDemo)write('week/emailSubject',s);else setWeek(w=>({...w,emailSubject:s}));}}/>}
         {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
       </div>
     </div>
