@@ -513,27 +513,76 @@ function getWeekDates(){
 }
 function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);}
 
-function buildTeams(players,perTeam){
+function buildTeams(players,perTeam,pinned,pairingCounts){
   perTeam=perTeam||4;
-  const sorted=[...players].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
-  const n=sorted.length;if(n<3)return[];
+  const n=players.length;if(n<3)return[];
   const numTeams=Math.ceil(n/perTeam);
   const remainder=n%perTeam;
   const slots=['A','B','C','D','E'];
   const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
-  // Snake draft respecting target sizes: full teams get perTeam, last team gets remainder
-  let pi=0;
-  for(let round=0;round<perTeam&&pi<n;round++){
-    const order=round%2===0?Array.from({length:numTeams},(_,i)=>i):Array.from({length:numTeams},(_,i)=>numTeams-1-i);
-    for(const ti of order){
-      if(pi>=n)break;
-      const target=(remainder>0&&ti===numTeams-1)?remainder:perTeam;
-      if(teams[ti].players.length<target){
-        const p=sorted[pi];teams[ti].players.push({...p,slot:slots[Math.min(teams[ti].players.length,perTeam-1)]});
-        teams[ti].totalHcp+=parseFloat(p.handicap)||0;pi++;
-      }
+
+  // Step 1: Pin approved first/last players
+  const pinnedFirst=(pinned||[]).filter(p=>p.pref==='first');
+  const pinnedLast=(pinned||[]).filter(p=>p.pref==='last');
+  const pinnedNames=new Set((pinned||[]).map(p=>p.name));
+  const unpinned=players.filter(p=>!pinnedNames.has(p.name));
+
+  // Place first-group players into Group 1, overflow to Group 2
+  pinnedFirst.forEach(pin=>{
+    const player=players.find(p=>p.name===pin.name);if(!player)return;
+    const target=teams[0].players.length<perTeam?0:(numTeams>1?1:0);
+    teams[target].players.push({...player,slot:slots[teams[target].players.length]||'D'});
+    teams[target].totalHcp+=parseFloat(player.handicap)||0;
+  });
+
+  // Place last-group players into last group, overflow to second-to-last
+  pinnedLast.forEach(pin=>{
+    const player=players.find(p=>p.name===pin.name);if(!player)return;
+    const lastIdx=numTeams-1;
+    const lastTarget=(remainder>0?remainder:perTeam);
+    const target=teams[lastIdx].players.length<lastTarget?lastIdx:(numTeams>1?lastIdx-1:lastIdx);
+    teams[target].players.push({...player,slot:slots[teams[target].players.length]||'D'});
+    teams[target].totalHcp+=parseFloat(player.handicap)||0;
+  });
+
+  // Step 2: Sort remaining by handicap and snake-draft with history awareness
+  const sorted=[...unpinned].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
+
+  sorted.forEach(player=>{
+    // Find eligible teams (not full)
+    const eligible=teams.map((t,i)=>{
+      const target=(remainder>0&&i===numTeams-1)?remainder:perTeam;
+      return{idx:i,spotsLeft:target-t.players.length,team:t};
+    }).filter(e=>e.spotsLeft>0);
+
+    if(!eligible.length)return;
+
+    if(pairingCounts&&Object.keys(pairingCounts).length>0){
+      // Score each team: lower = fewer past pairings with this player
+      eligible.forEach(e=>{
+        e.pairScore=e.team.players.reduce((sum,tp)=>{
+          const key=[player.name,tp.name].sort().join('|');
+          return sum+(pairingCounts[key]||0);
+        },0);
+      });
+      // Sort by pair score (least paired first), then by handicap balance
+      eligible.sort((a,b)=>a.pairScore-b.pairScore||(a.team.totalHcp-b.team.totalHcp));
+    } else {
+      // No history: balance by handicap (snake draft)
+      eligible.sort((a,b)=>a.team.totalHcp-b.team.totalHcp);
     }
-  }
+
+    const ti=eligible[0].idx;
+    teams[ti].players.push({...player,slot:slots[teams[ti].players.length]||'D'});
+    teams[ti].totalHcp+=parseFloat(player.handicap)||0;
+  });
+
+  // Re-sort players within each team by handicap and reassign slots
+  teams.forEach(t=>{
+    t.players.sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
+    t.players.forEach((p,i)=>{p.slot=slots[i]||'D';});
+  });
+
   return teams;
 }
 
@@ -567,7 +616,10 @@ function makeDemoData(){
     {name:"Tom Watson",hcp:19},{name:"Cesar Rodriguez",hcp:7},{name:"John McCarthy",hcp:12},{name:"George Divver",hcp:19},
   ];
   const signups={};
-  DEMO_PLAYERS.forEach((p,i)=>{signups['d'+i]={playerId:i+1,name:p.name,tee:'Whites',handicap:p.hcp,day:'Saturday',signedUpAt:Date.now()+i};});
+  DEMO_PLAYERS.forEach((p,i)=>{
+    const pref=p.name==='Chris Allen'?'first':p.name==='Tom Watson'?'last':null;
+    signups['d'+i]={playerId:i+1,name:p.name,tee:'Whites',handicap:p.hcp,teePreference:pref,day:'Saturday',signedUpAt:Date.now()+i};
+  });
   const demoTeams=[
     {id:1,name:'Team One',totalHcp:51,players:[{name:'Chris Allen',tee:'Whites',handicap:5,slot:'A'},{name:'Jeff Sarris',tee:'Whites',handicap:6,slot:'B'},{name:'George Divver',tee:'Whites',handicap:19,slot:'C'},{name:'Jon Rucker',tee:'Whites',handicap:23,slot:'D'}]},
     {id:2,name:'Team Two',totalHcp:47,players:[{name:'Brian Grimes',tee:'Whites',handicap:5,slot:'A'},{name:'Cesar Rodriguez',tee:'Whites',handicap:7,slot:'B'},{name:'Mike Barry',tee:'Whites',handicap:8,slot:'C'},{name:'Tom Watson',tee:'Whites',handicap:19,slot:'D'}]},
@@ -679,6 +731,8 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [myName,setMyName]=useState(()=>{try{return localStorage.getItem('cgMyName')||null;}catch{return null;}});
   const setMyNamePersist=n=>{setMyName(n);try{if(n)localStorage.setItem('cgMyName',n);else localStorage.removeItem('cgMyName');}catch{}};
+  const [teePref,setTeePref]=useState(null);
+  const [showTeePref,setShowTeePref]=useState(false);
   function loadMemory(playerId){try{const saved=localStorage.getItem('cgPref_'+playerId);if(saved){const pref=JSON.parse(saved);setTee(pref.tee||'Whites');setHcp(String(pref.hcp||''));setHcpMemory(pref);}else{setHcpMemory(null);}}catch{setHcpMemory(null);}}
   function saveMemory(playerId,teeVal,hcpVal){try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}}
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
@@ -692,7 +746,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const allSignups=week.signups||{};
   const totalSignups=Object.keys(allSignups).length;
 
-  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setShowSignup(true);}
+  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setShowSignup(true);}
 
   function doSignup(){
     const name=isGuest?gname.trim():(fullRoster.find(p=>p.id==sel)||{}).name;    if(!name||!hcp)return;
@@ -702,7 +756,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
     const pid=isGuest?'g_'+Date.now():parseInt(sel);
     selectedDays.forEach((day,i)=>{
       const dup=Object.values(allSignups).some(s=>s.day===day&&s.name===name);
-      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),day,signedUpAt:Date.now()+(i*100)});
+      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),teePreference:teePref||null,day,signedUpAt:Date.now()+(i*100)});
     });
     setShowSignup(false);
     const days=activeDays.filter(d=>signupDays[d]);
@@ -760,7 +814,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                     <div className="p-row">
                       <div className="avi">{ini(s.name)}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
+                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
                         {editKey===key?(
                           <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                         ):(
@@ -877,6 +931,21 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                     <input className="fi" type="number" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
                   </div>
                 </div>
+                {/* Tee time preference - optional */}
+                {!showTeePref?(
+                  <div style={{textAlign:'center',marginBottom:10}}>
+                    <button onClick={()=>setShowTeePref(true)} style={{background:'none',border:'none',color:'#94a3b8',fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:'DM Sans,sans-serif',padding:'4px 0',textDecoration:'underline',textUnderlineOffset:2}}>Do you need to play in the first or last group?</button>
+                  </div>
+                ):(
+                  <div style={{marginBottom:10,padding:'10px 12px',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#0f172a',marginBottom:6}}>Tee time preference</div>
+                    <div style={{display:'flex',gap:6,marginBottom:6}}>
+                      <button onClick={()=>setTeePref(teePref==='first'?null:'first')} style={{flex:1,padding:'8px 6px',borderRadius:7,border:'1.5px solid',borderColor:teePref==='first'?'#10b981':'#e2e8f0',background:teePref==='first'?'#ecfdf5':'#fff',color:teePref==='first'?'#15803d':'#475569',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>First group</button>
+                      <button onClick={()=>setTeePref(teePref==='last'?null:'last')} style={{flex:1,padding:'8px 6px',borderRadius:7,border:'1.5px solid',borderColor:teePref==='last'?'#10b981':'#e2e8f0',background:teePref==='last'?'#ecfdf5':'#fff',color:teePref==='last'?'#15803d':'#475569',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Last group</button>
+                    </div>
+                    <div style={{fontSize:10,color:'#94a3b8',textAlign:'center'}}>Tee time requests require admin approval</div>
+                  </div>
+                )}
                 <SignupConfirmBtn isGuest={isGuest} gname={gname} sel={sel} activeDays={activeDays} signupDays={signupDays} allSignups={allSignups} hcp={hcp} onConfirm={doSignup}/>
               </div>
             )}
@@ -924,7 +993,7 @@ function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   return(<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>{showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}</div><button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer'}}>{showPaid?'Hide':'Track payments'}</button></div>);
 }
 
-function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,myName}){
+function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,myName}){
   const [activeDay,setActiveDay]=useState(null);const [editTeams,setEditTeams]=useState(null);const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
@@ -935,14 +1004,38 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
   const [pickQ,setPickQ]=useState('');
   const [showAutoOpts,setShowAutoOpts]=useState(false);
   const [autoSize,setAutoSize]=useState('4');
-  const [movingPlayer,setMovingPlayer]=useState(null); // {ti, pi, name}
+  const [movingPlayer,setMovingPlayer]=useState(null);
+  const [approvals,setApprovals]=useState({}); // {signupKey: true/false} // {ti, pi, name}
   const activeDays=sortDays(safeArray(week?.activeDays));
   useEffect(()=>{if(!activeDay&&activeDays.length>0)setActiveDay(activeDays[0]);},[activeDays.join(',')]);
   if(!week||activeDays.length===0)return<div className="empty"><div className="empty-title">No active games</div></div>;
 
   const daySignups=Object.entries((week.signups)||{}).filter(([,s])=>s.day===activeDay).map(([,s])=>s);
+  const daySignupsKeyed=Object.entries((week.signups)||{}).filter(([,s])=>s.day===activeDay);
   const savedTeams=safeArray(week?.teams?.[activeDay]);const display=editTeams||manualTeams||savedTeams;
   const cnt=daySignups.length;const published=(week.teamsPublished&&week.teamsPublished[activeDay])||false;
+
+  // Tee time requests for this day
+  const teeRequests=daySignupsKeyed.filter(([,s])=>s.teePreference);
+
+  // Compute pairing counts from history
+  const pairingCounts=useMemo(()=>{
+    const counts={};
+    const rounds=Object.values(history||{});
+    rounds.forEach(r=>{
+      if(!r.teams)return;
+      safeArray(r.teams).forEach(t=>{
+        const names=safeArray(t.players).map(p=>p.name);
+        for(let i=0;i<names.length;i++){
+          for(let j=i+1;j<names.length;j++){
+            const key=[names[i],names[j]].sort().join('|');
+            counts[key]=(counts[key]||0)+1;
+          }
+        }
+      });
+    });
+    return counts;
+  },[history]);
 
   // All assigned player names across current teams
   const assignedNames=new Set(display.flatMap(t=>safeArray(t.players).map(p=>p.name)));
@@ -956,7 +1049,14 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
     display.forEach((team,i)=>{const tName=published?team.name:'Group '+(i+1);text+=tName+nl;safeArray(team.players).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});text+=nl;});
     navigator.clipboard.writeText(text.trim()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}).catch(()=>{});
   }
-  function gen(size){if(daySignups.length<3)return;const s=parseInt(size||autoSize)||4;setManualTeams(null);setManualMode(false);setEditTeams(buildTeams(daySignups,s));setShowAutoOpts(false);}
+  function gen(size){
+    if(daySignups.length<3)return;
+    const s=parseInt(size||autoSize)||4;
+    const pinned=teeRequests.filter(([k,])=>approvals[k]).map(([,sig])=>({name:sig.name,pref:sig.teePreference}));
+    setManualTeams(null);setManualMode(false);
+    setEditTeams(buildTeams(daySignups,s,pinned,pairingCounts));
+    setShowAutoOpts(false);
+  }
   function moveTeam(fromIdx,toIdx){if(fromIdx===toIdx)return;const base=editTeams||manualTeams||savedTeams;const reordered=[...base];const[moved]=reordered.splice(fromIdx,1);reordered.splice(toIdx,0,moved);if(manualMode)setManualTeams(reordered);else setEditTeams(reordered);}
   function drop(ti,pi){if(!drag||!isAdmin||published)return;const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));const p=u[drag.ti].players[drag.pi];u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});if(manualMode)setManualTeams(u);else setEditTeams(u);setDrag(null);}
   function savePlayerEdit(ti,pi){const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);u[ti].players[pi].tee=editVal.tee;u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);if(manualMode)setManualTeams(u);else if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);setEditKey(null);}
@@ -1005,6 +1105,33 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
         <div className="admin-bar">
           <div className="admin-lbl">Team builder - {activeDay} ({cnt} players signed up)</div>
 
+          {/* Tee time request approvals */}
+          {teeRequests.length>0&&!editTeams&&currentDisplay.length===0&&(
+            <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,padding:12,marginBottom:10}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Tee Time Requests ({teeRequests.length})
+              </div>
+              <div style={{fontSize:11,color:'#94a3b8',marginBottom:8}}>Approve or deny before generating teams</div>
+              {teeRequests.map(([key,s])=>(
+                <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
+                  <div>
+                    <span style={{fontSize:13,fontWeight:600}}>{s.name}</span>
+                    <span style={{display:'inline-block',padding:'1px 6px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:6}}>{s.teePreference==='first'?'First group':'Last group'}</span>
+                  </div>
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={()=>setApprovals(a=>({...a,[key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===true?'#10b981':'#e2e8f0',background:approvals[key]===true?'#ecfdf5':'#fff',color:approvals[key]===true?'#15803d':'#64748b',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                      {approvals[key]===true?'✓ Approved':'Approve'}
+                    </button>
+                    <button onClick={()=>setApprovals(a=>({...a,[key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===false?'#fecaca':'#e2e8f0',background:approvals[key]===false?'#fef2f2':'#fff',color:approvals[key]===false?'#dc2626':'#94a3b8',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                      {approvals[key]===false?'Denied':'Deny'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Mode toggle: Auto vs Manual */}
           {!manualMode&&!editTeams&&currentDisplay.length===0&&(
             <div>
@@ -1031,6 +1158,7 @@ function TeamsView({week,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEdit
                   {(()=>{const s=parseInt(autoSize);const numTeams=Math.ceil(cnt/s);const remainder=cnt%s;const full=remainder===0?numTeams:numTeams-1;return(
                     <div style={{fontSize:12,color:'#64748b',marginBottom:10,lineHeight:1.6}}>
                       <b>{cnt} players</b> → {remainder===0?(<span><b>{numTeams} teams</b> of <b>{s}</b><span style={{color:'#15803d',fontWeight:600}}> — perfect split</span></span>):(<span><b>{full} teams</b> of <b>{s}</b> + <b>1 team</b> of <b>{remainder}</b><span style={{color:'#d97706',fontWeight:600}}> — needs {s-remainder} blind draw{s-remainder>1?'s':''}</span></span>)}
+                      {Object.keys(pairingCounts).length>0&&<div style={{fontSize:10,color:'#94a3b8',marginTop:4}}>Teams will be mixed based on past round history</div>}
                     </div>
                   );})()}
                   <div style={{display:'flex',gap:6}}>
@@ -1650,7 +1778,7 @@ function App(){
           onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
           onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
           onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}/>}
-        {tab==='teams'&&<TeamsView week={week} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={k=>del('history/'+k)} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound}/>}
         {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
