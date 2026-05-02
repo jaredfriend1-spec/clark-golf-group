@@ -519,10 +519,9 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
   const numTeams=Math.ceil(n/perTeam);
   const base=Math.floor(n/numTeams);
   const extra=n%numTeams;
-  // First 'extra' teams get base+1, rest get base — max 1 difference
   function teamTarget(i){return i<extra?base+1:base;}
   const slots=['A','B','C','D','E'];
-  const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
+  const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0,_target:teamTarget(i)}));
 
   // Step 1: Pin approved first/last players
   const pinnedFirst=(pinned||[]).filter(p=>p.pref==='first');
@@ -532,57 +531,92 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
 
   pinnedFirst.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
-    const target=teams[0].players.length<teamTarget(0)?0:(numTeams>1?1:0);
-    teams[target].players.push({...player,slot:slots[teams[target].players.length]||'D'});
+    const target=teams[0].players.length<teams[0]._target?0:(numTeams>1?1:0);
+    teams[target].players.push({...player});
     teams[target].totalHcp+=parseFloat(player.handicap)||0;
   });
 
   pinnedLast.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
     const lastIdx=numTeams-1;
-    const target=teams[lastIdx].players.length<teamTarget(lastIdx)?lastIdx:(numTeams>1?lastIdx-1:lastIdx);
-    teams[target].players.push({...player,slot:slots[teams[target].players.length]||'D'});
+    const target=teams[lastIdx].players.length<teams[lastIdx]._target?lastIdx:(numTeams>1?lastIdx-1:lastIdx);
+    teams[target].players.push({...player});
     teams[target].totalHcp+=parseFloat(player.handicap)||0;
   });
 
-  // Step 2: Sort remaining by handicap and draft with history awareness
+  // Step 2: SNAKE DRAFT — best A gets worst B, best B gets worst C, etc.
   const sorted=[...unpinned].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
+  let round=0;let pi=0;
 
-  sorted.forEach(player=>{
-    const eligible=teams.map((t,i)=>({idx:i,spotsLeft:teamTarget(i)-t.players.length,team:t})).filter(e=>e.spotsLeft>0);
-    if(!eligible.length)return;
+  while(pi<sorted.length){
+    // Forward on even rounds (A, C), reverse on odd rounds (B, D)
+    const indices=Array.from({length:numTeams},(_,i)=>i);
+    const order=round%2===0?indices:[...indices].reverse();
+    const eligible=order.filter(i=>teams[i].players.length<teams[i]._target);
+    if(!eligible.length)break;
 
+    // If history data exists, optimize within this round for fewer repeat pairings
     if(pairingCounts&&Object.keys(pairingCounts).length>0){
-      eligible.forEach(e=>{
-        e.pairScore=e.team.players.reduce((sum,tp)=>{
-          const key=[player.name,tp.name].sort().join('|');
-          return sum+(pairingCounts[key]||0);
-        },0);
-      });
-      eligible.sort((a,b)=>a.pairScore-b.pairScore||(a.team.totalHcp-b.team.totalHcp));
+      // Collect players for this round
+      const roundPlayers=[];
+      for(let j=0;j<eligible.length&&pi+j<sorted.length;j++){
+        roundPlayers.push(sorted[pi+j]);
+      }
+      // Try all permutations for small rounds, greedy for large
+      if(roundPlayers.length<=eligible.length){
+        // Greedy assignment: for each slot in order, pick the player with fewest pairings
+        const used=new Set();
+        for(const ti of eligible){
+          if(pi>=sorted.length)break;
+          let bestIdx=-1;let bestScore=Infinity;
+          for(let j=0;j<roundPlayers.length;j++){
+            if(used.has(j))continue;
+            const score=teams[ti].players.reduce((sum,tp)=>{
+              const key=[roundPlayers[j].name,tp.name].sort().join('|');
+              return sum+(pairingCounts[key]||0);
+            },0);
+            if(score<bestScore||(score===bestScore&&bestIdx===-1)){bestScore=score;bestIdx=j;}
+          }
+          if(bestIdx>=0){
+            used.add(bestIdx);
+            teams[ti].players.push({...roundPlayers[bestIdx]});
+            teams[ti].totalHcp+=parseFloat(roundPlayers[bestIdx].handicap)||0;
+            pi++;
+          }
+        }
+      } else {
+        for(const ti of eligible){
+          if(pi>=sorted.length)break;
+          teams[ti].players.push({...sorted[pi]});
+          teams[ti].totalHcp+=parseFloat(sorted[pi].handicap)||0;
+          pi++;
+        }
+      }
     } else {
-      eligible.sort((a,b)=>a.team.totalHcp-b.team.totalHcp);
+      // Pure snake draft — no history data
+      for(const ti of eligible){
+        if(pi>=sorted.length)break;
+        teams[ti].players.push({...sorted[pi]});
+        teams[ti].totalHcp+=parseFloat(sorted[pi].handicap)||0;
+        pi++;
+      }
     }
+    round++;
+  }
 
-    const ti=eligible[0].idx;
-    teams[ti].players.push({...player,slot:slots[teams[ti].players.length]||'D'});
-    teams[ti].totalHcp+=parseFloat(player.handicap)||0;
-  });
-
+  // Assign slots A/B/C/D by handicap within each team
   teams.forEach(t=>{
     t.players.sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
     t.players.forEach((p,i)=>{p.slot=slots[i]||'D';});
   });
 
-  // Step 3: Auto-suggest blind draws for short teams
+  // Step 3: Auto-suggest blind draws for short teams (most balanced pick)
   const avgHcp=teams.reduce((s,t)=>s+t.totalHcp,0)/numTeams;
   const usedDrawNames=new Set();
 
   teams.forEach((team,ti)=>{
-    if(team.players.length>=perTeam)return; // full team, no draw needed
-    // Find ideal handicap to balance this team to the average
+    if(team.players.length>=perTeam)return;
     const idealHcp=avgHcp-team.totalHcp;
-    // Get all players from full teams not already used as a draw
     const candidates=[];
     teams.forEach((other,oi)=>{
       if(oi===ti||other.players.length<perTeam)return;
@@ -593,13 +627,13 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
       });
     });
     if(!candidates.length)return;
-    // Pick the candidate whose handicap is closest to the ideal
     candidates.sort((a,b)=>Math.abs(parseFloat(a.handicap)-idealHcp)-Math.abs(parseFloat(b.handicap)-idealHcp));
     const best=candidates[0];
     usedDrawNames.add(best.name);
     team.blindDraw={name:best.name,handicap:best.handicap,tee:best.tee||'Whites',fromDraw:true,suggested:true};
   });
 
+  teams.forEach(t=>{delete t._target;});
   return teams;
 }
 
