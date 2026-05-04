@@ -2319,15 +2319,17 @@ function App(){
   // Hide loading spinner once app renders
   useEffect(()=>{const l=document.getElementById('loader');if(l){setTimeout(()=>{l.classList.add('hide');setTimeout(()=>l.remove(),500);},150);}},[]);
 
-  useEffect(()=>{
-    if(!ready||isDemo)return;const u=[];
-    if(!ready && !isDemo) return null;
-    u.push(read('week',v=>setWeek(v)));u.push(read('history',v=>setHistory(v||{})));
-    u.push(read('extraPlayers',v=>setExtra(safeArray(v))));u.push(read('guests',v=>setGuestHistory(safeArray(v))));
-    u.push(read('rosterEdits',v=>setRosterEdits(v||{})));
-    u.push(read('rosterHidden',v=>setRosterHidden(v||{})));
-    u.push(read('rosterEmails',v=>setRosterEmails(v||{})));
-    u.push(read('historyTrash',v=>setHistoryTrash(v||{})));
+useEffect(()=>{
+    if(!ready||isDemo)return;
+    const u=[];
+    u.push(read('week',v=> { if(v) setWeek(v); }));
+    u.push(read('history',v=> { if(v) setHistory(v); }));
+    u.push(read('extraPlayers',v=> { if(v) setExtra(safeArray(v)); }));
+    u.push(read('guests',v=> { if(v) setGuestHistory(safeArray(v)); }));
+    u.push(read('rosterEdits',v=> { if(v) setRosterEdits(v); }));
+    u.push(read('rosterHidden',v=> { if(v) setRosterHidden(v); }));
+    u.push(read('rosterEmails',v=> { if(v) setRosterEmails(v); }));
+    u.push(read('historyTrash',v=> { if(v) setHistoryTrash(v); }));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
 
