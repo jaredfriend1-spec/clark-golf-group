@@ -871,6 +871,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
             </div>
             {isOpen&&(
               <div className="day-body">
+                {(()=>{const note=(week?.emailNotes&&week.emailNotes[day])||'';return note.trim()?(<div style={{padding:'10px 14px',background:'#fffbeb',borderBottom:'1px solid #fde68a'}}><div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1,marginBottom:3}}>Note from the admin</div><div style={{fontSize:13,color:'#78350f',lineHeight:1.5}}>{note}</div></div>):null;})()}
                 {dayComplete&&(<div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>{isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(day)}>Reopen</button>}</div>)}
                 {cnt===0&&<div style={{padding:'13px 14px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No sign-ups yet for {day}</div>}
                 {daySignups.map(([key,s])=>(
@@ -1036,6 +1037,9 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
           </div>
         </div>
       )}
+
+      {/* Upcoming Events - visible to all */}
+      {(()=>{const ev=week?.emailEvents||'';if(!ev.trim())return null;let evHTML=ev.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');evHTML=evHTML.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');evHTML=evHTML.replace(/\*(.+?)\*/g,'<em>$1</em>');evHTML=evHTML.replace(/__(.+?)__/g,'<u>$1</u>');evHTML=evHTML.replace(/\n/g,'<br>');return(<div style={{background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:10,padding:14,marginTop:12}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1,marginBottom:8,borderBottom:'2px solid #f59e0b',paddingBottom:5,display:'inline-block'}}>Upcoming Events</div><div style={{fontSize:13,color:'#78350f',lineHeight:1.7}} dangerouslySetInnerHTML={{__html:evHTML}}/></div>);})()}
 
       {toast&&(<div className="toast"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>{toast}</div>)}
     </div>
@@ -1904,63 +1908,24 @@ function renderEmailPlainText(week,notes,subject,events){
   return txt;
 }
 
-function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject,onSaveEvents}){
-  const[notes,setNotes]=useState({});
+function EmailView({week,isAdmin,isDemo}){
   const[subject,setSubject]=useState('');
-  const[events,setEvents]=useState('');
   const[copiedMain,setCopiedMain]=useState(false);
   const[copiedText,setCopiedText]=useState(false);
   const debounceRef=React.useRef(null);
-  const eventsRef=React.useRef(null);
 
   const days=getUpcomingDays(week);
   const dateRange=getShortDateRange(week,days);
   const defaultSubject='Clark Golf \u2014 Week of '+dateRange+' Update';
+  const notes=week?.emailNotes||{};
+  const events=week?.emailEvents||'';
 
-  // Load notes, subject, and events from week state
   useEffect(()=>{
-    setNotes(week?.emailNotes||{});
     setSubject(week?.emailSubject||defaultSubject);
-    setEvents(week?.emailEvents||'');
-  },[week?.emailNotes,week?.emailSubject,week?.emailEvents]);
-
-  function updateNote(day,val){
-    if(val.length>560)return;
-    const updated={...notes,[day]:val};
-    setNotes(updated);
-    if(debounceRef.current)clearTimeout(debounceRef.current);
-    debounceRef.current=setTimeout(()=>onSaveNotes(updated),500);
-  }
-
-  function clearNote(day){
-    const updated={...notes,[day]:''};
-    setNotes(updated);
-    onSaveNotes(updated);
-  }
+  },[week?.emailSubject]);
 
   function updateSubject(val){
     setSubject(val);
-    if(debounceRef.current)clearTimeout(debounceRef.current);
-    debounceRef.current=setTimeout(()=>onSaveSubject(val),500);
-  }
-
-  function updateEvents(val){
-    setEvents(val);
-    if(debounceRef.current)clearTimeout(debounceRef.current);
-    debounceRef.current=setTimeout(()=>onSaveEvents(val),500);
-  }
-
-  function applyFormat(tag){
-    const ta=eventsRef.current;if(!ta)return;
-    const start=ta.selectionStart;const end=ta.selectionEnd;
-    const sel=events.substring(start,end);
-    if(!sel)return;
-    const wrap=tag==='b'?'**':tag==='i'?'*':'__';
-    const newVal=events.substring(0,start)+wrap+sel+wrap+events.substring(end);
-    setEvents(newVal);
-    if(debounceRef.current)clearTimeout(debounceRef.current);
-    debounceRef.current=setTimeout(()=>onSaveEvents(newVal),500);
-    setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);
   }
 
   async function copyEmail(){
@@ -2018,52 +1983,21 @@ function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject,onSaveEvents})
         <div style={{marginTop:6,fontSize:11,color:'#94a3b8',fontStyle:'italic'}}>Auto-generated from current state. Edit to customize.</div>
       </div>
 
-      {/* Day notes */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
-        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Day Notes</div>
-        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>Optional</div>
-      </div>
-
-      {days.map(day=>{
-        const isLocked=week.teamsPublished&&week.teamsPublished[day];
-        const date=week.dates&&week.dates[day];
-        const val=notes[day]||'';
-        return(
-          <div key={day} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,marginBottom:10,overflow:'hidden'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:isLocked?'#fffbeb':'#f8fafc',borderBottom:'1px solid '+(isLocked?'#fde68a':'#e2e8f0')}}>
-              <div>
-                <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:0.5}}>{day}</span>
-                <span style={{fontSize:11,color:'#64748b',fontWeight:500,marginLeft:6}}>{fmtD(date)}</span>
-              </div>
-              <span style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:4,textTransform:'uppercase',letterSpacing:0.5,background:isLocked?'#f59e0b':'#dcfce7',color:isLocked?'#fff':'#15803d'}}>{isLocked?'Teams Locked':'Sign-ups Open'}</span>
-            </div>
-            <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Add a note for '+day+'...'} style={{width:'100%',border:'none',outline:'none',padding:'11px 14px',fontFamily:'DM Sans,sans-serif',fontSize:13,color:'#1e293b',resize:'none',minHeight:60,background:'#fff'}}/>
-            <div style={{padding:'6px 14px',borderTop:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10,color:'#94a3b8'}}>
-              <span>{val.length} / 560 characters</span>
-              <button onClick={()=>clearNote(day)} style={{color:'#94a3b8',background:'transparent',border:'none',fontSize:10,fontWeight:600,textTransform:'uppercase',cursor:'pointer',letterSpacing:0.5,opacity:val?1:0.3,fontFamily:'DM Sans,sans-serif'}}>Clear</button>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Upcoming Events */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
-        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Upcoming Events</div>
-        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>Persists across weeks</div>
-      </div>
-      <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,overflow:'hidden'}}>
-        <div style={{display:'flex',alignItems:'center',gap:2,padding:'6px 10px',borderBottom:'1px solid #f1f5f9',background:'#f8fafc'}}>
-          <button onClick={()=>applyFormat('b')} style={{width:28,height:28,border:'1px solid #e2e8f0',borderRadius:5,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'serif',color:'#0f172a'}}>B</button>
-          <button onClick={()=>applyFormat('i')} style={{width:28,height:28,border:'1px solid #e2e8f0',borderRadius:5,background:'#fff',cursor:'pointer',fontStyle:'italic',fontSize:13,fontFamily:'serif',color:'#0f172a'}}>I</button>
-          <button onClick={()=>applyFormat('u')} style={{width:28,height:28,border:'1px solid #e2e8f0',borderRadius:5,background:'#fff',cursor:'pointer',textDecoration:'underline',fontSize:13,fontFamily:'serif',color:'#0f172a'}}>U</button>
-          <span style={{flex:1}}></span>
-          {events&&<button onClick={()=>{if(confirm('Clear all upcoming events?')){setEvents('');onSaveEvents('');}}} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',textTransform:'uppercase',letterSpacing:0.5,fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
+      {/* Notes summary - managed in Admin tab */}
+      {Object.values(notes).some(n=>n&&n.trim())&&(
+        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:10,padding:'10px 14px',marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Day Notes (edit in Admin tab)</div>
+          {days.filter(d=>notes[d]&&notes[d].trim()).map(d=>(
+            <div key={d} style={{fontSize:12,color:'#78350f',marginTop:4}}><strong>{d}:</strong> {notes[d].length>60?notes[d].substring(0,60)+'...':notes[d]}</div>
+          ))}
         </div>
-        <textarea ref={eventsRef} value={events} onChange={e=>updateEvents(e.target.value)} placeholder="Paste or type upcoming events, tournament schedules, announcements..." style={{width:'100%',border:'none',outline:'none',padding:'12px 14px',fontFamily:'DM Sans,sans-serif',fontSize:13,color:'#1e293b',resize:'vertical',minHeight:120,background:'#fff',lineHeight:1.6}}/>
-        <div style={{padding:'6px 14px',borderTop:'1px solid #f1f5f9',fontSize:10,color:'#94a3b8'}}>
-          Use toolbar to format selected text. **bold**, *italic*, __underline__
+      )}
+
+      {events.trim()&&(
+        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:10,padding:'10px 14px',marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1}}>Upcoming Events included (edit in Admin tab)</div>
         </div>
-      </div>
+      )}
 
       {/* Preview */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
@@ -2092,17 +2026,29 @@ function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject,onSaveEvents})
   );
 }
 
-function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo}){
+function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo,onSaveNotes,onSaveEvents}){
   const [addQ,setAddQ]=useState('');const [quickAddSel,setQuickAddSel]=useState(null);const [quickAddTee,setQuickAddTee]=useState('Whites');
   const [editRosterId,setEditRosterId]=useState(null);const [editRosterVal,setEditRosterVal]=useState('');
   const [showHidden,setShowHidden]=useState(false);
   const [rosterQ,setRosterQ]=useState('');
   const [editRosterEmailId,setEditRosterEmailId]=useState(null);const [editRosterEmailVal,setEditRosterEmailVal]=useState('');
   const [showExports,setShowExports]=useState(false);
+  const [showNotes,setShowNotes]=useState(false);
+  const [localNotes,setLocalNotes]=useState({});
+  const [localEvents,setLocalEvents]=useState('');
+  const notesDebounce=React.useRef(null);
+  const eventsRef=React.useRef(null);
+
+  useEffect(()=>{setLocalNotes(week?.emailNotes||{});setLocalEvents(week?.emailEvents||'');},[week?.emailNotes,week?.emailEvents]);
+
+  function updateNote(day,val){if(val.length>560)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
+  function clearNote(day){const u={...localNotes,[day]:''};setLocalNotes(u);onSaveNotes(u);}
+  function updateLocalEvents(val){setLocalEvents(val);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(val),500);}
+  function applyFormat(tag){const ta=eventsRef.current;if(!ta)return;const start=ta.selectionStart;const end=ta.selectionEnd;const sel=localEvents.substring(start,end);if(!sel)return;const wrap=tag==='b'?'**':tag==='i'?'*':'__';const nv=localEvents.substring(0,start)+wrap+sel+wrap+localEvents.substring(end);setLocalEvents(nv);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(nv),500);setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);}
   const [quickAddHcp,setQuickAddHcp]=useState('');const [addDay,setAddDay]=useState('Saturday');const [showRoster,setShowRoster]=useState(false);
   const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
   const [showGuest,setShowGuest]=useState(false);const [showSignups,setShowSignups]=useState(false);
-  const [dayEdit,setDayEdit]=useState({});const [warnDeact,setWarnDeact]=useState(null);const [closeoutConfirm,setCloseoutConfirm]=useState(false);
+  const [dayEdit,setDayEdit]=useState({});const [warnDeact,setWarnDeact]=useState(null);const [closeoutConfirm,setCloseoutConfirm]=useState(false);const [endConfirmText,setEndConfirmText]=useState('');
   const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
 
   const wd=getWeekDates();
@@ -2148,6 +2094,45 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             <svg style={{width:15,height:15,color:'#94a3b8',transform:showChecklist?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           {showChecklist&&<div className="section-body"><AdminChecklist week={week} activeDays={activeDays} onGoTo={onGoTo}/></div>}
+        </div>
+      )}
+
+      {/* Weekly Notes & Announcements */}
+      {activeDays.length>0&&(
+        <div className="card" style={{marginBottom:10}}>
+          <div className="section-btn" onClick={()=>setShowNotes(!showNotes)}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div className="section-title">Weekly Notes & Announcements</div></div>
+            <svg style={{width:15,height:15,color:'#94a3b8',transform:showNotes?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          {showNotes&&(<div className="section-body">
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:'#92400e',textTransform:'uppercase',marginBottom:8}}>Day Notes — shown to players & included in email</div>
+            {sortDays(activeDays).map(day=>{
+              const val=localNotes[day]||'';
+              return(
+                <div key={day} style={{marginBottom:10,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,overflow:'hidden'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:'1px solid #e2e8f0'}}>
+                    <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,textTransform:'uppercase'}}>{day}</span>
+                    {val&&<button onClick={()=>clearNote(day)} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
+                  </div>
+                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'none',minHeight:50,background:'transparent'}}/>
+                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 560</div>
+                </div>
+              );
+            })}
+
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:'#92400e',textTransform:'uppercase',marginTop:16,marginBottom:8}}>Upcoming Events — persists across weeks</div>
+            <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,overflow:'hidden'}}>
+              <div style={{display:'flex',alignItems:'center',gap:2,padding:'6px 10px',borderBottom:'1px solid #e2e8f0'}}>
+                <button onClick={()=>applyFormat('b')} style={{width:26,height:26,border:'1px solid #e2e8f0',borderRadius:4,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:12,fontFamily:'serif',color:'#0f172a'}}>B</button>
+                <button onClick={()=>applyFormat('i')} style={{width:26,height:26,border:'1px solid #e2e8f0',borderRadius:4,background:'#fff',cursor:'pointer',fontStyle:'italic',fontSize:12,fontFamily:'serif',color:'#0f172a'}}>I</button>
+                <button onClick={()=>applyFormat('u')} style={{width:26,height:26,border:'1px solid #e2e8f0',borderRadius:4,background:'#fff',cursor:'pointer',textDecoration:'underline',fontSize:12,fontFamily:'serif',color:'#0f172a'}}>U</button>
+                <span style={{flex:1}}></span>
+                {localEvents&&<button onClick={()=>{if(confirm('Clear all upcoming events?')){setLocalEvents('');onSaveEvents('');}}} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
+              </div>
+              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:100,background:'transparent',lineHeight:1.6}}/>
+              <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>Use toolbar to format. **bold** *italic* __underline__</div>
+            </div>
+          </div>)}
         </div>
       )}
 
@@ -2246,7 +2231,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       </div>
 
       {/* End Week */}
-      {(activeDays.length>0||allSignups.length>0)&&(<div>{closeoutConfirm?(<div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}><div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:5}}>End Week & Start Fresh?</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>All games from this week will be permanently saved to History, and the board will be cleared for the new week.</div><div style={{display:'flex',gap:8}}><button className="btn btn-red btn-sm" onClick={()=>{onEndWeek();setCloseoutConfirm(false);}}>Archive & Start New Week</button><button className="btn btn-outline btn-sm" onClick={()=>setCloseoutConfirm(false)}>Cancel</button></div></div>):(<button className="btn btn-dark btn-full" style={{marginTop:10}} onClick={()=>setCloseoutConfirm(true)}>End Week & Start Fresh</button>)}</div>)}
+      {(activeDays.length>0||allSignups.length>0)&&(<div>{closeoutConfirm?(<div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}><div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:5}}>End Week & Start Fresh?</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>All games from this week will be permanently saved to History, and the board will be cleared for the new week. This cannot be undone.</div><div style={{fontSize:12,fontWeight:600,color:'#0f172a',marginBottom:6}}>Type <span style={{background:'#fecaca',padding:'1px 6px',borderRadius:4,fontFamily:'monospace',fontWeight:700}}>END</span> to confirm:</div><input value={endConfirmText} onChange={e=>setEndConfirmText(e.target.value.toUpperCase())} placeholder="Type END" style={{width:'100%',padding:'9px 12px',border:'1.5px solid #fecaca',borderRadius:8,fontSize:14,fontFamily:'DM Sans,sans-serif',marginBottom:10,outline:'none',textAlign:'center',fontWeight:700,letterSpacing:2}}/><div style={{display:'flex',gap:8}}><button className="btn btn-red btn-sm" disabled={endConfirmText!=='END'} style={{opacity:endConfirmText==='END'?1:0.4}} onClick={()=>{onEndWeek();setCloseoutConfirm(false);setEndConfirmText('');}}>Archive & Start New Week</button><button className="btn btn-outline btn-sm" onClick={()=>{setCloseoutConfirm(false);setEndConfirmText('');}}>Cancel</button></div></div>):(<button className="btn btn-dark btn-full" style={{marginTop:10}} onClick={()=>setCloseoutConfirm(true)}>End Week & Start Fresh</button>)}</div>)}
 
       {/* Export Data */}
       <div className="section-btn" style={{marginTop:14}} onClick={()=>setShowExports(!showExports)}>
@@ -2470,8 +2455,8 @@ function App(){
         {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};nw.teams={...(nw.teams||{}),[day]:null};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false,['week/teams/'+day]:null});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
-        {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveSubject={s=>{if(!isDemo)write('week/emailSubject',s);else setWeek(w=>({...w,emailSubject:s}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
+        {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
     </div>
   );
