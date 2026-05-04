@@ -765,11 +765,12 @@ function TeamBadge({name,week,day}){
 }
 
 // -- THIS WEEK VIEW (with improved signup modal) ----------------------------
-function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock}){
+function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock,onAddToWaitlist}){
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
   const [teeModal,setTeeModal]=useState(null);
   const [confirmRemoveKey,setConfirmRemoveKey]=useState(null);
+  const [waitlistDay,setWaitlistDay]=useState(null);
   const [editTeeModal,setEditTeeModal]=useState(null);
   const [isGuest,setIsGuest]=useState(false);
   const [sel,setSel]=useState('');
@@ -803,10 +804,20 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
 
   function doSignup(){
     const name=isGuest?gname.trim():(fullRoster.find(p=>p.id==sel)||{}).name;    if(!name||!hcp)return;
-    const selectedDays=activeDays.filter(d=>signupDays[d]);if(!selectedDays.length)return;
     if(!isGuest&&sel){setMyNamePersist(name);saveMemory(sel,tee,hcp);}
     if(isGuest&&gname)setMyNamePersist(gname.trim());
     const pid=isGuest?'g_'+Date.now():parseInt(sel);
+
+    // Waitlist mode: single day, goes to waitlist
+    if(waitlistDay){
+      const dup=Object.values(week?.waitlist||{}).some(s=>s.day===waitlistDay&&s.name===name);
+      if(!dup)onAddToWaitlist({playerId:pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),day:waitlistDay,signedUpAt:Date.now()});
+      setShowSignup(false);setWaitlistDay(null);
+      setToast(name+' added to waiting list for '+waitlistDay);setTimeout(()=>setToast(null),3000);
+      return;
+    }
+
+    const selectedDays=activeDays.filter(d=>signupDays[d]);if(!selectedDays.length)return;
     selectedDays.forEach((day,i)=>{
       const dup=Object.values(allSignups).some(s=>s.day===day&&s.name===name);
       if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),teePreference:teePref||null,day,signedUpAt:Date.now()+(i*100)});
@@ -891,7 +902,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                 ))}
                 <div className="day-actions">
                   {!dayLocked&&<button className="signup-btn" onClick={openSignup}>+ Sign up</button>}
-                  {!isDemo&&dayLocked&&!isAdmin&&<span style={{fontSize:12,color:'#94a3b8',fontWeight:600,padding:'8px 4px'}}>Sign-ups locked</span>}
+                  {!isDemo&&dayLocked&&!isAdmin&&<button style={{fontSize:12,color:'#d97706',fontWeight:600,padding:'8px 12px',background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setWaitlistDay(day);setShowSignup(true);}}>Join Waiting List</button>}
                   {isAdmin&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
                   {isAdmin&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
                   {isAdmin&&<button className="teeadd-btn" style={{marginLeft:'auto',color:dayLocked?'#15803d':'#94a3b8',borderColor:dayLocked?'#bbf7d0':'#e2e8f0',background:dayLocked?'#ecfdf5':'#fff'}} onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock signups':'Lock signups'}</button>}
@@ -1046,7 +1057,7 @@ function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   return(<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>{showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}</div><button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer'}}>{showPaid?'Hide':'Track payments'}</button></div>);
 }
 
-function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,myName}){
+function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,onPromoteWaitlist,myName}){
   const [activeDay,setActiveDay]=useState(null);const [editTeams,setEditTeams]=useState(null);const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
@@ -1152,6 +1163,24 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
     <div>
       {activeDays.length>1&&(<div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>{setActiveDay(d);setEditTeams(null);setManualTeams(null);setManualMode(false);setEditKey(null);}}>{d.slice(0,3)}</button>)}</div>)}
       <div className="stat-row"><div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div><div className="stat-box"><div className="stat-n">{currentDisplay.length}</div><div className="stat-l">Teams</div></div><div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div></div>
+
+      {/* Waiting list */}
+      {(()=>{
+        const wl=Object.entries(week?.waitlist||{}).filter(([,s])=>s.day===activeDay);
+        if(!wl.length)return null;
+        return(
+          <div style={{background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:10,padding:13,marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:'#92400e',textTransform:'uppercase',marginBottom:8}}>Waiting List — {activeDay} ({wl.length})</div>
+            {wl.map(([key,s])=>(
+              <div key={key} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #fde68a'}}>
+                <div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>HCP {s.handicap}</span></div>
+                {isAdmin&&<button className="btn btn-green btn-xs" onClick={()=>onPromoteWaitlist(key,activeDay)}>Add to Round</button>}
+              </div>
+            ))}
+            {!isAdmin&&<div style={{fontSize:11,color:'#92400e',marginTop:6,fontStyle:'italic'}}>Admin will review and add to the round</div>}
+          </div>
+        );
+      })()}
 
       {/* ADMIN TEAM BUILDER - shows whenever admin + not published */}
       {isAdmin&&!published&&(
@@ -1544,7 +1573,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound,trash,onRe
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <div className="tog" style={{marginBottom:0,flex:1,marginRight:10}}><button className={'tog-opt'+(view==='rounds'?' on':'')} onClick={()=>setView('rounds')}>Rounds</button><button className={'tog-opt'+(view==='leaders'?' on':'')} onClick={()=>setView('leaders')}>Leaderboard</button></div>
-        {isAdmin&&view==='rounds'&&rounds.length>0&&<button className="btn btn-red btn-xs" onClick={onClearAll}>Clear all</button>}
+        {isAdmin&&view==='rounds'&&rounds.length>0&&<span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span>}
       </div>
       {view==='leaders'&&(<div className="card" style={{marginBottom:10}}><div style={{padding:'13px 14px 8px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="slbl" style={{marginBottom:0}}>Season standings</div><span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span></div><div style={{display:'grid',gridTemplateColumns:'1fr auto auto',padding:'8px 14px 4px',gap:8}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'center'}}>Rounds</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div></div>{leaderboard.slice(0,20).map((p,i)=>(<div key={p.name} className="lb-row"><div className={'lb-rank'+(i<3?' top':'')}>{i+1}</div><div className="lb-name">{p.name}</div><div className="lb-stat">{p.rounds}r</div><div className="lb-money">{f$(Math.round(p.won))}</div></div>))}{leaderboard.length===0&&<div style={{padding:'16px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No data yet</div>}</div>)}
       {view==='rounds'&&rounds.map(([k,r])=>(
@@ -1672,7 +1701,7 @@ function getShortDateRange(week,days){
   return MO[parseInt(m1)-1]+' '+parseInt(d1)+'-'+MO[parseInt(m2)-1]+' '+parseInt(d2);
 }
 
-function renderEmailHTML(week,notes,subject){
+function renderEmailHTML(week,notes,subject,events){
   const days=getUpcomingDays(week);
   const dateRange=getDateRange(week,days);
   const allSignups=week?.signups||{};
@@ -1777,6 +1806,19 @@ function renderEmailHTML(week,notes,subject){
     html+=`</div>`;
   });
 
+  // Events block
+  if(events&&events.trim()){
+    let evHTML=events.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    evHTML=evHTML.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    evHTML=evHTML.replace(/\*(.+?)\*/g,'<em>$1</em>');
+    evHTML=evHTML.replace(/__(.+?)__/g,'<u>$1</u>');
+    evHTML=evHTML.replace(/\n/g,'<br>');
+    html+=`<div style="margin:20px 28px;padding:18px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;border-bottom:2px solid #f59e0b;padding-bottom:6px;display:inline-block;">Upcoming Events</div>
+      <div style="font-size:13.5px;color:#334155;line-height:1.7;">${evHTML}</div>
+    </div>`;
+  }
+
   // Bottom link
   html+=`<div style="margin:20px 28px 8px;text-align:center;">
     <a href="https://clark-golf-group-two.vercel.app/" style="font-size:13px;font-weight:600;color:#0f172a;text-decoration:underline;">Open the App \u2192</a>
@@ -1791,7 +1833,7 @@ function renderEmailHTML(week,notes,subject){
   return html;
 }
 
-function renderEmailPlainText(week,notes,subject){
+function renderEmailPlainText(week,notes,subject,events){
   const days=getUpcomingDays(week);
   const dateRange=getShortDateRange(week,days);
   const allSignups=week?.signups||{};
@@ -1852,26 +1894,35 @@ function renderEmailPlainText(week,notes,subject){
     }
   });
 
+  // Events
+  if(events&&events.trim()){
+    let evTxt=events.trim().replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1');
+    txt+=nl+nl+'\u2500'.repeat(39)+nl+'UPCOMING EVENTS'+nl+'\u2500'.repeat(39)+nl+nl+evTxt+nl;
+  }
+
   txt+=nl+nl+'\u2192 Manage sign-ups: https://clark-golf-group-two.vercel.app/'+nl;
   return txt;
 }
 
-function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject}){
+function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject,onSaveEvents}){
   const[notes,setNotes]=useState({});
   const[subject,setSubject]=useState('');
+  const[events,setEvents]=useState('');
   const[copiedMain,setCopiedMain]=useState(false);
   const[copiedText,setCopiedText]=useState(false);
   const debounceRef=React.useRef(null);
+  const eventsRef=React.useRef(null);
 
   const days=getUpcomingDays(week);
   const dateRange=getShortDateRange(week,days);
   const defaultSubject='Clark Golf \u2014 Week of '+dateRange+' Update';
 
-  // Load notes and subject from week state
+  // Load notes, subject, and events from week state
   useEffect(()=>{
     setNotes(week?.emailNotes||{});
     setSubject(week?.emailSubject||defaultSubject);
-  },[week?.emailNotes,week?.emailSubject]);
+    setEvents(week?.emailEvents||'');
+  },[week?.emailNotes,week?.emailSubject,week?.emailEvents]);
 
   function updateNote(day,val){
     if(val.length>560)return;
@@ -1893,10 +1944,29 @@ function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject}){
     debounceRef.current=setTimeout(()=>onSaveSubject(val),500);
   }
 
+  function updateEvents(val){
+    setEvents(val);
+    if(debounceRef.current)clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSaveEvents(val),500);
+  }
+
+  function applyFormat(tag){
+    const ta=eventsRef.current;if(!ta)return;
+    const start=ta.selectionStart;const end=ta.selectionEnd;
+    const sel=events.substring(start,end);
+    if(!sel)return;
+    const wrap=tag==='b'?'**':tag==='i'?'*':'__';
+    const newVal=events.substring(0,start)+wrap+sel+wrap+events.substring(end);
+    setEvents(newVal);
+    if(debounceRef.current)clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSaveEvents(newVal),500);
+    setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);
+  }
+
   async function copyEmail(){
     try{
-      const html=renderEmailHTML(week,notes,subject);
-      const plain=renderEmailPlainText(week,notes,subject);
+      const html=renderEmailHTML(week,notes,subject,events);
+      const plain=renderEmailPlainText(week,notes,subject,events);
       await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);
       setCopiedMain(true);setTimeout(()=>setCopiedMain(false),2500);
     }catch(e){console.error(e);}
@@ -1904,13 +1974,13 @@ function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject}){
 
   async function copyPlainText(){
     try{
-      const plain=renderEmailPlainText(week,notes,subject);
+      const plain=renderEmailPlainText(week,notes,subject,events);
       await navigator.clipboard.writeText(plain);
       setCopiedText(true);setTimeout(()=>setCopiedText(false),2500);
     }catch(e){console.error(e);}
   }
 
-  const emailHTML=renderEmailHTML(week,notes,subject);
+  const emailHTML=renderEmailHTML(week,notes,subject,events);
   const previewDoc='<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>body{margin:0;padding:12px;background:#f1f5f9;font-family:"DM Sans",sans-serif;}</style></head><body>'+emailHTML+'</body></html>';
 
   if(!days.length)return(
@@ -1976,6 +2046,25 @@ function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject}){
         );
       })}
 
+      {/* Upcoming Events */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Upcoming Events</div>
+        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>Persists across weeks</div>
+      </div>
+      <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,overflow:'hidden'}}>
+        <div style={{display:'flex',alignItems:'center',gap:2,padding:'6px 10px',borderBottom:'1px solid #f1f5f9',background:'#f8fafc'}}>
+          <button onClick={()=>applyFormat('b')} style={{width:28,height:28,border:'1px solid #e2e8f0',borderRadius:5,background:'#fff',cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'serif',color:'#0f172a'}}>B</button>
+          <button onClick={()=>applyFormat('i')} style={{width:28,height:28,border:'1px solid #e2e8f0',borderRadius:5,background:'#fff',cursor:'pointer',fontStyle:'italic',fontSize:13,fontFamily:'serif',color:'#0f172a'}}>I</button>
+          <button onClick={()=>applyFormat('u')} style={{width:28,height:28,border:'1px solid #e2e8f0',borderRadius:5,background:'#fff',cursor:'pointer',textDecoration:'underline',fontSize:13,fontFamily:'serif',color:'#0f172a'}}>U</button>
+          <span style={{flex:1}}></span>
+          {events&&<button onClick={()=>{if(confirm('Clear all upcoming events?')){setEvents('');onSaveEvents('');}}} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',textTransform:'uppercase',letterSpacing:0.5,fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
+        </div>
+        <textarea ref={eventsRef} value={events} onChange={e=>updateEvents(e.target.value)} placeholder="Paste or type upcoming events, tournament schedules, announcements..." style={{width:'100%',border:'none',outline:'none',padding:'12px 14px',fontFamily:'DM Sans,sans-serif',fontSize:13,color:'#1e293b',resize:'vertical',minHeight:120,background:'#fff',lineHeight:1.6}}/>
+        <div style={{padding:'6px 14px',borderTop:'1px solid #f1f5f9',fontSize:10,color:'#94a3b8'}}>
+          Use toolbar to format selected text. **bold**, *italic*, __underline__
+        </div>
+      </div>
+
       {/* Preview */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
         <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Preview</div>
@@ -2003,11 +2092,13 @@ function EmailView({week,isAdmin,isDemo,onSaveNotes,onSaveSubject}){
   );
 }
 
-function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo}){
+function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo}){
   const [addQ,setAddQ]=useState('');const [quickAddSel,setQuickAddSel]=useState(null);const [quickAddTee,setQuickAddTee]=useState('Whites');
   const [editRosterId,setEditRosterId]=useState(null);const [editRosterVal,setEditRosterVal]=useState('');
   const [showHidden,setShowHidden]=useState(false);
   const [rosterQ,setRosterQ]=useState('');
+  const [editRosterEmailId,setEditRosterEmailId]=useState(null);const [editRosterEmailVal,setEditRosterEmailVal]=useState('');
+  const [showExports,setShowExports]=useState(false);
   const [quickAddHcp,setQuickAddHcp]=useState('');const [addDay,setAddDay]=useState('Saturday');const [showRoster,setShowRoster]=useState(false);
   const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
   const [showGuest,setShowGuest]=useState(false);const [showSignups,setShowSignups]=useState(false);
@@ -2090,27 +2181,51 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
             <svg style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#94a3b8'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input style={{width:'100%',padding:'9px 12px 9px 32px',border:'1.5px solid #e2e8f0',borderRadius:9,fontSize:13,fontFamily:'DM Sans,sans-serif',outline:'none',background:'#f8fafc'}} placeholder="Search roster..." value={rosterQ} onChange={e=>setRosterQ(e.target.value)}/>
           </div>
-          <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Default Tees</label><select className="fs" value={np.tee} onChange={e=>setNp({...np,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div>
-          <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});setNp({name:'',tee:'Whites',hcp:''});}}}>Add</button></div></div>
-          <div style={{maxHeight:280,overflowY:'auto',marginTop:8}}>{[...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).filter(p=>p.name.toLowerCase().includes(rosterQ.toLowerCase())).map(p=>(
-            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:13}}>
-              {editRosterId===p.id?(
-                <div style={{display:'flex',gap:5,alignItems:'center',flex:1}}>
-                  <input autoFocus className="fi" style={{fontSize:12,padding:'5px 8px',flex:1}} value={editRosterVal} onChange={e=>setEditRosterVal(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&editRosterVal.trim()){onEditRosterName(p.id,editRosterVal.trim());setEditRosterId(null);}}}/>
-                  <button style={{background:'none',border:'none',color:'#15803d',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{if(editRosterVal.trim()){onEditRosterName(p.id,editRosterVal.trim());setEditRosterId(null);}}}>Save</button>
-                  <button style={{background:'none',border:'none',color:'#94a3b8',fontSize:11,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>setEditRosterId(null)}>x</button>
+
+          {/* Add New Player */}
+          <div style={{background:'#f0fdf4',border:'1.5px solid #bbf7d0',borderRadius:10,padding:12,marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:'#15803d',textTransform:'uppercase',marginBottom:8}}>Add New Player</div>
+            <div className="fr" style={{marginBottom:6}}><div className="fg" style={{marginBottom:0,flex:2}}><label className="fl">Name</label><input className="fi" placeholder="Full name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0,flex:1}}><label className="fl">Default Tees</label><select className="fs" value={np.tee} onChange={e=>setNp({...np,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div>
+            <div className="fr" style={{marginBottom:0}}><div className="fg" style={{marginBottom:0,flex:1}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div><div className="fg" style={{marginBottom:0,flex:2}}><label className="fl">Email (optional)</label><input className="fi" type="email" placeholder="email@example.com" value={np.email||''} onChange={e=>setNp({...np,email:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end',paddingBottom:1}}><button className="btn btn-green btn-sm" onClick={()=>{if(np.name){onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0});if(np.email){const newId=97+safeArray(roster).length;onEditRosterEmail(newId,np.email.trim());}setNp({name:'',tee:'Whites',hcp:'',email:''});}}}>Add</button></div></div>
+          </div>
+
+          {/* Manage Roster */}
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:'#94a3b8',textTransform:'uppercase',marginBottom:6}}>Roster ({[...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].length} members)</div>
+          <div style={{maxHeight:400,overflowY:'auto',marginTop:8}}>{[...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).filter(p=>p.name.toLowerCase().includes(rosterQ.toLowerCase())).map(p=>{
+            const email=(rosterEmails&&rosterEmails[p.id])||'';
+            const lastSignup=Object.values(week?.signups||{}).find(s=>s.name===p.name);
+            const dispHcp=lastSignup?lastSignup.handicap:(p.handicap||'');
+            const dispTee=lastSignup?lastSignup.tee:(p.tee||'Whites');
+            const isEditing=editRosterId===p.id;
+            return(
+            <div key={p.id} style={{padding:'8px 0',borderBottom:'1px solid #f1f5f9'}}>
+              {isEditing?(
+                <div style={{background:'#f8fafc',borderRadius:8,padding:10}}>
+                  <div style={{display:'flex',gap:6,marginBottom:6}}>
+                    <div style={{flex:2}}><label className="fl">Name</label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} value={editRosterVal} onChange={e=>setEditRosterVal(e.target.value)}/></div>
+                    <div style={{flex:1}}><label className="fl">Email</label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} value={editRosterEmailVal} onChange={e=>setEditRosterEmailVal(e.target.value)} placeholder="email"/></div>
+                  </div>
+                  <div style={{display:'flex',gap:6}}>
+                    <button className="btn btn-green btn-xs" onClick={()=>{if(editRosterVal.trim())onEditRosterName(p.id,editRosterVal.trim());onEditRosterEmail(p.id,editRosterEmailVal.trim());setEditRosterId(null);}}>Save</button>
+                    <button className="btn btn-outline btn-xs" onClick={()=>setEditRosterId(null)}>Cancel</button>
+                  </div>
                 </div>
               ):(
-                <span style={{fontWeight:500,flex:1}}>{p.name}{p.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}{p.id>96&&<span className="pill-green" style={{marginLeft:4}}>New</span>}</span>
-              )}
-              {editRosterId!==p.id&&(
-                <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                  <button style={{background:'none',border:'none',color:'#94a3b8',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setEditRosterId(p.id);setEditRosterVal(p.name);}}>edit</button>
-                  <button className="rm-btn" onClick={()=>{if(confirm('Remove '+p.name+' from roster?')){if(p.id>96)onRemovePlayer(p.id);else onHidePlayer(p.id);}}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}{p.id>96&&<span className="pill-green" style={{marginLeft:4}}>New</span>}</div>
+                    <div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>
+                      {dispHcp?'HCP '+dispHcp:'No HCP'} · {dispTee}{email?' · '+email:''}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0}}>
+                    <button style={{background:'none',border:'none',color:'#94a3b8',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setEditRosterId(p.id);setEditRosterVal(p.name);setEditRosterEmailVal(email);}}>edit</button>
+                    <button className="rm-btn" onClick={()=>{if(confirm('Remove '+p.name+' from roster?')){if(p.id>96)onRemovePlayer(p.id);else onHidePlayer(p.id);}}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button>
+                  </div>
                 </div>
               )}
-            </div>
-          ))}</div>
+            </div>);
+          })}</div>
           {Object.keys(rosterHidden||{}).length>0&&(
             <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f1f5f9'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowHidden(!showHidden)}>
@@ -2132,6 +2247,40 @@ function AdminView({isAdmin,onLogout,week,onCreate,onAddPlayer,onRemovePlayer,ro
 
       {/* End Week */}
       {(activeDays.length>0||allSignups.length>0)&&(<div>{closeoutConfirm?(<div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:13,marginBottom:12}}><div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:5}}>End Week & Start Fresh?</div><div style={{fontSize:12,color:'#64748b',marginBottom:10}}>All games from this week will be permanently saved to History, and the board will be cleared for the new week.</div><div style={{display:'flex',gap:8}}><button className="btn btn-red btn-sm" onClick={()=>{onEndWeek();setCloseoutConfirm(false);}}>Archive & Start New Week</button><button className="btn btn-outline btn-sm" onClick={()=>setCloseoutConfirm(false)}>Cancel</button></div></div>):(<button className="btn btn-dark btn-full" style={{marginTop:10}} onClick={()=>setCloseoutConfirm(true)}>End Week & Start Fresh</button>)}</div>)}
+
+      {/* Export Data */}
+      <div className="section-btn" style={{marginTop:14}} onClick={()=>setShowExports(!showExports)}>
+        <div className="section-title">Export Data</div>
+        <svg style={{width:15,height:15,color:'#94a3b8',transform:showExports?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      {showExports&&(<div className="section-body">
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <button className="btn btn-outline btn-sm" onClick={()=>{
+            const rounds=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+            let csv='Date,Day,Players,Pot,Teams\n';
+            rounds.forEach(r=>{csv+='"'+(r.date||'')+'","'+(r.day||'')+'","'+(r.playerCount||0)+'","$'+((r.playerCount||0)*25)+'","'+(r.teams?safeArray(r.teams).map(t=>t.name+': '+safeArray(t.players).map(p=>p.name).join(', ')).join(' | '):'')+'"'+'\n';});
+            const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clark_golf_history.csv';a.click();URL.revokeObjectURL(url);
+          }}>Export History CSV</button>
+          <button className="btn btn-outline btn-sm" onClick={()=>{
+            let csv='Name,Rounds Played,Dates\n';
+            const att=week;
+            // Pull from attendance page data
+            const rounds=Object.values(history||{});
+            const players={};
+            rounds.forEach(r=>{safeArray(r.teams).forEach(t=>{safeArray(t.players).forEach(p=>{if(!players[p.name])players[p.name]={rounds:0,dates:[]};players[p.name].rounds++;players[p.name].dates.push(r.date);});});});
+            Object.entries(players).sort((a,b)=>b[1].rounds-a[1].rounds).forEach(([name,data])=>{csv+='"'+name+'",'+data.rounds+',"'+data.dates.join(', ')+'"\n';});
+            const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clark_golf_attendance.csv';a.click();URL.revokeObjectURL(url);
+          }}>Export Attendance CSV</button>
+          <button className="btn btn-outline btn-sm" onClick={()=>{
+            let csv='Name,Handicap,Default Tees,Email\n';
+            [...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
+              const email=(rosterEmails&&rosterEmails[p.id])||'';
+              csv+='"'+p.name+'","'+(p.handicap||'')+'","'+(p.tee||'Whites')+'","'+email+'"\n';
+            });
+            const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clark_golf_roster.csv';a.click();URL.revokeObjectURL(url);
+          }}>Export Roster CSV</button>
+        </div>
+      </div>)}
     </div>
   );
 }
@@ -2142,6 +2291,7 @@ function App(){
   const [extra,setExtra]=useState([]);const [guestHistory,setGuestHistory]=useState([]);
   const [rosterEdits,setRosterEdits]=useState({});
   const [rosterHidden,setRosterHidden]=useState({});
+  const [rosterEmails,setRosterEmails]=useState({});
   const [historyTrash,setHistoryTrash]=useState({});
   const {ready,read,write,push,del,update}=useDB();
   const [isDemo,setIsDemo]=useState(false);
@@ -2155,6 +2305,7 @@ function App(){
     u.push(read('extraPlayers',v=>setExtra(safeArray(v))));u.push(read('guests',v=>setGuestHistory(safeArray(v))));
     u.push(read('rosterEdits',v=>setRosterEdits(v||{})));
     u.push(read('rosterHidden',v=>setRosterHidden(v||{})));
+    u.push(read('rosterEmails',v=>setRosterEmails(v||{})));
     u.push(read('historyTrash',v=>setHistoryTrash(v||{})));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
@@ -2164,6 +2315,11 @@ function App(){
   function editRosterName(id,newName){
     const updated={...rosterEdits,[id]:newName};
     write('rosterEdits',updated);
+  }
+
+  function editRosterEmail(id,email){
+    const updated={...rosterEmails,[id]:email};
+    write('rosterEmails',updated);
   }
 
   function hideRosterPlayer(id){
@@ -2177,7 +2333,7 @@ function App(){
   }
 
   function createWeek(data){write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data});}
-  function clearWeek(){const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},emailNotes:null,emailSubject:null};if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);}
+  function clearWeek(){const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},emailNotes:null,emailSubject:null,emailEvents:week?.emailEvents||null};if(isDemo){setWeek(emptyWeek);}else write('week',emptyWeek);}
 
   function endWeek(){
     const updates={};const newHistory={...history};let hasHistoryUpdates=false;
@@ -2189,7 +2345,7 @@ function App(){
         if(isDemo){newHistory[k]=roundData;}else{updates['history/'+k]=roundData;}hasHistoryUpdates=true;
         pushToAttendance(day);}
     });
-    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{},emailNotes:null,emailSubject:null};
+    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{},emailNotes:null,emailSubject:null,emailEvents:week?.emailEvents||null};
     if(isDemo){if(hasHistoryUpdates)setHistory(newHistory);setWeek(emptyWeek);setTab('home');}
     else{updates['week']=emptyWeek;update(updates);setTab('home');}
   }
@@ -2309,12 +2465,13 @@ function App(){
         {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={extra} effectiveRoster={effectiveRoster}
           onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
           onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
-          onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}/>}
-        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+          onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}
+          onAddToWaitlist={d=>{if(isDemo){const k='wl_'+Date.now();setWeek(w=>({...w,waitlist:{...(w.waitlist||{}),[k]:d}}));}else push('week/waitlist',d);}}/>}
+        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};nw.teams={...(nw.teams||{}),[day]:null};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false,['week/teams/'+day]:null});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
-        {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveSubject={s=>{if(!isDemo)write('week/emailSubject',s);else setWeek(w=>({...w,emailSubject:s}));}}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
+        {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveSubject={s=>{if(!isDemo)write('week/emailSubject',s);else setWeek(w=>({...w,emailSubject:s}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo}/>}
       </div>
     </div>
   );
