@@ -484,8 +484,28 @@ function useDB(){
   const [db,setDb]=useState(null);
   const [ready,setReady]=useState(false);
   useEffect(()=>{
-    try{if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"});setDb(firebase.database());setReady(true);}
-    catch(e){setReady(true);}
+    try{
+      if(!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",
+          authDomain:"clark-group-dd15e.firebaseapp.com",
+          databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",
+          projectId:"clark-group-dd15e",
+          storageBucket:"clark-group-dd15e.firebasestorage.app",
+          messagingSenderId:"92891899165",
+          appId:"1:92891899165:web:817f5f164f3fc50b506df4"
+        });
+      }
+      const database = firebase.database();
+      setDb(database);
+      
+      // SAFETY FIX: Listen for actual connection status
+      database.ref(".info/connected").on("value", (snap) => {
+        if (snap.val() === true) {
+          setReady(true);
+        }
+      });
+    } catch(e){ setReady(true); }
   },[]);
   const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
   const write=useCallback((p,v)=>{if(!db){localStorage.setItem(p,JSON.stringify(v));return Promise.resolve();}return db.ref(p).set(v);},[db]);
@@ -2301,6 +2321,7 @@ function App(){
 
   useEffect(()=>{
     if(!ready||isDemo)return;const u=[];
+    if(!ready && !isDemo) return null;
     u.push(read('week',v=>setWeek(v)));u.push(read('history',v=>setHistory(v||{})));
     u.push(read('extraPlayers',v=>setExtra(safeArray(v))));u.push(read('guests',v=>setGuestHistory(safeArray(v))));
     u.push(read('rosterEdits',v=>setRosterEdits(v||{})));
