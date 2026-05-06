@@ -2583,8 +2583,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   // Top banner dismiss
   if(dismissBtn){dismissBtn.addEventListener('click',hideBanner);}
 
-  // Landing page button — always triggers install or shows instructions
-  if(landBtn){landBtn.addEventListener('click',function(){
+  // Landing page button — event delegation so it works after React renders
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('#pwa-land-btn'))return;
     if(deferredPrompt){
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(function(r){deferredPrompt=null;});
@@ -2592,7 +2593,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
       showBanner();
       window.scrollTo({top:0,behavior:'smooth'});
     }
-  });}
+  });
 
   // Mark as installed once done
   window.addEventListener('appinstalled',function(){
