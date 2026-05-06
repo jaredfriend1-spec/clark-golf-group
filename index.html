@@ -783,6 +783,11 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
             <div style={{textAlign:'center'}}>
               <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
             </div>
+            <div id="pwa-land-install" style={{display:'none',textAlign:'center',marginTop:8}}>
+              <button id="pwa-land-btn" style={{background:'none',border:'1.5px solid rgba(255,255,255,0.18)',borderRadius:24,padding:'9px 20px',color:'rgba(255,255,255,0.6)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}>
+                <span style={{fontSize:15}}>📲</span> Add App to Home Screen
+              </button>
+            </div>
           </div>
         ):(
           <div className="pw-box">
@@ -2529,26 +2534,79 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   var androidSection=document.getElementById('pwa-android-section');
   var iosSection=document.getElementById('pwa-ios-section');
   var installBtn=document.getElementById('pwa-install-btn');
+  var landWrap=document.getElementById('pwa-land-install');
+  var landBtn=document.getElementById('pwa-land-btn');
   if(!banner)return;
-  // Already installed as PWA? Skip entirely.
+
+  // Already installed as PWA? Hide everything, done.
   var isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
   if(isStandalone)return;
-  // Dismissed recently? Skip for 7 days.
-  try{var ts=localStorage.getItem('pwa-dismissed');if(ts&&Date.now()-parseInt(ts)<7*24*60*60*1000)return;}catch(e){}
+
   var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
   var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  var isMobile=isIOS||/android/i.test(navigator.userAgent);
   var deferredPrompt=null;
-  function showBanner(){banner.classList.remove('hidden');setTimeout(function(){spacer.style.height=banner.offsetHeight+'px';},60);}
-  function hideBanner(){banner.classList.add('hidden');spacer.style.height='0px';try{localStorage.setItem('pwa-dismissed',Date.now().toString());}catch(e){}}
+
+  // Always show the landing button on mobile (iOS or Android)
+  if(isMobile&&landWrap){landWrap.style.display='block';}
+
+  function showBanner(){
+    androidSection.style.display='none';iosSection.style.display='none';
+    if(deferredPrompt){androidSection.style.display='block';}
+    else if(isIOS&&isSafari){iosSection.style.display='block';}
+    else{return;} // nothing to show
+    banner.classList.remove('hidden');
+    setTimeout(function(){spacer.style.height=banner.offsetHeight+'px';},60);
+  }
+  function hideBanner(){
+    banner.classList.add('hidden');spacer.style.height='0px';
+    try{localStorage.setItem('pwa-dismissed',Date.now().toString());}catch(e){}
+  }
+
   // Android: intercept native install prompt
-  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;androidSection.style.display='block';showBanner();});
-  // iOS Safari: show manual steps
-  if(isIOS&&isSafari){iosSection.style.display='block';showBanner();}
-  if(installBtn){installBtn.addEventListener('click',function(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted')hideBanner();});});}
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();deferredPrompt=e;
+    // Show top banner (unless dismissed recently)
+    try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
+  });
+
+  // iOS Safari: show top banner (unless dismissed recently)
+  if(isIOS&&isSafari){
+    try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
+  }
+
+  // Top banner install button (Android)
+  if(installBtn){installBtn.addEventListener('click',function(){
+    if(!deferredPrompt)return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted'){hideBanner();if(landWrap)landWrap.style.display='none';}});
+  });}
+
+  // Top banner dismiss
   if(dismissBtn){dismissBtn.addEventListener('click',hideBanner);}
-  window.addEventListener('appinstalled',hideBanner);
+
+  // Landing page button — always triggers banner or install
+  if(landBtn){landBtn.addEventListener('click',function(){
+    if(deferredPrompt){
+      // Android: fire native prompt directly
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted'&&landWrap)landWrap.style.display='none';});
+    } else {
+      // iOS or no prompt: show the instruction banner
+      showBanner();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+  });}
+
+  // Hide landing button once app is installed
+  window.addEventListener('appinstalled',function(){
+    hideBanner();if(landWrap)landWrap.style.display='none';
+  });
+
   // Register service worker
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js').catch(function(){});});}
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+  });}
 })();
 </script>
 </body>
