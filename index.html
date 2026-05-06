@@ -433,6 +433,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 #pwa-banner-inner{padding:14px 16px 16px}
 #pwa-banner-dismiss{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:20px;cursor:pointer;padding:4px;line-height:1}
 #pwa-android-section{display:none;text-align:center}
+#pwa-android-manual{display:none}
 #pwa-android-section h3{margin:0 0 4px;font-size:17px;font-weight:700}
 #pwa-android-section p{margin:0 0 12px;font-size:13px;opacity:.85}
 #pwa-install-btn{background:#4CAF50;color:white;border:none;border-radius:28px;padding:14px 28px;font-size:17px;font-weight:700;cursor:pointer;width:100%;max-width:340px;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto;box-shadow:0 4px 14px rgba(76,175,80,0.45)}
@@ -464,11 +465,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 <div id="pwa-install-banner" class="hidden">
   <div id="pwa-banner-inner">
     <button id="pwa-banner-dismiss" title="Dismiss">✕</button>
-    <!-- Android -->
+    <!-- Android: auto prompt available -->
     <div id="pwa-android-section">
       <h3>📲 Get the Clark Golf App</h3>
       <p>Add it to your home screen — no app store needed!</p>
       <button id="pwa-install-btn"><span style="font-size:20px">⛳</span> Install App on Your Phone</button>
+    </div>
+    <!-- Android: manual fallback (no prompt available) -->
+    <div id="pwa-android-manual">
+      <h3>📲 Add Clark Golf to Your Home Screen</h3>
+      <div class="pwa-ios-steps">
+        <div class="pwa-ios-step"><div class="pwa-ios-num">1</div><div class="pwa-ios-txt"><strong>Tap the three-dot menu ⋮</strong>Top right corner of Chrome</div></div>
+        <div class="pwa-ios-step"><div class="pwa-ios-num">2</div><div class="pwa-ios-txt"><strong>Tap "Add to Home Screen"</strong>or "Install App" if you see it</div></div>
+        <div class="pwa-ios-step"><div class="pwa-ios-num">3</div><div class="pwa-ios-txt"><strong>Tap "Add"</strong>The Clark Golf icon will appear on your home screen!</div></div>
+      </div>
     </div>
     <!-- iOS -->
     <div id="pwa-ios-section">
@@ -2549,10 +2559,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   var deferredPrompt=null;
 
+  var androidManual=document.getElementById('pwa-android-manual');
+
   function showBanner(){
-    androidSection.style.display='none';iosSection.style.display='none';
+    androidSection.style.display='none';iosSection.style.display='none';if(androidManual)androidManual.style.display='none';
     if(deferredPrompt){androidSection.style.display='block';}
     else if(isIOS&&isSafari){iosSection.style.display='block';}
+    else if(!isIOS){if(androidManual)androidManual.style.display='block';}
     else{return;}
     banner.classList.remove('hidden');
     setTimeout(function(){spacer.style.height=banner.offsetHeight+'px';},60);
