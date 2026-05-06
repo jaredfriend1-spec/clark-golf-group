@@ -445,6 +445,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .pwa-ios-txt{font-size:13px;line-height:1.4}
 .pwa-ios-txt strong{display:block;font-size:14px;margin-bottom:2px}
 #pwa-spacer{height:0;transition:height 0.3s}
+/* PWA landing install button — mobile only, hidden once installed */
+#pwa-land-install{display:none}
+@media(max-width:767px){#pwa-land-install{display:block}}
+.pwa-standalone #pwa-land-install{display:none!important}
 </style>
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -783,7 +787,7 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
             <div style={{textAlign:'center'}}>
               <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
             </div>
-            <div id="pwa-land-install" style={{display:'none',textAlign:'center',marginTop:8}}>
+            <div id="pwa-land-install" style={{textAlign:'center',marginTop:8}}>
               <button id="pwa-land-btn" style={{background:'none',border:'1.5px solid rgba(255,255,255,0.18)',borderRadius:24,padding:'9px 20px',color:'rgba(255,255,255,0.6)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}>
                 <span style={{fontSize:15}}>📲</span> Add App to Home Screen
               </button>
@@ -2534,27 +2538,22 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   var androidSection=document.getElementById('pwa-android-section');
   var iosSection=document.getElementById('pwa-ios-section');
   var installBtn=document.getElementById('pwa-install-btn');
-  var landWrap=document.getElementById('pwa-land-install');
   var landBtn=document.getElementById('pwa-land-btn');
   if(!banner)return;
 
-  // Already installed as PWA? Hide everything, done.
+  // Already installed as PWA? Mark body so CSS hides the install button, then stop.
   var isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  if(isStandalone)return;
+  if(isStandalone){document.body.classList.add('pwa-standalone');return;}
 
   var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
   var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  var isMobile=isIOS||/android/i.test(navigator.userAgent);
   var deferredPrompt=null;
-
-  // Always show the landing button on mobile (iOS or Android)
-  if(isMobile&&landWrap){landWrap.style.display='block';}
 
   function showBanner(){
     androidSection.style.display='none';iosSection.style.display='none';
     if(deferredPrompt){androidSection.style.display='block';}
     else if(isIOS&&isSafari){iosSection.style.display='block';}
-    else{return;} // nothing to show
+    else{return;}
     banner.classList.remove('hidden');
     setTimeout(function(){spacer.style.height=banner.offsetHeight+'px';},60);
   }
@@ -2566,7 +2565,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   // Android: intercept native install prompt
   window.addEventListener('beforeinstallprompt',function(e){
     e.preventDefault();deferredPrompt=e;
-    // Show top banner (unless dismissed recently)
     try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
   });
 
@@ -2579,24 +2577,27 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   if(installBtn){installBtn.addEventListener('click',function(){
     if(!deferredPrompt)return;
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted'){hideBanner();if(landWrap)landWrap.style.display='none';}});
+    deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted')hideBanner();});
   });}
 
   // Top banner dismiss
   if(dismissBtn){dismissBtn.addEventListener('click',hideBanner);}
 
-  // Landing page button — always triggers banner or install
+  // Landing page button — always triggers install or shows instructions
   if(landBtn){landBtn.addEventListener('click',function(){
     if(deferredPrompt){
-      // Android: fire native prompt directly
       deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted'&&landWrap)landWrap.style.display='none';});
+      deferredPrompt.userChoice.then(function(r){deferredPrompt=null;});
     } else {
-      // iOS or no prompt: show the instruction banner
       showBanner();
       window.scrollTo({top:0,behavior:'smooth'});
     }
   });}
+
+  // Mark as installed once done
+  window.addEventListener('appinstalled',function(){
+    hideBanner();document.body.classList.add('pwa-standalone');
+  });
 
   // Hide landing button once app is installed
   window.addEventListener('appinstalled',function(){
