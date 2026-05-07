@@ -58,6 +58,8 @@
   .confirm-m{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-top:8px;}
   .link-row{display:flex;gap:10px;margin-top:12px;}
   .link-row a{flex:1;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;}
+  .guest-tag-m{display:inline-block;padding:1px 7px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px;}
+  .pair-tag-m{display:inline-block;padding:1px 7px;background:#f0fdf4;color:#15803d;border-radius:20px;font-size:11px;font-weight:600;margin-left:4px;}
   @media(min-width:768px){.container{max-width:700px;box-shadow:0 0 40px rgba(0,0,0,0.08)}.hdr{padding:40px 24px 50px}.hdr-brand{font-size:40px}.hdr-sub{font-size:16px}.content{padding:0 28px 50px}.section{padding:30px;border-radius:16px}.section h2{font-size:28px}.section p{font-size:16px}.feature h3{font-size:18px}}
 </style>
 </head>
@@ -90,8 +92,28 @@
 
       <div class="feature">
         <h3><span class="feature-num">3</span> Bringing a Guest?</h3>
-        <p>Toggle over to "Guest", type in their name and handicap, and they are instantly added.</p>
+        <p>Toggle over to <b>Guest</b>, fill in their name and handicap, and select who they are a guest of from the member dropdown. Anyone can add a guest — you don't have to be the member yourself.</p>
         <div class="mock-ui"><div class="tog-m"><div>Member</div><div class="on">Guest</div></div></div>
+        <p style="margin-top:12px;">After selecting the member, an optional checkbox appears: <b>"Request to pair with [member name]"</b>. Check it if you want the guest and the member to be placed on the same team. Leave it unchecked and the guest goes into the random pool like everyone else.</p>
+        <div class="mock-ui" style="padding:12px;">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Guest sign-up example</div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Guest name</div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Bob Jones</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Guest of (member)</div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">Mike Clark</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid #10b981;background:#ecfdf5;">
+            <div style="width:18px;height:18px;border-radius:4px;border:2px solid #10b981;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 13 4 10"/></svg>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#15803d;">Request to pair with Mike Clark</div>
+          </div>
+        </div>
+        <div class="info-m"><strong>Guest info in the sign-up list</strong><p>Once added, guests show as "<b>Guest of [Member Name]</b>" in the sign-up list. If pairing was requested, a small green "Pair req." badge appears next to their name so the admin can see it at a glance.</p></div>
+        <div class="callout" style="margin-top:10px;"><strong>Handicaps still drive team balance</strong><p>Even with a pairing request approved, the team builder places the guest-member pair on the team that keeps handicaps most balanced across all groups.</p></div>
       </div>
 
       <div class="feature">
@@ -149,7 +171,29 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">2</span> Build Teams: Auto or Manual</h3>
+        <h3><span class="feature-num">2</span> Adding a Guest (Admin)</h3>
+        <p>In the <b>Manage Existing Sign-Ups</b> section of the Admin tab, tap <b>+ Add Guest</b>. Fill in:</p>
+        <p><b>Guest name</b> — their full name.<br/><b>Guest of</b> — select the member from the dropdown. This identifies who brought them and keeps the roster clean (guests never get added permanently).<br/><b>Tees & Handicap</b> — standard fields.<br/><b>Request pairing</b> — optional checkbox to request the guest and member be on the same team.</p>
+        <div class="mock-ui" style="padding:12px;">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Add Guest</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:600;color:#0f172a;">Bob Jones</div>
+            <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;font-size:12px;color:#64748b;">Whites</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;font-size:12px;color:#0f172a;margin-bottom:8px;">Guest of: Mike Clark</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1.5px solid #10b981;background:#ecfdf5;margin-bottom:8px;">
+            <div style="width:16px;height:16px;border-radius:3px;background:#10b981;display:flex;align-items:center;justify-content:center;">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 13 4 10"/></svg>
+            </div>
+            <span style="font-size:12px;font-weight:600;color:#15803d;">Request to pair with Mike Clark</span>
+          </div>
+          <div class="btn-m green" style="width:100%;justify-content:center;">Add Guest</div>
+        </div>
+        <div class="info-m"><strong>Guests don't live in the roster</strong><p>Every guest is tied to that week's sign-up data only. When the week ends, they're gone from sign-ups. The roster stays clean with permanent members only.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">3</span> Build Teams: Auto or Manual</h3>
         <p><b>Auto-generate</b> sorts the roster by handicap and distributes A, B, C, and D players into balanced groups with one click. Pick team size (3, 4, or 5) and the app shows you the exact breakdown before committing.</p>
         <p><b>Manual build</b> lets you create empty groups and hand-pick each player from a searchable list.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
@@ -158,8 +202,8 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">3</span> Tee Time Approvals</h3>
-        <p>If any players requested first or last group during sign-up, an approval section appears before auto-generate. Approve or deny each request — approved players get pinned to Group 1 or the last group. If a group fills up, overflow goes to the next closest group.</p>
+        <h3><span class="feature-num">4</span> Tee Time Approvals</h3>
+        <p>If any players requested first or last group during sign-up, an approval section appears before auto-generate. Approve or deny each request — approved players get pinned to Group 1 or the last group.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;">
             <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
@@ -167,9 +211,7 @@
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f8fafc;">
               <div><span style="font-size:13px;font-weight:600;">Chris Allen</span><span style="display:inline-block;padding:1px 6px;background:#dbeafe;color:#1d4ed8;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px;">First group</span></div>
-              <div style="display:flex;gap:4px;">
-                <div style="padding:4px 10px;border-radius:6px;border:1.5px solid #10b981;background:#ecfdf5;color:#15803d;font-size:11px;font-weight:600;">✓ Approved</div>
-              </div>
+              <div style="display:flex;gap:4px;"><div style="padding:4px 10px;border-radius:6px;border:1.5px solid #10b981;background:#ecfdf5;color:#15803d;font-size:11px;font-weight:600;">✓ Approved</div></div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;">
               <div><span style="font-size:13px;font-weight:600;">Tom Watson</span><span style="display:inline-block;padding:1px 6px;background:#fef3c7;color:#d97706;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px;">Last group</span></div>
@@ -183,13 +225,40 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">4</span> Smart Team Mixing</h3>
+        <h3><span class="feature-num">5</span> Guest Pairing Approvals</h3>
+        <p>If any guests were signed up with a pairing request, a <b>Guest Pairing Requests</b> section appears alongside the tee time approvals — before you hit auto-generate. Each entry shows the guest name and the member they want to play with.</p>
+        <p><b>Approve</b> — the guest and member will be placed on the same team. The builder picks the team that keeps handicap balance best across all groups.<br/><b>Deny</b> — the guest goes into the random pool like any other player.</p>
+        <div class="mock-ui" style="padding:0;border:none;background:none;">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              Guest Pairing Requests (1)
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Approve to place guest and member on the same team</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;">
+              <div>
+                <span style="font-size:13px;font-weight:600;">Bob Jones</span>
+                <span style="font-size:11px;color:#64748b;margin:0 4px;">with</span>
+                <span style="font-size:13px;font-weight:600;">Mike Clark</span>
+                <span style="display:inline-block;padding:1px 6px;background:#f0fdf4;color:#15803d;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px;">Guest pair</span>
+              </div>
+              <div style="display:flex;gap:4px;">
+                <div style="padding:4px 10px;border-radius:6px;border:1.5px solid #10b981;background:#ecfdf5;color:#15803d;font-size:11px;font-weight:600;">✓ Approved</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="callout" style="margin-top:10px;"><strong>Handicaps still come first</strong><p>Approving a guest pairing doesn't override team balance. The algorithm places the pair on whichever team needs their combined handicap most. You can always drag-and-drop after generating if the placement needs tweaking.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">6</span> Smart Team Mixing</h3>
         <p>The auto-generate algorithm checks your round history and avoids putting the same players together week after week. Over time, everyone naturally rotates through different groups while still keeping teams balanced by handicap.</p>
         <div class="info-m"><strong>Gets smarter over time</strong><p>The more rounds in your history, the better the mixing works. Early on with little data, it focuses on handicap balance. As history builds up, it increasingly prioritizes fresh matchups.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">5</span> Fine-Tuning & Reordering</h3>
+        <h3><span class="feature-num">7</span> Fine-Tuning & Reordering</h3>
         <p>Drag the handle (<b>⋮</b>) next to any player's name to move them between teams. Use the <b>Group Dropdown</b> in each team header to change the tee-off order. Works in both auto and manual modes.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="tc"><div class="tc-h"><span class="tc-nm" style="font-size:13px;"><span style="color:#94a3b8;font-size:11px;margin-right:5px;">GROUP</span><span style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#fff;">1 &#9662;</span></span><span class="tc-hcp">HCP 35.0</span></div><div class="tc-row" style="border:none;"><span style="color:#cbd5e1;font-size:18px;font-weight:700;">⋮</span><span class="slot-m">A</span><div class="avi-m">CA</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Chris Allen</div><div style="font-size:11px;color:#94a3b8">Whites HCP 5</div></div></div></div>
@@ -197,52 +266,49 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">6</span> The Blind Draw</h3>
+        <h3><span class="feature-num">8</span> The Blind Draw</h3>
         <p>Uneven number of players? The app detects this and adds a "Blind Draw" slot to the short group. Assign any player from another team to fill it.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="tc"><div style="padding:10px 13px;background:#fffbeb;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:13px;font-weight:600;color:#d97706">Blind Draw TBD</div><div style="font-size:11px;color:#92400e;">Assign on the day</div></div><div class="btn-m gold sm">Assign</div></div></div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">7</span> Publish & Lock</h3>
+        <h3><span class="feature-num">9</span> Publish & Lock</h3>
         <p>Hit <b>Publish & Lock Teams</b> to assign official names (Team One, Team Two) and lock the roster. Use <b>Copy teams</b> to paste formatted groups into Gmail or iMessage.</p>
-        <p>If anyone is on the <b>waiting list</b> (see below), you'll see them as a gold banner on the Teams tab. Tap "Add to Round" to promote them — this automatically unlocks the day so you can regenerate teams with the new player.</p>
+        <p>If anyone is on the <b>waiting list</b>, you'll see them as a gold banner on the Teams tab. Tap "Add to Round" to promote them — this automatically unlocks the day so you can regenerate teams with the new player.</p>
         <div class="callout"><strong>Still love sending the weekly email?</strong><p>Once teams are published, the "Copy teams" button formats everything perfectly for pasting.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">8</span> Waiting List</h3>
-        <p>When sign-ups are locked, players can still tap <b>"Join Waiting List"</b> on the This Week tab. Their name goes into a queue visible on the Teams tab. The admin can review and tap <b>"Add to Round"</b> to promote them — this unlocks the day, adds them to sign-ups, and lets you rebuild teams.</p>
+        <h3><span class="feature-num">10</span> Waiting List</h3>
+        <p>When sign-ups are locked, players can still tap <b>"Join Waiting List"</b> on the Week tab. Their name goes into a queue visible on the Teams tab. The admin can tap <b>"Add to Round"</b> to promote them — this unlocks the day, adds them to sign-ups, and lets you rebuild teams.</p>
         <div class="info-m"><strong>Perfect for late additions</strong><p>Someone texts you the night before? They join the waiting list, you approve them in the morning, regenerate teams with the new count.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">9</span> Edit or Reset Published Teams</h3>
+        <h3><span class="feature-num">11</span> Edit or Reset Published Teams</h3>
         <p>Need a last-minute change after publishing? Two options:</p>
-        <p><b>Edit Teams</b> — unlocks the existing teams for rearranging. Drag players, reorder groups, then re-publish. No regenerating needed.</p>
-        <p><b>Reset Teams</b> — clears all teams and starts over from scratch. Sign-ups are always preserved — nobody has to re-sign-up either way.</p>
+        <p><b>Edit Teams</b> — unlocks the existing teams for rearranging. Drag players, reorder groups, then re-publish.</p>
+        <p><b>Reset Teams</b> — clears all teams and starts over from scratch. Sign-ups are always preserved.</p>
         <div class="mock-ui">
           <div style="display:flex;gap:8px;"><div class="btn-m dark sm">Edit Teams</div><div class="btn-m red sm" style="border:none;">Reset Teams</div><div class="btn-m outline sm">Copy teams</div></div>
         </div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">10</span> Roster Management</h3>
+        <h3><span class="feature-num">12</span> Roster Management</h3>
         <p>The admin can manage the full player roster from the Admin tab. Each player shows their name, last-used handicap and tees, and email address.</p>
-        <p><b>Edit</b> — tap "edit" to expand all fields: name, email. Changes save instantly.</p>
-        <p><b>Delete players</b> — remove a player from the roster. Base roster members are hidden (and can be restored later).</p>
-        <p><b>Add players</b> — add new members with name, tees, and handicap.</p>
-        <p><b>Export</b> — download the full roster as CSV with name, handicap, tees, and email.</p>
-        <div class="info-m"><strong>Email addresses</strong><p>Admin-managed for now. Stored alongside each player for future email features and roster exports.</p></div>
+        <p><b>Edit</b> — tap "edit" to update name and email. Changes save instantly.<br/><b>Delete players</b> — base roster members are hidden (and can be restored later).<br/><b>Add players</b> — add new members with name, tees, and handicap.<br/><b>Export</b> — download the full roster as CSV.</p>
+        <div class="info-m"><strong>Email addresses</strong><p>Admin-managed. Stored alongside each player for email features and roster exports.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">11</span> Payment Tracking</h3>
+        <h3><span class="feature-num">13</span> Payment Tracking</h3>
         <p>At the course, use the <b>Score</b> tab to collect money. Mark off who has paid their $25 with a single tap.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="pay-m"><div><div style="font-size:13px;font-weight:600;color:#0f172a">Payment tracking</div><div style="font-size:11px;color:#64748b;">8 of 16 paid - $200 collected</div></div><div style="padding:5px 12px;border-radius:7px;border:1.5px solid #10b981;background:#fff;color:#10b981;font-size:12px;font-weight:700;">Hide</div></div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">12</span> Instant Scoring & Payouts</h3>
+        <h3><span class="feature-num">14</span> Instant Scoring & Payouts</h3>
         <p>Enter team scores (Front, Back, Overall) and tap the Skins buttons. The app calculates the pot, splits ties, and shows exact dollar payouts per player.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="sc-m"><div style="font-size:12px;font-weight:700">Team One <span style="font-weight:400;color:#94a3b8;font-size:10px">- Allen, Sarris</span></div><div class="sp-m"><span style="color:#475569;font-weight:700">-</span><span style="color:#15803d">-4</span><span style="color:#475569;font-weight:700">+</span></div><div class="sp-m"><span style="color:#475569;font-weight:700">-</span><span style="color:#15803d">-2</span><span style="color:#475569;font-weight:700">+</span></div><div class="sp-m"><span style="color:#475569;font-weight:700">-</span><span style="color:#15803d">-6</span><span style="color:#475569;font-weight:700">+</span></div></div>
@@ -250,17 +316,15 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">13</span> End of Week Closeout</h3>
+        <h3><span class="feature-num">15</span> End of Week Closeout</h3>
         <p>Click <b>End Week & Start Fresh</b> in the Admin panel. The app saves all games to History, updates the Season Leaderboard, pushes attendance, and resets for next week. Upcoming Events persist — only day notes and subject clear.</p>
         <div class="mock-ui"><div class="btn-m dark full">End Week & Start Fresh</div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">14</span> Export Data</h3>
-        <p>Three CSV downloads available in the Admin tab under "Export Data":</p>
-        <p><b>Export History</b> — all rounds with dates, players, teams, and pot amounts.</p>
-        <p><b>Export Attendance</b> — player names, rounds played, and dates from round history.</p>
-        <p><b>Export Roster</b> — full roster with name, handicap, tees, and email.</p>
+        <h3><span class="feature-num">16</span> Export Data</h3>
+        <p>Three CSV downloads in the Admin tab under "Export Data":</p>
+        <p><b>Export History</b> — all rounds with dates, players, teams, and pot amounts.<br/><b>Export Attendance</b> — player names, rounds played, and dates.<br/><b>Export Roster</b> — full roster with name, handicap, tees, and email.</p>
       </div>
     </div>
 
@@ -272,14 +336,6 @@
       <div class="feature">
         <h3><span class="feature-num" style="background:#0f172a;">1</span> Open the Email Tab</h3>
         <p>Tap the <b>envelope icon</b> in the admin nav. The tab shows only upcoming play days — past days are excluded automatically.</p>
-        <div class="mock-ui">
-          <div style="display:flex;align-items:center;gap:8px;background:#0f172a;padding:10px 14px;border-radius:8px;">
-            <div style="width:28px;height:28px;border-radius:6px;background:#f59e0b;display:flex;align-items:center;justify-content:center;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-            </div>
-            <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#fff;text-transform:uppercase;">Weekly Email</span>
-          </div>
-        </div>
       </div>
 
       <div class="feature">
@@ -300,7 +356,7 @@
 
       <div class="feature">
         <h3><span class="feature-num" style="background:#0f172a;">4</span> Upcoming Events</h3>
-        <p>A large text block for tournament schedules, event announcements, and anything that isn't tied to a specific day. Use the <b>B</b>, <b>I</b>, <b>U</b> toolbar to format selected text. This block <b>persists across weeks</b> — it won't clear when you end the week, so you don't have to retype the tournament schedule every time. Clear it manually when it's no longer needed.</p>
+        <p>A large text block for tournament schedules, event announcements, and anything not tied to a specific day. Use the <b>B</b>, <b>I</b>, <b>U</b> toolbar to format selected text. This block <b>persists across weeks</b> — it won't clear when you end the week. Clear it manually when it's no longer needed.</p>
       </div>
 
       <div class="feature">
@@ -310,9 +366,7 @@
 
       <div class="feature">
         <h3><span class="feature-num" style="background:#0f172a;">6</span> Copy & Send</h3>
-        <p>Two copy options at the bottom:</p>
-        <p><b>Copy Email</b> — copies the full styled email. Paste into Gmail and it looks perfect with all the formatting, team cards, and colors.</p>
-        <p><b>Plain Text</b> — copies a clean text-only version with ASCII formatting. Use this for iMessage, group texts, or email clients that mangle HTML.</p>
+        <p><b>Copy Email</b> — copies the full styled email. Paste into Gmail and it looks perfect.<br/><b>Plain Text</b> — clean text-only version for iMessage or group texts.</p>
         <div class="mock-ui">
           <div style="display:flex;gap:8px;">
             <div class="btn-m dark" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;">
@@ -341,7 +395,7 @@
 
       <div class="feature">
         <h3><span class="feature-num gold">2</span> Season Standings</h3>
-        <p>A searchable leaderboard ranked by rounds played with a search bar at the top. Tap any player to see every date they played. Gold, silver, and bronze badges for the top three.</p>
+        <p>A searchable leaderboard ranked by rounds played. Tap any player to see every date they played. Gold, silver, and bronze badges for the top three.</p>
       </div>
 
       <div class="feature">
@@ -355,18 +409,17 @@
       <div class="feature">
         <h3><span class="feature-num gold">4</span> Admin Controls (Password Protected)</h3>
         <p>Admins can <b>log rounds manually</b> — pick a date, select players from the full roster, add guests by name. Edit or delete existing rounds. Import attendance data from CSV for bulk loading.</p>
-        <p>Players can view everything but can't edit.</p>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num gold">5</span> End Season & Archive</h3>
-        <p>At year-end, the admin can archive the entire season. Archived seasons stay viewable from pill buttons in the header (e.g. "Current" | "2025 Season"). Admins can also delete archived seasons if needed.</p>
+        <p>At year-end, the admin can archive the entire season. Archived seasons stay viewable from pill buttons in the header. Admins can also delete archived seasons if needed.</p>
         <p>A separate <b>Clear All Data</b> option permanently deletes everything — requires typing "DELETE" to confirm.</p>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num gold">6</span> CSV Import</h3>
-        <p>Import attendance data from a CSV file at any time. Names are automatically mapped to the Clark Group roster. Re-importing replaces the previous data, so you can refresh from an external source whenever needed.</p>
+        <p>Import attendance data from a CSV file at any time. Names are automatically mapped to the Clark Group roster. Re-importing replaces the previous data.</p>
       </div>
     </div>
 
