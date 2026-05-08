@@ -513,7 +513,7 @@ function getWeekDates(){
 }
 function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);}
 
-function buildTeams(players,perTeam,pinned,pairingCounts){
+function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs){
   perTeam=perTeam||4;
   const n=players.length;if(n<3)return[];
   const numTeams=Math.ceil(n/perTeam);
@@ -527,7 +527,18 @@ function buildTeams(players,perTeam,pinned,pairingCounts){
   const pinnedFirst=(pinned||[]).filter(p=>p.pref==='first');
   const pinnedLast=(pinned||[]).filter(p=>p.pref==='last');
   const pinnedNames=new Set((pinned||[]).map(p=>p.name));
-  const unpinned=players.filter(p=>!pinnedNames.has(p.name));
+  const guestPairNames=new Set((guestPairs||[]).flatMap(g=>[g.guest,g.member]));
+  const unpinned=players.filter(p=>!pinnedNames.has(p.name)&&!guestPairNames.has(p.name));
+
+  // Place approved guest pairs on same team
+  (guestPairs||[]).forEach(pair=>{
+    const guestPlayer=players.find(p=>p.name===pair.guest);
+    const memberPlayer=players.find(p=>p.name===pair.member);
+    if(!guestPlayer||!memberPlayer)return;
+    const eligible=teams.filter(t=>t._target-t.players.length>=2);
+    const target=(eligible.length>0?eligible:teams).reduce((best,t)=>t.totalHcp<best.totalHcp?t:best);
+    [memberPlayer,guestPlayer].forEach(p=>{target.players.push({...p});target.totalHcp+=parseFloat(p.handicap)||0;});
+  });
 
   pinnedFirst.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
@@ -787,6 +798,9 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const setMyNamePersist=n=>{setMyName(n);try{if(n)localStorage.setItem('cgMyName',n);else localStorage.removeItem('cgMyName');}catch{}};
   const [teePref,setTeePref]=useState(null);
   const [showTeePref,setShowTeePref]=useState(false);
+  const [guestOf,setGuestOf]=useState('');
+  const [pairWithGuest,setPairWithGuest]=useState(false);
+  const [copiedDay,setCopiedDay]=useState(null);
   function loadMemory(playerId){try{const saved=localStorage.getItem('cgPref_'+playerId);if(saved){const pref=JSON.parse(saved);setTee(pref.tee||'Whites');setHcp(String(pref.hcp||''));setHcpMemory(pref);}else{setHcpMemory(null);}}catch{setHcpMemory(null);}}
   function saveMemory(playerId,teeVal,hcpVal){try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}}
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
@@ -800,7 +814,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const allSignups=week.signups||{};
   const totalSignups=Object.keys(allSignups).length;
 
-  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setShowSignup(true);}
+  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setGuestOf('');setPairWithGuest(false);setShowSignup(true);}
 
   function doSignup(){
     const name=isGuest?gname.trim():(fullRoster.find(p=>p.id==sel)||{}).name;    if(!name||!hcp)return;
@@ -820,7 +834,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
     const selectedDays=activeDays.filter(d=>signupDays[d]);if(!selectedDays.length)return;
     selectedDays.forEach((day,i)=>{
       const dup=Object.values(allSignups).some(s=>s.day===day&&s.name===name);
-      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),teePreference:teePref||null,day,signedUpAt:Date.now()+(i*100)});
+      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),teePreference:teePref||null,guestOf:isGuest&&guestOf?guestOf:null,pairWithGuest:isGuest&&pairWithGuest?true:null,day,signedUpAt:Date.now()+(i*100)});
     });
     setShowSignup(false);
     const days=activeDays.filter(d=>signupDays[d]);
@@ -879,15 +893,15 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                     <div className="p-row">
                       <div className="avi">{ini(s.name)}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
+                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">{s.guestOf?'Guest of '+s.guestOf:'Guest'}</span>}{s.isGuest&&s.pairWithGuest&&<span style={{display:'inline-block',padding:'1px 5px',background:'#f0fdf4',color:'#15803d',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>Pair req.</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
                         {editKey===key?(
                           <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                         ):(
                           <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
                         )}
                       </div>
-                      {isAdmin&&<button className="rm-btn" title="Remove sign-up" onClick={()=>onRemove(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
-                      {!isAdmin&&<button className="rm-btn" title="Remove sign-up" onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
+                      {isAdmin&&<button onClick={()=>onRemove(key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove Player</button>}
+                      {!isAdmin&&<button onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove Player</button>}
                     </div>
                     {confirmRemoveKey===key&&!isAdmin&&(
                       <div style={{margin:'0 14px 8px',padding:'8px 12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8}}>
@@ -906,6 +920,11 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                   {!isDemo&&dayLocked&&!isAdmin&&<button style={{fontSize:12,color:'#d97706',fontWeight:600,padding:'8px 12px',background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setWaitlistDay(day);setShowSignup(true);}}>Join Waiting List</button>}
                   {isAdmin&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
                   {isAdmin&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
+                  {isAdmin&&<button className="teeadd-btn" onClick={()=>{
+                    const players=Object.values((week&&week.signups)||{}).filter(s=>s.day===day).sort((a,b)=>a.signedUpAt-b.signedUpAt);
+                    const lines=[day+' Players ('+players.length+'):'].concat(players.map((p,j)=>(j+1)+'. '+p.name+(p.isGuest?' (Guest of '+(p.guestOf||'?')+')':'')+' | '+p.tee+' HCP '+p.handicap));const txt=lines.join(String.fromCharCode(10));
+                    navigator.clipboard.writeText(txt).then(()=>{setCopiedDay(day);setTimeout(()=>setCopiedDay(null),2500);}).catch(()=>{});
+                  }} style={{color:copiedDay===day?'#15803d':'#64748b',borderColor:copiedDay===day?'#bbf7d0':'#e2e8f0',background:copiedDay===day?'#ecfdf5':'#fff'}}>{copiedDay===day?'✓ Copied!':'Copy Players'}</button>}
                   {isAdmin&&<button className="teeadd-btn" style={{marginLeft:'auto',color:dayLocked?'#15803d':'#94a3b8',borderColor:dayLocked?'#bbf7d0':'#e2e8f0',background:dayLocked?'#ecfdf5':'#fff'}} onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock signups':'Lock signups'}</button>}
                 </div>
               </div>
@@ -961,10 +980,27 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                 )}
               </div>
             ):(
+              <React.Fragment>
               <div className="fg">
                 <label className="fl">Guest name</label>
                 <input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)} onFocus={e=>setTimeout(()=>e.target.scrollIntoView({behavior:'smooth',block:'center'}),300)}/>
               </div>
+              <div className="fg">
+                <label className="fl">Guest of (member)</label>
+                <select className="fs" value={guestOf} onChange={e=>setGuestOf(e.target.value)}>
+                  <option value="">— Select member —</option>
+                  {[...fullRoster].sort((a,b)=>a.name.localeCompare(b.name)).map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
+                </select>
+              </div>
+              {guestOf&&(
+                <div onClick={()=>setPairWithGuest(v=>!v)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:8,borderRadius:9,border:'1.5px solid '+(pairWithGuest?'#10b981':'#e2e8f0'),background:pairWithGuest?'#ecfdf5':'#f8fafc',cursor:'pointer'}}>
+                  <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:pairWithGuest?'#10b981':'#cbd5e1',background:pairWithGuest?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {pairWithGuest&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                  </div>
+                  <div style={{fontSize:13,fontWeight:600,color:pairWithGuest?'#15803d':'#475569'}}>Request to pair with {guestOf}</div>
+                </div>
+              )}
+              </React.Fragment>
             )}
 
             {/* STEP 2+3: Days, Tees, Handicap - always visible once name is picked */}
@@ -1086,6 +1122,9 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
   // Tee time requests for this day
   const teeRequests=daySignupsKeyed.filter(([,s])=>s.teePreference);
 
+  // Guest pairing requests
+  const guestPairingRequests=daySignupsKeyed.filter(([,s])=>s.isGuest&&s.pairWithGuest&&s.guestOf);
+
   // Compute pairing counts from history
   const pairingCounts=useMemo(()=>{
     const counts={};
@@ -1121,8 +1160,9 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
     if(daySignups.length<3)return;
     const s=parseInt(size||autoSize)||4;
     const pinned=teeRequests.filter(([k,])=>approvals[k]).map(([,sig])=>({name:sig.name,pref:sig.teePreference}));
+    const guestPairs=guestPairingRequests.filter(([k,])=>approvals['gp_'+k]).map(([,sig])=>({guest:sig.name,member:sig.guestOf}));
     setManualTeams(null);setManualMode(false);
-    setEditTeams(buildTeams(daySignups,s,pinned,pairingCounts));
+    setEditTeams(buildTeams(daySignups,s,pinned,pairingCounts,guestPairs));
     setShowAutoOpts(false);
   }
   function moveTeam(fromIdx,toIdx){if(fromIdx===toIdx)return;const base=editTeams||manualTeams||savedTeams;const reordered=[...base];const[moved]=reordered.splice(fromIdx,1);reordered.splice(toIdx,0,moved);if(manualMode)setManualTeams(reordered);else setEditTeams(reordered);}
@@ -1211,6 +1251,35 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
                     </button>
                     <button onClick={()=>setApprovals(a=>({...a,[key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===false?'#fecaca':'#e2e8f0',background:approvals[key]===false?'#fef2f2':'#fff',color:approvals[key]===false?'#dc2626':'#94a3b8',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
                       {approvals[key]===false?'Denied':'Deny'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Guest pairing request approvals */}
+          {guestPairingRequests.length>0&&!editTeams&&currentDisplay.length===0&&(
+            <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,padding:12,marginBottom:10}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                Guest Pairing Requests ({guestPairingRequests.length})
+              </div>
+              <div style={{fontSize:11,color:'#94a3b8',marginBottom:8}}>Approve to place guest and member on the same team</div>
+              {guestPairingRequests.map(([key,s])=>(
+                <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
+                  <div>
+                    <span style={{fontSize:13,fontWeight:600}}>{s.name}</span>
+                    <span style={{fontSize:11,color:'#64748b',marginLeft:4}}>with</span>
+                    <span style={{fontSize:13,fontWeight:600,marginLeft:4}}>{s.guestOf}</span>
+                    <span style={{display:'inline-block',padding:'1px 6px',background:'#f0fdf4',color:'#15803d',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:6}}>Guest pair</span>
+                  </div>
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={()=>setApprovals(a=>({...a,['gp_'+key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===true?'#10b981':'#e2e8f0',background:approvals['gp_'+key]===true?'#ecfdf5':'#fff',color:approvals['gp_'+key]===true?'#15803d':'#64748b',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                      {approvals['gp_'+key]===true?'✓ Approved':'Approve'}
+                    </button>
+                    <button onClick={()=>setApprovals(a=>({...a,['gp_'+key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===false?'#fecaca':'#e2e8f0',background:approvals['gp_'+key]===false?'#fef2f2':'#fff',color:approvals['gp_'+key]===false?'#dc2626':'#94a3b8',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                      {approvals['gp_'+key]===false?'Denied':'Deny'}
                     </button>
                   </div>
                 </div>
@@ -2015,12 +2084,12 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
   useEffect(()=>{setLocalNotes(week?.emailNotes||{});setLocalEvents(week?.emailEvents||'');},[week?.emailNotes,week?.emailEvents]);
 
-  function updateNote(day,val){if(val.length>560)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
+  function updateNote(day,val){if(val.length>1000)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
   function clearNote(day){const u={...localNotes,[day]:''};setLocalNotes(u);onSaveNotes(u);}
   function updateLocalEvents(val){setLocalEvents(val);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(val),500);}
   function applyFormat(tag){const ta=eventsRef.current;if(!ta)return;const start=ta.selectionStart;const end=ta.selectionEnd;const sel=localEvents.substring(start,end);if(!sel)return;const wrap=tag==='b'?'**':tag==='i'?'*':'__';const nv=localEvents.substring(0,start)+wrap+sel+wrap+localEvents.substring(end);setLocalEvents(nv);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(nv),500);setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);}
   const [quickAddHcp,setQuickAddHcp]=useState('');const [addDay,setAddDay]=useState('Saturday');const [showRoster,setShowRoster]=useState(false);
-  const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
+  const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:'',guestOf:'',pairWithGuest:false});
   const [showGuest,setShowGuest]=useState(false);const [showSignups,setShowSignups]=useState(false);
   const [dayEdit,setDayEdit]=useState({});const [warnDeact,setWarnDeact]=useState(null);const [closeoutConfirm,setCloseoutConfirm]=useState(false);const [endConfirmText,setEndConfirmText]=useState('');
   const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
@@ -2088,8 +2157,8 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                     <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,textTransform:'uppercase'}}>{day}</span>
                     {val&&<button onClick={()=>clearNote(day)} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
                   </div>
-                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'none',minHeight:50,background:'transparent'}}/>
-                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 560</div>
+                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:120,background:'transparent'}}/>
+                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 1000</div>
                 </div>
               );
             })}
@@ -2103,7 +2172,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                 <span style={{flex:1}}></span>
                 {localEvents&&<button onClick={()=>{if(confirm('Clear all upcoming events?')){setLocalEvents('');onSaveEvents('');}}} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
               </div>
-              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:100,background:'transparent',lineHeight:1.6}}/>
+              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:180,background:'transparent',lineHeight:1.6}}/>
               <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>Use toolbar to format. **bold** *italic* __underline__</div>
             </div>
           </div>)}
@@ -2123,7 +2192,30 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             <div className="sw" style={{marginBottom:8}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/></div>
             {addQ.length>0&&(<div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:150,overflowY:'auto'}}>{rosterSearch.map(p=>{const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);const isExpanded=quickAddSel===p.id;return(<div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}><span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>{!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>{isExpanded?'Cancel':'Add'}</button>}</div>{isExpanded&&!inDay&&(<div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}><div style={{flex:'1 1 80px'}}><label className="fl">Tees</label><select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div><div style={{flex:'1 1 70px'}}><label className="fl">HCP</label><input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/></div><button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}} onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');}}>Confirm</button></div>)}</div>);})}</div>)}
             <button className="btn btn-outline btn-sm" style={{marginBottom:8}} onClick={()=>setShowGuest(!showGuest)}>{showGuest?'Cancel':'+ Add Guest'}</button>
-            {showGuest&&(<div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}><div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div><div className="fr"><div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:''});setShowGuest(false);}}>Add Guest</button></div></div></div>)}
+            {showGuest&&(<div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}>
+              <div className="fr" style={{marginBottom:8}}>
+                <div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div>
+                <div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
+              </div>
+              <div className="fg" style={{marginBottom:8}}><label className="fl">Guest of (member)</label>
+                <select className="fs" value={gp.guestOf} onChange={e=>setGp({...gp,guestOf:e.target.value,pairWithGuest:false})}>
+                  <option value="">— Select member —</option>
+                  {[...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
+                </select>
+              </div>
+              {gp.guestOf&&(
+                <div onClick={()=>setGp(g=>({...g,pairWithGuest:!g.pairWithGuest}))} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',marginBottom:8,borderRadius:8,border:'1.5px solid '+(gp.pairWithGuest?'#10b981':'#e2e8f0'),background:gp.pairWithGuest?'#ecfdf5':'#fff',cursor:'pointer'}}>
+                  <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:gp.pairWithGuest?'#10b981':'#cbd5e1',background:gp.pairWithGuest?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {gp.pairWithGuest&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                  </div>
+                  <div style={{fontSize:12,fontWeight:600,color:gp.pairWithGuest?'#15803d':'#475569'}}>Request to pair with {gp.guestOf}</div>
+                </div>
+              )}
+              <div className="fr">
+                <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div>
+                <div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),guestOf:gp.guestOf||null,pairWithGuest:gp.pairWithGuest&&gp.guestOf?true:null,day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:'',guestOf:'',pairWithGuest:false});setShowGuest(false);}}>Add Guest</button></div>
+              </div>
+            </div>)}
             <div style={{maxHeight:190,overflowY:'auto'}}>{allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(<div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}><div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>{s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</div><button className="rm-btn" onClick={()=>onRemoveSignup(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button></div>))}</div>
           </div>
         )}
