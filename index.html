@@ -62,7 +62,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .hdr-right{display:flex;align-items:center;gap:5px}
 .admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
 .demo-tag{background:#10b981;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
-.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 14px;color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 .hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
 .hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 6px;text-align:center}
 .hdr-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#10b981}
@@ -858,6 +858,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const [showTeePref,setShowTeePref]=useState(false);
   const [guestOf,setGuestOf]=useState('');
   const [pairWithGuest,setPairWithGuest]=useState(false);
+  const [copiedDay,setCopiedDay]=useState(null);
   function loadMemory(playerId){try{const saved=localStorage.getItem('cgPref_'+playerId);if(saved){const pref=JSON.parse(saved);setTee(pref.tee||'Whites');setHcp(String(pref.hcp||''));setHcpMemory(pref);}else{setHcpMemory(null);}}catch{setHcpMemory(null);}}
   function saveMemory(playerId,teeVal,hcpVal){try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}}
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
@@ -977,6 +978,11 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                   {!isDemo&&dayLocked&&!isAdmin&&<button style={{fontSize:12,color:'#d97706',fontWeight:600,padding:'8px 12px',background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setWaitlistDay(day);setShowSignup(true);}}>Join Waiting List</button>}
                   {isAdmin&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
                   {isAdmin&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
+                  {isAdmin&&<button className="teeadd-btn" onClick={()=>{
+                    const players=Object.values((week&&week.signups)||{}).filter(s=>s.day===day).sort((a,b)=>a.signedUpAt-b.signedUpAt);
+                    const lines=[day+' Players ('+players.length+'):'].concat(players.map((p,j)=>(j+1)+'. '+p.name+(p.isGuest?' (Guest of '+(p.guestOf||'?')+')':'')+' | '+p.tee+' HCP '+p.handicap));const txt=lines.join(String.fromCharCode(10));
+                    navigator.clipboard.writeText(txt).then(()=>{setCopiedDay(day);setTimeout(()=>setCopiedDay(null),2500);}).catch(()=>{});
+                  }} style={{color:copiedDay===day?'#15803d':'#64748b',borderColor:copiedDay===day?'#bbf7d0':'#e2e8f0',background:copiedDay===day?'#ecfdf5':'#fff'}}>{copiedDay===day?'✓ Copied!':'Copy Players'}</button>}
                   {isAdmin&&<button className="teeadd-btn" style={{marginLeft:'auto',color:dayLocked?'#15803d':'#94a3b8',borderColor:dayLocked?'#bbf7d0':'#e2e8f0',background:dayLocked?'#ecfdf5':'#fff'}} onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock signups':'Lock signups'}</button>}
                 </div>
               </div>
@@ -2591,7 +2597,7 @@ function App(){
   return(
     <div className="app">
       <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
-        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
+        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>window.location.reload()} title="Refresh">↺ Refresh</button><button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
         <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}}>Season Attendance →</a></div>
       </div></div>
