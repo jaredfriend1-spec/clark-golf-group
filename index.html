@@ -62,7 +62,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .hdr-right{display:flex;align-items:center;gap:5px}
 .admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
 .demo-tag{background:#10b981;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
-.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:6px 14px;color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 .hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
 .hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 6px;text-align:center}
 .hdr-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#10b981}
@@ -426,62 +426,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
   .edit-btn{font-size:12px}
   .guest-tag{font-size:12px;padding:2px 8px}
 }
-
-/* ── PWA Install Banner ── */
-#pwa-install-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a4d2e;color:white;box-shadow:0 4px 20px rgba(0,0,0,0.4);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;transition:transform 0.3s}
-#pwa-install-banner.hidden{display:none}
-#pwa-banner-inner{padding:14px 16px 16px}
-#pwa-banner-dismiss{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:20px;cursor:pointer;padding:4px;line-height:1}
-#pwa-android-section{display:none;text-align:center}
-#pwa-android-section h3{margin:0 0 4px;font-size:17px;font-weight:700}
-#pwa-android-section p{margin:0 0 12px;font-size:13px;opacity:.85}
-#pwa-install-btn{background:#4CAF50;color:white;border:none;border-radius:28px;padding:14px 28px;font-size:17px;font-weight:700;cursor:pointer;width:100%;max-width:340px;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto;box-shadow:0 4px 14px rgba(76,175,80,0.45)}
-#pwa-install-btn:active{transform:scale(0.97)}
-#pwa-ios-section{display:none}
-#pwa-ios-section h3{margin:0 0 10px;font-size:16px;font-weight:700;text-align:center}
-.pwa-ios-steps{display:flex;flex-direction:column;gap:8px}
-.pwa-ios-step{display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px}
-.pwa-ios-num{background:#4CAF50;color:white;border-radius:50%;width:24px;height:24px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pwa-ios-txt{font-size:13px;line-height:1.4}
-.pwa-ios-txt strong{display:block;font-size:14px;margin-bottom:2px}
-#pwa-spacer{height:0;transition:height 0.3s}
-/* PWA landing install button — mobile only, hidden once installed */
-#pwa-land-install{display:none}
-@media(max-width:767px){#pwa-land-install{display:block}}
-.pwa-standalone #pwa-land-install{display:none!important}
 </style>
-<!-- PWA -->
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#1a4d2e">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Clark Golf">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
 </head>
 <body>
-<div id="pwa-install-banner" class="hidden">
-  <div id="pwa-banner-inner">
-    <button id="pwa-banner-dismiss" title="Dismiss">✕</button>
-    <!-- Android -->
-    <div id="pwa-android-section">
-      <h3>📲 Get the Clark Golf App</h3>
-      <p>Add it to your home screen — no app store needed!</p>
-      <button id="pwa-install-btn"><span style="font-size:20px">⛳</span> Install App on Your Phone</button>
-    </div>
-    <!-- iOS -->
-    <div id="pwa-ios-section">
-      <h3>📲 Add Clark Golf to Your Home Screen</h3>
-      <div class="pwa-ios-steps">
-        <div class="pwa-ios-step"><div class="pwa-ios-num">1</div><div class="pwa-ios-txt"><strong>Tap the Share button</strong>The box with an arrow ↑ at the bottom of Safari</div></div>
-        <div class="pwa-ios-step"><div class="pwa-ios-num">2</div><div class="pwa-ios-txt"><strong>Tap "Add to Home Screen"</strong>Scroll down — it has a + icon next to it</div></div>
-        <div class="pwa-ios-step"><div class="pwa-ios-num">3</div><div class="pwa-ios-txt"><strong>Tap "Add" in the top right</strong>The Clark Golf icon appears on your home screen!</div></div>
-      </div>
-    </div>
-  </div>
-</div>
-<div id="pwa-spacer"></div>
 <div id="loader" class="loading-screen">
 <div class="loading-spinner"></div>
 <div class="loading-brand">Clark <em>Golf</em> Group</div>
@@ -566,7 +513,7 @@ function getWeekDates(){
 }
 function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Sunday);}
 
-function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs){
+function buildTeams(players,perTeam,pinned,pairingCounts){
   perTeam=perTeam||4;
   const n=players.length;if(n<3)return[];
   const numTeams=Math.ceil(n/perTeam);
@@ -580,8 +527,7 @@ function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs){
   const pinnedFirst=(pinned||[]).filter(p=>p.pref==='first');
   const pinnedLast=(pinned||[]).filter(p=>p.pref==='last');
   const pinnedNames=new Set((pinned||[]).map(p=>p.name));
-  const guestPairNames=new Set((guestPairs||[]).flatMap(g=>[g.guest,g.member]));
-  const unpinned=players.filter(p=>!pinnedNames.has(p.name)&&!guestPairNames.has(p.name));
+  const unpinned=players.filter(p=>!pinnedNames.has(p.name));
 
   pinnedFirst.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
@@ -596,16 +542,6 @@ function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs){
     const target=teams[lastIdx].players.length<teams[lastIdx]._target?lastIdx:(numTeams>1?lastIdx-1:lastIdx);
     teams[target].players.push({...player});
     teams[target].totalHcp+=parseFloat(player.handicap)||0;
-  });
-
-  // Step 1b: Place approved guest pairs on the same team (balanced placement)
-  (guestPairs||[]).forEach(pair=>{
-    const guestPlayer=players.find(p=>p.name===pair.guest);
-    const memberPlayer=players.find(p=>p.name===pair.member);
-    if(!guestPlayer||!memberPlayer)return;
-    const eligible=teams.filter(t=>t._target-t.players.length>=2);
-    const target=(eligible.length>0?eligible:teams).reduce((best,t)=>t.totalHcp<best.totalHcp?t:best);
-    [memberPlayer,guestPlayer].forEach(p=>{target.players.push({...p});target.totalHcp+=parseFloat(p.handicap)||0;});
   });
 
   // Step 2: SNAKE DRAFT — best A gets worst B, best B gets worst C, etc.
@@ -798,11 +734,6 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
             <div style={{textAlign:'center'}}>
               <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
             </div>
-            <div id="pwa-land-install" style={{textAlign:'center',marginTop:8}}>
-              <button id="pwa-land-btn" style={{background:'none',border:'1.5px solid rgba(255,255,255,0.18)',borderRadius:24,padding:'9px 20px',color:'rgba(255,255,255,0.6)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}>
-                <span style={{fontSize:15}}>📲</span> Add App to Home Screen
-              </button>
-            </div>
           </div>
         ):(
           <div className="pw-box">
@@ -856,9 +787,6 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const setMyNamePersist=n=>{setMyName(n);try{if(n)localStorage.setItem('cgMyName',n);else localStorage.removeItem('cgMyName');}catch{}};
   const [teePref,setTeePref]=useState(null);
   const [showTeePref,setShowTeePref]=useState(false);
-  const [guestOf,setGuestOf]=useState('');
-  const [pairWithGuest,setPairWithGuest]=useState(false);
-  const [copiedDay,setCopiedDay]=useState(null);
   function loadMemory(playerId){try{const saved=localStorage.getItem('cgPref_'+playerId);if(saved){const pref=JSON.parse(saved);setTee(pref.tee||'Whites');setHcp(String(pref.hcp||''));setHcpMemory(pref);}else{setHcpMemory(null);}}catch{setHcpMemory(null);}}
   function saveMemory(playerId,teeVal,hcpVal){try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}}
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true});
@@ -872,7 +800,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const allSignups=week.signups||{};
   const totalSignups=Object.keys(allSignups).length;
 
-  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setGuestOf('');setPairWithGuest(false);setShowSignup(true);}
+  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setShowSignup(true);}
 
   function doSignup(){
     const name=isGuest?gname.trim():(fullRoster.find(p=>p.id==sel)||{}).name;    if(!name||!hcp)return;
@@ -892,7 +820,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
     const selectedDays=activeDays.filter(d=>signupDays[d]);if(!selectedDays.length)return;
     selectedDays.forEach((day,i)=>{
       const dup=Object.values(allSignups).some(s=>s.day===day&&s.name===name);
-      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),teePreference:teePref||null,guestOf:isGuest&&guestOf?guestOf:null,pairWithGuest:isGuest&&pairWithGuest?true:null,day,signedUpAt:Date.now()+(i*100)});
+      if(!dup)onSignup({playerId:isGuest?'g_'+(Date.now()+i*100):pid,name,isGuest:!!isGuest,tee,handicap:parseFloat(hcp),teePreference:teePref||null,day,signedUpAt:Date.now()+(i*100)});
     });
     setShowSignup(false);
     const days=activeDays.filter(d=>signupDays[d]);
@@ -951,15 +879,15 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                     <div className="p-row">
                       <div className="avi">{ini(s.name)}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">{s.guestOf?'Guest of '+s.guestOf:'Guest'}</span>}{s.isGuest&&s.pairWithGuest&&<span style={{display:'inline-block',padding:'1px 5px',background:'#f0fdf4',color:'#15803d',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>Pair req.</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
+                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">Guest</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
                         {editKey===key?(
                           <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                         ):(
                           <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
                         )}
                       </div>
-                      {isAdmin&&<button onClick={()=>onRemove(key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove Player</button>}
-                      {!isAdmin&&<button onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove Player</button>}
+                      {isAdmin&&<button className="rm-btn" title="Remove sign-up" onClick={()=>onRemove(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
+                      {!isAdmin&&<button className="rm-btn" title="Remove sign-up" onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
                     </div>
                     {confirmRemoveKey===key&&!isAdmin&&(
                       <div style={{margin:'0 14px 8px',padding:'8px 12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8}}>
@@ -978,11 +906,6 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                   {!isDemo&&dayLocked&&!isAdmin&&<button style={{fontSize:12,color:'#d97706',fontWeight:600,padding:'8px 12px',background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setWaitlistDay(day);setShowSignup(true);}}>Join Waiting List</button>}
                   {isAdmin&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
                   {isAdmin&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
-                  {isAdmin&&<button className="teeadd-btn" onClick={()=>{
-                    const players=Object.values((week&&week.signups)||{}).filter(s=>s.day===day).sort((a,b)=>a.signedUpAt-b.signedUpAt);
-                    const lines=[day+' Players ('+players.length+'):'].concat(players.map((p,j)=>(j+1)+'. '+p.name+(p.isGuest?' (Guest of '+(p.guestOf||'?')+')':'')+' | '+p.tee+' HCP '+p.handicap));const txt=lines.join(String.fromCharCode(10));
-                    navigator.clipboard.writeText(txt).then(()=>{setCopiedDay(day);setTimeout(()=>setCopiedDay(null),2500);}).catch(()=>{});
-                  }} style={{color:copiedDay===day?'#15803d':'#64748b',borderColor:copiedDay===day?'#bbf7d0':'#e2e8f0',background:copiedDay===day?'#ecfdf5':'#fff'}}>{copiedDay===day?'✓ Copied!':'Copy Players'}</button>}
                   {isAdmin&&<button className="teeadd-btn" style={{marginLeft:'auto',color:dayLocked?'#15803d':'#94a3b8',borderColor:dayLocked?'#bbf7d0':'#e2e8f0',background:dayLocked?'#ecfdf5':'#fff'}} onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock signups':'Lock signups'}</button>}
                 </div>
               </div>
@@ -1037,27 +960,12 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                   </div>
                 )}
               </div>
-            ):(<React.Fragment>
+            ):(
               <div className="fg">
                 <label className="fl">Guest name</label>
                 <input className="fi" placeholder="Full name" value={gname} onChange={e=>setGname(e.target.value)} onFocus={e=>setTimeout(()=>e.target.scrollIntoView({behavior:'smooth',block:'center'}),300)}/>
               </div>
-              <div className="fg">
-                <label className="fl">Guest of (member)</label>
-                <select className="fs" value={guestOf} onChange={e=>setGuestOf(e.target.value)}>
-                  <option value="">— Select member —</option>
-                  {[...fullRoster].sort((a,b)=>a.name.localeCompare(b.name)).map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
-                </select>
-              </div>
-              {guestOf&&(
-                <div onClick={()=>setPairWithGuest(v=>!v)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:8,borderRadius:9,border:'1.5px solid '+(pairWithGuest?'#10b981':'#e2e8f0'),background:pairWithGuest?'#ecfdf5':'#f8fafc',cursor:'pointer'}}>
-                  <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:pairWithGuest?'#10b981':'#cbd5e1',background:pairWithGuest?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    {pairWithGuest&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-                  </div>
-                  <div style={{fontSize:13,fontWeight:600,color:pairWithGuest?'#15803d':'#475569'}}>Request to pair with {guestOf}</div>
-                </div>
-              )}
-            </React.Fragment>)}
+            )}
 
             {/* STEP 2+3: Days, Tees, Handicap - always visible once name is picked */}
             {(selPlayer||isGuest)&&(
@@ -1178,9 +1086,6 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
   // Tee time requests for this day
   const teeRequests=daySignupsKeyed.filter(([,s])=>s.teePreference);
 
-  // Guest pairing requests for this day
-  const guestPairingRequests=daySignupsKeyed.filter(([,s])=>s.isGuest&&s.pairWithGuest&&s.guestOf);
-
   // Compute pairing counts from history
   const pairingCounts=useMemo(()=>{
     const counts={};
@@ -1216,9 +1121,8 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
     if(daySignups.length<3)return;
     const s=parseInt(size||autoSize)||4;
     const pinned=teeRequests.filter(([k,])=>approvals[k]).map(([,sig])=>({name:sig.name,pref:sig.teePreference}));
-    const guestPairs=guestPairingRequests.filter(([k,])=>approvals['gp_'+k]).map(([,sig])=>({guest:sig.name,member:sig.guestOf}));
     setManualTeams(null);setManualMode(false);
-    setEditTeams(buildTeams(daySignups,s,pinned,pairingCounts,guestPairs));
+    setEditTeams(buildTeams(daySignups,s,pinned,pairingCounts));
     setShowAutoOpts(false);
   }
   function moveTeam(fromIdx,toIdx){if(fromIdx===toIdx)return;const base=editTeams||manualTeams||savedTeams;const reordered=[...base];const[moved]=reordered.splice(fromIdx,1);reordered.splice(toIdx,0,moved);if(manualMode)setManualTeams(reordered);else setEditTeams(reordered);}
@@ -1307,35 +1211,6 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
                     </button>
                     <button onClick={()=>setApprovals(a=>({...a,[key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===false?'#fecaca':'#e2e8f0',background:approvals[key]===false?'#fef2f2':'#fff',color:approvals[key]===false?'#dc2626':'#94a3b8',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
                       {approvals[key]===false?'Denied':'Deny'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Guest pairing request approvals */}
-          {guestPairingRequests.length>0&&!editTeams&&currentDisplay.length===0&&(
-            <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,padding:12,marginBottom:10}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                Guest Pairing Requests ({guestPairingRequests.length})
-              </div>
-              <div style={{fontSize:11,color:'#94a3b8',marginBottom:8}}>Approve to place guest and member on the same team</div>
-              {guestPairingRequests.map(([key,s])=>(
-                <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}>
-                  <div>
-                    <span style={{fontSize:13,fontWeight:600}}>{s.name}</span>
-                    <span style={{fontSize:11,color:'#64748b',marginLeft:4}}>with</span>
-                    <span style={{fontSize:13,fontWeight:600,marginLeft:4}}>{s.guestOf}</span>
-                    <span style={{display:'inline-block',padding:'1px 6px',background:'#f0fdf4',color:'#15803d',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:6}}>Guest pair</span>
-                  </div>
-                  <div style={{display:'flex',gap:4}}>
-                    <button onClick={()=>setApprovals(a=>({...a,['gp_'+key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===true?'#10b981':'#e2e8f0',background:approvals['gp_'+key]===true?'#ecfdf5':'#fff',color:approvals['gp_'+key]===true?'#15803d':'#64748b',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
-                      {approvals['gp_'+key]===true?'✓ Approved':'Approve'}
-                    </button>
-                    <button onClick={()=>setApprovals(a=>({...a,['gp_'+key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===false?'#fecaca':'#e2e8f0',background:approvals['gp_'+key]===false?'#fef2f2':'#fff',color:approvals['gp_'+key]===false?'#dc2626':'#94a3b8',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
-                      {approvals['gp_'+key]===false?'Denied':'Deny'}
                     </button>
                   </div>
                 </div>
@@ -1841,130 +1716,108 @@ function renderEmailHTML(week,notes,subject,events){
   const dateRange=getDateRange(week,days);
   const allSignups=week?.signups||{};
 
-  // Count state summary for intro
-  const lockedDays=days.filter(d=>week.teamsPublished&&week.teamsPublished[d]);
-  const openDays=days.filter(d=>!(week.teamsPublished&&week.teamsPublished[d]));
-  let intro='Here\u2019s where things stand for the weekend.';
-  if(lockedDays.length&&openDays.length)intro='Here\u2019s where things stand for the weekend. '+lockedDays.map(d=>d).join(' and ')+' teams are locked in below, and sign-ups are still open for '+openDays.join(' and ')+'.';
-  else if(lockedDays.length)intro='All teams are locked in for the weekend. See your groups below.';
-  else if(openDays.length)intro='Sign-ups are open for the weekend. Check the list below and join if you haven\u2019t already.';
+  let html='<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f4f4f4;padding:20px 0;">';
+  html+='<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">';
 
-  let html=`<div style="font-family:'DM Sans',-apple-system,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">`;
-  // Header
-  html+=`<div style="background:#0f172a;color:#fff;padding:28px 28px 24px;text-align:center;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Clark <em style="color:#f59e0b;font-style:italic;font-weight:600;">Golf</em> Group</div>
-    <div style="margin-top:6px;color:#94a3b8;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Weekly Update</div>
-    <div style="margin-top:4px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:600;color:#fff;">${dateRange}</div>
-  </div>`;
-  // Intro
-  html+=`<div style="padding:22px 28px 4px;font-size:15px;color:#334155;line-height:1.5;">${intro}</div>`;
+  // Gradient header
+  html+='<div style="background:linear-gradient(135deg,#1a4d2e 0%,#25703f 100%);padding:32px 36px 28px;text-align:center;">';
+  html+='<div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.5px;">Clark <span style="color:#6ee7a0;">Golf</span> Group</div>';
+  html+='<div style="color:rgba(255,255,255,0.7);font-size:14px;margin-top:5px;">'+dateRange+'</div>';
+  html+='<a href="https://clark-golf-group-two.vercel.app/" style="display:inline-block;margin-top:18px;background:#fff;color:#1a4d2e;font-size:13px;font-weight:700;padding:9px 20px;border-radius:24px;text-decoration:none;">View sign-ups &amp; teams &#8594;</a>';
+  html+='</div>';
 
-  // CTA - prominent, right after intro
-  html+=`<div style="margin:16px 28px 4px;padding:16px 20px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;text-align:center;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;">Manage Your Sign-ups</div>
-    <div style="margin-top:4px;font-size:13px;color:#78350f;">View live updates, sign up for the days you missed, or change your tees.</div>
-    <a href="https://clark-golf-group-two.vercel.app/" style="display:inline-block;margin-top:12px;padding:11px 22px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;letter-spacing:0.3px;">Open the App \u2192</a>
-  </div>`;
-
-  // Day cards
   days.forEach(day=>{
     const date=week.dates&&week.dates[day];
-    const isLocked=week.teamsPublished&&week.teamsPublished[day];
-    const daySignups=Object.values(allSignups).filter(s=>s.day===day);
+    const isPublished=week.teamsPublished&&week.teamsPublished[day];
+    const daySignups=Object.values(allSignups).filter(s=>s.day===day).sort((a,b)=>a.signedUpAt-b.signedUpAt);
     const teams=safeArray(week.teams&&week.teams[day]);
     const teeInfo=week.teeTimes&&week.teeTimes[day];
     const teeStr=teeInfo?(teeInfo.lottery?'Lottery':teeInfo.time):'TBD';
-    const playerCount=isLocked?teams.reduce((s,t)=>s+safeArray(t.players).length,0):daySignups.length;
+    const playerCount=isPublished?teams.reduce((s,t)=>s+safeArray(t.players).length,0):daySignups.length;
     const note=(notes&&notes[day])||'';
     const dateFmt=fmtDFull(date);
 
-    html+=`<div style="margin:18px 28px;border-radius:12px;overflow:hidden;border:1px solid ${isLocked?'#fde68a':'#e2e8f0'};">`;
-    // Day header
-    html+=`<div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;background:${isLocked?'#fffbeb':'#f8fafc'};border-bottom:1px solid ${isLocked?'#fde68a':'#e2e8f0'};">
-      <div style="display:flex;align-items:baseline;gap:10px;">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">${day}</span>
-        <span style="font-size:13px;font-weight:600;color:#64748b;">${dateFmt}</span>
-      </div>
-      <span style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;${isLocked?'background:#f59e0b;color:#fff;':'background:#dcfce7;color:#15803d;'}">${isLocked?'Teams Locked':'Sign-ups Open'}</span>
-    </div>`;
-    // Tee bar
-    html+=`<div style="padding:12px 18px;background:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;">
-      <div><div style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Tee Time</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#0f172a;">${teeStr}</div></div>
-      <div style="font-size:12px;font-weight:600;color:#475569;background:#f1f5f9;padding:4px 10px;border-radius:6px;"><strong style="color:#0f172a;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;margin-right:2px;">${playerCount}</strong> ${isLocked?'players':'signed up'}</div>
-    </div>`;
-    // Note
+    html+='<div style="padding:28px 36px;border-bottom:1px solid #f0f0f0;">';
+    html+='<div style="margin-bottom:6px;">';
+    html+='<span style="font-size:18px;margin-right:8px;">&#9971;</span>';
+    html+='<span style="font-size:19px;font-weight:700;color:#111;margin-right:10px;">'+day+'</span>';
+    html+='<span style="display:inline-block;background:#1a4d2e;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:0.05em;">'+teeStr+'</span>';
+    html+='</div>';
+    html+='<div style="font-size:12px;color:#888;margin-bottom:16px;">'+dateFmt+' &nbsp;&middot;&nbsp; '+playerCount+' player'+(playerCount!==1?'s':'')+' signed up</div>';
+
     if(note.trim()){
-      html+=`<div style="margin:14px 18px;padding:12px 14px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:13.5px;color:#78350f;line-height:1.45;">
-        <strong style="color:#92400e;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;display:block;margin-bottom:3px;">Note from the admin</strong>${note.trim()}
-      </div>`;
+      html+='<div style="background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:18px;font-size:13px;color:#78350f;line-height:1.6;">';
+      html+='<strong style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#92400e;margin-bottom:4px;">Note from the admin</strong>';
+      html+=note.trim()+'</div>';
     }
-    // Teams or signup list
-    if(isLocked&&teams.length){
-      html+=`<div style="padding:4px 14px 14px;">`;
-      teams.forEach(t=>{
-        html+=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-top:10px;overflow:hidden;">
-          <div style="padding:8px 14px;background:#0f172a;color:#fff;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${t.name||'Group '+t.id}</span>
-            <span style="font-size:11px;color:#f59e0b;font-weight:600;">HCP ${((t.totalHcp||0)+(t.blindDraw?parseFloat(t.blindDraw.handicap||0):0)).toFixed(0)}</span>
-          </div>`;
-        safeArray(t.players).forEach((p,i)=>{
-          html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;${i?'border-top:1px solid #f1f5f9;':''}">
-            <span style="width:22px;height:22px;border-radius:5px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">${p.slot||'A'}</span>
-            <span style="flex:1;font-size:14px;font-weight:600;color:#0f172a;">${p.name}</span>
-            <span style="font-size:11px;color:#94a3b8;font-weight:500;">${p.tee||'Whites'} &middot; HCP ${p.handicap||0}</span>
-          </div>`;
-        });
-        if(t.blindDraw){
-          html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#ecfdf5;border-top:1px solid #bbf7d0;">
-            <span style="width:22px;height:22px;border-radius:5px;background:#dcfce7;color:#15803d;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">DR</span>
-            <span style="flex:1;font-size:14px;font-weight:600;color:#15803d;">${t.blindDraw.name} <span style="font-weight:400;font-size:11px;color:#64748b;">(draw)</span></span>
-            <span style="font-size:11px;color:#94a3b8;font-weight:500;">${t.blindDraw.tee||'Whites'} &middot; HCP ${t.blindDraw.handicap||0}</span>
-          </div>`;
+
+    if(isPublished&&teams.length){
+      html+='<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-spacing:8px;border-collapse:separate;margin:-8px;">';
+      for(let i=0;i<teams.length;i+=2){
+        html+='<tr>';
+        for(let j=i;j<Math.min(i+2,teams.length);j++){
+          const t=teams[j];
+          const hcp=((t.totalHcp||0)+(t.blindDraw?parseFloat(t.blindDraw.handicap||0):0)).toFixed(1);
+          html+='<td width="50%" valign="top" style="background:#fff;border:1px solid #d1fae5;border-radius:8px;padding:14px 16px;box-shadow:0 2px 8px rgba(26,77,46,0.07);">';
+          html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#1a4d2e;margin-bottom:2px;">'+(t.name||'Group '+t.id)+'</div>';
+          html+='<div style="font-size:11px;color:#888;margin-bottom:8px;">HCP '+hcp+'</div>';
+          html+='<div style="height:1px;background:#e8f5e9;margin-bottom:8px;"></div>';
+          safeArray(t.players).forEach(p=>{
+            html+='<div style="padding:5px 0;font-size:13px;color:#222;border-bottom:1px solid #f0f7f0;">';
+            html+='<span style="font-size:9px;font-weight:700;background:#f59e0b;color:#1a1a1a;padding:2px 5px;border-radius:3px;margin-right:7px;">'+(p.slot||'A')+'</span>';
+            html+=p.name+'</div>';
+          });
+          if(t.blindDraw){
+            html+='<div style="padding:5px 0;font-size:13px;color:#15803d;">';
+            html+='<span style="font-size:9px;font-weight:700;background:#dcfce7;color:#15803d;padding:2px 5px;border-radius:3px;margin-right:7px;">DR</span>';
+            html+=t.blindDraw.name+' <span style="font-size:11px;color:#94a3b8;">(draw)</span></div>';
+          }
+          html+='</td>';
         }
-        html+=`</div>`;
-      });
-      html+=`</div>`;
-    } else {
-      const names=daySignups.map(s=>s.name).sort((a,b)=>a.localeCompare(b));
-      if(names.length){
-        html+=`<div style="padding:8px 18px 16px;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;">`;
-        names.forEach(n=>{
-          html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13.5px;color:#1e293b;font-weight:500;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0;display:inline-block;"></span>${n}
-          </div>`;
-        });
-        html+=`</div></div>`;
-      } else {
-        html+=`<div style="text-align:center;padding:14px 8px;color:#94a3b8;font-size:13px;font-style:italic;">No sign-ups yet</div>`;
+        if(teams.length%2!==0&&i+1>=teams.length)html+='<td width="50%"></td>';
+        html+='</tr>';
       }
+      html+='</table>';
+    } else {
+      html+='<table width="100%" cellpadding="0" cellspacing="0" border="0">';
+      html+='<tr><td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;padding:0 0 8px;border-bottom:1px solid #eee;">Player</td>';
+      html+='<td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;padding:0 0 8px;border-bottom:1px solid #eee;text-align:right;">Tees &amp; HCP</td></tr>';
+      daySignups.forEach((s,i)=>{
+        const bg=i%2===0?'#fff':'#fafafa';
+        html+='<tr style="background:'+bg+';">';
+        html+='<td style="padding:9px 8px;font-size:14px;color:#222;border-bottom:1px solid #f5f5f5;">';
+        html+='<span style="display:inline-block;width:22px;height:22px;background:#f0f0f0;border-radius:50%;font-size:11px;font-weight:700;text-align:center;line-height:22px;color:#666;margin-right:8px;">'+(i+1)+'</span>';
+        html+=s.name;
+        if(s.isGuest&&s.guestOf)html+='<span style="display:inline-block;background:#f1f5f9;color:#64748b;font-size:11px;padding:1px 7px;border-radius:20px;margin-left:6px;">Guest of '+s.guestOf+'</span>';
+        html+='</td>';
+        html+='<td style="padding:9px 8px;font-size:12px;color:#888;border-bottom:1px solid #f5f5f5;text-align:right;white-space:nowrap;">'+(s.tee||'Whites')+'&middot;'+s.handicap+'</td>';
+        html+='</tr>';
+      });
+      if(!daySignups.length)html+='<tr><td colspan="2" style="text-align:center;padding:14px;color:#94a3b8;font-size:13px;font-style:italic;">No sign-ups yet</td></tr>';
+      html+='</table>';
     }
-    html+=`</div>`;
+    html+='</div>';
   });
 
-  // Events block
+  // Events at BOTTOM
   if(events&&events.trim()){
     let evHTML=events.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     evHTML=evHTML.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
     evHTML=evHTML.replace(/\*(.+?)\*/g,'<em>$1</em>');
     evHTML=evHTML.replace(/__(.+?)__/g,'<u>$1</u>');
     evHTML=evHTML.replace(/\n/g,'<br>');
-    html+=`<div style="margin:20px 28px;padding:18px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;border-bottom:2px solid #f59e0b;padding-bottom:6px;display:inline-block;">Upcoming Events</div>
-      <div style="font-size:13.5px;color:#334155;line-height:1.7;">${evHTML}</div>
-    </div>`;
+    html+='<div style="padding:24px 36px;border-bottom:1px solid #f0f0f0;background:#fffbeb;">';
+    html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#92400e;margin-bottom:10px;">Upcoming Events</div>';
+    html+='<div style="font-size:14px;color:#78350f;line-height:1.8;">'+evHTML+'</div>';
+    html+='</div>';
   }
 
-  // Bottom link
-  html+=`<div style="margin:20px 28px 8px;text-align:center;">
-    <a href="https://clark-golf-group-two.vercel.app/" style="font-size:13px;font-weight:600;color:#0f172a;text-decoration:underline;">Open the App \u2192</a>
-  </div>`;
-
   // Footer
-  html+=`<div style="padding:22px 28px 26px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;margin-top:14px;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#475569;letter-spacing:1px;margin-bottom:4px;">CLARK GOLF GROUP</div>
-    Weekly update sent every week during the season.<br>Reply to this email with any questions.
-  </div></div>`;
-
+  html+='<div style="padding:20px 36px;background:#f8f8f8;text-align:center;">';
+  html+='<p style="font-size:12px;color:#aaa;margin:0;"><a href="https://clark-golf-group-two.vercel.app/" style="color:#1a4d2e;">clark-golf-group-two.vercel.app</a></p>';
+  html+='<p style="font-size:12px;color:#aaa;margin:4px 0 0;">Clark Golf Group &middot; Members only</p>';
+  html+='</div>';
+  html+='</div></div>';
   return html;
 }
 
@@ -1973,69 +1826,53 @@ function renderEmailPlainText(week,notes,subject,events){
   const dateRange=getShortDateRange(week,days);
   const allSignups=week?.signups||{};
   const nl='\n';
-  const div1='\u2550'.repeat(39);
-  const div2='\u2500'.repeat(39);
+  const DIV='\u2501'.repeat(38);
+  const div='\u2500'.repeat(32);
 
-  let txt=div1+nl+'   CLARK GOLF GROUP'+nl+'   Weekly Update \u00B7 '+dateRange+nl+div1+nl+nl;
-
-  const lockedDays=days.filter(d=>week.teamsPublished&&week.teamsPublished[d]);
-  const openDays=days.filter(d=>!(week.teamsPublished&&week.teamsPublished[d]));
-  if(lockedDays.length&&openDays.length)txt+=lockedDays.join(' and ')+' teams are locked. Sign-ups open for '+openDays.join(' and ')+'.'+nl;
-  else if(lockedDays.length)txt+='All teams locked for the weekend.'+nl;
-  else if(openDays.length)txt+='Sign-ups are open for the weekend.'+nl;
-
-  txt+=nl+'\u2192 Manage sign-ups: https://clark-golf-group-two.vercel.app/'+nl;
+  let txt=DIV+nl+'CLARK GOLF GROUP'+nl+'Week of '+dateRange+nl+'clark-golf-group-two.vercel.app'+nl+DIV+nl;
 
   days.forEach(day=>{
     const date=week.dates&&week.dates[day];
-    const isLocked=week.teamsPublished&&week.teamsPublished[day];
-    const daySignups=Object.values(allSignups).filter(s=>s.day===day);
+    const isPublished=week.teamsPublished&&week.teamsPublished[day];
+    const daySignups=Object.values(allSignups).filter(s=>s.day===day).sort((a,b)=>a.signedUpAt-b.signedUpAt);
     const teams=safeArray(week.teams&&week.teams[day]);
     const teeInfo=week.teeTimes&&week.teeTimes[day];
     const teeStr=teeInfo?(teeInfo.lottery?'LOTTERY':teeInfo.time):'TBD';
-    const playerCount=isLocked?teams.reduce((s,t)=>s+safeArray(t.players).length,0):daySignups.length;
+    const playerCount=isPublished?teams.reduce((s,t)=>s+safeArray(t.players).length,0):daySignups.length;
     const note=(notes&&notes[day])||'';
     const dateFmt=fmtDFull(date);
 
-    txt+=nl+nl+div2+nl;
-    txt+=day.toUpperCase()+' \u00B7 '+dateFmt.toUpperCase()+nl;
-    txt+=(isLocked?'TEAMS LOCKED':'SIGN-UPS OPEN')+' \u00B7 '+playerCount+' '+(isLocked?'PLAYERS':'SIGNED UP')+' \u00B7 TEE '+teeStr+nl;
-    txt+=div2+nl;
+    txt+=nl+'\u26F3  '+day.toUpperCase()+' \u00B7 '+dateFmt+nl;
+    txt+='Tee: '+teeStr+' \u00B7 '+playerCount+' player'+(playerCount!==1?'s':'')+' signed up'+nl;
 
-    if(note.trim()){
-      txt+=nl+'NOTE FROM THE ADMIN:'+nl+note.trim()+nl;
-    }
+    if(note.trim()){txt+=nl+'NOTE: '+note.trim()+nl;}
 
-    if(isLocked&&teams.length){
+    if(isPublished&&teams.length){
       teams.forEach(t=>{
-        txt+=nl+(t.name||'Group '+t.id).toUpperCase()+'  (HCP '+((t.totalHcp||0)+(t.blindDraw?parseFloat(t.blindDraw.handicap||0):0)).toFixed(0)+')'+nl;
-        safeArray(t.players).forEach(p=>{
-          const nm=(p.name||'').padEnd(20);
-          txt+='  '+p.slot+' \u00B7 '+nm+(p.tee||'Whites')+' \u00B7 HCP '+p.handicap+nl;
-        });
-        if(t.blindDraw){
-          const nm=(t.blindDraw.name||'').padEnd(20);
-          txt+='  DR\u00B7 '+nm+(t.blindDraw.tee||'Whites')+' \u00B7 HCP '+t.blindDraw.handicap+' (draw)'+nl;
-        }
+        const hcp=((t.totalHcp||0)+(t.blindDraw?parseFloat(t.blindDraw.handicap||0):0)).toFixed(0);
+        txt+=nl+'  '+(t.name||'Group '+t.id)+'  (HCP '+hcp+')'+nl;
+        txt+='  '+div+nl;
+        safeArray(t.players).forEach(p=>{txt+='  '+p.slot+' \u00B7 '+p.name+nl;});
+        if(t.blindDraw){txt+='  DR \u00B7 '+t.blindDraw.name+' (draw)'+nl;}
       });
     } else {
-      const names=daySignups.map(s=>s.name).sort((a,b)=>a.localeCompare(b));
       txt+=nl;
-      for(let i=0;i<names.length;i+=2){
-        const left='  \u2022 '+(names[i]||'').padEnd(24);
-        const right=names[i+1]?'\u2022 '+names[i+1]:'';
-        txt+=left+right+nl;
-      }
+      daySignups.forEach((s,i)=>{
+        txt+='  '+(i+1)+'. '+s.name+(s.isGuest&&s.guestOf?' (Guest of '+s.guestOf+')':'')+nl;
+        txt+='     '+s.tee+' \u00B7 HCP '+s.handicap+nl;
+      });
+      if(!daySignups.length)txt+='  No sign-ups yet'+nl;
     }
+
+    txt+=nl+DIV+nl;
   });
 
-  // Events
   if(events&&events.trim()){
     let evTxt=events.trim().replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1');
-    txt+=nl+nl+'\u2500'.repeat(39)+nl+'UPCOMING EVENTS'+nl+'\u2500'.repeat(39)+nl+nl+evTxt+nl;
+    txt+=nl+'UPCOMING EVENTS'+nl+div+nl+nl+evTxt+nl+nl+DIV+nl;
   }
 
-  txt+=nl+nl+'\u2192 Manage sign-ups: https://clark-golf-group-two.vercel.app/'+nl;
+  txt+=nl+'clark-golf-group-two.vercel.app'+nl;
   return txt;
 }
 
@@ -2043,6 +1880,7 @@ function EmailView({week,isAdmin,isDemo}){
   const[subject,setSubject]=useState('');
   const[copiedMain,setCopiedMain]=useState(false);
   const[copiedText,setCopiedText]=useState(false);
+  const[showPreview,setShowPreview]=useState(false);
   const debounceRef=React.useRef(null);
 
   const days=getUpcomingDays(week);
@@ -2130,27 +1968,32 @@ function EmailView({week,isAdmin,isDemo}){
         </div>
       )}
 
-      {/* Preview */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
-        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',textTransform:'uppercase',letterSpacing:1}}>Preview</div>
-        <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>What recipients see</div>
-      </div>
-      <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,overflow:'hidden'}}>
-        <div style={{background:'#f8fafc',padding:'8px 12px',borderBottom:'1px solid #e2e8f0',display:'flex',alignItems:'center',gap:6,fontSize:10,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:1}}>
-          <span style={{width:8,height:8,borderRadius:'50%',background:'#10b981',flexShrink:0,display:'inline-block'}}></span>Live Preview
+      {/* Preview modal button */}
+      <button onClick={()=>setShowPreview(true)} style={{width:'100%',margin:'16px 0',padding:13,borderRadius:10,border:'1.5px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,color:'#0f172a',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Preview Email
+      </button>
+      {showPreview&&(
+        <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setShowPreview(false);}} style={{alignItems:'flex-start',paddingTop:20,zIndex:300}}>
+          <div className="modal" style={{maxWidth:620,borderRadius:16,padding:'14px 14px 20px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <div className="modal-title" style={{marginBottom:0}}>Email Preview</div>
+              <button onClick={()=>setShowPreview(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#94a3b8',padding:4,lineHeight:1}}>&#x2715;</button>
+            </div>
+            <div style={{background:'#f1f5f9',borderRadius:8,padding:10,maxHeight:'70vh',overflowY:'auto'}}>
+              <iframe srcDoc={previewDoc} style={{width:'100%',border:'none',minHeight:600,borderRadius:6,background:'#fff',display:'block'}} title="Email Preview"/>
+            </div>
+          </div>
         </div>
-        <div style={{padding:12,background:'#f1f5f9',maxHeight:400,overflowY:'auto'}}>
-          <iframe srcDoc={previewDoc} style={{width:'100%',border:'none',minHeight:500,borderRadius:8,background:'#fff'}} title="Email Preview"/>
-        </div>
-      </div>
+      )}
 
       {/* Sticky action bar */}
       <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'1px solid #e2e8f0',padding:'12px 16px',display:'flex',gap:8,boxShadow:'0 -4px 12px rgba(0,0,0,0.04)',zIndex:50,maxWidth:1100,margin:'0 auto'}}>
         <button onClick={copyEmail} style={{flex:1,padding:12,borderRadius:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:copiedMain?'#10b981':'#0f172a',color:'#fff',transition:'background 0.2s'}}>
-          {copiedMain?(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>):(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy Email</>)}
+          {copiedMain?(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>):(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy Formatted</>)}
         </button>
         <button onClick={copyPlainText} style={{flex:1,padding:12,borderRadius:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,border:'1.5px solid #e2e8f0',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,background:copiedText?'#ecfdf5':'#fff',color:copiedText?'#15803d':'#475569',transition:'background 0.2s'}}>
-          {copiedText?(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>):(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Plain Text</>)}
+          {copiedText?(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>):(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Copy Plain Text</>)}
         </button>
       </div>
     </div>
@@ -2172,12 +2015,12 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
   useEffect(()=>{setLocalNotes(week?.emailNotes||{});setLocalEvents(week?.emailEvents||'');},[week?.emailNotes,week?.emailEvents]);
 
-  function updateNote(day,val){if(val.length>1000)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
+  function updateNote(day,val){if(val.length>560)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
   function clearNote(day){const u={...localNotes,[day]:''};setLocalNotes(u);onSaveNotes(u);}
   function updateLocalEvents(val){setLocalEvents(val);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(val),500);}
   function applyFormat(tag){const ta=eventsRef.current;if(!ta)return;const start=ta.selectionStart;const end=ta.selectionEnd;const sel=localEvents.substring(start,end);if(!sel)return;const wrap=tag==='b'?'**':tag==='i'?'*':'__';const nv=localEvents.substring(0,start)+wrap+sel+wrap+localEvents.substring(end);setLocalEvents(nv);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(nv),500);setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);}
   const [quickAddHcp,setQuickAddHcp]=useState('');const [addDay,setAddDay]=useState('Saturday');const [showRoster,setShowRoster]=useState(false);
-  const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:'',guestOf:'',pairWithGuest:false});
+  const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:''});
   const [showGuest,setShowGuest]=useState(false);const [showSignups,setShowSignups]=useState(false);
   const [dayEdit,setDayEdit]=useState({});const [warnDeact,setWarnDeact]=useState(null);const [closeoutConfirm,setCloseoutConfirm]=useState(false);const [endConfirmText,setEndConfirmText]=useState('');
   const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
@@ -2245,8 +2088,8 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                     <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,textTransform:'uppercase'}}>{day}</span>
                     {val&&<button onClick={()=>clearNote(day)} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
                   </div>
-                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:120,background:'transparent'}}/> 
-                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 1000</div>
+                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'none',minHeight:50,background:'transparent'}}/>
+                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 560</div>
                 </div>
               );
             })}
@@ -2260,7 +2103,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                 <span style={{flex:1}}></span>
                 {localEvents&&<button onClick={()=>{if(confirm('Clear all upcoming events?')){setLocalEvents('');onSaveEvents('');}}} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
               </div>
-              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:180,background:'transparent',lineHeight:1.6}}/>
+              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:100,background:'transparent',lineHeight:1.6}}/>
               <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>Use toolbar to format. **bold** *italic* __underline__</div>
             </div>
           </div>)}
@@ -2280,30 +2123,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             <div className="sw" style={{marginBottom:8}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input className="si" placeholder="Quick-add player..." value={addQ} onChange={e=>setAddQ(e.target.value)}/></div>
             {addQ.length>0&&(<div style={{border:'1px solid #e2e8f0',borderRadius:9,marginBottom:10,maxHeight:150,overflowY:'auto'}}>{rosterSearch.map(p=>{const inDay=allSignups.some(([,s])=>s.day===addDay&&s.name===p.name);const isExpanded=quickAddSel===p.id;return(<div key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 11px'}}><span style={{fontSize:13,fontWeight:500,color:inDay?'#94a3b8':'#0f172a'}}>{p.name}{inDay?' (signed up)':''}</span>{!inDay&&<button className="btn btn-green btn-xs" onClick={()=>setQuickAddSel(isExpanded?null:p.id)}>{isExpanded?'Cancel':'Add'}</button>}</div>{isExpanded&&!inDay&&(<div style={{padding:'0 11px 10px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'flex-end'}}><div style={{flex:'1 1 80px'}}><label className="fl">Tees</label><select className="fs" value={quickAddTee} onChange={e=>setQuickAddTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div><div style={{flex:'1 1 70px'}}><label className="fl">HCP</label><input className="fi" type="number" placeholder="e.g. 14" value={quickAddHcp} onChange={e=>setQuickAddHcp(e.target.value)}/></div><button className="btn btn-green btn-sm" disabled={!quickAddHcp} style={{opacity:!quickAddHcp?0.4:1,alignSelf:'flex-end'}} onClick={()=>{onAddSignup({playerId:p.id,name:p.name,tee:quickAddTee,handicap:parseFloat(quickAddHcp)||10,day:addDay,signedUpAt:Date.now()});setAddQ('');setQuickAddSel(null);setQuickAddHcp('');setQuickAddTee('Whites');}}>Confirm</button></div>)}</div>);})}</div>)}
             <button className="btn btn-outline btn-sm" style={{marginBottom:8}} onClick={()=>setShowGuest(!showGuest)}>{showGuest?'Cancel':'+ Add Guest'}</button>
-            {showGuest&&(<div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}>
-              <div className="fr" style={{marginBottom:8}}>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div>
-              </div>
-              <div className="fg" style={{marginBottom:8}}><label className="fl">Guest of (member)</label>
-                <select className="fs" value={gp.guestOf} onChange={e=>setGp({...gp,guestOf:e.target.value,pairWithGuest:false})}>
-                  <option value="">— Select member —</option>
-                  {[...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
-                </select>
-              </div>
-              {gp.guestOf&&(
-                <div onClick={()=>setGp(g=>({...g,pairWithGuest:!g.pairWithGuest}))} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',marginBottom:8,borderRadius:8,border:'1.5px solid '+(gp.pairWithGuest?'#10b981':'#e2e8f0'),background:gp.pairWithGuest?'#ecfdf5':'#fff',cursor:'pointer'}}>
-                  <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:gp.pairWithGuest?'#10b981':'#cbd5e1',background:gp.pairWithGuest?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    {gp.pairWithGuest&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
-                  </div>
-                  <div style={{fontSize:12,fontWeight:600,color:gp.pairWithGuest?'#15803d':'#475569'}}>Request to pair with {gp.guestOf}</div>
-                </div>
-              )}
-              <div className="fr">
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div>
-                <div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),guestOf:gp.guestOf||null,pairWithGuest:gp.pairWithGuest&&gp.guestOf?true:null,day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:'',guestOf:'',pairWithGuest:false});setShowGuest(false);}}>Add Guest</button></div>
-              </div>
-            </div>)}
+            {showGuest&&(<div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:12,marginBottom:10}}><div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Guest name</label><input className="fi" placeholder="Full name" value={gp.name} onChange={e=>setGp({...gp,name:e.target.value})}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Tees</label><select className="fs" value={gp.tee} onChange={e=>setGp({...gp,tee:e.target.value})}>{TEES.map(t=><option key={t}>{t}</option>)}</select></div></div><div className="fr"><div className="fg" style={{marginBottom:0}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={gp.hcp} onChange={e=>setGp({...gp,hcp:e.target.value})}/></div><div style={{display:'flex',alignItems:'flex-end'}}><button className="btn btn-green btn-sm" onClick={()=>{if(!gp.name||!gp.hcp)return;onAddSignup({playerId:'g_'+Date.now(),name:gp.name,isGuest:true,tee:gp.tee,handicap:parseFloat(gp.hcp),day:addDay,signedUpAt:Date.now()});onAddPlayer({name:gp.name,isGuest:true});setGp({name:'',tee:'Whites',hcp:''});setShowGuest(false);}}>Add Guest</button></div></div></div>)}
             <div style={{maxHeight:190,overflowY:'auto'}}>{allSignups.filter(([,s])=>s.day===addDay).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt).map(([key,s])=>(<div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f8fafc'}}><div><span style={{fontSize:13,fontWeight:600}}>{s.name}</span><span style={{fontSize:11,color:'#94a3b8',marginLeft:6}}>{s.tee} HCP {s.handicap}</span>{s.isGuest&&<span className="guest-tag" style={{marginLeft:4}}>Guest</span>}</div><button className="rm-btn" onClick={()=>onRemoveSignup(key)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button></div>))}</div>
           </div>
         )}
@@ -2597,7 +2417,7 @@ function App(){
   return(
     <div className="app">
       <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
-        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>window.location.reload()} title="Refresh">↺ Refresh</button><button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
+        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
         <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}}>Season Attendance →</a></div>
       </div></div>
@@ -2619,87 +2439,6 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
-<script>
-(function(){
-  var banner=document.getElementById('pwa-install-banner');
-  var spacer=document.getElementById('pwa-spacer');
-  var dismissBtn=document.getElementById('pwa-banner-dismiss');
-  var androidSection=document.getElementById('pwa-android-section');
-  var iosSection=document.getElementById('pwa-ios-section');
-  var installBtn=document.getElementById('pwa-install-btn');
-  var landBtn=document.getElementById('pwa-land-btn');
-  if(!banner)return;
-
-  // Already installed as PWA? Mark body so CSS hides the install button, then stop.
-  var isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  if(isStandalone){document.body.classList.add('pwa-standalone');return;}
-
-  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  var deferredPrompt=null;
-
-  function showBanner(){
-    androidSection.style.display='none';iosSection.style.display='none';
-    if(deferredPrompt){androidSection.style.display='block';}
-    else if(isIOS&&isSafari){iosSection.style.display='block';}
-    else{return;}
-    banner.classList.remove('hidden');
-    setTimeout(function(){spacer.style.height=banner.offsetHeight+'px';},60);
-  }
-  function hideBanner(){
-    banner.classList.add('hidden');spacer.style.height='0px';
-    try{localStorage.setItem('pwa-dismissed',Date.now().toString());}catch(e){}
-  }
-
-  // Android: intercept native install prompt
-  window.addEventListener('beforeinstallprompt',function(e){
-    e.preventDefault();deferredPrompt=e;
-    try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
-  });
-
-  // iOS Safari: show top banner (unless dismissed recently)
-  if(isIOS&&isSafari){
-    try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
-  }
-
-  // Top banner install button (Android)
-  if(installBtn){installBtn.addEventListener('click',function(){
-    if(!deferredPrompt)return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted')hideBanner();});
-  });}
-
-  // Top banner dismiss
-  if(dismissBtn){dismissBtn.addEventListener('click',hideBanner);}
-
-  // Landing page button — event delegation so it works after React renders
-  document.addEventListener('click',function(e){
-    if(!e.target.closest('#pwa-land-btn'))return;
-    if(deferredPrompt){
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function(r){deferredPrompt=null;});
-    } else {
-      showBanner();
-      window.scrollTo({top:0,behavior:'smooth'});
-    }
-  });
-
-  // Mark as installed once done
-  window.addEventListener('appinstalled',function(){
-    hideBanner();document.body.classList.add('pwa-standalone');
-  });
-
-  // Hide landing button once app is installed
-  window.addEventListener('appinstalled',function(){
-    hideBanner();if(landWrap)landWrap.style.display='none';
-  });
-
-  // Register service worker
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){
-    navigator.serviceWorker.register('/service-worker.js').catch(function(){});
-  });}
-})();
 </script>
 </body>
 </html>
