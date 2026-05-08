@@ -2166,7 +2166,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
   useEffect(()=>{setLocalNotes(week?.emailNotes||{});setLocalEvents(week?.emailEvents||'');},[week?.emailNotes,week?.emailEvents]);
 
-  function updateNote(day,val){if(val.length>560)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
+  function updateNote(day,val){if(val.length>1000)return;const u={...localNotes,[day]:val};setLocalNotes(u);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveNotes(u),500);}
   function clearNote(day){const u={...localNotes,[day]:''};setLocalNotes(u);onSaveNotes(u);}
   function updateLocalEvents(val){setLocalEvents(val);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(val),500);}
   function applyFormat(tag){const ta=eventsRef.current;if(!ta)return;const start=ta.selectionStart;const end=ta.selectionEnd;const sel=localEvents.substring(start,end);if(!sel)return;const wrap=tag==='b'?'**':tag==='i'?'*':'__';const nv=localEvents.substring(0,start)+wrap+sel+wrap+localEvents.substring(end);setLocalEvents(nv);if(notesDebounce.current)clearTimeout(notesDebounce.current);notesDebounce.current=setTimeout(()=>onSaveEvents(nv),500);setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);}
@@ -2239,8 +2239,8 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                     <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,textTransform:'uppercase'}}>{day}</span>
                     {val&&<button onClick={()=>clearNote(day)} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
                   </div>
-                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'none',minHeight:50,background:'transparent'}}/>
-                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 560</div>
+                  <textarea value={val} onChange={e=>updateNote(day,e.target.value)} placeholder={'Note for '+day+' (game format, reminders...)'} style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:120,background:'transparent'}}/> 
+                  <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>{val.length} / 1000</div>
                 </div>
               );
             })}
@@ -2254,7 +2254,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                 <span style={{flex:1}}></span>
                 {localEvents&&<button onClick={()=>{if(confirm('Clear all upcoming events?')){setLocalEvents('');onSaveEvents('');}}} style={{fontSize:10,fontWeight:600,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Clear</button>}
               </div>
-              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:100,background:'transparent',lineHeight:1.6}}/>
+              <textarea ref={eventsRef} value={localEvents} onChange={e=>updateLocalEvents(e.target.value)} placeholder="Tournament schedules, announcements, upcoming events..." style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'DM Sans,sans-serif',fontSize:12,color:'#1e293b',resize:'vertical',minHeight:180,background:'transparent',lineHeight:1.6}}/>
               <div style={{padding:'4px 12px 6px',fontSize:10,color:'#94a3b8'}}>Use toolbar to format. **bold** *italic* __underline__</div>
             </div>
           </div>)}
