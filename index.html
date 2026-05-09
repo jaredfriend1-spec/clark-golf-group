@@ -426,9 +426,62 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
   .edit-btn{font-size:12px}
   .guest-tag{font-size:12px;padding:2px 8px}
 }
+
+/* ── PWA Install Banner ── */
+#pwa-install-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a4d2e;color:white;box-shadow:0 4px 20px rgba(0,0,0,0.4);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;transition:transform 0.3s}
+#pwa-install-banner.hidden{display:none}
+#pwa-banner-inner{padding:14px 16px 16px}
+#pwa-banner-dismiss{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+#pwa-android-section{display:none;text-align:center}
+#pwa-android-section h3{margin:0 0 4px;font-size:17px;font-weight:700}
+#pwa-android-section p{margin:0 0 12px;font-size:13px;opacity:.85}
+#pwa-install-btn{background:#4CAF50;color:white;border:none;border-radius:28px;padding:14px 28px;font-size:17px;font-weight:700;cursor:pointer;width:100%;max-width:340px;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto;box-shadow:0 4px 14px rgba(76,175,80,0.45)}
+#pwa-install-btn:active{transform:scale(0.97)}
+#pwa-ios-section{display:none}
+#pwa-ios-section h3{margin:0 0 10px;font-size:16px;font-weight:700;text-align:center}
+.pwa-ios-steps{display:flex;flex-direction:column;gap:8px}
+.pwa-ios-step{display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px}
+.pwa-ios-num{background:#4CAF50;color:white;border-radius:50%;width:24px;height:24px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pwa-ios-txt{font-size:13px;line-height:1.4}
+.pwa-ios-txt strong{display:block;font-size:14px;margin-bottom:2px}
+#pwa-spacer{height:0;transition:height 0.3s}
+/* PWA landing install button — mobile only, hidden once installed */
+#pwa-land-install{display:none}
+@media(max-width:767px){#pwa-land-install{display:block}}
+.pwa-standalone #pwa-land-install{display:none!important}
 </style>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a4d2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clark Golf">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
 </head>
 <body>
+<div id="pwa-install-banner" class="hidden">
+  <div id="pwa-banner-inner">
+    <button id="pwa-banner-dismiss" title="Dismiss">&#x2715;</button>
+    <!-- Android -->
+    <div id="pwa-android-section">
+      <h3>&#128242; Get the Clark Golf App</h3>
+      <p>Add it to your home screen &#8212; no app store needed!</p>
+      <button id="pwa-install-btn"><span style="font-size:20px">&#9971;</span> Install App on Your Phone</button>
+    </div>
+    <!-- iOS -->
+    <div id="pwa-ios-section">
+      <h3>&#128242; Add Clark Golf to Your Home Screen</h3>
+      <div class="pwa-ios-steps">
+        <div class="pwa-ios-step"><div class="pwa-ios-num">1</div><div class="pwa-ios-txt"><strong>Tap the Share button</strong>The box with an arrow &#x2191; at the bottom of Safari</div></div>
+        <div class="pwa-ios-step"><div class="pwa-ios-num">2</div><div class="pwa-ios-txt"><strong>Tap "Add to Home Screen"</strong>Scroll down &#8212; it has a + icon next to it</div></div>
+        <div class="pwa-ios-step"><div class="pwa-ios-num">3</div><div class="pwa-ios-txt"><strong>Tap "Add" in the top right</strong>The Clark Golf icon appears on your home screen!</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="pwa-spacer"></div>
 <div id="loader" class="loading-screen">
 <div class="loading-spinner"></div>
 <div class="loading-brand">Clark <em>Golf</em> Group</div>
@@ -744,6 +797,11 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
             <div className="land-demo-divider" style={{marginTop:24}}>Need Help?</div>
             <div style={{textAlign:'center'}}>
               <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
+            </div>
+            <div id="pwa-land-install" style={{textAlign:'center',marginTop:8}}>
+              <button id="pwa-land-btn" style={{background:'none',border:'1.5px solid rgba(255,255,255,0.18)',borderRadius:24,padding:'9px 20px',color:'rgba(255,255,255,0.6)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}>
+                <span style={{fontSize:15}}>&#128242;</span> Add App to Home Screen
+              </button>
             </div>
           </div>
         ):(
@@ -2055,15 +2113,16 @@ function EmailView({week,isAdmin,isDemo}){
     }catch(e){console.error(e);}
   }
 
-  const emailHTML=renderEmailHTML(week,notes,subject,events);
-  const previewDoc='<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"><style>body{margin:0;padding:12px;background:#f1f5f9;font-family:"DM Sans",sans-serif;}</style></head><body>'+emailHTML+'</body></html>';
-
   if(!days.length)return(
     <div className="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{marginBottom:8}}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
       <div className="empty-title">No upcoming play days</div>
       <div className="empty-sub">Set up days in the Admin tab first, or all days have already passed.</div>
     </div>
   );
+
+  let emailHTML='';
+  try{emailHTML=renderEmailHTML(week,notes,subject,events)||'';}catch(e){emailHTML='<p style="padding:20px;color:#dc2626;">Preview error: '+e.message+'</p>';}
+    const previewDoc='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;padding:12px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;}</style></head><body>'+emailHTML+'</body></html>';
 
   return(
     <div style={{paddingBottom:80}}>
@@ -2604,6 +2663,73 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+(function(){
+  var banner=document.getElementById('pwa-install-banner');
+  var spacer=document.getElementById('pwa-spacer');
+  var dismissBtn=document.getElementById('pwa-banner-dismiss');
+  var androidSection=document.getElementById('pwa-android-section');
+  var iosSection=document.getElementById('pwa-ios-section');
+  var installBtn=document.getElementById('pwa-install-btn');
+  if(!banner)return;
+
+  var isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(isStandalone){document.body.classList.add('pwa-standalone');return;}
+
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  var deferredPrompt=null;
+
+  function showBanner(){
+    androidSection.style.display='none';iosSection.style.display='none';
+    if(deferredPrompt){androidSection.style.display='block';}
+    else if(isIOS&&isSafari){iosSection.style.display='block';}
+    else{return;}
+    banner.classList.remove('hidden');
+    setTimeout(function(){spacer.style.height=banner.offsetHeight+'px';},60);
+  }
+  function hideBanner(){
+    banner.classList.add('hidden');spacer.style.height='0px';
+    try{localStorage.setItem('pwa-dismissed',Date.now().toString());}catch(e){}
+  }
+
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();deferredPrompt=e;
+    try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
+  });
+
+  if(isIOS&&isSafari){
+    try{var ts=localStorage.getItem('pwa-dismissed');if(!ts||Date.now()-parseInt(ts)>=7*24*60*60*1000){showBanner();}}catch(ex){showBanner();}
+  }
+
+  if(installBtn){installBtn.addEventListener('click',function(){
+    if(!deferredPrompt)return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(r){deferredPrompt=null;if(r.outcome==='accepted')hideBanner();});
+  });}
+
+  if(dismissBtn){dismissBtn.addEventListener('click',hideBanner);}
+
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('#pwa-land-btn'))return;
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(r){deferredPrompt=null;});
+    } else {
+      showBanner();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+  });
+
+  window.addEventListener('appinstalled',function(){
+    hideBanner();document.body.classList.add('pwa-standalone');
+  });
+
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+  });}
+})();
 </script>
 </body>
 </html>
