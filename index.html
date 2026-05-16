@@ -524,6 +524,17 @@ const ROSTER=[
   {id:91,name:"Rick Windon"},{id:92,name:"Bill Wood"},{id:93,name:"Jeff Yeakle"},
   {id:94,name:"Bruce Yoo"},{id:95,name:"Gary Zgorski"},{id:96,name:"Geoff Zgorski"}
 ];
+
+const DEMO_ROSTER=[
+  {id:201,name:'Tiger Woods'},{id:202,name:'Scottie Scheffler'},{id:203,name:'Rory McIlroy'},
+  {id:204,name:'Jon Rahm'},{id:205,name:'Dustin Johnson'},{id:206,name:'Brooks Koepka'},
+  {id:207,name:'Phil Mickelson'},{id:208,name:'Justin Thomas'},{id:209,name:'Xander Schauffele'},
+  {id:210,name:'Jordan Spieth'},{id:211,name:'Patrick Cantlay'},{id:212,name:'Collin Morikawa'},
+  {id:213,name:'Tony Finau'},{id:214,name:'Viktor Hovland'},{id:215,name:'Matt Fitzpatrick'},
+  {id:216,name:'John Daly'},{id:217,name:'Lee Trevino'},{id:218,name:'Jack Nicklaus'},
+  {id:219,name:'Arnold Palmer'},{id:220,name:'Gary Player'},{id:221,name:'Greg Norman'},
+  {id:222,name:'Nick Faldo'},{id:223,name:'Ernie Els'},{id:224,name:'Vijay Singh'},
+];
 const TEES=['Blends','Whites','Golds','SGA'];
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const ADMIN_PW='clark';
@@ -744,29 +755,111 @@ function buildPayouts(pot,places,teams,scores,seg,custom1,custom2){
 }
 
 function makeDemoData(){
-  const DEMO_PLAYERS=[
-    {name:"Chris Allen",hcp:5},{name:"Robert Chase",hcp:15},{name:"Jon Rucker",hcp:23},{name:"Mike Barry",hcp:8},
-    {name:"Jeff Sarris",hcp:6},{name:"Duane Robins",hcp:11},{name:"Jim Weiskopf",hcp:14},{name:"Clark Kunkle",hcp:11},
-    {name:"Bob Latos",hcp:9},{name:"Frank McGuire",hcp:22},{name:"Brian Grimes",hcp:5},{name:"Tim Marose",hcp:9},
-    {name:"Tom Watson",hcp:19},{name:"Cesar Rodriguez",hcp:7},{name:"John McCarthy",hcp:12},{name:"George Divver",hcp:19},
+  const wd=getWeekDates();
+
+  // ── SATURDAY — 12 players + guest, teams published, not yet scored ──
+  const SAT=[
+    {name:'Tiger Woods',hcp:2,tee:'Whites',pref:'first'},
+    {name:'Scottie Scheffler',hcp:3,tee:'Whites',pref:null},
+    {name:'Rory McIlroy',hcp:4,tee:'Whites',pref:null},
+    {name:'Jon Rahm',hcp:5,tee:'Whites',pref:null},
+    {name:'Dustin Johnson',hcp:6,tee:'Whites',pref:null},
+    {name:'Brooks Koepka',hcp:7,tee:'Golds',pref:null},
+    {name:'Phil Mickelson',hcp:8,tee:'Whites',pref:null},
+    {name:'Patrick Cantlay',hcp:12,tee:'Golds',pref:null},
+    {name:'Tony Finau',hcp:16,tee:'Whites',pref:null},
+    {name:'Viktor Hovland',hcp:18,tee:'Golds',pref:null},
+    {name:'Matt Fitzpatrick',hcp:20,tee:'Whites',pref:null},
+    {name:'John Daly',hcp:24,tee:'Blends',pref:'last'},
   ];
-  const signups={};
-  DEMO_PLAYERS.forEach((p,i)=>{
-    const pref=p.name==='Chris Allen'?'first':p.name==='Tom Watson'?'last':null;
-    signups['d'+i]={playerId:i+1,name:p.name,tee:'Whites',handicap:p.hcp,teePreference:pref,day:'Saturday',signedUpAt:Date.now()+i};
-  });
-  const demoTeams=[
-    {id:1,name:'Team One',totalHcp:51,players:[{name:'Chris Allen',tee:'Whites',handicap:5,slot:'A'},{name:'Jeff Sarris',tee:'Whites',handicap:6,slot:'B'},{name:'George Divver',tee:'Whites',handicap:19,slot:'C'},{name:'Jon Rucker',tee:'Whites',handicap:23,slot:'D'}]},
-    {id:2,name:'Team Two',totalHcp:47,players:[{name:'Brian Grimes',tee:'Whites',handicap:5,slot:'A'},{name:'Cesar Rodriguez',tee:'Whites',handicap:7,slot:'B'},{name:'Mike Barry',tee:'Whites',handicap:8,slot:'C'},{name:'Tom Watson',tee:'Whites',handicap:19,slot:'D'}]},
-    {id:3,name:'Team Three',totalHcp:44,players:[{name:'Bob Latos',tee:'Whites',handicap:9,slot:'A'},{name:'Tim Marose',tee:'Whites',handicap:9,slot:'B'},{name:'Duane Robins',tee:'Whites',handicap:11,slot:'C'},{name:'Robert Chase',tee:'Whites',handicap:15,slot:'D'}]},
-    {id:4,name:'Team Four',totalHcp:56,players:[{name:'Clark Kunkle',tee:'Whites',handicap:11,slot:'A'},{name:'John McCarthy',tee:'Whites',handicap:12,slot:'B'},{name:'Jim Weiskopf',tee:'Whites',handicap:14,slot:'C'},{name:'Frank McGuire',tee:'Whites',handicap:22,slot:'D'}]},
+  const satSignups={};
+  SAT.forEach((p,i)=>{satSignups['s'+i]={playerId:200+i,name:p.name,tee:p.tee,handicap:p.hcp,teePreference:p.pref||null,day:'Saturday',signedUpAt:Date.now()+i*100};});
+  satSignups['sg']={playerId:'g_demo',name:'Happy Gilmore',isGuest:true,guestOf:'Tiger Woods',pairWithGuest:true,tee:'Whites',handicap:28,day:'Saturday',signedUpAt:Date.now()+1300};
+
+  const satTeams=[
+    {id:1,name:'Team One',totalHcp:57,players:[
+      {name:'Tiger Woods',tee:'Whites',handicap:2,slot:'A'},
+      {name:'Happy Gilmore',tee:'Whites',handicap:28,slot:'B',isGuest:true,guestOf:'Tiger Woods'},
+      {name:'Brooks Koepka',tee:'Golds',handicap:7,slot:'C'},
+      {name:'Tony Finau',tee:'Whites',handicap:16,slot:'D'},
+    ]},
+    {id:2,name:'Team Two',totalHcp:39,players:[
+      {name:'Scottie Scheffler',tee:'Whites',handicap:3,slot:'A'},
+      {name:'Dustin Johnson',tee:'Whites',handicap:6,slot:'B'},
+      {name:'Patrick Cantlay',tee:'Golds',handicap:12,slot:'C'},
+      {name:'Viktor Hovland',tee:'Golds',handicap:18,slot:'D'},
+    ]},
+    {id:3,name:'Team Three',totalHcp:56,players:[
+      {name:'Rory McIlroy',tee:'Whites',handicap:4,slot:'A'},
+      {name:'Phil Mickelson',tee:'Whites',handicap:8,slot:'B'},
+      {name:'Matt Fitzpatrick',tee:'Whites',handicap:20,slot:'C'},
+      {name:'John Daly',tee:'Blends',handicap:24,slot:'D'},
+    ]},
+    {id:4,name:'Team Four',totalHcp:28,players:[
+      {name:'Jon Rahm',tee:'Whites',handicap:5,slot:'A'},
+      {name:'Justin Thomas',tee:'Whites',handicap:9,slot:'B'},
+      {name:'Collin Morikawa',tee:'Golds',handicap:14,slot:'C'},
+    ]},
   ];
-  const pc=DEMO_PLAYERS.length;const pot=calcPot(pc);
-  const teamScores={1:{front:-4,back:-2,overall:-6},2:{front:-1,back:-3,overall:-4},3:{front:-2,back:-5,overall:-8},4:{front:-3,back:-1,overall:-4}};
-  const skinCounts={1:2,2:0,3:1,4:0};
-  const scores={teamScores,skinCounts,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,frontPlaces:1,backPlaces:1,overallPlaces:1,playerCount:pc,tournFund:pc,drawAdj:0,f1v:0,f2v:0,b1v:0,b2v:0,o1v:0,o2v:0,savedAt:Date.now(),payoutsCalculated:true};
-  return{signups,teams:demoTeams,scores};
+
+  // ── SUNDAY — 8 players, open sign-ups, no teams yet ──
+  const SUN=[
+    {name:'Tiger Woods',hcp:2,tee:'Whites'},{name:'Rory McIlroy',hcp:4,tee:'Whites'},
+    {name:'Jon Rahm',hcp:5,tee:'Whites'},{name:'Justin Thomas',hcp:9,tee:'Whites'},
+    {name:'Xander Schauffele',hcp:10,tee:'Whites'},{name:'Jordan Spieth',hcp:11,tee:'Whites'},
+    {name:'Collin Morikawa',hcp:14,tee:'Golds'},{name:'Lee Trevino',hcp:17,tee:'Whites'},
+  ];
+  const sunSignups={};
+  SUN.forEach((p,i)=>{sunSignups['u'+i]={playerId:200+i,name:p.name,tee:p.tee,handicap:p.hcp,day:'Sunday',signedUpAt:Date.now()+i*100};});
+  sunSignups['u4']={...sunSignups['u4'],teePreference:'first'};
+
+  // ── HISTORY — 4 past rounds ──
+  const mkDate=(w)=>{const d=new Date();d.setDate(d.getDate()-w*7);return d.toISOString().split('T')[0];};
+  const N=['Tiger Woods','Scottie Scheffler','Rory McIlroy','Jon Rahm','Dustin Johnson','Brooks Koepka','Phil Mickelson','Justin Thomas','Xander Schauffele','Jordan Spieth','Patrick Cantlay','Collin Morikawa','Tony Finau','Viktor Hovland','Matt Fitzpatrick','John Daly'];
+  const mkT=(g1,g2,g3,g4)=>[
+    {id:1,name:'Team One',totalHcp:29,players:[{name:g1[0],tee:'Whites',handicap:3,slot:'A'},{name:g1[1],tee:'Whites',handicap:7,slot:'B'},{name:g1[2],tee:'Golds',handicap:12,slot:'C'},{name:g1[3],tee:'Whites',handicap:18,slot:'D'}]},
+    {id:2,name:'Team Two',totalHcp:32,players:[{name:g2[0],tee:'Whites',handicap:4,slot:'A'},{name:g2[1],tee:'Whites',handicap:8,slot:'B'},{name:g2[2],tee:'Whites',handicap:11,slot:'C'},{name:g2[3],tee:'Whites',handicap:20,slot:'D'}]},
+    {id:3,name:'Team Three',totalHcp:34,players:[{name:g3[0],tee:'Whites',handicap:5,slot:'A'},{name:g3[1],tee:'Whites',handicap:9,slot:'B'},{name:g3[2],tee:'Golds',handicap:14,slot:'C'},{name:g3[3],tee:'Whites',handicap:24,slot:'D'}]},
+    {id:4,name:'Team Four',totalHcp:31,players:[{name:g4[0],tee:'Whites',handicap:6,slot:'A'},{name:g4[1],tee:'Whites',handicap:10,slot:'B'},{name:g4[2],tee:'Golds',handicap:16,slot:'C'},{name:g4[3],tee:'Whites',handicap:22,slot:'D'}]},
+  ];
+  const mkS=(ts,sk)=>{const pc=16;const pot=calcPot(pc);return{teamScores:ts,skinCounts:sk,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,frontPlaces:1,backPlaces:1,overallPlaces:1,playerCount:pc,tournFund:pc,drawAdj:0,savedAt:Date.now(),payoutsCalculated:true};};
+  const history={
+    'dh1':{day:'Saturday',date:mkDate(1),playerCount:16,teams:mkT([N[0],N[5],N[10],N[13]],[N[1],N[6],N[11],N[14]],[N[2],N[7],N[12],N[15]],[N[3],N[4],N[8],N[9]]),scores:mkS({1:{front:-3,back:-4,overall:-7},2:{front:-5,back:-2,overall:-6},3:{front:-2,back:-3,overall:-5},4:{front:-1,back:-5,overall:-4}},{1:1,2:2,3:0,4:1})},
+    'dh2':{day:'Saturday',date:mkDate(2),playerCount:16,teams:mkT([N[1],N[4],N[9],N[14]],[N[0],N[6],N[10],N[15]],[N[3],N[7],N[11],N[13]],[N[2],N[5],N[8],N[12]]),scores:mkS({1:{front:-2,back:-6,overall:-8},2:{front:-4,back:-3,overall:-7},3:{front:-6,back:-1,overall:-5},4:{front:-3,back:-4,overall:-6}},{1:0,2:1,3:3,4:0})},
+    'dh3':{day:'Friday',date:mkDate(3),playerCount:16,teams:mkT([N[2],N[5],N[11],N[15]],[N[0],N[6],N[10],N[14]],[N[1],N[7],N[12],N[13]],[N[3],N[4],N[8],N[9]]),scores:mkS({1:{front:-5,back:-2,overall:-6},2:{front:-1,back:-4,overall:-5},3:{front:-3,back:-5,overall:-7},4:{front:-4,back:-3,overall:-8}},{1:2,2:0,3:1,4:1})},
+    'dh4':{day:'Saturday',date:mkDate(4),playerCount:16,teams:mkT([N[3],N[7],N[10],N[14]],[N[0],N[6],N[11],N[15]],[N[1],N[5],N[12],N[13]],[N[2],N[4],N[8],N[9]]),scores:mkS({1:{front:-4,back:-3,overall:-7},2:{front:-2,back:-5,overall:-8},3:{front:-5,back:-2,overall:-6},4:{front:-3,back:-4,overall:-5}},{1:0,2:2,3:0,4:2})},
+  };
+
+  const waitlist={'wl1':{playerId:'wl_demo',name:'Jack Nicklaus',tee:'Whites',handicap:6,day:'Saturday',signedUpAt:Date.now()}};
+  const emailNotes={
+    Saturday:'Game format: 1 Gross 2 Net (Front and Back), 2 Net all day. Regular Bonuses Apply. Meet at the range by 7:45 AM.',
+    Sunday:'Casual round — tee times TBD.',
+  };
+  const emailEvents='**Club Championship** — July 4th Weekend\nEntry deadline June 20th. $50 entry fee.\n\n**Member-Guest Tournament** — August 9th\nSign up your guest early — limited spots!';
+
+  const pc=13; // 12 + Happy Gilmore guest
+  const pot=calcPot(pc);
+  const satScores={
+    teamScores:{1:{front:-3,back:-5,overall:-8},2:{front:-5,back:-2,overall:-7},3:{front:-2,back:-4,overall:-6},4:{front:-4,back:-3,overall:-5}},
+    skinCounts:{1:2,2:1,3:0,4:0},
+    frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,
+    frontPlaces:1,backPlaces:1,overallPlaces:1,
+    playerCount:pc,tournFund:pc,drawAdj:0,
+    savedAt:Date.now(),payoutsCalculated:true,
+  };
+  return{
+    signups:{...satSignups,...sunSignups},
+    teams:{Saturday:satTeams},
+    scores:{Saturday:satScores,Sunday:null},
+    teamsPublished:{Saturday:true,Sunday:false},
+    locked:{Saturday:true,Sunday:false},
+    teeTimes:{Saturday:{time:'08:00',lottery:false},Sunday:{time:'09:30',lottery:false}},
+    activeDays:['Saturday','Sunday'],
+    dates:{Saturday:wd.Saturday,Sunday:wd.Sunday},
+    complete:{},paid:{},waitlist,emailNotes,emailEvents,history,
+  };
 }
+
 
 function ScorePicker({value,onChange,readOnly}){
   const v=(value===''||value===undefined||value===null)?null:parseInt(value);
@@ -803,17 +896,12 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
               <div className="land-btn-text"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
               <span className="land-arrow">›</span>
             </button>
-            <div className="land-demo-divider">Try it out</div>
-            <div style={{display:'flex',gap:8}}>
-              <button className="land-btn land-btn-demo" style={{padding:'12px 14px',marginTop:0}} onClick={onDemoPlayer}>
-                <div className="land-btn-text"><span className="land-btn-main" style={{fontSize:13}}>Demo Player</span></div>
-                <span className="land-arrow">›</span>
-              </button>
-              <button className="land-btn land-btn-demo2" style={{padding:'12px 14px',marginTop:0}} onClick={onDemoAdmin}>
-                <div className="land-btn-text"><span className="land-btn-main" style={{fontSize:13}}>Demo Admin</span></div>
-                <span className="land-arrow">›</span>
-              </button>
-            </div>
+            <div className="land-demo-divider">Not sure how it works?</div>
+            <button className="land-btn land-btn-demo" style={{padding:'14px 16px',marginTop:0}} onClick={onDemoPlayer}>
+              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
+              <div className="land-btn-text"><span className="land-btn-main" style={{fontSize:14}}>Try the Demo</span><span className="land-btn-sub">Explore all features — no sign-in needed</span></div>
+              <span className="land-arrow">›</span>
+            </button>
             <div className="land-demo-divider" style={{marginTop:24}}>Need Help?</div>
             <div style={{textAlign:'center'}}>
               <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
@@ -855,7 +943,7 @@ function TeamBadge({name,week,day}){
 }
 
 // -- THIS WEEK VIEW (with improved signup modal) ----------------------------
-function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock,onAddToWaitlist,onRemoveFromWaitlist}){
+function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock,onAddToWaitlist,onRemoveFromWaitlist,onSwitchRole}){
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
   const [teeModal,setTeeModal]=useState(null);
@@ -886,7 +974,8 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const [expanded,setExpanded]=useState({Friday:true,Saturday:true,Sunday:true,Monday:true});
   const [toast,setToast]=useState(null);
 
-  if(!week||!safeArray(week?.activeDays).length){
+  const noteOnlyDays=DAYS_OF_WEEK.filter(d=>!safeArray(week?.activeDays).includes(d)&&week?.showNoteOnly?.[d]&&week?.emailNotes?.[d]?.trim());
+  if(!week||(!safeArray(week?.activeDays).length&&!noteOnlyDays.length)){
     return(<div className="empty" style={{paddingTop:50}}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg><div className="empty-title">No games this week</div><div className="empty-sub">Admin will set up this week's games.</div></div>);
   }
 
@@ -928,9 +1017,18 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
 
   return(
     <div>
-      {isDemo&&<div className="demo-bar"><span className="demo-lbl">{isAdmin?'Admin Demo Mode':'Player Demo Mode'} - Sample Data</span></div>}
+      {isDemo&&<div className="demo-bar" style={{flexDirection:'column',gap:8,alignItems:'stretch'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span className="demo-lbl">&#9654; Demo Mode — Sample Data</span>
+          <span style={{fontSize:10,color:'#b45309',fontWeight:500}}>No real data touched</span>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          <button onClick={()=>onSwitchRole&&onSwitchRole('player')} style={{flex:1,padding:'6px',borderRadius:7,border:'1.5px solid',borderColor:!isAdmin?'#f59e0b':'#fde68a',background:!isAdmin?'#f59e0b':'transparent',color:!isAdmin?'#0f172a':'#92400e',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Player View</button>
+          <button onClick={()=>onSwitchRole&&onSwitchRole('admin')} style={{flex:1,padding:'6px',borderRadius:7,border:'1.5px solid',borderColor:isAdmin?'#f59e0b':'#fde68a',background:isAdmin?'#f59e0b':'transparent',color:isAdmin?'#0f172a':'#92400e',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Admin View</button>
+        </div>
+      </div>}
       <div className="stat-row">
-        {activeDays.map(day=>{const cnt=Object.values(allSignups).filter(s=>s.day===day).length;return(<div key={day} className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">{day.slice(0,3)}</div></div>);})}
+      {activeDays.map(day=>{const cnt=Object.values(allSignups).filter(s=>s.day===day).length;return(<div key={day} className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">{day.slice(0,3)}</div></div>);})}
         {activeDays.length<3&&<div className="stat-box"><div className="stat-n">{totalSignups}</div><div className="stat-l">Total</div></div>}
       </div>
 
@@ -1177,6 +1275,33 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
         </div>
       )}
 
+      
+      {/* Note-only cards for inactive days that have a note */}
+      {DAYS_OF_WEEK.filter(d=>!activeDays.includes(d)&&week?.showNoteOnly?.[d]&&week?.emailNotes?.[d]?.trim()).map(day=>(
+        <div key={'note-'+day} style={{background:'#fff',border:'2px dashed #e2e8f0',borderRadius:14,marginBottom:12,overflow:'hidden',opacity:0.92}}>
+          <div style={{padding:'12px 16px',background:'#f8fafc',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#94a3b8',letterSpacing:'0.01em'}}>{day}</div>
+              {week?.dates?.[day]&&<div style={{fontSize:11,color:'#cbd5e1',fontWeight:500,marginTop:1}}>{fmtD(week.dates[day])}</div>}
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:7,background:'#f1f5f9',borderRadius:20,padding:'4px 12px'}}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em'}}>No game — admin note only</span>
+            </div>
+          </div>
+          <div style={{padding:'13px 16px',background:'#fff',borderTop:'1px solid #f1f5f9'}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+              <div style={{width:3,borderRadius:2,background:'#f59e0b',alignSelf:'stretch',flexShrink:0,minHeight:36}}></div>
+              <div>
+                <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:4}}>Note from the admin</div>
+                <div style={{fontSize:13,color:'#78350f',lineHeight:1.6}}>{week.emailNotes[day]}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      
       {/* Upcoming Events - visible to all */}
       {(()=>{const ev=week?.emailEvents||'';if(!ev.trim())return null;let evHTML=ev.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');evHTML=evHTML.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');evHTML=evHTML.replace(/\*(.+?)\*/g,'<em>$1</em>');evHTML=evHTML.replace(/__(.+?)__/g,'<u>$1</u>');evHTML=evHTML.replace(/\n/g,'<br>');return(<div style={{background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:10,padding:14,marginTop:12}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1,marginBottom:8,borderBottom:'2px solid #f59e0b',paddingBottom:5,display:'inline-block'}}>Upcoming Events</div><div style={{fontSize:13,color:'#78350f',lineHeight:1.7}} dangerouslySetInnerHTML={{__html:evHTML}}/></div>);})()}
 
@@ -2235,12 +2360,7 @@ function EmailView({week,isAdmin,isDemo}){
     }catch(e){console.error(e);}
   }
 
-  if(!days.length)return(
-    <div className="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{marginBottom:8}}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-      <div className="empty-title">No upcoming play days</div>
-      <div className="empty-sub">Set up days in the Admin tab first, or all days have already passed.</div>
-    </div>
-  );
+  // Don't return early — show editor even with no active days
 
   let emailHTML='';
   try{emailHTML=renderEmailHTML(week,notes,subject,events)||'';}catch(e){emailHTML='<p style="padding:20px;color:#dc2626;">Preview error: '+e.message+'</p>';}
@@ -2262,6 +2382,14 @@ function EmailView({week,isAdmin,isDemo}){
           <span style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}</span>
         </div>
       </div>
+
+      {/* No active days notice */}
+      {days.length===0&&(
+        <div style={{background:'#f8fafc',border:'1.5px dashed #e2e8f0',borderRadius:10,padding:14,marginBottom:14,textAlign:'center'}}>
+          <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:3}}>No active play days this week</div>
+          <div style={{fontSize:12,color:'#cbd5e1'}}>You can still write notes and upcoming events — they&apos;ll be included in your email</div>
+        </div>
+      )}
 
       {/* Subject line */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'20px 4px 10px'}}>
@@ -2322,7 +2450,7 @@ function EmailView({week,isAdmin,isDemo}){
   );
 }
 
-function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onStartNextWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo,onSaveNotes,onSaveEvents}){
+function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onStartNextWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo,onSaveNotes,onSaveEvents,onToggleNoteOnly}){
   const [addQ,setAddQ]=useState('');const [quickAddSel,setQuickAddSel]=useState(null);const [quickAddTee,setQuickAddTee]=useState('Whites');
   const [editRosterId,setEditRosterId]=useState(null);const [editRosterVal,setEditRosterVal]=useState('');
   const [showHidden,setShowHidden]=useState(false);
@@ -2372,7 +2500,16 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             <div key={day} style={{borderTop:di>0?'1px solid #f1f5f9':'none',paddingTop:di>0?12:0,marginTop:di>0?12:0}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                 <div><div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(wd[day])}</div>{isActive&&teeInfo&&(<div style={{fontSize:11,color:'#15803d',fontWeight:600,marginTop:2}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}</div>)}</div>
-                <div style={{display:'flex',gap:6,alignItems:'center'}}>{isActive&&(<button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>)}<button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>{wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}</button></div>
+                <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+                  {isActive&&(<button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>)}
+                  {!isActive&&(
+                    <button onClick={()=>onToggleNoteOnly(day,!week?.showNoteOnly?.[day])} style={{display:'flex',alignItems:'center',gap:5,padding:'4px 10px',borderRadius:20,border:'1.5px solid',borderColor:week?.showNoteOnly?.[day]?'#f59e0b':'#e2e8f0',background:week?.showNoteOnly?.[day]?'#fffbeb':'#f8fafc',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:11,fontWeight:600,color:week?.showNoteOnly?.[day]?'#92400e':'#94a3b8'}}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                      {week?.showNoteOnly?.[day]?'Notes showing':'Show notes only'}
+                    </button>
+                  )}
+                  <button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>{wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}</button>
+                </div>
               </div>
               {wizDay===day&&(<SetupWizard day={day} week={week} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>)}
             </div>
@@ -2394,7 +2531,6 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       )}
 
       {/* Weekly Notes & Announcements */}
-      {activeDays.length>0&&(
         <div className="card" style={{marginBottom:10}}>
           <div className="section-btn" onClick={()=>setShowNotes(!showNotes)}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div className="section-title">Weekly Notes & Announcements</div></div>
@@ -2431,7 +2567,6 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             </div>
           </div>)}
         </div>
-      )}
 
       {/* Manage sign-ups */}
       <div className="card" style={{marginBottom:10}}>
@@ -2708,6 +2843,11 @@ function App(){
     else{updates['week']=nextWeek;update(updates);setTab('home');}
   }
 
+  function toggleNoteOnly(day,val){
+    if(isDemo){setWeek(w=>({...w,showNoteOnly:{...(w.showNoteOnly||{}),[day]:val}}));}
+    else{update({['week/showNoteOnly/'+day]:val||null});}
+  }
+
   function startNextWeek(){
     // Clean start: days already archived individually, just reset to next week
     const nwd=getNextWeekDates();
@@ -2800,9 +2940,19 @@ function App(){
 
   function editHistoryRound(key,round){del('history/'+key);const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};newWeek.complete={...(newWeek.complete||{}),[round.day]:true};newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};write('week',newWeek);setTab('scoring');}
 
-  function buildDemoWeek(){const d=makeDemoData();const wd=getWeekDates();return{activeDays:['Saturday'],dates:{Saturday:wd.Saturday},signups:d.signups,teams:{Saturday:d.teams},scores:{Saturday:d.scores},complete:{Saturday:true},teamsPublished:{Saturday:true},teeTimes:{Saturday:{time:'08:30',lottery:false}},locked:{}};}
-  function startDemoPlayer(){setIsDemo(true);setWeek(buildDemoWeek());setHistory({});setRole('player');setTab('home');}
-  function startDemoAdmin(){setIsDemo(true);setWeek(buildDemoWeek());setHistory({});setRole('admin');setTab('home');}
+
+  function startDemo(role){
+    const d=makeDemoData();
+    setIsDemo(true);
+    setWeek({activeDays:d.activeDays,dates:d.dates,signups:d.signups,teams:d.teams,scores:d.scores,
+      teamsPublished:d.teamsPublished,locked:d.locked,teeTimes:d.teeTimes,complete:d.complete,
+      paid:d.paid,waitlist:d.waitlist,emailNotes:d.emailNotes,emailEvents:d.emailEvents});
+    setHistory(d.history);
+    setRole(role);
+    setTab('home');
+  }
+  function startDemoPlayer(){startDemo('player');}
+  function startDemoAdmin(){startDemo('admin');}
 
   if(!role)return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');}} onDemoPlayer={startDemoPlayer} onDemoAdmin={startDemoAdmin}/>;
 
@@ -2828,7 +2978,7 @@ function App(){
       </div></div>
       <nav className="nav">{TABS.map(t=>(<button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
-        {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={extra} effectiveRoster={effectiveRoster}
+        {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onSwitchRole={r=>setRole(r)}
           onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
           onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
           onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}
@@ -2838,7 +2988,7 @@ function App(){
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={extra} effectiveRoster={effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
     </div>
   );
