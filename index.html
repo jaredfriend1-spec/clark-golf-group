@@ -885,7 +885,7 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
     <div className="land">
       <div style={{width:'100%',maxWidth:480}}>
         <div className="land-title">Clark <em>Golf</em> Group</div>
-        <div className="land-week">{getWeekLabel(week)}</div>
+        <div className="land-week">{getWeekLabel(null)}</div>
         {!showPw?(
           <div>
             <button className="land-btn land-btn-player" onClick={onPlayer}>
