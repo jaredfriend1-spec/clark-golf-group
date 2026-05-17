@@ -576,7 +576,7 @@ function getWeekDates(){
   const fmt=d=>d.toISOString().split('T')[0];
   return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(nxtMon)};
 }
-function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
+function getWeekLabel(week){const wd=getWeekDates();const fri=(week?.dates?.Friday)||wd.Friday;const mon=(week?.dates?.Monday)||wd.Monday;return'Week of '+fmtD(fri)+' - '+fmtD(mon);}
 
 function getNextWeekDates(){
   const now=new Date();
@@ -885,7 +885,7 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
     <div className="land">
       <div style={{width:'100%',maxWidth:480}}>
         <div className="land-title">Clark <em>Golf</em> Group</div>
-        <div className="land-week">{getWeekLabel()}</div>
+        <div className="land-week">{getWeekLabel(week)}</div>
         {!showPw?(
           <div>
             <button className="land-btn land-btn-player" onClick={onPlayer}>
@@ -2478,13 +2478,15 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
   const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
 
   const wd=getWeekDates();
+  // Prefer stored week dates over calculated ones
+  const effectiveDates={...wd,...(week?.dates||{})};
   const rosterSearch=[...(effectiveRoster||ROSTER),...(safeArray(roster).filter(p=>p.id>96))].filter(p=>p.name.toLowerCase().includes(addQ.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,12);
   const activeDays=sortDays(safeArray(week?.activeDays));
   const allSignups=Object.entries(week?.signups||{});
 
   function toggleDay(day){const isActive=activeDays.includes(day);if(isActive){const cnt=allSignups.filter(([,s])=>s.day===day).length;if(cnt>0){setWarnDeact({day,cnt});return;}onDeactivateDay(day);}else{const newWeek={...week,activeDays:[...(safeArray(week?.activeDays)),day],dates:{...(week?.dates||{}),[day]:wd[day]}};onCreate(newWeek);}}
 
-  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:wd[day]}};onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
+  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:effectiveDates[day]}};onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
 
   return(
     <div>
@@ -2501,7 +2503,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
           return(
             <div key={day} style={{borderTop:di>0?'1px solid #f1f5f9':'none',paddingTop:di>0?12:0,marginTop:di>0?12:0}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                <div><div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(wd[day])}</div>{isActive&&teeInfo&&(<div style={{fontSize:11,color:'#15803d',fontWeight:600,marginTop:2}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}</div>)}</div>
+                <div><div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(effectiveDates[day])}</div>{isActive&&teeInfo&&(<div style={{fontSize:11,color:'#15803d',fontWeight:600,marginTop:2}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}</div>)}</div>
                 <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
                   {isActive&&(<button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>)}
                   {!isActive&&(
@@ -2974,7 +2976,7 @@ function App(){
   return(
     <div className="app">
       <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
-        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel()}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
+        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel(week)}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
         <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}}>Season Attendance →</a></div>
       </div></div>
