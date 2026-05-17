@@ -580,10 +580,12 @@ function getWeekLabel(){const wd=getWeekDates();return'Week of '+fmtD(wd.Friday)
 
 function getNextWeekDates(){
   const now=new Date();
-  // Find the coming Friday (could be this week or next)
   const day=now.getDay(); // 0=Sun,1=Mon,...,5=Fri,6=Sat
-  // Days until next Friday
-  const daysUntilFri=day<=5?(5-day)||7:6;
+  // Always find the NEXT upcoming Friday (never today or past)
+  // On Sunday(0): +6 days to get next Fri  On Mon(1): +4  Tue(2): +3
+  // Wed(3): +2  Thu(4): +1  Fri(5): +7 (next week)  Sat(6): +6
+  const daysMap={0:5,1:4,2:3,3:2,4:1,5:7,6:6};
+  const daysUntilFri=daysMap[day];
   const fri=new Date(now);fri.setDate(now.getDate()+daysUntilFri);
   const sat=new Date(fri);sat.setDate(fri.getDate()+1);
   const sun=new Date(fri);sun.setDate(fri.getDate()+2);
