@@ -2452,7 +2452,7 @@ function EmailView({week,isAdmin,isDemo}){
   );
 }
 
-function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onStartNextWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo,onSaveNotes,onSaveEvents,onToggleNoteOnly}){
+function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemovePlayer,roster,effectiveRoster,onEditRosterName,onHidePlayer,onUnhidePlayer,rosterHidden,rosterEmails,onEditRosterEmail,onRemoveSignup,onAddSignup,onUpdateTeeTime,onDeactivateDay,onEndWeek,onStartNextWeek,onGoTo,guestHistory,onSaveTeams,onPublishTeams,onToggleLock,isDemo,onSaveNotes,onSaveEvents,onToggleNoteOnly,activityLog}){
   const [addQ,setAddQ]=useState('');const [quickAddSel,setQuickAddSel]=useState(null);const [quickAddTee,setQuickAddTee]=useState('Whites');
   const [editRosterId,setEditRosterId]=useState(null);const [editRosterVal,setEditRosterVal]=useState('');
   const [showHidden,setShowHidden]=useState(false);
@@ -2474,6 +2474,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
   const [quickAddHcp,setQuickAddHcp]=useState('');const [addDay,setAddDay]=useState('Saturday');const [showRoster,setShowRoster]=useState(false);
   const [np,setNp]=useState({name:'',tee:'Whites',hcp:''});const [gp,setGp]=useState({name:'',tee:'Whites',hcp:'',guestOf:'',pairWithGuest:false});
   const [showGuest,setShowGuest]=useState(false);const [showSignups,setShowSignups]=useState(false);
+  const [showLog,setShowLog]=useState(false);
   const [dayEdit,setDayEdit]=useState({});const [warnDeact,setWarnDeact]=useState(null);const [closeoutConfirm,setCloseoutConfirm]=useState(false);const [endConfirmText,setEndConfirmText]=useState('');
   const [wizDay,setWizDay]=useState(null);const [showChecklist,setShowChecklist]=useState(false);
 
@@ -2486,7 +2487,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
   function toggleDay(day){const isActive=activeDays.includes(day);if(isActive){const cnt=allSignups.filter(([,s])=>s.day===day).length;if(cnt>0){setWarnDeact({day,cnt});return;}onDeactivateDay(day);}else{const newWeek={...week,activeDays:[...(safeArray(week?.activeDays)),day],dates:{...(week?.dates||{}),[day]:wd[day]}};onCreate(newWeek);}}
 
-  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:effectiveDates[day]}};onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
+  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:effectiveDates[day]}};logActivity('day_setup',{days:day,by:'admin'});onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
 
   return(
     <div>
@@ -2725,6 +2726,66 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       </div>)}
       </div>
 
+      {/* === ACTIVITY LOG === */}
+      <div className="card" style={{marginBottom:10}}>
+        <div className="section-btn" onClick={()=>setShowLog(!showLog)}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <div className="section-title">Activity Log</div>
+            {activityLog.length>0&&<span style={{fontSize:10,fontWeight:700,background:'#f1f5f9',color:'#64748b',padding:'2px 7px',borderRadius:20}}>{activityLog.length}</span>}
+          </div>
+          <svg style={{width:15,height:15,color:'#94a3b8',transform:showLog?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        {showLog&&(
+          <div className="section-body" style={{padding:0}}>
+            {activityLog.length===0?(
+              <div style={{padding:'20px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No activity recorded yet</div>
+            ):(
+              <div>
+                {(()=>{
+                  const ACFG={
+                    signup:{label:'Signed up',color:'#15803d',bg:'#ecfdf5',icon:'👤'},
+                    remove_signup:{label:'Removed',color:'#dc2626',bg:'#fef2f2',icon:'✕'},
+                    waitlist_join:{label:'Joined waitlist',color:'#d97706',bg:'#fffbeb',icon:'⏳'},
+                    waitlist_remove:{label:'Left waitlist',color:'#94a3b8',bg:'#f8fafc',icon:'↩'},
+                    teams_published:{label:'Teams published',color:'#1d4ed8',bg:'#eff6ff',icon:'✓'},
+                    day_setup:{label:'Day activated',color:'#7c3aed',bg:'#f5f3ff',icon:'📅'},
+                    roster_add:{label:'Added to roster',color:'#15803d',bg:'#ecfdf5',icon:'➕'},
+                    roster_remove:{label:'Removed from roster',color:'#dc2626',bg:'#fef2f2',icon:'−'},
+                    week_started:{label:'New week started',color:'#0f172a',bg:'#f8fafc',icon:'🗓'},
+                  };
+                  const rel=ts=>{const d=Date.now()-ts,m=Math.floor(d/60000),h=Math.floor(d/3600000),dy=Math.floor(d/86400000);if(m<1)return'just now';if(m<60)return m+'m ago';if(h<24)return h+'h ago';if(dy<7)return dy+'d ago';return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'});};
+                  return activityLog.slice(0,100).map((e,i)=>{
+                    const c=ACFG[e.action]||{label:e.action,color:'#64748b',bg:'#f8fafc',icon:'•'};
+                    return(
+                      <div key={e.key||i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',borderBottom:'1px solid #f1f5f9',background:i%2===0?'#fff':'#fafafa'}}>
+                        <div style={{width:30,height:30,borderRadius:8,background:c.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0,marginTop:1}}>{c.icon}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:3}}>
+                            <span style={{fontSize:12,fontWeight:700,color:c.color}}>{c.label}</span>
+                            {e.name&&<span style={{fontSize:13,color:'#0f172a',fontWeight:600}}>{e.name}</span>}
+                            {e.day&&<span style={{fontSize:12,color:'#64748b'}}>— {e.day}</span>}
+                            {e.days&&<span style={{fontSize:12,color:'#64748b'}}>— {e.days}</span>}
+                            {e.teamCount&&<span style={{fontSize:12,color:'#64748b'}}>({e.teamCount} teams)</span>}
+                            {e.weekOf&&<span style={{fontSize:12,color:'#64748b'}}>— {e.weekOf}</span>}
+                            {e.isGuest&&<span style={{fontSize:11,color:'#64748b',background:'#f1f5f9',padding:'1px 6px',borderRadius:4}}>Guest{e.guestOf?' of '+e.guestOf:''}</span>}
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:7}}>
+                            <span style={{fontSize:10,color:'#cbd5e1'}}>{rel(e.ts)}</span>
+                            {e.by&&<span style={{fontSize:10,fontWeight:700,color:e.by==='admin'?'#b45309':'#64748b',background:e.by==='admin'?'#fffbeb':'#f1f5f9',padding:'1px 6px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.04em'}}>{e.by}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+                {activityLog.length>100&&<div style={{padding:'10px 14px',textAlign:'center',fontSize:11,color:'#94a3b8'}}>Showing 100 of {activityLog.length} entries</div>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* End Week - at the very bottom */}
       <div style={{marginTop:16}}>
         {closeoutConfirm?(
@@ -2787,6 +2848,7 @@ function App(){
   const [rosterEdits,setRosterEdits]=useState({});
   const [rosterHidden,setRosterHidden]=useState({});
   const [rosterEmails,setRosterEmails]=useState({});
+  const [activityLog,setActivityLog]=useState([]);
   const [historyTrash,setHistoryTrash]=useState({});
   const {ready,read,write,push,del,update}=useDB();
   const [isDemo,setIsDemo]=useState(false);
@@ -2801,6 +2863,16 @@ function App(){
     u.push(read('rosterEdits',v=>setRosterEdits(v||{})));
     u.push(read('rosterHidden',v=>setRosterHidden(v||{})));
     u.push(read('rosterEmails',v=>setRosterEmails(v||{})));
+    u.push(read('activityLog',v=>{
+      if(v){
+        const cutoff=Date.now()-(90*24*60*60*1000);
+        const entries=Object.entries(v);
+        // Prune entries older than 90 days from Firebase
+        entries.forEach(([k,e])=>{if(e.ts<cutoff)del('activityLog/'+k);});
+        const recent=entries.filter(([,e])=>e.ts>=cutoff).map(([k,e])=>({key:k,...e})).sort((a,b)=>b.ts-a.ts);
+        setActivityLog(recent);
+      }else setActivityLog([]);
+    }));
     u.push(read('historyTrash',v=>setHistoryTrash(v||{})));
     return()=>u.forEach(f=>{if(typeof f==='function')f();});
   },[ready,isDemo]);
@@ -2853,8 +2925,7 @@ function App(){
   }
 
   function startNextWeek(){
-    // Clean start: days already archived individually, just reset to next week
-    const nwd=getNextWeekDates();
+    const nwd=getNextWeekDates();logActivity('week_started',{weekOf:nwd.Friday+' to '+nwd.Monday,by:'admin'});
     const nextWeek={activeDays:[],dates:{Friday:nwd.Friday,Saturday:nwd.Saturday,Sunday:nwd.Sunday,Monday:nwd.Monday},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{},emailNotes:null,emailSubject:null,emailEvents:week?.emailEvents||null};
     if(isDemo){setWeek(nextWeek);setTab('home');}
     else{write('week',nextWeek);setTab('home');}
@@ -2892,7 +2963,8 @@ function App(){
   }
 
   function saveTeams(day,teams){if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams}}));}else write('week/teams/'+day,teams);}
-  function publishAndLockTeams(day,teams){if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams},teamsPublished:{...(w?.teamsPublished||{}),[day]:true},locked:{...(w?.locked||{}),[day]:true}}));}else{update({['week/teams/'+day]:teams,['week/teamsPublished/'+day]:true,['week/locked/'+day]:true});}}
+  function publishAndLockTeams(day,teams){
+    logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:'admin'});if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams},teamsPublished:{...(w?.teamsPublished||{}),[day]:true},locked:{...(w?.locked||{}),[day]:true}}));}else{update({['week/teams/'+day]:teams,['week/teamsPublished/'+day]:true,['week/locked/'+day]:true});}}
 
   function unpublishTeams(day){
     if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:null},teamsPublished:{...(w?.teamsPublished||{}),[day]:false},locked:{...(w?.locked||{}),[day]:false}}));}
@@ -2910,8 +2982,8 @@ function App(){
   function saveScores(day,scores){const nw={...week,scores:{...(week.scores||{}),[day]:scores}};if(isDemo){setWeek(nw);}else write('week',nw);}
   function moveToHistory(day){archiveDay(day);setTab('history');}
   function updateSignup(key,vals){const s=week&&week.signups&&week.signups[key];if(s)write('week/signups/'+key,{...s,...vals});}
-  function addPlayer(p){const newId=Date.now();const newExtra=[...extra,{...p,id:newId}];write('extraPlayers',newExtra);if(p.isGuest){const existing=safeArray(guestHistory).find(g=>g.name===p.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);}}}
-  function removePlayer(id){write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));}
+  function addPlayer(p){const newId=Date.now();const newExtra=[...extra,{...p,id:newId}];logActivity('roster_add',{name:p.name,by:'admin'});write('extraPlayers',newExtra);if(p.isGuest){const existing=safeArray(guestHistory).find(g=>g.name===p.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);}}}
+  function removePlayer(id){const pl=safeArray(extra).find(p=>p.id===id);if(pl)logActivity('roster_remove',{name:pl.name,by:'admin'});write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));}
   function toggleLock(day,locked){const nw={...week,locked:{...(week.locked||{}),[day]:locked}};if(isDemo){setWeek(nw);}else write('week',nw);}
   function deactivateDay(day){const newWeek={...week,activeDays:safeArray(week.activeDays).filter(d=>d!==day)};const tt={...(week.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;write('week',newWeek);}
   function updatePaid(day,playerName,paid){const nw={...week,paid:{...(week?.paid||{}),[day]:{...((week?.paid||{})[day]||{}),[playerName]:paid}}};if(isDemo){setWeek(nw);}else write('week/paid/'+day+'/'+playerName,paid);}
@@ -2944,6 +3016,12 @@ function App(){
 
   function editHistoryRound(key,round){del('history/'+key);const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};newWeek.complete={...(newWeek.complete||{}),[round.day]:true};newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};write('week',newWeek);setTab('scoring');}
 
+
+  function logActivity(action,details){
+    if(isDemo)return; // never log demo activity
+    const entry={action,ts:Date.now(),...details};
+    push('activityLog',entry);
+  }
 
   function startDemo(role){
     const d=makeDemoData();
@@ -2983,16 +3061,16 @@ function App(){
       <nav className="nav">{TABS.map(t=>(<button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
         {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onSwitchRole={r=>setRole(r)}
-          onSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
-          onRemove={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
+          onSignup={d=>{logActivity('signup',{name:d.name,day:d.day,isGuest:d.isGuest||false,guestOf:d.guestOf||null,by:'player'});if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
+          onRemove={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:'player'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
           onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}
-          onAddToWaitlist={d=>{if(isDemo){const k='wl_'+Date.now();setWeek(w=>({...w,waitlist:{...(w.waitlist||{}),[k]:d}}));}else push('week/waitlist',d);}}
-          onRemoveFromWaitlist={k=>{if(isDemo){setWeek(w=>{const wl={...(w.waitlist||{})};delete wl[k];return{...w,waitlist:wl};});}else del('week/waitlist/'+k);}}/>}
+          onAddToWaitlist={d=>{logActivity('waitlist_join',{name:d.name,day:d.day,by:'player'});if(isDemo){const k='wl_'+Date.now();setWeek(w=>({...w,waitlist:{...(w.waitlist||{}),[k]:d}}));}else push('week/waitlist',d);}}
+          onRemoveFromWaitlist={k=>{const ws=week?.waitlist?.[k];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:'player'});if(isDemo){setWeek(w=>{const wl={...(w.waitlist||{})};delete wl[k];return{...w,waitlist:wl};});}else del('week/waitlist/'+k);}}/>}
         {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
     </div>
   );
