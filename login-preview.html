@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>Clark Golf — Member Login Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1a4d2e;--green-mid:#25703f;--green-light:#10b981;--green-pale:#ecfdf5;
+  --gold:#f59e0b;--gold-pale:#fffbeb;
+  --red:#ef4444;--red-pale:#fef2f2;
+  --dark:#0f172a;--mid:#475569;--light:#94a3b8;--pale:#f1f5f9;
+  --white:#fff;--border:#e2e8f0;
+}
+body{font-family:'DM Sans',sans-serif;background:#0a0f1a;min-height:100vh;color:var(--dark);}
+
+/* ── COVER PAGE ── */
+#cover{min-height:100vh;background:linear-gradient(160deg,#0a1628 0%,#0f2d1a 50%,#0a1628 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 24px 60px;}
+.cover-logo{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:#fff;letter-spacing:-1px;text-align:center;margin-bottom:4px;}
+.cover-logo em{color:var(--green-light);font-style:normal;}
+.cover-tagline{font-size:13px;color:rgba(255,255,255,0.4);font-weight:600;text-transform:uppercase;letter-spacing:0.14em;text-align:center;margin-bottom:40px;}
+
+.concept-box{width:100%;max-width:500px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px;margin-bottom:20px;}
+.concept-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.concept-title span{font-size:20px;}
+.concept-body{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.75;}
+.concept-body strong{color:#fff;font-weight:600;}
+
+.notice-box{width:100%;max-width:500px;background:rgba(245,158,11,0.1);border:1.5px solid rgba(245,158,11,0.3);border-radius:16px;padding:20px 24px;margin-bottom:20px;}
+.notice-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.notice-body{font-size:13px;color:rgba(255,255,255,0.65);line-height:1.8;}
+.notice-body strong{color:var(--gold);}
+
+.pin-table{width:100%;max-width:500px;background:rgba(16,185,129,0.07);border:1.5px solid rgba(16,185,129,0.2);border-radius:16px;overflow:hidden;margin-bottom:24px;}
+.pin-table-head{background:rgba(16,185,129,0.15);padding:14px 20px;font-size:11px;font-weight:700;color:var(--green-light);text-transform:uppercase;letter-spacing:0.1em;}
+.pin-row{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-top:1px solid rgba(16,185,129,0.1);}
+.pin-scenario{font-size:13px;color:#fff;font-weight:600;}
+.pin-scenario small{display:block;font-size:11px;color:rgba(255,255,255,0.4);font-weight:400;margin-top:1px;}
+.pin-code{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--gold);background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);padding:4px 14px;border-radius:8px;letter-spacing:2px;}
+
+.cta-btn{width:100%;max-width:500px;padding:20px;background:var(--green-light);color:var(--dark);border:none;border-radius:16px;font-family:'DM Sans',sans-serif;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.15s;}
+.cta-btn:hover{background:#0ea572;transform:translateY(-1px);}
+.cta-btn:active{transform:scale(0.98);}
+
+/* ── DEMO PAGE ── */
+#demo{display:none;background:#0f172a;min-height:100vh;padding:20px 16px 60px;align-items:center;flex-direction:column;}
+#demo.show{display:flex;}
+
+.back-btn{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.4);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:20px;background:none;border:none;font-family:'DM Sans',sans-serif;transition:color 0.15s;}
+.back-btn:hover{color:rgba(255,255,255,0.7);}
+
+.demo-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.12em;text-align:center;margin-bottom:6px;}
+.demo-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#fff;text-align:center;margin-bottom:4px;}
+.demo-sub{font-size:12px;color:rgba(255,255,255,0.35);text-align:center;margin-bottom:20px;}
+
+.scenario-bar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;width:100%;max-width:390px;}
+.sc-pill{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);background:transparent;font-family:'DM Sans',sans-serif;transition:all 0.12s;}
+.sc-pill.on{background:#fff;color:var(--dark);border-color:#fff;}
+
+/* ── PHONE ── */
+.phone{width:100%;max-width:390px;background:var(--pale);border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.07);position:relative;min-height:640px;}
+
+/* Landing */
+.landing{background:linear-gradient(160deg,var(--green) 0%,var(--green-mid) 100%);min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;}
+.land-logo{font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1;}
+.land-logo em{color:var(--green-light);font-style:normal;}
+.land-week{font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;margin-bottom:48px;}
+.land-btn{width:100%;padding:17px 18px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all 0.12s;}
+.land-btn:active{transform:scale(0.98);}
+.land-btn-member{background:#fff;color:var(--green);}
+.land-btn-guest{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);border:1.5px solid rgba(255,255,255,0.15);}
+.land-btn-admin{background:transparent;color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.1);font-size:12px;justify-content:center;margin-top:6px;}
+.land-btn-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.land-btn-member .land-btn-icon{background:var(--green-pale);}
+.land-btn-guest .land-btn-icon{background:rgba(255,255,255,0.1);}
+.land-btn-text{flex:1;text-align:left;}
+.land-btn-main{display:block;font-weight:700;}
+.land-btn-hint{display:block;font-size:11px;font-weight:400;opacity:0.55;margin-top:1px;}
+.land-arrow{font-size:18px;opacity:0.45;}
+
+/* Overlay / Modal */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,0.65);display:none;align-items:flex-end;z-index:100;backdrop-filter:blur(6px);}
+.overlay.show{display:flex;}
+.modal-sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;padding-bottom:28px;}
+.modal-drag{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:12px auto 0;}
+.modal-head{padding:18px 22px 14px;border-bottom:1px solid var(--border);}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--dark);}
+.modal-sub{font-size:12px;color:var(--light);margin-top:2px;}
+
+/* Number pad */
+.pin-display{margin:18px 22px 14px;background:var(--pale);border:2px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:8px;min-height:56px;justify-content:center;}
+.pin-dot{width:13px;height:13px;border-radius:50%;background:var(--border);transition:all 0.12s;flex-shrink:0;}
+.pin-dot.filled{background:var(--dark);transform:scale(1.15);}
+.pin-error-box{margin:0 22px 10px;background:var(--red-pale);border:1px solid #fecaca;border-radius:9px;padding:9px 13px;text-align:center;font-size:13px;color:var(--red);font-weight:600;display:none;}
+.pin-error-box.show{display:block;}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:2px 22px 0;}
+.np-btn{height:66px;border:1.5px solid var(--border);border-radius:13px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;transition:all 0.1s;user-select:none;-webkit-user-select:none;}
+.np-btn:active{background:var(--pale);transform:scale(0.95);}
+.np-num{font-family:'Barlow Condensed',sans-serif;font-size:27px;font-weight:700;color:var(--dark);line-height:1;}
+.np-alpha{font-size:8px;color:var(--light);font-weight:600;letter-spacing:0.1em;margin-top:2px;}
+.np-btn.clear{background:var(--red-pale);border-color:#fecaca;}
+.np-btn.clear .np-num{color:var(--red);font-size:20px;}
+.np-btn.go{background:var(--green);border-color:var(--green);opacity:0.4;}
+.np-btn.go.ready{opacity:1;}
+.np-btn.go .np-num{color:#fff;font-size:14px;font-weight:700;}
+
+/* Disambig */
+.disambig-list{padding:10px 16px 4px;}
+.disambig-item{display:flex;align-items:center;gap:12px;padding:13px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;margin-bottom:9px;transition:all 0.1s;}
+.disambig-item:active{background:var(--green-pale);border-color:var(--green-light);}
+.d-avi{width:40px;height:40px;border-radius:50%;background:var(--green);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.d-name{font-size:15px;font-weight:700;color:var(--dark);}
+.d-hint{font-size:11px;color:var(--light);margin-top:1px;}
+
+/* App */
+.app-main{display:none;flex-direction:column;min-height:640px;}
+.app-main.show{display:flex;}
+.app-hdr{background:var(--dark);padding:16px 18px 12px;}
+.app-hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.app-hdr-logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fff;}
+.app-hdr-logo em{color:var(--green-light);font-style:normal;}
+.app-hdr-wk{font-size:10px;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+.user-badge{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:5px 10px 5px 5px;cursor:pointer;transition:background 0.12s;}
+.user-badge:hover{background:rgba(255,255,255,0.12);}
+.u-avi{width:24px;height:24px;border-radius:50%;font-size:9px;font-weight:700;font-family:'Barlow Condensed',sans-serif;display:flex;align-items:center;justify-content:center;background:var(--green-light);color:var(--dark);}
+.u-avi.guest{background:var(--gold);}
+.u-avi.master{background:var(--gold);border:2px solid #fff;}
+.u-name{font-size:12px;font-weight:600;color:#fff;}
+.u-hint{font-size:9px;color:rgba(255,255,255,0.3);font-weight:500;}
+.app-nav{display:flex;background:var(--dark);border-top:1px solid rgba(255,255,255,0.07);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 4px 11px;cursor:pointer;opacity:0.35;transition:opacity 0.12s;}
+.nav-item.on{opacity:1;}
+.nav-label{font-size:9px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.07em;margin-top:3px;}
+.app-body{flex:1;background:var(--pale);padding:14px;}
+
+/* Day cards */
+.day-card{background:#fff;border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:11px;}
+.day-hdr{background:var(--dark);padding:11px 14px;display:flex;align-items:center;justify-content:space-between;}
+.day-nm{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:#fff;}
+.day-dt{font-size:10px;color:rgba(255,255,255,0.35);}
+.pills{display:flex;gap:5px;}
+.pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;}
+.pill-g{background:var(--green-pale);color:var(--green-mid);}
+.pill-r{background:#fef2f2;color:var(--red);}
+.day-body{padding:11px 13px;}
+.s-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--pale);}
+.s-row:last-of-type{border:none;}
+.s-avi{width:25px;height:25px;border-radius:50%;background:var(--green-pale);color:var(--green-mid);font-size:9px;font-weight:700;font-family:'Barlow Condensed',sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.s-nm{flex:1;font-size:13px;font-weight:600;}
+.s-you{font-size:9px;font-weight:700;color:var(--green-mid);background:var(--green-pale);padding:2px 6px;border-radius:20px;}
+.s-meta{font-size:11px;color:var(--light);}
+.signup-btn{width:100%;margin-top:10px;padding:13px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.12s;}
+.signup-btn:active{background:var(--green-mid);}
+
+/* Auto-ID banner */
+.auto-banner{background:var(--green-pale);border-bottom:1px solid #bbf7d0;padding:8px 14px;display:flex;align-items:center;gap:8px;}
+.auto-banner-txt{font-size:12px;font-weight:600;color:var(--green-mid);}
+.auto-banner-name{font-size:13px;font-weight:700;color:var(--green);}
+
+/* Success flash */
+.success-flash{position:absolute;inset:0;background:rgba(16,185,129,0.18);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);border-radius:28px;}
+.success-flash.show{display:flex;}
+.success-inner{background:#fff;border-radius:20px;padding:28px 32px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.2);}
+.s-icon{font-size:52px;margin-bottom:8px;}
+.s-name{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:var(--dark);}
+.s-role{font-size:13px;color:var(--light);margin-top:3px;}
+
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.overlay.show .modal-sheet{animation:slideUp 0.28s cubic-bezier(0.34,1.4,0.64,1);}
+@keyframes fadeScale{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
+.success-inner{animation:fadeScale 0.3s cubic-bezier(0.34,1.4,0.64,1);}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.shake{animation:shake 0.35s ease;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ COVER PAGE ══════════ -->
+<div id="cover">
+  <div class="cover-logo">Clark <em>Golf</em> Group</div>
+  <div class="cover-tagline">Member Login — Concept Preview</div>
+
+  <div class="concept-box">
+    <div class="concept-title"><span>💡</span> What this is</div>
+    <div class="concept-body">
+      This is a <strong>preview of the new login front-end</strong> we're considering adding to the Clark Golf app.<br><br>
+      <strong>Nothing else changes.</strong> The Week tab, Teams, Scoring, History, Email — all of that stays exactly the same. This is purely about <strong>how you get into the app</strong> and how the app <strong>knows who you are</strong> once you're in.<br><br>
+      Right now anyone can sign up as anyone. With this, each member enters their <strong>club member number</strong> on a keypad — the app finds your name and logs you in automatically. No typing your name. No picking from a dropdown. Just your number and you're in.
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-title"><span>🏌️</span> What changes for you</div>
+    <div class="concept-body">
+      <strong>Before:</strong> Open app → tap "Sign up" → scroll through 100 names to find yours → pick days → confirm.<br><br>
+      <strong>After:</strong> Open app → enter your member number once → app remembers you → next time just open and you're already logged in. Tap "Sign up" → your name is already filled in → just pick your days.<br><br>
+      That's it. Faster, cleaner, and the app actually knows who you are.
+    </div>
+  </div>
+
+  <div class="notice-box">
+    <div class="notice-title">⚠️ Important — This is design only</div>
+    <div class="notice-body">
+      The demo below shows <strong>only the login flow</strong> — the number pad, auto-identification, and the guest path. It is <strong>not connected to any real data</strong>. Use the test PINs below to try each scenario. The full app build comes after we agree on the design.
+    </div>
+  </div>
+
+  <div class="pin-table">
+    <div class="pin-table-head">Test PINs — Try These in the Demo</div>
+    <div class="pin-row">
+      <div class="pin-scenario">Regular Member<small>Logs in as Chris Allen — name auto-fills on sign-up</small></div>
+      <div class="pin-code">1234</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-scenario">Father / Son Shared #<small>Shows name picker before logging in</small></div>
+      <div class="pin-code">7777</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-scenario">Wrong Number<small>Shake animation + error message</small></div>
+      <div class="pin-code">0000</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-scenario">Master Admin (Jared)<small>Full admin access — Admin tab unlocks</small></div>
+      <div class="pin-code">9999</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-scenario">Guest Entry<small>Read-only access, no member name</small></div>
+      <div class="pin-code" style="font-size:14px;letter-spacing:0;">Tap button</div>
+    </div>
+  </div>
+
+  <button class="cta-btn" onclick="showDemo()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Try the Interactive Demo →
+  </button>
+</div>
+
+<!-- ══════════ DEMO PAGE ══════════ -->
+<div id="demo">
+  <button class="back-btn" onclick="showCover()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to overview
+  </button>
+
+  <div class="demo-label">Interactive Demo</div>
+  <div class="demo-title">Try the Login Flow</div>
+  <div class="demo-sub">Tap a scenario or use the keypad with a test PIN</div>
+
+  <div class="scenario-bar">
+    <button class="sc-pill on" onclick="setScenario('member',this)">Member</button>
+    <button class="sc-pill" onclick="setScenario('shared',this)">Shared #</button>
+    <button class="sc-pill" onclick="setScenario('wrong',this)">Wrong PIN</button>
+    <button class="sc-pill" onclick="setScenario('guest',this)">Guest</button>
+    <button class="sc-pill" onclick="setScenario('admin',this)">Admin</button>
+  </div>
+
+  <div class="phone" id="phone">
+
+    <!-- Success flash -->
+    <div class="success-flash" id="successFlash">
+      <div class="success-inner">
+        <div class="s-icon" id="sIcon">⛳</div>
+        <div class="s-name" id="sName">Chris Allen</div>
+        <div class="s-role" id="sRole">Logged in as Member</div>
+      </div>
+    </div>
+
+    <!-- LANDING -->
+    <div id="screenLanding">
+      <div class="landing">
+        <div class="land-logo">Clark <em>Golf</em></div>
+        <div class="land-week">Week of May 22 – 25, 2026</div>
+
+        <button class="land-btn land-btn-member" onclick="openPad()">
+          <div class="land-btn-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1a4d2e" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <div class="land-btn-text">
+            <span class="land-btn-main">Member Sign In</span>
+            <span class="land-btn-hint">Enter your member number</span>
+          </div>
+          <span class="land-arrow">›</span>
+        </button>
+
+        <button class="land-btn land-btn-guest" onclick="loginAs('Guest','?','guest')">
+          <div class="land-btn-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div class="land-btn-text">
+            <span class="land-btn-main">Continue as Guest</span>
+            <span class="land-btn-hint">View schedule & teams only</span>
+          </div>
+          <span class="land-arrow">›</span>
+        </button>
+
+        <button class="land-btn land-btn-admin" onclick="openPad('admin')">Admin →</button>
+      </div>
+    </div>
+
+    <!-- APP (after login) -->
+    <div id="screenApp" class="app-main">
+      <div style="background:#0f172a;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <button onclick="logout()" style="display:flex;align-items:center;gap:5px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to login
+        </button>
+      </div>
+      <div class="auto-banner" id="autoBanner">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5"><polyline points="20 6 9 13 4 10"/></svg>
+        <span class="auto-banner-txt">Signed in as</span>
+        <span class="auto-banner-name" id="bannerName">Chris Allen</span>
+        <span style="flex:1"></span>
+        <span style="font-size:10px;color:#94a3b8;cursor:pointer;" onclick="logout()">Sign out</span>
+      </div>
+      <div class="app-hdr">
+        <div class="app-hdr-top">
+          <div>
+            <div class="app-hdr-logo">Clark <em>Golf</em></div>
+            <div class="app-hdr-wk">Week of May 22 – 25</div>
+          </div>
+          <div class="user-badge" onclick="logout()">
+            <div class="u-avi" id="hdrAvi">CA</div>
+            <div>
+              <div class="u-name" id="hdrName">Chris Allen</div>
+              <div class="u-hint">Tap to sign out</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="app-nav">
+        <div class="nav-item on">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+          <span class="nav-label">Week</span>
+        </div>
+        <div class="nav-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span class="nav-label">Teams</span>
+        </div>
+        <div class="nav-item" id="adminNavBtn" style="display:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span class="nav-label">Admin</span>
+        </div>
+      </div>
+      <div class="app-body">
+        <div class="day-card">
+          <div class="day-hdr">
+            <div><div class="day-nm">Saturday</div><div class="day-dt">May 23 · Signups locked</div></div>
+            <div class="pills"><span class="pill pill-g">8 players</span><span class="pill pill-r">Locked</span></div>
+          </div>
+          <div class="day-body">
+            <div class="s-row">
+              <div class="s-avi" id="yourAvi">CA</div>
+              <div class="s-nm" id="yourName">Chris Allen</div>
+              <span class="s-you" id="youBadge">You</span>
+              <div class="s-meta">Whites · 5</div>
+            </div>
+            <div class="s-row"><div class="s-avi">JS</div><div class="s-nm">Jeff Sarris</div><div class="s-meta">Whites · 7</div></div>
+            <div class="s-row"><div class="s-avi">MR</div><div class="s-nm">M. Roosevelt</div><div class="s-meta">Whites · 11</div></div>
+            <div class="s-row"><div class="s-avi">JC</div><div class="s-nm">Jim Carroll</div><div class="s-meta">Golds · 16</div></div>
+          </div>
+        </div>
+        <div class="day-card">
+          <div class="day-hdr">
+            <div><div class="day-nm">Sunday</div><div class="day-dt">May 24 · Open</div></div>
+            <div class="pills"><span class="pill pill-g">3 signed up</span></div>
+          </div>
+          <div class="day-body">
+            <div class="s-row"><div class="s-avi">JF</div><div class="s-nm">Jared Friend</div><div class="s-meta">Whites · 8</div></div>
+            <div class="s-row"><div class="s-avi">CK</div><div class="s-nm">Clark Kunkle</div><div class="s-meta">Whites · 11</div></div>
+            <button class="signup-btn" id="signupBtn" onclick="doSignup()">+ Sign Up for Sunday</button>
+          </div>
+        </div>
+        <!-- Signup flow preview modal trigger -->
+        <div id="signupFlowNote" style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:13px 15px;margin-bottom:10px;display:none;">
+          <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px;">✓ How sign-up works after login</div>
+          <div style="font-size:12px;color:#1e3a8a;line-height:1.7;">
+            • <strong>Your name is pre-filled</strong> — can't be changed to someone else<br>
+            • <strong>Days</strong> — still choose Fri / Sat / Sun / Mon<br>
+            • <strong>Tees &amp; Handicap</strong> — still entered each time<br>
+            • <strong>Bringing a guest?</strong> — full guest flow still works
+          </div>
+        </div>
+        <div id="adminMsg" style="display:none;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:12px;padding:14px 16px;text-align:center;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#92400e;margin-bottom:3px;">⭐ Admin Access Unlocked</div>
+          <div style="font-size:12px;color:#b45309;">Full Admin panel, team management, scoring, roster — all accessible. Everything else in the app is unchanged.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NUMBER PAD OVERLAY -->
+    <div class="overlay" id="padOverlay">
+      <div class="modal-sheet">
+        <div class="modal-drag"></div>
+        <div class="modal-head">
+          <div class="modal-title" id="padTitle">Member Sign In</div>
+          <div class="modal-sub">Enter your club member number</div>
+        </div>
+        <div class="pin-display" id="pinDisplay">
+          <div class="pin-dot" id="d0"></div>
+          <div class="pin-dot" id="d1"></div>
+          <div class="pin-dot" id="d2"></div>
+          <div class="pin-dot" id="d3"></div>
+        </div>
+        <div class="pin-error-box" id="pinErr">Member number not found — try again</div>
+        <div class="numpad">
+          <button class="np-btn" onclick="pk('1')"><span class="np-num">1</span></button>
+          <button class="np-btn" onclick="pk('2')"><span class="np-num">2</span><span class="np-alpha">ABC</span></button>
+          <button class="np-btn" onclick="pk('3')"><span class="np-num">3</span><span class="np-alpha">DEF</span></button>
+          <button class="np-btn" onclick="pk('4')"><span class="np-num">4</span><span class="np-alpha">GHI</span></button>
+          <button class="np-btn" onclick="pk('5')"><span class="np-num">5</span><span class="np-alpha">JKL</span></button>
+          <button class="np-btn" onclick="pk('6')"><span class="np-num">6</span><span class="np-alpha">MNO</span></button>
+          <button class="np-btn" onclick="pk('7')"><span class="np-num">7</span><span class="np-alpha">PQRS</span></button>
+          <button class="np-btn" onclick="pk('8')"><span class="np-num">8</span><span class="np-alpha">TUV</span></button>
+          <button class="np-btn" onclick="pk('9')"><span class="np-num">9</span><span class="np-alpha">WXYZ</span></button>
+          <button class="np-btn clear" onclick="pb()"><span class="np-num">⌫</span></button>
+          <button class="np-btn" onclick="pk('0')"><span class="np-num">0</span></button>
+          <button class="np-btn go" id="goBtn" onclick="pgo()"><span class="np-num">GO →</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISAMBIG OVERLAY -->
+    <div class="overlay" id="disambigOverlay">
+      <div class="modal-sheet">
+        <div class="modal-drag"></div>
+        <div class="modal-head">
+          <div class="modal-title">Which one are you?</div>
+          <div class="modal-sub">This number is shared — tap your name to continue</div>
+        </div>
+        <div class="disambig-list">
+          <div class="disambig-item" onclick="loginAs('Bob Watson','BW','member')">
+            <div class="d-avi">BW</div>
+            <div><div class="d-name">Bob Watson</div><div class="d-hint">Member since 2018</div></div>
+          </div>
+          <div class="disambig-item" onclick="loginAs('Bob Watson Jr.','BWJ','member')">
+            <div class="d-avi">BJ</div>
+            <div><div class="d-name">Bob Watson Jr.</div><div class="d-hint">Member since 2021</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end phone -->
+</div><!-- end demo -->
+
+<script>
+const PINS={
+  '1234':{name:'Chris Allen',ini:'CA',role:'member'},
+  '4471':{name:'Chris Allen',ini:'CA',role:'member'},
+  '5678':{name:'Jeff Sarris',ini:'JS',role:'member'},
+  '9999':{name:'Jared Friend',ini:'JF',role:'admin',isMaster:true},
+  '2290':{name:'Clark Kunkle',ini:'CK',role:'admin',isMaster:true},
+  '7777':{shared:true},
+};
+
+let buf='',mode='member';
+
+function showCover(){document.getElementById('cover').style.display='flex';document.getElementById('demo').classList.remove('show');logout(true);}
+function showDemo(){document.getElementById('cover').style.display='none';document.getElementById('demo').classList.add('show');}
+
+function setScenario(s,el){
+  document.querySelectorAll('.sc-pill').forEach(p=>p.classList.remove('on'));
+  if(el)el.classList.add('on');
+  logout(true);
+  closeAll();
+  if(s==='member'){openPad();}
+  else if(s==='shared'){openPad();setTimeout(()=>{['7','7','7','7'].forEach((k,i)=>setTimeout(()=>pk(k),i*130));},300);}
+  else if(s==='wrong'){openPad();setTimeout(()=>{['0','0','0','0'].forEach((k,i)=>setTimeout(()=>pk(k),i*130));},300);}
+  else if(s==='guest'){loginAs('Guest','?','guest');}
+  else if(s==='admin'){openPad('admin');setTimeout(()=>{['9','9','9','9'].forEach((k,i)=>setTimeout(()=>pk(k),i*130));},300);}
+}
+
+function openPad(m){
+  mode=m||'member';buf='';
+  document.getElementById('padTitle').textContent=m==='admin'?'Admin Sign In':'Member Sign In';
+  document.getElementById('pinErr').classList.remove('show');
+  document.getElementById('padOverlay').classList.add('show');
+  ud();
+}
+function closeAll(){
+  buf='';ud();
+  document.getElementById('padOverlay').classList.remove('show');
+  document.getElementById('disambigOverlay').classList.remove('show');
+  document.getElementById('pinErr').classList.remove('show');
+}
+function pk(k){if(buf.length>=4)return;buf+=k;document.getElementById('pinErr').classList.remove('show');ud();}
+function pb(){buf=buf.slice(0,-1);ud();}
+function ud(){
+  for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.toggle('filled',i<buf.length);}
+  document.getElementById('goBtn').classList.toggle('ready',buf.length>=4);
+}
+function pgo(){
+  if(buf.length<4)return;
+  const m=PINS[buf];
+  if(!m){
+    document.getElementById('pinErr').classList.add('show');
+    const pd=document.getElementById('pinDisplay');
+    pd.classList.add('shake');
+    setTimeout(()=>pd.classList.remove('shake'),400);
+    buf='';ud();return;
+  }
+  if(m.shared){
+    document.getElementById('padOverlay').classList.remove('show');
+    document.getElementById('disambigOverlay').classList.add('show');
+    return;
+  }
+  closeAll();
+  loginAs(m.name,m.ini,m.role,m.isMaster);
+}
+
+function loginAs(name,ini,role,isMaster){
+  closeAll();
+  document.getElementById('sIcon').textContent=isMaster?'⭐':role==='admin'?'⭐':role==='guest'?'👋':'⛳';
+  document.getElementById('sName').textContent=name;
+  document.getElementById('sRole').textContent=isMaster?'Master Admin — Full Access':role==='admin'?'Admin Access':role==='guest'?'Guest — View Only':'Logged in as Member';
+  const fl=document.getElementById('successFlash');
+  fl.classList.add('show');
+  setTimeout(()=>{fl.classList.remove('show');showApp(name,ini,role,isMaster);},1800);
+}
+
+function showApp(name,ini,role,isMaster){
+  document.getElementById('screenLanding').style.display='none';
+  document.getElementById('screenApp').classList.add('show');
+  document.getElementById('hdrName').textContent=name;
+  document.getElementById('hdrAvi').textContent=ini;
+  document.getElementById('hdrAvi').className='u-avi'+(isMaster?' master':role==='guest'?' guest':'');
+  document.getElementById('bannerName').textContent=name;
+  document.getElementById('adminNavBtn').style.display=(role==='admin')?'':'none';
+  document.getElementById('adminMsg').style.display=(role==='admin')?'block':'none';
+  document.getElementById('signupFlowNote').style.display=(role==='member')?'block':'none';
+
+  if(role==='guest'){
+    document.getElementById('yourName').textContent='(You are not signed up)';
+    document.getElementById('yourAvi').textContent='?';
+    document.getElementById('youBadge').style.display='none';
+    document.getElementById('signupBtn').textContent='Sign up as Guest of a member →';
+    document.getElementById('signupBtn').style.background='#f59e0b';
+  } else {
+    document.getElementById('yourName').textContent=name;
+    document.getElementById('yourAvi').textContent=ini;
+    document.getElementById('youBadge').style.display=(name==='Chris Allen')?'':'none';
+    document.getElementById('signupBtn').textContent='+ Sign Up for Sunday as '+name;
+    document.getElementById('signupBtn').style.background='var(--green)';
+  }
+}
+
+function doSignup(){
+  const btn=document.getElementById('signupBtn');
+  btn.textContent='✓ Signed up!';
+  btn.style.background='#10b981';
+  btn.disabled=true;
+}
+
+function logout(silent){
+  document.getElementById('screenLanding').style.display='';
+  document.getElementById('screenApp').classList.remove('show');
+  document.getElementById('youBadge').style.display='';
+  document.getElementById('signupBtn').disabled=false;
+  if(!silent){
+    document.querySelectorAll('.sc-pill').forEach((p,i)=>{p.classList.toggle('on',i===0);});
+  }
+}
+</script>
+</body>
+</html>
