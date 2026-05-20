@@ -2634,8 +2634,8 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             <div className="fr" style={{marginBottom:0}}><div className="fg" style={{marginBottom:0,flex:1}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div><div className="fg" style={{marginBottom:0,flex:2}}><label className="fl">Email (optional)</label><input className="fi" type="email" placeholder="email@example.com" value={np.email||''} onChange={e=>setNp({...np,email:e.target.value})}/></div></div>
             <div className="fr" style={{marginBottom:0}}>
               <div className="fg" style={{marginBottom:0,flex:2}}>
-                <label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Member #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label>
-                <input className="fi" type="text" inputMode="numeric" placeholder="Club member number" value={np.pin||''} onChange={e=>setNp({...np,pin:e.target.value})}/>
+                <label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Phone #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label>
+                <input className="fi" type="text" inputMode="numeric" placeholder="Full phone number e.g. 3015551234" value={np.pin||''} onChange={e=>setNp({...np,pin:e.target.value})}/>
               </div>
               <div style={{display:'flex',alignItems:'flex-end',paddingBottom:1}}>
                 <button className="btn btn-green btn-sm" onClick={()=>{if(np.name){const addedPlayer={name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0};onAddPlayer(addedPlayer);if(np.email){const newId=97+safeArray(roster).length;onEditRosterEmail(newId,np.email.trim());}if(np.pin&&np.pin.trim()){const newId=97+safeArray(roster).length;onSaveMemberPin(newId,np.pin.trim());}if(np.isAdmin){const newId=97+safeArray(roster).length;onSaveAdminFlag(newId,true);}setNp({name:'',tee:'Whites',hcp:'',email:'',pin:'',isAdmin:false});}}}>Add</button>
@@ -2666,7 +2666,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                     <div style={{flex:1}}><label className="fl">Email</label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} value={editRosterEmailVal} onChange={e=>setEditRosterEmailVal(e.target.value)} placeholder="email"/></div>
                   </div>
                   <div style={{display:'flex',gap:6,marginBottom:6,alignItems:'flex-end'}}>
-                    <div style={{flex:1}}><label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Member #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} type="text" inputMode="numeric" placeholder="Club member number" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/></div>
+                    <div style={{flex:1}}><label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Phone #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} type="text" inputMode="numeric" placeholder="Full phone number e.g. 3015551234" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/></div>
                     {rosterPins&&rosterPins[p.id]&&<div style={{fontSize:10,color:'#15803d',fontWeight:600,paddingBottom:8,flexShrink:0}}>✓ PIN set</div>}
                     {editRosterPinVal&&<div style={{fontSize:10,color:'#d97706',fontWeight:600,paddingBottom:8,flexShrink:0}}>Will update</div>}
                   </div>
@@ -2689,7 +2689,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                       {dispHcp?'HCP '+dispHcp:'No HCP'} · {dispTee}{email?' · '+email:''}
                     </div>
                     <div style={{display:'flex',gap:6,marginTop:2,flexWrap:'wrap'}}>
-                      {rosterPins&&rosterPins[p.id]?(<span style={{fontSize:10,fontWeight:700,color:'#15803d',background:'#ecfdf5',padding:'1px 6px',borderRadius:4}}>✓ Member # set</span>):(<span style={{fontSize:10,color:'#e2e8f0'}}>No member # yet</span>)}{rosterAdmins&&rosterAdmins[p.id]&&<span style={{fontSize:10,fontWeight:700,color:'#92400e',background:'#fffbeb',padding:'1px 6px',borderRadius:4}}>Admin</span>}
+                      {rosterPins&&rosterPins[p.id]?(<span style={{fontSize:10,fontWeight:700,color:'#15803d',background:'#ecfdf5',padding:'1px 6px',borderRadius:4}}>✓ Phone # set</span>):(<span style={{fontSize:10,color:'#e2e8f0'}}>No member # yet</span>)}{rosterAdmins&&rosterAdmins[p.id]&&<span style={{fontSize:10,fontWeight:700,color:'#92400e',background:'#fffbeb',padding:'1px 6px',borderRadius:4}}>Admin</span>}
                     </div>
                   </div>
                   <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0}}>
@@ -2744,7 +2744,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clark_golf_attendance.csv';a.click();URL.revokeObjectURL(url);
           }}>Export Attendance CSV</button>
           <button className="btn btn-outline btn-sm" onClick={()=>{
-            let csv='id,name,handicap,tee,email,memberPin,isAdmin\n';
+            let csv='id,name,handicap,tee,email,phonePin,isAdmin\n';
             [...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
               const email=(rosterEmails&&rosterEmails[p.id])||'';
               const pin=(rosterPins&&rosterPins[p.id])||'';
@@ -3058,13 +3058,15 @@ function App(){
   }
 
   function saveMemberPin(playerId,pin){
-    // Store plain for now — will hash in Session 1 when login front-end is built
     if(!pin||!String(pin).trim()){
       if(isDemo)setRosterPins(p=>{const n={...p};delete n[playerId];return n;});
       else del('rosterPins/'+playerId);
       return;
     }
-    const val=String(pin).trim();
+    // Admin enters full phone number — store last 4 digits as the PIN
+    const digits=String(pin).trim().split('').filter(c=>c>='0'&&c<='9').join('');
+    const val=digits.slice(-4);
+    if(val.length<4)return;
     if(isDemo)setRosterPins(p=>({...p,[playerId]:val}));
     else update({['rosterPins/'+playerId]:val});
   }
