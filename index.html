@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>Clark Golf Group</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -12,9 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
-#root{min-height:100%}
-.app{max-width:430px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
+html,body{height:100%;width:100%;margin:0;padding:0;font-family:'DM Sans',sans-serif;background:#fff;color:#0f172a;-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.6}
+#root{min-height:100%;width:100%;margin:0;padding:0}
+.app{width:100%;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
 
 /* LOADING SPINNER */
 .loading-screen{position:fixed;inset:0;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s}
@@ -25,7 +25,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .loading-brand em{color:#10b981;font-style:normal}
 
 /* LANDING */
-.land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
+.land{min-height:100vh;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;position:relative;overflow:hidden}
+.land::before{content:'';position:absolute;top:-30%;left:-20%;width:600px;height:600px;background:radial-gradient(circle,rgba(16,185,129,0.08) 0%,transparent 70%);pointer-events:none}
+.land::after{content:'';position:absolute;bottom:-20%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(99,102,241,0.06) 0%,transparent 70%);pointer-events:none}
 .land-title{font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:700;color:#fff;text-align:center;line-height:1.1;margin-bottom:6px}
 .land-title em{color:#10b981;font-style:normal}
 .land-week{font-size:13px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:44px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
@@ -36,6 +38,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .land-btn-demo{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);margin-top:4px}
 .land-btn-demo2{background:rgba(251,191,36,0.18);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);margin-top:4px}
 .land-demo-divider{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);text-align:center;letter-spacing:0.12em;text-transform:uppercase;margin:18px 0 10px}
+.land-pill-link{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1.5px solid rgba(255,255,255,0.12);border-radius:100px;color:rgba(255,255,255,0.55);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;background:rgba(255,255,255,0.04);transition:all 0.2s;font-family:'DM Sans',sans-serif;letter-spacing:0.01em}
+.land-pill-link:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.07)}
 .land-btn-icon{width:40px;height:40px;border-radius:10px;background:rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .land-btn-icon svg{width:19px;height:19px}
 .land-btn-text{flex:1}
@@ -63,7 +67,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .admin-tag{background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
 .demo-tag{background:#10b981;color:#0f172a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
 .switch-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,0.4);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-.hdr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.hdr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:9px}
 .hdr-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 6px;text-align:center}
 .hdr-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#10b981}
 .hdr-stat-l{font-size:11px;font-weight:600;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-top:2px}
@@ -72,7 +76,21 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 
 /* NAV */
 .nav{background:#fff;display:flex;border-bottom:1px solid #e2e8f0}
-.nb{flex:1;padding:10px 1px 8px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:0.04em;text-transform:uppercase;position:relative;transition:color 0.15s}
+.nb{flex:1;padding:10px 2px 8px;background:none;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;letter-spacing:0.04em;text-transform:uppercase;position:relative;transition:all 0.15s}
+.nb svg{width:20px;height:20px;stroke:#94a3b8;transition:all 0.15s;stroke-width:1.8}
+.nb.on svg{stroke-width:2.2}
+.nb[data-tab="home"].on svg{stroke:#10b981}
+.nb[data-tab="teams"].on svg{stroke:#3b82f6}
+.nb[data-tab="scoring"].on svg{stroke:#f59e0b}
+.nb[data-tab="history"].on svg{stroke:#8b5cf6}
+.nb[data-tab="email"].on svg{stroke:#06b6d4}
+.nb[data-tab="admin"].on svg{stroke:#f97316}
+.nb[data-tab="home"].on{color:#10b981}
+.nb[data-tab="teams"].on{color:#3b82f6}
+.nb[data-tab="scoring"].on{color:#f59e0b}
+.nb[data-tab="history"].on{color:#8b5cf6}
+.nb[data-tab="email"].on{color:#06b6d4}
+.nb[data-tab="admin"].on{color:#f97316}
 .nb svg{width:16px;height:16px;flex-shrink:0}
 .nb.on{color:#0f172a}
 .nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
@@ -88,14 +106,14 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .day-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;user-select:none;-webkit-user-select:none}
 .day-hdr:active{background:#f8fafc}
 .day-left{flex:1;min-width:0}
-.day-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
-.day-sub{font-size:11px;color:#94a3b8;font-weight:500;margin-top:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.day-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
+.day-sub{font-size:13px;color:#94a3b8;font-weight:500;margin-top:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tee-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
 .tee-tag.lottery{background:#fef3c7;color:#d97706}
 .tee-tag.set{background:#dcfce7;color:#15803d}
 .tee-tag.done{background:#dbeafe;color:#1d4ed8}
 .day-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.day-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.day-pill{font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
 .day-pill.has{background:#10b981;color:#fff}
 .day-pill.none{background:#f1f5f9;color:#94a3b8}
 .day-chev{width:15px;height:15px;color:#cbd5e1;transition:transform 0.2s;flex-shrink:0}
@@ -106,14 +124,14 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .p-row{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #f8fafc;gap:12px}
 .p-row:last-child{border-bottom:none}
 .avi{width:36px;height:36px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif}
-.p-name{font-size:14px;font-weight:600;color:#0f172a}
-.p-meta{font-size:12px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:3px}
+.p-name{font-size:15px;font-weight:600;color:#0f172a}
+.p-meta{font-size:13px;color:#94a3b8;font-weight:500;display:flex;align-items:center;gap:4px;margin-top:3px}
 .tee-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .edit-btn{font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;font-weight:600;padding:0 2px;font-family:'DM Sans',sans-serif}
 .rm-btn{background:none;border:none;cursor:pointer;color:#cbd5e1;padding:4px;display:flex;flex-shrink:0;margin-left:auto}
 .rm-btn:hover{color:#ef4444}
 .rm-btn svg{width:14px;height:14px}
-.guest-tag{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;font-weight:500;margin-left:4px}
+.guest-tag{display:inline-block;padding:2px 7px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:12px;font-weight:500;margin-left:4px}
 .team-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle}
 
 /* INLINE EDIT */
@@ -129,7 +147,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .teeadd-btn{padding:11px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#475569}
 
 /* STATS ROW */
-.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 .stat-box{background:#0f172a;border-radius:10px;padding:11px 6px;text-align:center}
 .stat-n{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#10b981}
 .stat-l{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em}
@@ -177,8 +195,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 /* HISTORY */
 .hi{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:9px;overflow:hidden}
 .hi-hdr{padding:12px 14px;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-.hi-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
-.hi-meta{font-size:11px;color:#94a3b8;font-weight:500;margin-top:2px}
+.hi-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#0f172a;letter-spacing:0.01em}
+.hi-meta{font-size:13px;color:#94a3b8;font-weight:500;margin-top:2px}
 .hi-body{padding:13px 14px;border-top:1px solid #f1f5f9}
 .lb-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f8fafc}
 .lb-row:last-child{border-bottom:none}
@@ -189,15 +207,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .lb-money{font-size:14px;font-weight:700;color:#15803d;font-family:"Barlow Condensed",sans-serif;min-width:48px;text-align:right}
 
 /* ADMIN */
-.admin-bar{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;margin-bottom:10px}
-.admin-lbl{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px}
+.admin-bar{background:#fff;border:1.5px solid #d1fae5;border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.04);border-left:4px solid #10b981}
+.admin-lbl{font-size:13px;font-weight:700;letter-spacing:0.05em;color:#0f172a;margin-bottom:9px}
 
 /* FORMS */
 .fg{margin-bottom:12px}
-.fl{font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block;letter-spacing:0.06em;text-transform:uppercase}
-.fi{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
+.fl{font-size:12px;font-weight:600;color:#64748b;margin-bottom:5px;display:block;letter-spacing:0.06em;text-transform:uppercase}
+.fi{width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:15px;color:#0f172a;background:#fff;outline:none;transition:border-color 0.15s}
 .fi:focus{border-color:#10b981}
-.fs{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;appearance:none}
+.fs{width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:15px;color:#0f172a;background:#fff;outline:none;appearance:none}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sw{position:relative;margin-bottom:8px}
 .sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
@@ -206,11 +224,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 
 /* TOGGLE */
 .tog{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;margin-bottom:12px}
-.tog-opt{flex:1;padding:7px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.03em}
+.tog-opt{flex:1;padding:8px 10px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:#64748b;border-radius:16px;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.03em}
 .tog-opt.on{background:#0f172a;color:#fff}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;letter-spacing:0.01em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;letter-spacing:0.01em}
 .btn svg{width:14px;height:14px;flex-shrink:0}
 .btn:active{transform:scale(0.97)}
 .btn:disabled{opacity:0.35;cursor:not-allowed}
@@ -224,12 +242,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .btn-red:hover{background:#f87171}
 .btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569}
 .btn-outline:hover{background:#f8fafc}
-.btn-sm{padding:6px 11px;font-size:11px}
-.btn-xs{padding:4px 9px;font-size:10px}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn-xs{padding:5px 10px;font-size:11px}
 .btn-full{width:100%}
 
 /* ALERTS */
-.alert{border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:500}
+.alert{border-radius:9px;padding:11px 13px;font-size:14px;margin-bottom:10px;font-weight:500}
 .alert-ok{background:#ecfdf5;border:1px solid #bbf7d0;color:#15803d}
 .alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
 .alert-blue{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
@@ -238,7 +256,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;z-index:200;padding-top:10vh}
 .modal{background:#fff;border-radius:18px 18px 0 0;padding:16px 15px 36px;width:100%;max-height:85vh;overflow-y:auto}
 .modal-handle{width:34px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#0f172a;margin-bottom:13px;letter-spacing:0.01em}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#0f172a;margin-bottom:14px;letter-spacing:0.01em}
 .p-pick{display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #f1f5f9;cursor:pointer}
 .p-pick:last-child{border-bottom:none}
 .p-pick:hover{background:#f8fafc}
@@ -263,7 +281,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .pill-gray{display:inline-block;padding:1px 6px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:10px;font-weight:600}
 .pill-green{display:inline-block;padding:1px 6px;background:#dcfce7;color:#15803d;border-radius:20px;font-size:10px;font-weight:600}
 .section-btn{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;cursor:pointer;border-bottom:1px solid #f1f5f9}
-.section-title{font-size:14px;font-weight:600;color:#0f172a}
+.section-title{font-size:15px;font-weight:600;color:#0f172a}
 .section-body{padding:13px}
 .cb-row{display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer}
 .cb-row input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
@@ -287,9 +305,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .chk-circle{width:22px;height:22px;border-radius:50%;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
 .chk-circle.done{background:#10b981;border-color:#10b981}
 .chk-text{flex:1}
-.chk-label{font-size:13px;font-weight:600;color:#0f172a}
+.chk-label{font-size:14px;font-weight:600;color:#0f172a}
 .chk-label.done{color:#94a3b8;text-decoration:line-through}
-.chk-sub{font-size:11px;color:#94a3b8;margin-top:1px}
+.chk-sub{font-size:12px;color:#94a3b8;margin-top:1px}
 .chk-action{font-size:11px;font-weight:700;color:#10b981;background:#ecfdf5;padding:5px 11px;border-radius:20px;white-space:nowrap;border:none;cursor:pointer;font-family:"DM Sans",sans-serif}
 .order-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #f8fafc;background:#fff}
 .order-row:last-child{border-bottom:none}
@@ -297,9 +315,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:
 .order-handle{color:#cbd5e1;cursor:grab;font-size:16px;padding:4px;flex-shrink:0}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:8px;animation:toastIn 0.25s ease}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 /* DESKTOP */
 @media(min-width:768px){
-  .app{max-width:1100px;box-shadow:0 0 60px rgba(0,0,0,0.06);border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0}
+  .app{max-width:1100px;box-shadow:0 0 60px rgba(0,0,0,0.06);border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0}body{background:#f1f5f9}
   /* Landing */
   .land{padding:60px 40px}
   .land-title{font-size:64px;margin-bottom:8px}
@@ -771,12 +790,11 @@ function makeDemoData(){
     {name:'Patrick Cantlay',hcp:12,tee:'Golds',pref:null},
     {name:'Tony Finau',hcp:16,tee:'Whites',pref:null},
     {name:'Viktor Hovland',hcp:18,tee:'Golds',pref:null},
-    {name:'Matt Fitzpatrick',hcp:20,tee:'Whites',pref:null},
     {name:'John Daly',hcp:24,tee:'Blends',pref:'last'},
   ];
   const satSignups={};
   SAT.forEach((p,i)=>{satSignups['s'+i]={playerId:200+i,name:p.name,tee:p.tee,handicap:p.hcp,teePreference:p.pref||null,day:'Saturday',signedUpAt:Date.now()+i*100};});
-  satSignups['sg']={playerId:'g_demo',name:'Happy Gilmore',isGuest:true,guestOf:'Tiger Woods',pairWithGuest:true,tee:'Whites',handicap:28,day:'Saturday',signedUpAt:Date.now()+1300};
+  satSignups['sg1']={playerId:'g_demo1',name:'Lee Trevino Jr',isGuest:true,guestOf:'Phil Mickelson',tee:'Golds',handicap:14,day:'Saturday',signedUpAt:Date.now()+1200};
 
   const satTeams=[
     {id:1,name:'Team One',totalHcp:57,players:[
@@ -832,14 +850,14 @@ function makeDemoData(){
     'dh4':{day:'Saturday',date:mkDate(4),playerCount:16,teams:mkT([N[3],N[7],N[10],N[14]],[N[0],N[6],N[11],N[15]],[N[1],N[5],N[12],N[13]],[N[2],N[4],N[8],N[9]]),scores:mkS({1:{front:-4,back:-3,overall:-7},2:{front:-2,back:-5,overall:-8},3:{front:-5,back:-2,overall:-6},4:{front:-3,back:-4,overall:-5}},{1:0,2:2,3:0,4:2})},
   };
 
-  const waitlist={'wl1':{playerId:'wl_demo',name:'Jack Nicklaus',tee:'Whites',handicap:6,day:'Saturday',signedUpAt:Date.now()}};
+  const waitlist={};
   const emailNotes={
     Saturday:'Game format: 1 Gross 2 Net (Front and Back), 2 Net all day. Regular Bonuses Apply. Meet at the range by 7:45 AM.',
     Sunday:'Casual round — tee times TBD.',
   };
   const emailEvents='**Club Championship** — July 4th Weekend\nEntry deadline June 20th. $50 entry fee.\n\n**Member-Guest Tournament** — August 9th\nSign up your guest early — limited spots!';
 
-  const pc=13; // 12 + Happy Gilmore guest
+  const pc=12; // 11 members + 1 guest
   const pot=calcPot(pc);
   const satScores={
     teamScores:{1:{front:-3,back:-5,overall:-8},2:{front:-5,back:-2,overall:-7},3:{front:-2,back:-4,overall:-6},4:{front:-4,back:-3,overall:-5}},
@@ -848,6 +866,22 @@ function makeDemoData(){
     frontPlaces:1,backPlaces:1,overallPlaces:1,
     playerCount:pc,tournFund:pc,drawAdj:0,
     savedAt:Date.now(),payoutsCalculated:true,
+  };
+  const now=Date.now();
+  const demoActivityLog=[
+    {action:'login',name:'Clark Kunkle',role:'admin',ts:now-1000*60*5},
+    {action:'signup',name:'Tiger Woods',day:'Saturday',isGuest:false,by:'Tiger Woods',byRole:'member',ts:now-1000*60*14},
+    {action:'signup',name:'Lee Trevino Jr',day:'Saturday',isGuest:true,guestOf:'Phil Mickelson',by:'Phil Mickelson',byRole:'member',ts:now-1000*60*30},
+    {action:'signup',name:'Rory McIlroy',day:'Saturday',isGuest:false,by:'Rory McIlroy',byRole:'member',ts:now-1000*60*22},
+    {action:'signup',name:'Phil Mickelson',day:'Sunday',isGuest:false,by:'Phil Mickelson',byRole:'member',ts:now-1000*60*55},
+    {action:'remove_signup',name:'Dustin Johnson',day:'Sunday',by:'Dustin Johnson',byRole:'member',ts:now-1000*60*70},
+    {action:'match_request',name:'Tony Finau',partner:'Viktor Hovland',day:'Sunday',by:'Tony Finau',byRole:'member',ts:now-1000*60*90},
+    {action:'teams_published',day:'Saturday',teamCount:4,by:'Clark Kunkle',ts:now-1000*60*120},
+    {action:'login',name:'Tiger Woods',role:'member',ts:now-1000*60*180},
+    {action:'week_started',weekOf:'This week',by:'Clark Kunkle',ts:now-1000*60*60*24},
+  ];
+  const demoMatchPairings={
+    'mp_demo1':{requester:'Tony Finau',partner:'Viktor Hovland',day:'Sunday',ts:now-1000*60*90},
   };
   return{
     signups:{...satSignups,...sunSignups},
@@ -859,6 +893,7 @@ function makeDemoData(){
     activeDays:['Saturday','Sunday'],
     dates:{Saturday:wd.Saturday,Sunday:wd.Sunday},
     complete:{},paid:{},waitlist,emailNotes,emailEvents,history,
+    activityLog:demoActivityLog,matchPairings:demoMatchPairings,
   };
 }
 
@@ -878,50 +913,94 @@ function TimePicker({onChange}){
   return(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}><select className="fs" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>{hrs.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>{mins.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}><option>AM</option><option>PM</option></select></div>);
 }
 // -- LANDING ------------------------------------------------------------------
-function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
-  const [showPw,setShowPw]=useState(false);const [pw,setPw]=useState('');const [err,setErr]=useState(false);
-  function tryAdmin(){if(pw.toLowerCase()===ADMIN_PW){onAdmin();}else{setErr(true);setTimeout(()=>setErr(false),1500);}}
+function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
+  const [step,setStep]=useState(1);
+  const [q,setQ]=useState('');
+  const [selId,setSelId]=useState('');
+  const [selName,setSelName]=useState('');
+  const [phone,setPhone]=useState('');
+  const [phoneConfirm,setPhoneConfirm]=useState('');
+  function fmtPhone(val){const d=val.replace(/[^0-9]/g,'').slice(0,10);if(d.length<=3)return d;if(d.length<=6)return d.slice(0,3)+'-'+d.slice(3);return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);}
+  function rawDigits(val){return val.replace(/[^0-9]/g,'');}
+  const avail=(fullRoster||[]).filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
+  const phoneRaw=rawDigits(phone);const confirmRaw=rawDigits(phoneConfirm);
+  const phonesMatch=phoneRaw.length===10&&confirmRaw.length===10&&phoneRaw===confirmRaw;
+  const mismatch=confirmRaw.length===10&&phoneRaw!==confirmRaw;
+  const phone4=phoneRaw.slice(-4);
+  function handleConfirm(){if(!phonesMatch)return;onComplete({id:selId,name:selName,last4:phone4});}
   return(
-    <div className="land">
-      <div style={{width:'100%',maxWidth:480}}>
-        <div className="land-title">Clark <em>Golf</em> Group</div>
-        <div className="land-week">{getWeekLabel(null)}</div>
-        {!showPw?(
+    <div style={{minHeight:'100vh',background:'#0f172a',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'24px 20px 60px',overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:400}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
           <div>
-            <button className="land-btn land-btn-player" onClick={onPlayer}>
-              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-              <div className="land-btn-text"><span className="land-btn-main">I am a Player</span><span className="land-btn-sub">Sign up, view teams, see results</span></div>
-              <span className="land-arrow">›</span>
-            </button>
-            <button className="land-btn land-btn-admin" onClick={()=>{setShowPw(true);setPw('');}}>
-              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-              <div className="land-btn-text"><span className="land-btn-main">I am an Admin</span><span className="land-btn-sub">Manage games, teams, scoring</span></div>
-              <span className="land-arrow">›</span>
-            </button>
-            <div className="land-demo-divider">Not sure how it works?</div>
-            <button className="land-btn land-btn-demo" style={{padding:'14px 16px',marginTop:0}} onClick={onDemoPlayer}>
-              <div className="land-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
-              <div className="land-btn-text"><span className="land-btn-main" style={{fontSize:14}}>Try the Demo</span><span className="land-btn-sub">Explore all features — no sign-in needed</span></div>
-              <span className="land-arrow">›</span>
-            </button>
-            <div className="land-demo-divider" style={{marginTop:24}}>Need Help?</div>
-            <div style={{textAlign:'center'}}>
-              <a href="guide.html" style={{color:'#10b981',fontSize:14,fontWeight:600,textDecoration:'none',padding:'10px',display:'inline-block'}}>Read the "How it Works" Guide</a>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:700,color:'#fff',marginBottom:2}}>First Time Setup</div>
+            <div style={{fontSize:13,color:'rgba(255,255,255,0.45)'}}>Set up your sign-in — takes 30 seconds</div>
+          </div>
+          <button onClick={onBack} style={{width:36,height:36,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.08)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.7)',fontSize:16,flexShrink:0}}>✕</button>
+        </div>
+        {step===1&&(
+          <div style={{background:'#fff',borderRadius:16,padding:20,boxShadow:'0 4px 24px rgba(0,0,0,0.2)'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <div style={{fontSize:15,fontWeight:700,color:'#0f172a'}}>Step 1 of 2 — Find your name</div>
             </div>
-            <div id="pwa-land-install" style={{textAlign:'center',marginTop:8}}>
-              <button id="pwa-land-btn" style={{background:'none',border:'1.5px solid rgba(255,255,255,0.18)',borderRadius:24,padding:'9px 20px',color:'rgba(255,255,255,0.6)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}>
-                <span style={{fontSize:15}}>&#128242;</span> Add App to Home Screen
-              </button>
+            <div style={{position:'relative',marginBottom:10}}>
+              <svg style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#94a3b8'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input autoFocus style={{width:'100%',padding:'11px 12px 11px 32px',border:'1.5px solid #e2e8f0',borderRadius:9,fontSize:15,fontFamily:'DM Sans,sans-serif',outline:'none',boxSizing:'border-box'}} placeholder="Search your name..." value={q} onChange={e=>setQ(e.target.value)}/>
+            </div>
+            <div style={{maxHeight:280,overflowY:'auto',border:'1.5px solid #e2e8f0',borderRadius:9}}>
+              {avail.slice(0,q?avail.length:20).map(p=>{
+                const hasPin=!!(rosterPins&&rosterPins[p.id]);
+                return(
+                  <div key={p.id} onClick={()=>{setSelId(p.id);setSelName(p.name);setStep(2);setPhone('');setPhoneConfirm('');}} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 13px',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
+                    <div style={{width:34,height:34,borderRadius:'50%',background:'#dcfce7',color:'#15803d',fontFamily:'Barlow Condensed,sans-serif',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+                    <div style={{flex:1,fontSize:15,fontWeight:600,color:'#0f172a'}}>{p.name}</div>
+                    {hasPin&&<span style={{fontSize:11,fontWeight:700,color:'#f59e0b',background:'#fffbeb',padding:'2px 8px',borderRadius:20}}>Update</span>}
+                  </div>
+                );
+              })}
+              {avail.length===0&&<div style={{padding:16,textAlign:'center',fontSize:14,color:'#94a3b8'}}>No matches — ask an admin if your name isn&apos;t listed</div>}
             </div>
           </div>
-        ):(
-          <div className="pw-box">
-            <div className="pw-label">Admin Password</div>
-            <input autoFocus type="password" className={'pw-input'+(err?' err':'')} placeholder="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryAdmin()} onFocus={e=>setTimeout(()=>e.target.scrollIntoView({behavior:'smooth',block:'center'}),300)}/>
-            {err&&<div className="pw-err">Wrong password - try again</div>}
-            <div className="pw-row"><button className="pw-go" onClick={tryAdmin}>Sign In</button></div>
-            <button onClick={()=>{setShowPw(false);setPw('');}} style={{display:'block',width:'100%',marginTop:12,padding:'10px',background:'none',border:'1.5px solid #e2e8f0',borderRadius:8,color:'#64748b',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>&#8592; Back to menu</button>
-            <div style={{height:200}}></div>
+        )}
+        {step===2&&(
+          <div style={{background:'#fff',borderRadius:16,padding:20,boxShadow:'0 4px 24px rgba(0,0,0,0.2)'}}>
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:4}}>
+              <button onClick={onBack} style={{width:28,height:28,borderRadius:'50%',border:'1.5px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'#64748b',fontSize:14}}>✕</button>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 13px',background:'#ecfdf5',border:'1.5px solid #10b981',borderRadius:10,marginBottom:16}}>
+              <div style={{width:34,height:34,borderRadius:'50%',background:'#1a4d2e',color:'#fff',fontFamily:'Barlow Condensed,sans-serif',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{selName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:'#0f172a'}}>{selName}</div><div style={{fontSize:12,color:'#15803d',fontWeight:600}}>✓ That&apos;s me</div></div>
+              <button onClick={()=>{setStep(1);setQ('');}} style={{background:'none',border:'1.5px solid #e2e8f0',borderRadius:7,padding:'4px 10px',fontSize:12,fontWeight:600,color:'#64748b',cursor:'pointer',fontFamily:'DM Sans,sans-serif',flexShrink:0}}>Change</button>
+            </div>
+            {rosterPins&&rosterPins[selId]&&(
+              <div style={{background:'#fffbeb',border:'1.5px solid #f59e0b',borderRadius:9,padding:'10px 13px',marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
+                <div><div style={{fontSize:13,fontWeight:700,color:'#92400e',marginBottom:2}}>Sign-in already set up</div><div style={{fontSize:12,color:'#b45309',lineHeight:1.4}}>Entering a new number will replace your existing sign-in.</div></div>
+              </div>
+            )}
+            <div style={{fontSize:15,fontWeight:700,color:'#0f172a',marginBottom:4}}>Step 2 of 2 — Enter your phone number</div>
+            <div style={{fontSize:13,color:'#94a3b8',marginBottom:14}}>You&apos;ll use the last 4 digits to sign in. Enter your full number so we can verify it.</div>
+            <div style={{marginBottom:12}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.06em',display:'block',marginBottom:5}}>Phone number</label>
+              <input style={{width:'100%',padding:'12px 14px',border:'1.5px solid #e2e8f0',borderRadius:9,fontSize:18,fontFamily:'DM Sans,sans-serif',outline:'none',letterSpacing:'0.08em',textAlign:'center',boxSizing:'border-box'}} type="tel" inputMode="numeric" placeholder="555-867-5309" value={phone} onChange={e=>setPhone(fmtPhone(e.target.value))} maxLength={12}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:12,fontWeight:600,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.06em',display:'block',marginBottom:5}}>Confirm phone number</label>
+              <input style={{width:'100%',padding:'12px 14px',border:'1.5px solid '+(mismatch?'#fecaca':phoneConfirm&&phonesMatch?'#10b981':'#e2e8f0'),borderRadius:9,fontSize:18,fontFamily:'DM Sans,sans-serif',outline:'none',letterSpacing:'0.08em',textAlign:'center',boxSizing:'border-box'}} type="tel" inputMode="numeric" placeholder="Re-enter number" value={phoneConfirm} onChange={e=>setPhoneConfirm(fmtPhone(e.target.value))} maxLength={12}/>
+              {mismatch&&<div style={{fontSize:12,color:'#dc2626',fontWeight:600,marginTop:4,textAlign:'center'}}>Numbers don&apos;t match — check and try again</div>}
+              {phonesMatch&&<div style={{fontSize:12,color:'#15803d',fontWeight:600,marginTop:4,textAlign:'center'}}>✓ Numbers match</div>}
+            </div>
+            {phonesMatch&&(
+              <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:9,padding:'10px 13px',marginBottom:14,textAlign:'center'}}>
+                <div style={{fontSize:11,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:2}}>Your sign-in PIN will be</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:36,fontWeight:700,color:'#0f172a',letterSpacing:8}}>{phone4}</div>
+                <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Last 4 digits of your number</div>
+              </div>
+            )}
+            <button onClick={handleConfirm} disabled={!phonesMatch} style={{width:'100%',padding:'13px',borderRadius:10,border:'none',background:phonesMatch?'#0f172a':'#e2e8f0',color:phonesMatch?'#fff':'#94a3b8',fontFamily:'DM Sans,sans-serif',fontSize:15,fontWeight:700,cursor:phonesMatch?'pointer':'not-allowed',transition:'all 0.15s',boxSizing:'border-box'}}>
+              {!phonesMatch?'Enter matching phone numbers':rosterPins&&rosterPins[selId]?'Update my sign-in →':'Set up my sign-in →'}
+            </button>
+            <button onClick={()=>{setStep(1);setQ('');}} style={{background:'none',border:'none',color:'#94a3b8',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginTop:12,width:'100%',textAlign:'center'}}>← Change name</button>
           </div>
         )}
       </div>
@@ -929,11 +1008,268 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin}){
   );
 }
 
-function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hcp,onConfirm,waitlistDay}){
-  const name=isGuest?gname.trim():(ROSTER.find(p=>p.id==sel)||{}).name;
+function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,rosterPins,rosterAdmins,rosterShared,fullRoster,savePinFn}){
+  const [pin,setPin]=useState('');
+  const [showPad,setShowPad]=useState(false);
+  const [disambigList,setDisambigList]=useState([]);
+  const [showWelcome,setShowWelcome]=useState(false);
+  const [welcomeData,setWelcomeData]=useState(null);
+  const [showSelfReg,setShowSelfReg]=useState(false);
+  const [showDemoPad,setShowDemoPad]=useState(false);
+  const [demoPin,setDemoPin]=useState('');
+  const [demoPinErr,setDemoPinErr]=useState('');
+  const [showPw,setShowPw]=useState(false);
+  const [pw,setPw]=useState('');
+  const [pwErr,setPwErr]=useState(false);
+  const [showRegBanner,setShowRegBanner]=useState(()=>{try{return!localStorage.getItem('cgRegistered');}catch{return true;}});
+  const [pinShake,setPinShake]=useState(false);
+  function dismissBanner(){try{localStorage.setItem('cgRegistered','1');}catch{}setShowRegBanner(false);}
+  function tryAdminPw(){if(pw.toLowerCase()==='clark'){onAdmin();}else{setPwErr(true);setTimeout(()=>setPwErr(false),1500);}}
+  function mkIni(n){return(n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+  function addDigit(d){if(pin.length>=4)return;setPinShake(false);setPin(p=>p+d);}
+  function tryLogin(){
+    if(pin.length<4)return;
+    const matches=Object.entries(rosterPins||{}).filter(([,v])=>String(v)===String(pin));
+    if(!matches.length){setPin('');setPinShake(true);return;}
+    if(matches.length>1||(matches.length===1&&(rosterShared||{})[matches[0][0]])){
+      const list=matches.map(([id])=>{const p=(fullRoster||[]).find(r=>String(r.id)===String(id));return{id,name:p?p.name:'Member '+id};});
+      setDisambigList(list);return;
+    }
+    completeLogin(matches[0][0]);
+  }
+  function completeLogin(playerId){
+    const player=(fullRoster||[]).find(r=>String(r.id)===String(playerId));
+    if(!player)return;
+    const isAdm=!!(rosterAdmins&&rosterAdmins[playerId]);
+    const wd={name:player.name,id:String(playerId),role:isAdm?'admin':'member',ini:mkIni(player.name)};
+    setDisambigList([]);setShowPad(false);
+    setWelcomeData(wd);setShowWelcome(true);
+    setTimeout(()=>{setShowWelcome(false);onMemberLogin(wd);},1800);
+  }
+  if(showSelfReg)return(
+    <SelfRegister fullRoster={fullRoster} rosterPins={rosterPins}
+      onBack={()=>setShowSelfReg(false)}
+      onComplete={({id,name,last4})=>{
+        const isAdm=!!(rosterAdmins&&rosterAdmins[id]);
+        const wd={name,id:String(id),role:isAdm?'admin':'member',ini:mkIni(name)};
+        savePinFn&&savePinFn(id,last4);
+        dismissBanner();
+        setShowSelfReg(false);
+        setWelcomeData(wd);setShowWelcome(true);
+        setTimeout(()=>{setShowWelcome(false);onMemberLogin(wd);},1800);
+      }}
+    />
+  );
+  if(showWelcome&&welcomeData)return(
+    <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9998,backdropFilter:'blur(12px)'}}>
+      <div style={{background:'#fff',borderRadius:24,padding:'36px 44px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.15)'}}>
+        <div style={{fontSize:56,marginBottom:10}}>{welcomeData.role==='admin'?'⭐':'⛳'}</div>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:36,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
+        <div style={{fontSize:14,color:'#94a3b8',marginTop:6}}>{welcomeData.role==='admin'?'Admin Access':'Welcome back!'}</div>
+      </div>
+    </div>
+  );
+  if(disambigList.length>0)return(
+    <div className="land">
+      <div style={{width:'100%',maxWidth:420}}>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:700,color:'#fff',marginBottom:20}}>Which one are you?</div>
+        {disambigList.map(m=>(
+          <button key={m.id} className="land-btn" style={{background:'rgba(255,255,255,0.08)',color:'#fff',border:'1.5px solid rgba(255,255,255,0.15)',marginBottom:10}} onClick={()=>completeLogin(m.id)}>
+            <div style={{width:40,height:40,borderRadius:'50%',background:'#1a4d2e',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,flexShrink:0}}>{mkIni(m.name)}</div>
+            <div className="land-btn-text"><span className="land-btn-main">{m.name}</span></div>
+            <span className="land-arrow">›</span>
+          </button>
+        ))}
+        <button style={{background:'none',border:'none',color:'rgba(255,255,255,0.4)',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginTop:8,width:'100%'}} onClick={()=>{setDisambigList([]);setPin('');}}>← Back</button>
+      </div>
+    </div>
+  );
+  if(showDemoPad)return(
+    <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.92)',display:'flex',flexDirection:'column',justifyContent:'flex-end',paddingBottom:'10vh',zIndex:9999,backdropFilter:'blur(6px)'}}>
+      <div style={{background:'#fff',borderRadius:'24px 24px 0 0',width:'100%',maxWidth:460,margin:'0 auto',paddingBottom:24}}>
+        <div style={{width:40,height:4,background:'#e2e8f0',borderRadius:2,margin:'12px auto 0'}}></div>
+        <div style={{padding:'18px 24px 10px',borderBottom:'1px solid #f1f5f9'}}>
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:700,color:'#0f172a'}}>Demo Mode</div>
+          <div style={{fontSize:13,color:'#94a3b8',marginTop:6,lineHeight:1.5}}>
+            Enter <span style={{display:'inline-block',background:'#fef3c7',color:'#b45309',padding:'2px 10px',borderRadius:20,fontWeight:700,margin:'0 4px'}}>1111</span> to explore — use the toggle inside to switch Player / Admin views.
+          </div>
+        </div>
+        <div style={{display:'flex',justifyContent:'center',gap:12,padding:'18px 24px 8px'}}>
+          {[0,1,2,3].map(i=><div key={i} style={{width:13,height:13,borderRadius:'50%',background:i<demoPin.length?'#f59e0b':'#e2e8f0',transition:'background 0.1s'}}></div>)}
+        </div>
+        {demoPinErr&&<div style={{textAlign:'center',color:'#dc2626',fontSize:13,fontWeight:600,paddingBottom:6}}>{demoPinErr}</div>}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,padding:'4px 20px 0'}}>
+          {['1','2','3','4','5','6','7','8','9'].map(d=>(
+            <button key={d} onClick={()=>{if(demoPin.length<4){setDemoPinErr('');setDemoPin(p=>p+d);}}} style={{height:66,border:'1.5px solid #e2e8f0',borderRadius:12,background:'#fff',cursor:'pointer',fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:700,color:'#0f172a'}}>{d}</button>
+          ))}
+          <button onClick={()=>setDemoPin(p=>p.slice(0,-1))} style={{height:66,border:'1.5px solid #fecaca',borderRadius:12,background:'#fef2f2',cursor:'pointer',fontSize:22,color:'#dc2626',fontWeight:700}}>⌫</button>
+          <button onClick={()=>{if(demoPin.length<4){setDemoPinErr('');setDemoPin(p=>p+'0');}}} style={{height:66,border:'1.5px solid #e2e8f0',borderRadius:12,background:'#fff',cursor:'pointer',fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:700,color:'#0f172a'}}>0</button>
+          <button onClick={()=>{if(demoPin==='1111'){setShowDemoPad(false);setDemoPin('');onDemoAdmin();}else{setDemoPinErr('Demo PIN is 1111');setDemoPin('');}}} style={{height:66,border:'none',borderRadius:12,background:demoPin.length===4?'#f59e0b':'#e2e8f0',cursor:'pointer',fontSize:14,fontWeight:700,color:demoPin.length===4?'#0f172a':'#94a3b8',transition:'all 0.15s'}}>GO →</button>
+        </div>
+        <div style={{textAlign:'center',marginTop:14}}>
+          <button onClick={()=>{setShowDemoPad(false);setDemoPin('');setDemoPinErr('');}} style={{background:'none',border:'none',color:'#94a3b8',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Back</button>
+        </div>
+      </div>
+    </div>
+  );
+  if(showPad)return(
+    <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.85)',display:'flex',flexDirection:'column',justifyContent:'flex-end',paddingBottom:'10vh',zIndex:9999,backdropFilter:'blur(6px)'}} onClick={e=>{if(e.target===e.currentTarget){setShowPad(false);setPin('');}}}>
+      <div style={{background:'#fff',borderRadius:'24px 24px 0 0',width:'100%',maxWidth:460,margin:'0 auto',paddingBottom:24}}>
+        <div style={{width:40,height:4,background:'#e2e8f0',borderRadius:2,margin:'12px auto 0'}}></div>
+        <div style={{padding:'18px 24px 10px',borderBottom:'1px solid #f1f5f9'}}>
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:700,color:'#0f172a'}}>Member Sign In</div>
+          <div style={{fontSize:13,color:'#94a3b8',marginTop:2}}>Enter the last 4 digits of your phone number</div>
+        </div>
+        <div style={{display:'flex',justifyContent:'center',gap:12,padding:'18px 24px 4px',animation:pinShake?'shake 0.5s ease':'none'}}>
+          {[0,1,2,3].map(i=><div key={i} style={{width:13,height:13,borderRadius:'50%',background:i<pin.length?'#0f172a':'#e2e8f0',transition:'background 0.1s'}}></div>)}
+        </div>
+        {pinShake&&(
+          <div style={{margin:'8px 20px 4px'}}>
+            <div style={{fontSize:13,color:'#dc2626',fontWeight:600,textAlign:'center',marginBottom:8}}>Number not found</div>
+            <button onClick={()=>{setShowPad(false);setPinShake(false);setShowSelfReg(true);}} style={{width:'100%',padding:'13px',borderRadius:12,border:'none',background:'#4f46e5',color:'#fff',fontFamily:'DM Sans,sans-serif',fontSize:14,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 14px rgba(79,70,229,0.4)'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Register Your Phone Number Now →
+            </button>
+            <div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginTop:6}}>First time? Tap above to set up your sign-in — takes 30 seconds</div>
+          </div>
+        )}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,padding:'4px 20px 0'}}>
+          {['1','2','3','4','5','6','7','8','9'].map(d=>(
+            <button key={d} onClick={()=>addDigit(d)} style={{height:66,border:'1.5px solid #e2e8f0',borderRadius:12,background:'#fff',cursor:'pointer',fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:700,color:'#0f172a'}}>{d}</button>
+          ))}
+          <button onClick={()=>setPin(p=>p.slice(0,-1))} style={{height:66,border:'1.5px solid #fecaca',borderRadius:12,background:'#fef2f2',cursor:'pointer',fontSize:22,color:'#dc2626',fontWeight:700}}>⌫</button>
+          <button onClick={()=>addDigit('0')} style={{height:66,border:'1.5px solid #e2e8f0',borderRadius:12,background:'#fff',cursor:'pointer',fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:700,color:'#0f172a'}}>0</button>
+          <button onClick={tryLogin} style={{height:66,border:'none',borderRadius:12,background:pin.length>=4?'#0f172a':'#e2e8f0',cursor:'pointer',fontSize:14,fontWeight:700,color:pin.length>=4?'#fff':'#94a3b8',transition:'all 0.15s'}}>GO →</button>
+        </div>
+        <div style={{textAlign:'center',marginTop:14}}>
+          <button onClick={()=>{setShowPad(false);setPin('');}} style={{background:'none',border:'none',color:'#94a3b8',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Back</button>
+        </div>
+      </div>
+    </div>
+  );
+  return(
+    <div className="land">
+      <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:460}}>
+
+        {/* ── Wordmark ── */}
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <div className="land-title">Clark <em>Golf</em> Group</div>
+          <div className="land-week">{getWeekLabel(null)}</div>
+        </div>
+
+        {/* ── Registration banner — standalone, below wordmark ── */}
+        {showRegBanner&&(
+          <div onClick={()=>setShowSelfReg(true)} style={{cursor:'pointer',marginBottom:20,background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:32,height:32,borderRadius:8,background:'rgba(16,185,129,0.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:1}}>First time? Set up your sign-in</div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',lineHeight:1.4}}>Register your phone number once — this banner disappears after you do.</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(16,185,129,0.5)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <button onClick={e=>{e.stopPropagation();dismissBanner();}} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:13,lineHeight:1,padding:2}}>✕</button>
+          </div>
+        )}
+
+        {/* ── Unified menu card ── */}
+        <div style={{background:'rgba(255,255,255,0.04)',borderRadius:18,overflow:'hidden',border:'1px solid rgba(255,255,255,0.07)',marginBottom:12}}>
+
+          {/* Member Sign In — solid green background, stands out */}
+          <button onClick={()=>{setShowPad(true);setPin('');setPinShake(false);}} style={{display:'flex',alignItems:'center',gap:14,padding:'18px 18px',background:'#10b981',border:'none',cursor:'pointer',textAlign:'left',borderBottom:'1px solid rgba(0,0,0,0.08)',width:'100%',transition:'background 0.15s'}}>
+            <div style={{width:38,height:38,borderRadius:10,background:'rgba(0,0,0,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:'#0f172a',marginBottom:2}}>Member Sign In</div>
+              <div style={{fontSize:12,color:'rgba(0,0,0,0.45)'}}>Enter last 4 digits of your phone</div>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+          {/* Continue as Guest */}
+          <button onClick={onPlayer} style={{display:'flex',alignItems:'center',gap:14,padding:'16px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',borderBottom:'1px solid rgba(255,255,255,0.06)',width:'100%'}}>
+            <div style={{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.8)',marginBottom:2}}>Continue as Guest</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.35)'}}>View schedule &amp; sign up as a guest</div>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+          {/* Try the Demo */}
+          <button onClick={()=>{setShowDemoPad(true);setDemoPin('');setDemoPinErr('');}} style={{display:'flex',alignItems:'center',gap:14,padding:'16px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',borderBottom:'1px solid rgba(255,255,255,0.06)',width:'100%'}}>
+            <div style={{width:38,height:38,borderRadius:10,background:'rgba(245,158,11,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.8)',marginBottom:2}}>Try the Demo</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.35)'}}>Enter PIN 1111 — no sign-in needed</div>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,0.35)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+          {/* User Guide */}
+          <a href="guide.html" style={{display:'flex',alignItems:'center',gap:14,padding:'16px 18px',background:'transparent',textDecoration:'none',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+            <div style={{width:38,height:38,borderRadius:10,background:'rgba(59,130,246,0.1)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.8)',marginBottom:2}}>User Guide</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.35)'}}>Learn how the app works</div>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(96,165,250,0.35)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+
+          {/* Create / Update Sign-In */}
+          <button onClick={()=>setShowSelfReg(true)} style={{display:'flex',alignItems:'center',gap:14,padding:'16px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
+            <div style={{width:38,height:38,borderRadius:10,background:'rgba(99,102,241,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.8)',marginBottom:2}}>{showRegBanner?'Create Your Sign-In':'Create or Update Your Sign-In'}</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.35)'}}>Register or update your phone number</div>
+            </div>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(129,140,248,0.35)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+        </div>
+
+        {/* PWA install */}
+        <div id="pwa-land-install" style={{textAlign:'center',marginTop:6}}>
+          <button id="pwa-land-btn" style={{background:'none',border:'1px solid rgba(255,255,255,0.07)',borderRadius:24,padding:'7px 16px',color:'rgba(255,255,255,0.2)',fontSize:11,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:5}}>
+            <span style={{fontSize:12}}>&#128242;</span> Add to Home Screen
+          </button>
+        </div>
+
+        {showPw?(
+          <div className="pw-box" style={{marginTop:12}}>
+            <div className="pw-label">Admin Password</div>
+            <input autoFocus type="password" className={'pw-input'+(pwErr?' err':'')} placeholder="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryAdminPw()}/>
+            {pwErr&&<div className="pw-err">Wrong password</div>}
+            <div className="pw-row"><button className="pw-go" onClick={tryAdminPw}>Sign In</button></div>
+            <button onClick={()=>{setShowPw(false);setPw('');}} style={{display:'block',width:'100%',marginTop:10,padding:'10px',background:'none',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:8,color:'rgba(255,255,255,0.3)',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Back</button>
+          </div>
+        ):(
+          <button style={{background:'none',border:'none',color:'rgba(255,255,255,0.05)',fontSize:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',width:'100%',padding:'8px 0',marginTop:4}} onClick={()=>{setShowPw(true);setPw('');}}>· · ·</button>
+        )}
+
+      </div>
+    </div>
+  
+  );
+}
+
+function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hcp,onConfirm,waitlistDay,currentUser}){
+  const isMember=!isGuest&&currentUser&&(currentUser.role==='member'||currentUser.role==='admin');
+  const name=isGuest?gname.trim():isMember?currentUser.name:(ROSTER.find(p=>p.id==sel)||{}).name;
   const selectedDays=(activeDays||[]).filter(d=>signupDays[d]&&!Object.values(allSignups||{}).some(s=>s.day===d&&s.name===name));
-  const disabled=(!sel&&!gname)||!hcp||(waitlistDay?false:selectedDays.length===0);
-  const label=waitlistDay?'Join Waiting List for '+waitlistDay:selectedDays.length>1?'Sign up for '+selectedDays.length+' days':'Confirm sign-up';
+  const disabled=(isMember?false:(!sel&&!gname))||!hcp||(waitlistDay?false:selectedDays.length===0);
+  const label=waitlistDay?'Join Waiting List for '+waitlistDay
+    :name&&selectedDays.length>0?'Sign up as '+name+(selectedDays.length>1?' ('+selectedDays.length+' days)':'')
+    :'Confirm sign-up';
   return(<button className="btn btn-green btn-full" onClick={onConfirm} disabled={disabled} style={{opacity:disabled?0.4:1}}>{label}</button>);
 }
 
@@ -945,7 +1281,7 @@ function TeamBadge({name,week,day}){
 }
 
 // -- THIS WEEK VIEW (with improved signup modal) ----------------------------
-function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRemove,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock,onAddToWaitlist,onRemoveFromWaitlist,onSwitchRole}){
+function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRemove,onMatchPairingRequest,onUpdateSignup,onUpdateTeeTime,onMarkComplete,onReopenDay,onToggleLock,onAddToWaitlist,onRemoveFromWaitlist,onSwitchRole}){
   const [showSignup,setShowSignup]=useState(false);
   const [signupDays,setSignupDays]=useState({});
   const [teeModal,setTeeModal]=useState(null);
@@ -970,6 +1306,10 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const [showTeePref,setShowTeePref]=useState(false);
   const [guestOf,setGuestOf]=useState('');
   const [pairWithGuest,setPairWithGuest]=useState(false);
+  const [showMatchReq,setShowMatchReq]=useState(false);
+  const [matchPartner,setMatchPartner]=useState('');
+  const [matchPartnerTee,setMatchPartnerTee]=useState('Whites');
+  const [matchPartnerHcp,setMatchPartnerHcp]=useState('');
   const [copiedDay,setCopiedDay]=useState(null);
   function loadMemory(playerId){try{const saved=localStorage.getItem('cgPref_'+playerId);if(saved){const pref=JSON.parse(saved);setTee(pref.tee||'Whites');setHcp(String(pref.hcp||''));setHcpMemory(pref);}else{setHcpMemory(null);}}catch{setHcpMemory(null);}}
   function saveMemory(playerId,teeVal,hcpVal){try{localStorage.setItem('cgPref_'+playerId,JSON.stringify({tee:teeVal,hcp:hcpVal}));}catch{}}
@@ -985,13 +1325,26 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   const allSignups=week.signups||{};
   const totalSignups=Object.keys(allSignups).length;
 
-  function openSignup(){const init={};activeDays.forEach(d=>{init[d]=false;});setSignupDays(init);setSel('');setGname('');setHcp('');setIsGuest(false);setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setGuestOf('');setPairWithGuest(false);setShowSignup(true);}
+  function openSignup(){
+    const init={};activeDays.forEach(d=>{init[d]=false;});
+    setSignupDays(init);setGname('');setHcp('');setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setGuestOf('');setPairWithGuest(false);setWaitlistDay(null);setShowMatchReq(false);setMatchPartner('');setMatchPartnerTee('Whites');setMatchPartnerHcp('');
+    if(currentUser&&currentUser.role==='guest'){setIsGuest(true);setSel('');}
+    else if(currentUser&&(currentUser.role==='member'||currentUser.role==='admin')){
+      setIsGuest(false);
+      const match=[...(effectiveRoster||ROSTER),...safeArray(extraRoster)].find(p=>String(p.id)===String(currentUser.id));
+      setSel(match?match.id:'');if(match)loadMemory(match.id);
+    }else{setIsGuest(false);setSel('');}
+    setShowSignup(true);
+  }
 
   function doSignup(){
-    const name=isGuest?gname.trim():(fullRoster.find(p=>p.id==sel)||{}).name;    if(!name||!hcp)return;
+    const isMemberLogin=!isGuest&&currentUser&&(currentUser.role==='member'||currentUser.role==='admin');
+    const name=isGuest?gname.trim():isMemberLogin?currentUser.name:(fullRoster.find(p=>p.id==sel)||{}).name;
+    const _pid=isGuest?'g_'+Date.now():isMemberLogin?parseInt(String(currentUser.id)):parseInt(sel);
+    if(!name||!hcp)return;
     if(!isGuest&&sel){setMyNamePersist(name);saveMemory(sel,tee,hcp);}
     if(isGuest&&gname)setMyNamePersist(gname.trim());
-    const pid=isGuest?'g_'+Date.now():parseInt(sel);
+    const pid=_pid;
 
     // Waitlist mode: single day, goes to waitlist
     if(waitlistDay){
@@ -1014,6 +1367,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
   }
 
   const fullRoster=[...(effectiveRoster||ROSTER),...safeArray(extraRoster).filter(p=>p.id>96)];
+  function logActivityLocal(){}
   const avail=fullRoster.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
   const selPlayer=sel?fullRoster.find(p=>p.id==sel):null;
 
@@ -1029,10 +1383,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
           <button onClick={()=>onSwitchRole&&onSwitchRole('admin')} style={{flex:1,padding:'6px',borderRadius:7,border:'1.5px solid',borderColor:isAdmin?'#f59e0b':'#fde68a',background:isAdmin?'#f59e0b':'transparent',color:isAdmin?'#0f172a':'#92400e',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Admin View</button>
         </div>
       </div>}
-      <div className="stat-row">
-      {activeDays.map(day=>{const cnt=Object.values(allSignups).filter(s=>s.day===day).length;return(<div key={day} className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">{day.slice(0,3)}</div></div>);})}
-        {activeDays.length<3&&<div className="stat-box"><div className="stat-n">{totalSignups}</div><div className="stat-l">Total</div></div>}
-      </div>
+
 
       {activeDays.map(day=>{
         const daySignups=Object.entries(allSignups).filter(([,s])=>s.day===day).sort((a,b)=>a[1].signedUpAt-b[1].signedUpAt);
@@ -1042,8 +1393,8 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
         return(
           <div key={day} className="day-card">
             {isAdmin&&teeInfo&&teeInfo.lottery&&(
-              <div style={{background:'#fffbeb',borderBottom:'1px solid #fde68a',padding:'7px 13px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <span style={{fontSize:11,fontWeight:700,color:'#d97706',display:'flex',alignItems:'center',gap:5}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Waiting on lottery</span>
+              <div style={{background:'#0f172a',borderBottom:'1px solid #1e293b',padding:'7px 13px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:11,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',gap:5}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Waiting on lottery</span>
                 <button className="btn btn-gold btn-xs" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Set Time</button>
               </div>
             )}
@@ -1059,13 +1410,13 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                 </div>
               </div>
               <div className="day-right">
-                <span className={'day-pill '+(cnt>0?'has':'none')}>{cnt} {cnt===1?'player':'players'}</span>
+                <span className={'day-pill '+(cnt>0?'has':'none')} style={{minWidth:28,height:28,borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700}}>{cnt}</span>
                 <svg className={'day-chev'+(isOpen?' open':'')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
             {isOpen&&(
               <div className="day-body">
-                {(()=>{const note=(week?.emailNotes&&week.emailNotes[day])||'';return note.trim()?(<div style={{padding:'10px 14px',background:'#fffbeb',borderBottom:'1px solid #fde68a'}}><div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1,marginBottom:3}}>Note from the admin</div><div style={{fontSize:13,color:'#78350f',lineHeight:1.5}}>{note}</div></div>):null;})()}
+                {(()=>{const note=(week?.emailNotes&&week.emailNotes[day])||'';return note.trim()?(<div style={{padding:'12px 14px',background:'#f0f4ff',borderBottom:'1px solid #dde3ff',borderLeft:'3px solid #4f46e5'}}><div style={{fontSize:10,fontWeight:700,color:'#4338ca',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4,display:'flex',alignItems:'center',gap:5}}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Admin Note</div><div style={{fontSize:13,color:'#1e1b4b',lineHeight:1.6,fontWeight:500}}>{note}</div></div>):null;})()}
                 {dayComplete&&(<div style={{padding:'8px 13px',borderBottom:'1px solid #f1f5f9',background:'#ecfdf5',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span style={{fontSize:12,fontWeight:700,color:'#15803d'}}>{day} round complete</span>{isAdmin&&<button className="btn btn-outline btn-xs" onClick={()=>onReopenDay(day)}>Reopen</button>}</div>)}
                 {cnt===0&&<div style={{padding:'13px 14px',textAlign:'center',fontSize:13,color:'#94a3b8'}}>No sign-ups yet for {day}</div>}
                 {(()=>{const wl=Object.entries(week?.waitlist||{}).filter(([,s])=>s.day===day);if(!wl.length)return null;return(<div style={{borderTop:'1px solid #fde68a',background:'#fffbeb',padding:'10px 14px'}}><div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Waiting List ({wl.length})</div>{wl.map(([k,s])=>(<div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #fde68a'}}><div style={{display:'flex',alignItems:'center',gap:8}}><div className="avi" style={{width:27,height:27,fontSize:9,background:'#fef3c7',color:'#92400e'}}>{ini(s.name)}</div><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{s.name}</div><div style={{fontSize:11,color:'#b45309'}}>{s.tee} HCP {s.handicap}</div></div></div><div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -1093,11 +1444,18 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                         {editKey===key?(
                           <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                         ):(
-                          <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||myName===s.name)&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
+                          <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||(currentUser&&(s.name===currentUser.name||(s.isGuest&&s.guestOf===currentUser.name))))&&<button className="edit-btn" onClick={()=>{setEditKey(key);setEditVal({hcp:String(s.handicap),tee:s.tee});}}>edit</button>}</div>
                         )}
                       </div>
-                      {isAdmin&&<button onClick={()=>onRemove(key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove Player</button>}
-                      {!isAdmin&&<button onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove Player</button>}
+                      {(()=>{
+                        const isMySignup=currentUser&&s.name===currentUser.name;
+                        const isMyGuest=currentUser&&s.isGuest&&s.guestOf===currentUser.name;
+                        const isMyMatchPartner=currentUser&&s.isMatchAdd&&s.matchAddedBy===currentUser.name;
+                        const canRemove=isAdmin||(currentUser&&(isMySignup||isMyGuest||isMyMatchPartner));
+                        if(!canRemove)return null;
+                        if(isAdmin)return<button onClick={()=>onRemove(key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove</button>;
+                        return<button onClick={()=>setConfirmRemoveKey(confirmRemoveKey===key?null:key)} style={{flexShrink:0,background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>Remove</button>;
+                      })()}
                     </div>
                     {confirmRemoveKey===key&&!isAdmin&&(
                       <div style={{margin:'0 14px 8px',padding:'8px 12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8}}>
@@ -1134,11 +1492,17 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setShowSignup(false);}}>
           <div className="modal">
             <div className="modal-handle"></div>
-            <div className="modal-title">{waitlistDay?'Waiting List — '+waitlistDay:'Sign up'}</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <div className="modal-title" style={{marginBottom:0}}>{waitlistDay?'Waiting List — '+waitlistDay:'Sign up'}</div>
+              <button onClick={()=>{setShowSignup(false);setWaitlistDay(null);}} style={{width:32,height:32,borderRadius:'50%',border:'1.5px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'#64748b',fontSize:18,lineHeight:1,flexShrink:0}}>✕</button>
+            </div>
 
             {/* Member / Guest toggle */}
             <div className="tog">
-              <button className={'tog-opt'+(!isGuest?' on':'')} onClick={()=>{setIsGuest(false);setSel('');setGname('');setHcp('');setTee('Whites');setHcpMemory(null);}}>Member</button>
+              <button className={'tog-opt'+(!isGuest?' on':'')}
+                disabled={!!(currentUser&&currentUser.role==='guest')}
+                style={{opacity:(currentUser&&currentUser.role==='guest')?0.3:1,cursor:(currentUser&&currentUser.role==='guest')?'not-allowed':'pointer'}}
+                onClick={()=>{if(currentUser&&currentUser.role==='guest')return;setIsGuest(false);setSel('');setGname('');setHcp('');setTee('Whites');setHcpMemory(null);}}>Member</button>
               <button className={'tog-opt'+(isGuest?' on':'')} onClick={()=>{setIsGuest(true);setSel('');setGname('');setHcp('');setTee('Whites');setHcpMemory(null);}}>Guest</button>
             </div>
 
@@ -1146,7 +1510,19 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
             {!isGuest?(
               <div className="fg">
                 <label className="fl">Your name</label>
-                {selPlayer?(
+                {(currentUser&&(currentUser.role==='member'||currentUser.role==='admin'))?(
+                  <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:12}}>
+                    <div style={{width:38,height:38,borderRadius:'50%',background:currentUser.role==='admin'?'#fef3c7':'#dcfce7',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'Barlow Condensed,sans-serif',fontSize:15,fontWeight:700,color:currentUser.role==='admin'?'#92400e':'#15803d'}}>{currentUser.ini}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:15,fontWeight:700,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{currentUser.name}</div>
+                      <div style={{fontSize:11,color:'#94a3b8',marginTop:1,display:'flex',alignItems:'center',gap:4}}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        Signed in — name confirmed
+                      </div>
+                    </div>
+                    <span style={{fontSize:10,fontWeight:700,padding:'3px 8px',borderRadius:20,background:currentUser.role==='admin'?'#fef3c7':'#dcfce7',color:currentUser.role==='admin'?'#92400e':'#15803d',textTransform:'uppercase',letterSpacing:'0.05em'}}>{currentUser.role}</span>
+                  </div>
+                ):selPlayer?(
                   /* COLLAPSED CHIP - player selected */
                   <div className="sel-chip">
                     <div className="avi" style={{width:34,height:34,fontSize:12}}>{ini(selPlayer.name)}</div>
@@ -1250,7 +1626,7 @@ function WeekView({week,isAdmin,isDemo,extraRoster,effectiveRoster,onSignup,onRe
                     <div style={{fontSize:10,color:'#94a3b8',textAlign:'center'}}>Tee time requests require admin approval</div>
                   </div>
                 )}
-                <SignupConfirmBtn isGuest={isGuest} gname={gname} sel={sel} activeDays={activeDays} signupDays={signupDays} allSignups={allSignups} hcp={hcp} onConfirm={doSignup} waitlistDay={waitlistDay}/>
+                <SignupConfirmBtn isGuest={isGuest} gname={gname} sel={sel} activeDays={activeDays} signupDays={signupDays} allSignups={allSignups} hcp={hcp} onConfirm={doSignup} waitlistDay={waitlistDay} currentUser={currentUser}/>
               </div>
             )}
           </div>
@@ -1327,7 +1703,7 @@ function PaymentBar({display,week,activeDay,showPaid,onToggle}){
   return(<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 13px',background:showPaid?'#ecfdf5':'#f8fafc',border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',borderRadius:10}}><div><div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>Payment tracking</div>{showPaid&&<div style={{fontSize:11,color:'#64748b',marginTop:1}}>{paidCount} of {total} paid - {f$(paidCount*25)} collected</div>}</div><button onClick={onToggle} style={{padding:'5px 12px',borderRadius:7,border:'1.5px solid',borderColor:showPaid?'#10b981':'#e2e8f0',background:showPaid?'#10b981':'#fff',color:showPaid?'#0f172a':'#475569',fontSize:12,fontWeight:700,cursor:'pointer'}}>{showPaid?'Hide':'Track payments'}</button></div>);
 }
 
-function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,onPromoteWaitlist,myName}){
+function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndLock,onUnpublish,onEditInPlace,onPromoteWaitlist,myName}){
   const [activeDay,setActiveDay]=useState(null);const [editTeams,setEditTeams]=useState(null);const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
@@ -1530,6 +1906,39 @@ function TeamsView({week,history,isAdmin,onSaveTeams,onPublishAndLock,onUnpublis
               ))}
             </div>
           )}
+
+          {/* Match pairing requests (member-to-member) */}
+          {(()=>{
+            const dayMatchPairings=Object.entries(matchPairings||{}).filter(([,m])=>m.day===activeDay);
+            if(!dayMatchPairings.length||editTeams||currentDisplay.length>0)return null;
+            return(
+              <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,padding:'12px 14px',marginBottom:10}}>
+                <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  ⚡ Match Pairing Requests ({dayMatchPairings.length})
+                </div>
+                <div style={{fontSize:11,color:'#94a3b8',marginBottom:8}}>Approve to place on the same team. Deny to put in the random pool.</div>
+                {dayMatchPairings.map(([key,m])=>(
+                  <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f8fafc'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                      <span style={{fontSize:13,fontWeight:600}}>{m.requester}</span>
+                      <span style={{fontSize:11,color:'#64748b'}}>⚡ match with</span>
+                      <span style={{fontSize:13,fontWeight:600}}>{m.partner}</span>
+                      <span style={{fontSize:10,fontWeight:700,padding:'1px 7px',borderRadius:20,background:'#eff6ff',color:'#1d4ed8'}}>Match</span>
+                    </div>
+                    <div style={{display:'flex',gap:4}}>
+                      <button onClick={()=>setApprovals(a=>({...a,['match_'+key]:true}))} style={{padding:'5px 11px',borderRadius:7,border:'1.5px solid',borderColor:approvals['match_'+key]===true?'#10b981':'#e2e8f0',background:approvals['match_'+key]===true?'#ecfdf5':'#fff',color:approvals['match_'+key]===true?'#15803d':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                        {approvals['match_'+key]===true?'✓ Approved':'Approve'}
+                      </button>
+                      <button onClick={()=>setApprovals(a=>({...a,['match_'+key]:false}))} style={{padding:'5px 11px',borderRadius:7,border:'1.5px solid',borderColor:approvals['match_'+key]===false?'#fecaca':'#e2e8f0',background:approvals['match_'+key]===false?'#fef2f2':'#fff',color:approvals['match_'+key]===false?'#dc2626':'#94a3b8',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                        {approvals['match_'+key]===false?'Denied':'Deny'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Mode toggle: Auto vs Manual */}
           {!manualMode&&!editTeams&&currentDisplay.length===0&&(
@@ -1840,27 +2249,27 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
     <div>
       <div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>setActiveDay(d)}>{d.slice(0,3)}</button>)}</div>
       {dayTeams.length>0&&<PaymentBar display={dayTeams} week={week} activeDay={activeDay} showPaid={showPaid} onToggle={()=>setShowPaid(!showPaid)}/>}
-      {showPaid&&isAdmin&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Collect Payments</div>{dayTeams.map((t,ti)=>(<div key={t.id||ti} style={{marginBottom:12}}><div style={{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',marginBottom:4}}>{t.name||('Group '+(ti+1))}</div>{safeArray(t.players).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc'}}><span style={{fontSize:14,fontWeight:500,color:'#0f172a'}}>{p.name}</span><PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/></div>))}</div>))}</div>)}
+      {showPaid&&isAdmin&&(<div className="card card-pad" style={{marginBottom:14}}><div className="slbl">Collect Payments</div>{dayTeams.map((t,ti)=>(<div key={t.id||ti} style={{marginBottom:12}}><div style={{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',marginBottom:4}}>{t.name||('Group '+(ti+1))}</div>{safeArray(t.players).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #f8fafc'}}><span style={{fontSize:14,fontWeight:500,color:'#0f172a'}}>{p.name}</span><PaidBtn name={p.name} isAdmin={isAdmin} myName={myName} week={week} activeDay={activeDay} onUpdatePaid={onUpdatePaid}/></div>))}</div>))}</div>)}
       {!scoresSaved&&!isAdmin&&(<div className="alert alert-blue" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Scores will appear once the admin saves them.</span><button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bfdbfe',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#1e40af',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button></div>)}
       {payoutsCalculated&&(<div className="alert alert-ok" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Payouts calculated - results are final.</span>{!isAdmin&&<button onClick={()=>setForceRefresh(n=>n+1)} style={{background:'none',border:'1px solid #bbf7d0',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,color:'#15803d',cursor:'pointer',flexShrink:0,marginLeft:8}}>Refresh</button>}</div>)}
       {isAdmin&&(<div className="admin-bar">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><div className="admin-lbl" style={{marginBottom:0}}>{parseFloat(drawAdj||0)>0?'Pot - '+(pc-Math.round(parseFloat(drawAdj)/25))+' players (+'+Math.round(parseFloat(drawAdj)/25)+' draw) - '+f$(pot.total-parseFloat(drawAdj))+' payable':'Pot - '+pc+' players - '+f$(pot.total)+' payable'}</div><button className="btn btn-outline btn-xs" onClick={autoPot}>{fv||bv||ov||sv?'Recalculate':'Auto-fill'}</button></div>
-        <div style={{fontSize:11,color:'#64748b',marginBottom:4,display:'flex',justifyContent:'space-between'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><div className="admin-lbl" style={{marginBottom:0}}>{parseFloat(drawAdj||0)>0?'Pot - '+(pc-Math.round(parseFloat(drawAdj)/25))+' players (+'+Math.round(parseFloat(drawAdj)/25)+' draw) - '+f$(pot.total-parseFloat(drawAdj))+' payable':'Pot — '+pc+' players — '+f$(pot.total)+' payable'}</div><button className="btn btn-outline btn-xs" onClick={autoPot}>{fv||bv||ov||sv?'Recalculate':'Auto-fill'}</button></div>
+        <div style={{fontSize:13,color:'#64748b',marginBottom:6,display:'flex',justifyContent:'space-between'}}>
           <span>$25/player × {pc} = {f$(pot.gross)} collected</span>
-          <span style={{color:'#dc2626',fontWeight:600}}>Tournament fund: -${pot.fund}</span>
+          <span style={{color:'#ef4444',fontWeight:700,fontSize:13}}>Tournament fund: −${pot.fund}</span>
         </div>
-        <div style={{fontSize:11,color:'#15803d',fontWeight:600,marginBottom:8}}>
+        <div style={{fontSize:13,color:'#15803d',fontWeight:700,marginBottom:10}}>
           {f$(pot.total)} available for payouts (Front {f$(pot.front)} + Back {f$(pot.back)} + Overall {f$(pot.overall)} + Skins {f$(pot.skins-pot.fund)})
         </div>
         <div className="fr" style={{marginBottom:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">Front 9</label><input className="fi" type="number" value={fv} onChange={e=>setFv(e.target.value)} placeholder={'$'+pot.front}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Back 9</label><input className="fi" type="number" value={bv} onChange={e=>setBv(e.target.value)} placeholder={'$'+pot.back}/></div></div>
         <div className="fr"><div className="fg" style={{marginBottom:0}}><label className="fl">Overall</label><input className="fi" type="number" value={ov} onChange={e=>setOv(e.target.value)} placeholder={'$'+pot.overall}/></div><div className="fg" style={{marginBottom:0}}><label className="fl">Skins</label><input className="fi" type="number" value={sv} onChange={e=>setSv(e.target.value)} placeholder={'$'+pot.skins}/></div></div>
         {alloc>0&&<div style={{marginTop:7,fontSize:12,fontWeight:600,color:ok?'#15803d':'#dc2626'}}>{ok?'Pot balanced OK - '+f$(pot.total):'Allocated '+f$(alloc)+' of '+f$(pot.total)}</div>}
-        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #fde68a'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:showDrawAdj?8:0}}><div><div style={{fontSize:12,fontWeight:600,color:'#92400e'}}>Manual pot adjustment</div>{drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#d97706',marginTop:1}}>Pot reduced by {f$(drawAdj)} - adjusted for draw player</div>}</div><button onClick={()=>setShowDrawAdj(!showDrawAdj)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid #f59e0b',background:showDrawAdj?'#f59e0b':'transparent',color:showDrawAdj?'#0f172a':'#d97706',fontSize:11,fontWeight:700,cursor:'pointer'}}>{showDrawAdj?'Done':'Adjust'}</button></div>
+        <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #e2e8f0'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:showDrawAdj?8:0}}><div><div style={{fontSize:12,fontWeight:600,color:'#64748b'}}>Manual pot adjustment</div>{drawAdj&&parseFloat(drawAdj)>0&&<div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>Pot reduced by {f$(drawAdj)} - adjusted for draw player</div>}</div><button onClick={()=>setShowDrawAdj(!showDrawAdj)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid #f59e0b',background:showDrawAdj?'#f59e0b':'transparent',color:showDrawAdj?'#0f172a':'#d97706',fontSize:11,fontWeight:700,cursor:'pointer'}}>{showDrawAdj?'Done':'Adjust'}</button></div>
         {showDrawAdj&&(<div style={{display:'flex',gap:8,alignItems:'flex-end'}}><div style={{flex:1}}><label className="fl">Reduce pot by ($)</label><input className="fi" type="number" placeholder="e.g. 25" value={drawAdj} onChange={e=>setDrawAdj(e.target.value)}/></div><div style={{paddingBottom:1}}><button className="btn btn-gold btn-sm" onClick={()=>{setDrawAdj('25');setShowDrawAdj(false);}}>-1 player</button></div></div>)}
         {showDrawAdj&&<div style={{fontSize:11,color:'#92400e',marginTop:6}}>Enter the amount to subtract from the total pot. The draw player does not pay in twice.</div>}
         </div>
       </div>)}
-      {isAdmin&&(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Payout splits</div>
+      {isAdmin&&(<div className="card card-pad" style={{marginBottom:14}}><div className="slbl">Payout splits</div>
         {[{l:'Front 9',pot:fv,v:fp,s:setFp,f1:f1v,sf1:setF1v,f2:f2v,sf2:setF2v},{l:'Back 9',pot:bv,v:bp,s:setBp,f1:b1v,sf1:setB1v,f2:b2v,sf2:setB2v},{l:'Overall',pot:ov,v:op,s:setOp,f1:o1v,sf1:setO1v,f2:o2v,sf2:setO2v}].map(({l,pot,v,s,f1,sf1,f2,sf2})=>{const p=parseFloat(pot||0);return(<div key={l} style={{marginBottom:12,paddingBottom:12,borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}><span style={{fontSize:13,fontWeight:600}}>{l}{p>0?' - '+f$(p):''}</span><div className="tog" style={{width:155,marginBottom:0}}><button className={'tog-opt'+(v===1?' on':'')} onClick={()=>s(1)}>1st only</button><button className={'tog-opt'+(v===2?' on':'')} onClick={()=>s(2)}>1st + 2nd</button></div></div>{p>0&&(<div className="fr" style={{gap:8}}><div className="fg" style={{marginBottom:0}}><label className="fl">1st place $</label><input className="fi" type="number" placeholder={v===1?f$(p):f$(p*0.6)} value={f1} onChange={e=>sf1(e.target.value)}/></div>{v===2&&(<div className="fg" style={{marginBottom:0}}><label className="fl">2nd place $</label><input className="fi" type="number" placeholder={f$(p*0.4)} value={f2} onChange={e=>sf2(e.target.value)}/></div>)}</div>)}</div>);})}
       </div>)}
       {(isAdmin||scoresSaved)&&(<div className="card" style={{marginBottom:10,overflow:'hidden'}}><div style={{position:'sticky',top:0,zIndex:10,background:'#fff',borderBottom:'2px solid #f1f5f9',padding:'12px 14px 10px'}}><div className="sc-grid"><div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>{activeDay}</div><div className="sc-hd">Front</div><div className="sc-hd">Back</div><div className="sc-hd">Overall</div></div></div><div style={{padding:'4px 14px 14px'}}>{dayTeams.map((t,ti)=>(<div key={t.id||ti} className="sc-grid" style={{marginBottom:10,alignItems:'center'}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',paddingRight:4}}><div>
@@ -1871,7 +2280,7 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
                   ))}
                 </div>
               </div></div>{['front','back','overall'].map(seg=>(<ScorePicker key={seg} value={ts[t.id]?ts[t.id][seg]:undefined} readOnly={!isAdmin} onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}/>))}</div>))}{!dayTeams.length&&<div style={{textAlign:'center',color:'#94a3b8',fontSize:13,padding:'8px 0'}}>Teams not published yet</div>}</div></div>)}
-      {(isAdmin||scoresSaved)&&dayTeams.length>0&&(<div className="card card-pad" style={{marginBottom:10}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}><div className="slbl" style={{marginBottom:0}}>Skins tapper</div><div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div></div><div className="skin-grid">{dayTeams.map((t,ti)=>(<div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}><div className="skin-team">{t.name||('Group '+(ti+1))}</div><div className="skin-num">{sk[t.id]||0}</div><div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>{isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}</div>))}</div>{sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(Math.floor(snet/tsk))+' per skin':''}</div>}</div>)}
+      {(isAdmin||scoresSaved)&&dayTeams.length>0&&(<div className="card card-pad" style={{marginBottom:14}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}><div className="slbl" style={{marginBottom:0}}>Skins tapper</div><div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>{tsk} skin{tsk!==1?'s':''}{sv?' - '+f$(snet)+' net':''}</div></div><div className="skin-grid">{dayTeams.map((t,ti)=>(<div key={t.id||ti} className={'skin-btn'+((sk[t.id]||0)>0?' on':'')} onClick={()=>tap(t.id)}><div className="skin-team">{t.name||('Group '+(ti+1))}</div><div className="skin-num">{sk[t.id]||0}</div><div className="skin-lbl">skin{(sk[t.id]||0)!==1?'s':''}</div>{isAdmin&&(sk[t.id]||0)>0&&<div className="skin-undo" onClick={e=>{e.stopPropagation();untap(t.id);}}>- undo</div>}</div>))}</div>{sv&&snet>0&&<div className="alert alert-ok">Tournament fund: {f$(pc)} - Net skins: {f$(snet)}{tsk>0?' - '+f$(Math.floor(snet/tsk))+' per skin':''}</div>}</div>)}
       {showPayouts&&(fv||bv||ov||sv)&&(()=>{
         // Calculate all payouts with rounding
         const allPayoutRows=[];let totalDistributed=0;
@@ -1890,7 +2299,7 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
         const roundingSurplus=Math.max(0,totalIn-totalDistributed-baseFund);
         const totalFund=baseFund+roundingSurplus;
 
-        return(<div className="card card-pad" style={{marginBottom:10}}><div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
+        return(<div className="card card-pad" style={{marginBottom:14}}><div className="slbl">Payout breakdown{!payoutsCalculated&&isAdmin?<span style={{fontWeight:400,fontSize:9,marginLeft:5,color:'#94a3b8'}}>(preview)</span>:''}</div>
         {allPayoutRows.map(({l,rows})=>{if(!rows.length)return null;return(<div key={l} style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>{rows.map((row,i)=>(<div key={i} className="pay-row"><span className="pay-lbl">{row.label}{row.teams&&row.teams.length>0?' - '+row.teams.map(t=>t.name).join(' & '):''}{row.isTie&&<span style={{marginLeft:5,fontSize:10,color:'#f59e0b',fontWeight:700}}>SPLIT</span>}</span><span className={'pay-amt '+(row.isTie?'tie':'win')}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
         {parseFloat(sv||0)>0&&(<div style={{marginBottom:13}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:5,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div><div className="pay-row"><span className="pay-lbl">Skins pot (gross)</span><span className="pay-amt" style={{color:'#64748b'}}>{f$(sv)}</span></div><div className="pay-row"><span className="pay-lbl" style={{color:'#f59e0b'}}>Tournament fund (-${pc}/player)</span><span className="pay-amt tie">-{f$(pc)}</span></div><div className="pay-row"><span className="pay-lbl">Net skins for payout</span><span className="pay-amt win">{f$(snet)}</span></div>{tsk>0&&<div className="pay-row"><span className="pay-lbl">Per skin ({tsk} total)</span><span className="pay-amt win">{f$(flooredPerSk)}</span></div>}{Object.entries(sk).filter(([,c])=>c>0).map(([tid,c])=>{const t=dayTeams.find(t=>String(t.id)===String(tid));return t?<div key={tid} className="pay-row"><span className="pay-lbl" style={{paddingLeft:8}}>{t.name} - {c} skin{c!==1?'s':''}</span><span className="pay-amt win">{f$(c*flooredPerSk)}</span></div>:null;})}</div>)}
         {roundingSurplus>0&&<div className="pay-row" style={{borderTop:'1px solid #fde68a',paddingTop:8,marginTop:4}}><span className="pay-lbl" style={{color:'#f59e0b',fontWeight:700}}>Rounding surplus → tournament fund</span><span className="pay-amt tie">+{f$(roundingSurplus)}</span></div>}
@@ -1997,7 +2406,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound,trash,onRe
         <div className="tog" style={{marginBottom:0,flex:1,marginRight:10}}><button className={'tog-opt'+(view==='rounds'?' on':'')} onClick={()=>setView('rounds')}>Rounds</button><button className={'tog-opt'+(view==='leaders'?' on':'')} onClick={()=>setView('leaders')}>Leaderboard</button></div>
         {isAdmin&&view==='rounds'&&rounds.length>0&&<span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span>}
       </div>
-      {view==='leaders'&&(<div className="card" style={{marginBottom:10}}><div style={{padding:'13px 14px 8px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="slbl" style={{marginBottom:0}}>Season standings</div><span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span></div><div style={{display:'grid',gridTemplateColumns:'1fr auto auto',padding:'8px 14px 4px',gap:8}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'center'}}>Rounds</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div></div>{leaderboard.slice(0,20).map((p,i)=>{
+      {view==='leaders'&&(<div className="card" style={{marginBottom:14}}><div style={{padding:'13px 14px 8px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="slbl" style={{marginBottom:0}}>Season standings</div><span style={{fontSize:11,color:'#94a3b8'}}>{rounds.length} round{rounds.length!==1?'s':''}</span></div><div style={{display:'grid',gridTemplateColumns:'1fr auto auto',padding:'8px 14px 4px',gap:8}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'center'}}>Rounds</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div></div>{leaderboard.slice(0,20).map((p,i)=>{
                 const isExpanded=expandedPlayer===p.name;
                 const breakdown=playerBreakdowns[p.name]||[];
                 return(<div key={p.name}>
@@ -2404,19 +2813,41 @@ function EmailView({week,isAdmin,isDemo}){
         <div style={{marginTop:6,fontSize:11,color:'#94a3b8',fontStyle:'italic'}}>Auto-generated from current state. Edit to customize.</div>
       </div>
 
-      {/* Notes summary - managed in Admin tab */}
-      {Object.values(notes).some(n=>n&&n.trim())&&(
-        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:10,padding:'10px 14px',marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Day Notes (edit in Admin tab)</div>
-          {days.filter(d=>notes[d]&&notes[d].trim()).map(d=>(
-            <div key={d} style={{fontSize:12,color:'#78350f',marginTop:4}}><strong>{d}:</strong> {notes[d].length>60?notes[d].substring(0,60)+'...':notes[d]}</div>
-          ))}
-        </div>
-      )}
+      {/* Notes + Events — clean white cards with proper spacing */}
+      {(Object.values(notes).some(n=>n&&n.trim())||events.trim())&&(
+        <div style={{marginTop:20,display:'flex',flexDirection:'column',gap:10}}>
 
-      {events.trim()&&(
-        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:10,padding:'10px 14px',marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:1}}>Upcoming Events included (edit in Admin tab)</div>
+          {Object.values(notes).some(n=>n&&n.trim())&&(
+            <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,overflow:'hidden'}}>
+              <div style={{padding:'10px 14px',borderBottom:'1px solid #f1f5f9',display:'flex',alignItems:'center',gap:7,background:'#f8fafc'}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span style={{fontSize:11,fontWeight:700,color:'#6366f1',textTransform:'uppercase',letterSpacing:'0.08em'}}>Day Notes</span>
+                <span style={{fontSize:11,color:'#94a3b8',fontWeight:400,marginLeft:'auto'}}>Edit in Admin tab</span>
+              </div>
+              <div style={{padding:'10px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                {days.filter(d=>notes[d]&&notes[d].trim()).map(d=>(
+                  <div key={d} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'#0f172a',minWidth:72,paddingTop:1}}>{d}</span>
+                    <span style={{fontSize:13,color:'#475569',lineHeight:1.5,flex:1}}>{notes[d].length>80?notes[d].substring(0,80)+'...':notes[d]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {events.trim()&&(
+            <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,overflow:'hidden'}}>
+              <div style={{padding:'10px 14px',borderBottom:'1px solid #f1f5f9',display:'flex',alignItems:'center',gap:7,background:'#f8fafc'}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                <span style={{fontSize:11,fontWeight:700,color:'#d97706',textTransform:'uppercase',letterSpacing:'0.08em'}}>Upcoming Events</span>
+                <span style={{fontSize:11,color:'#94a3b8',fontWeight:400,marginLeft:'auto'}}>Edit in Admin tab</span>
+              </div>
+              <div style={{padding:'10px 14px'}}>
+                <span style={{fontSize:13,color:'#475569',lineHeight:1.5}}>{events.length>100?events.substring(0,100)+'...':events}</span>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -2487,7 +2918,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
   function toggleDay(day){const isActive=activeDays.includes(day);if(isActive){const cnt=allSignups.filter(([,s])=>s.day===day).length;if(cnt>0){setWarnDeact({day,cnt});return;}onDeactivateDay(day);}else{const newWeek={...week,activeDays:[...(safeArray(week?.activeDays)),day],dates:{...(week?.dates||{}),[day]:wd[day]}};onCreate(newWeek);}}
 
-  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:effectiveDates[day]}};logActivity('day_setup',{days:day,by:'admin'});onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
+  function handleSetupDay(day){const isAct=activeDays.includes(day);if(!isAct){const newWeek={...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:effectiveDates[day]}};logActivity('day_setup',{days:day,by:currentUser?currentUser.name:'admin'});onCreate(newWeek);}setWizDay(wizDay===day?null:day);}
 
   return(
     <div>
@@ -2497,7 +2928,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       </div>
 
       {/* === MANAGE DAYS (moved to top) === */}
-      <div className="card card-pad" style={{marginBottom:10}}>
+      <div className="card card-pad" style={{marginBottom:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><div className="slbl" style={{marginBottom:0}}>Manage Days</div></div>
         {DAYS_OF_WEEK.map((day,di)=>{
           const isActive=activeDays.includes(day);const teeInfo=week?.teeTimes?.[day];
@@ -2506,14 +2937,14 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                 <div><div style={{fontSize:14,fontWeight:600,color:isActive?'#0f172a':'#94a3b8'}}>{day}</div><div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{fmtDFull(effectiveDates[day])}</div>{isActive&&teeInfo&&(<div style={{fontSize:11,color:'#15803d',fontWeight:600,marginTop:2}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}</div>)}</div>
                 <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-                  {isActive&&(<button className="btn btn-red btn-xs" onClick={()=>toggleDay(day)}>Remove</button>)}
+                  {isActive&&(<button className="btn btn-red btn-sm" style={{minWidth:80}} onClick={()=>toggleDay(day)}>Remove</button>)}
                   {!isActive&&(
                     <button onClick={()=>onToggleNoteOnly(day,!week?.showNoteOnly?.[day])} style={{display:'flex',alignItems:'center',gap:5,padding:'4px 10px',borderRadius:20,border:'1.5px solid',borderColor:week?.showNoteOnly?.[day]?'#f59e0b':'#e2e8f0',background:week?.showNoteOnly?.[day]?'#fffbeb':'#f8fafc',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:11,fontWeight:600,color:week?.showNoteOnly?.[day]?'#92400e':'#94a3b8'}}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
                       {week?.showNoteOnly?.[day]?'Notes showing':'Show notes only'}
                     </button>
                   )}
-                  <button className="btn btn-green btn-sm" onClick={()=>handleSetupDay(day)}>{wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}</button>
+                  <button className="btn btn-green btn-sm" style={{minWidth:120}} onClick={()=>handleSetupDay(day)}>{wizDay===day?'Close':(teeInfo||week?.locked?.[day]||safeArray(week?.teams?.[day]).length>0?'Continue set up':'Set up '+day)}</button>
                 </div>
               </div>
               {wizDay===day&&(<SetupWizard day={day} week={week} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>)}
@@ -2526,7 +2957,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
       {/* === COLLAPSIBLE CHECKLISTS === */}
       {activeDays.length>0&&(
-        <div className="card" style={{marginBottom:10}}>
+        <div className="card" style={{marginBottom:14}}>
           <div className="section-btn" onClick={()=>setShowChecklist(!showChecklist)}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><div className="section-title">Day Checklists</div></div>
             <svg style={{width:15,height:15,color:'#94a3b8',transform:showChecklist?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2536,7 +2967,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       )}
 
       {/* Weekly Notes & Announcements */}
-        <div className="card" style={{marginBottom:10}}>
+        <div className="card" style={{marginBottom:14}}>
           <div className="section-btn" onClick={()=>setShowNotes(!showNotes)}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div className="section-title">Weekly Notes & Announcements</div></div>
             <svg style={{width:15,height:15,color:'#94a3b8',transform:showNotes?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2574,7 +3005,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
         </div>
 
       {/* Manage sign-ups */}
-      <div className="card" style={{marginBottom:10}}>
+      <div className="card" style={{marginBottom:14}}>
         <div className="section-btn" onClick={()=>setShowSignups(!showSignups)}>
           <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><div className="section-title">Manage Existing Sign-Ups For The Week</div></div>
           <svg style={{width:14,height:14,color:'#94a3b8',transform:showSignups?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2616,7 +3047,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       </div>
 
       {/* Roster */}
-      <div className="card" style={{marginBottom:10}}>
+      <div className="card" style={{marginBottom:14}}>
         <div className="section-btn" onClick={()=>setShowRoster(!showRoster)}>
           <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><div className="section-title">Roster ({[...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].length} members)</div></div>
           <svg style={{width:15,height:15,color:'#94a3b8',transform:showRoster?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2634,8 +3065,8 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             <div className="fr" style={{marginBottom:0}}><div className="fg" style={{marginBottom:0,flex:1}}><label className="fl">Handicap</label><input className="fi" type="number" placeholder="e.g. 14" value={np.hcp} onChange={e=>setNp({...np,hcp:e.target.value})}/></div><div className="fg" style={{marginBottom:0,flex:2}}><label className="fl">Email (optional)</label><input className="fi" type="email" placeholder="email@example.com" value={np.email||''} onChange={e=>setNp({...np,email:e.target.value})}/></div></div>
             <div className="fr" style={{marginBottom:0}}>
               <div className="fg" style={{marginBottom:0,flex:2}}>
-                <label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Phone #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label>
-                <input className="fi" type="text" inputMode="numeric" placeholder="Full phone number e.g. 3015551234" value={np.pin||''} onChange={e=>setNp({...np,pin:e.target.value})}/>
+                <label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Member #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label>
+                <input className="fi" type="text" inputMode="numeric" placeholder="Club member number" value={np.pin||''} onChange={e=>setNp({...np,pin:e.target.value})}/>
               </div>
               <div style={{display:'flex',alignItems:'flex-end',paddingBottom:1}}>
                 <button className="btn btn-green btn-sm" onClick={()=>{if(np.name){const addedPlayer={name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0};onAddPlayer(addedPlayer);if(np.email){const newId=97+safeArray(roster).length;onEditRosterEmail(newId,np.email.trim());}if(np.pin&&np.pin.trim()){const newId=97+safeArray(roster).length;onSaveMemberPin(newId,np.pin.trim());}if(np.isAdmin){const newId=97+safeArray(roster).length;onSaveAdminFlag(newId,true);}setNp({name:'',tee:'Whites',hcp:'',email:'',pin:'',isAdmin:false});}}}>Add</button>
@@ -2666,7 +3097,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                     <div style={{flex:1}}><label className="fl">Email</label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} value={editRosterEmailVal} onChange={e=>setEditRosterEmailVal(e.target.value)} placeholder="email"/></div>
                   </div>
                   <div style={{display:'flex',gap:6,marginBottom:6,alignItems:'flex-end'}}>
-                    <div style={{flex:1}}><label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Phone #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} type="text" inputMode="numeric" placeholder="Full phone number e.g. 3015551234" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/></div>
+                    <div style={{flex:1}}><label className="fl" style={{display:'flex',alignItems:'center',gap:5}}>Member #<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',background:'#f1f5f9',padding:'1px 5px',borderRadius:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>Admin Only</span></label><input className="fi" style={{fontSize:12,padding:'6px 8px'}} type="text" inputMode="numeric" placeholder="Club member number" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/></div>
                     {rosterPins&&rosterPins[p.id]&&<div style={{fontSize:10,color:'#15803d',fontWeight:600,paddingBottom:8,flexShrink:0}}>✓ PIN set</div>}
                     {editRosterPinVal&&<div style={{fontSize:10,color:'#d97706',fontWeight:600,paddingBottom:8,flexShrink:0}}>Will update</div>}
                   </div>
@@ -2689,7 +3120,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
                       {dispHcp?'HCP '+dispHcp:'No HCP'} · {dispTee}{email?' · '+email:''}
                     </div>
                     <div style={{display:'flex',gap:6,marginTop:2,flexWrap:'wrap'}}>
-                      {rosterPins&&rosterPins[p.id]?(<span style={{fontSize:10,fontWeight:700,color:'#15803d',background:'#ecfdf5',padding:'1px 6px',borderRadius:4}}>✓ Phone # set</span>):(<span style={{fontSize:10,color:'#e2e8f0'}}>No member # yet</span>)}{rosterAdmins&&rosterAdmins[p.id]&&<span style={{fontSize:10,fontWeight:700,color:'#92400e',background:'#fffbeb',padding:'1px 6px',borderRadius:4}}>Admin</span>}
+                      {rosterPins&&rosterPins[p.id]?(<span style={{fontSize:10,fontWeight:700,color:'#15803d',background:'#ecfdf5',padding:'1px 6px',borderRadius:4}}>✓ Member # set</span>):(<span style={{fontSize:10,color:'#e2e8f0'}}>No member # yet</span>)}{rosterAdmins&&rosterAdmins[p.id]&&<span style={{fontSize:10,fontWeight:700,color:'#92400e',background:'#fffbeb',padding:'1px 6px',borderRadius:4}}>Admin</span>}
                     </div>
                   </div>
                   <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0}}>
@@ -2720,7 +3151,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       </div>
 
       {/* Export Data */}
-      <div className="card" style={{marginBottom:10}}>
+      <div className="card" style={{marginBottom:14}}>
         <div className="section-btn" onClick={()=>setShowExports(!showExports)}>
           <div style={{display:'flex',alignItems:'center',gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><div className="section-title">Export Data</div></div>
           <svg style={{width:15,height:15,color:'#94a3b8',transform:showExports?'rotate(180deg)':'none',transition:'transform 0.2s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2744,7 +3175,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
             const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clark_golf_attendance.csv';a.click();URL.revokeObjectURL(url);
           }}>Export Attendance CSV</button>
           <button className="btn btn-outline btn-sm" onClick={()=>{
-            let csv='id,name,handicap,tee,email,phonePin,isAdmin\n';
+            let csv='id,name,handicap,tee,email,memberPin,isAdmin\n';
             [...(effectiveRoster||ROSTER),...safeArray(roster).filter(p=>p.id>96)].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
               const email=(rosterEmails&&rosterEmails[p.id])||'';
               const pin=(rosterPins&&rosterPins[p.id])||'';
@@ -2758,7 +3189,7 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
       </div>
 
       {/* === ACTIVITY LOG === */}
-      <div className="card" style={{marginBottom:10}}>
+      <div className="card" style={{marginBottom:14}}>
         <div className="section-btn" onClick={()=>setShowLog(!showLog)}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -2874,12 +3305,17 @@ function AdminView({isAdmin,onLogout,week,history,onCreate,onAddPlayer,onRemoveP
 
 function App(){
   const [role,setRole]=useState(null);const [tab,setTab]=useState('home');
+  const [currentUser,setCurrentUser]=useState(()=>{try{const u=localStorage.getItem('cgCurrentUser');return u?JSON.parse(u):null;}catch{return null;}});
+  function loginUser(u){setCurrentUser(u);try{localStorage.setItem('cgCurrentUser',JSON.stringify(u));}catch{}setRole(u.role==='admin'?'admin':'player');setTab('home');setTimeout(()=>logActivity('login',{name:u.name,role:u.role}),100);}
+  function logoutUser(){setCurrentUser(null);try{localStorage.removeItem('cgCurrentUser');}catch{}setRole(null);setIsDemo(false);}
   const [week,setWeek]=useState(null);const [history,setHistory]=useState({});
   const [extra,setExtra]=useState([]);const [guestHistory,setGuestHistory]=useState([]);
   const [rosterEdits,setRosterEdits]=useState({});
   const [rosterHidden,setRosterHidden]=useState({});
   const [rosterEmails,setRosterEmails]=useState({});
   const [rosterPins,setRosterPins]=useState({});
+  const [rosterShared,setRosterShared]=useState({});
+  const [matchPairings,setMatchPairings]=useState({});
   const [rosterAdmins,setRosterAdmins]=useState({});
   const [activityLog,setActivityLog]=useState([]);
   const [historyTrash,setHistoryTrash]=useState({});
@@ -2897,6 +3333,7 @@ function App(){
     u.push(read('rosterHidden',v=>setRosterHidden(v||{})));
     u.push(read('rosterEmails',v=>setRosterEmails(v||{})));
     u.push(read('rosterPins',v=>setRosterPins(v||{})));
+    u.push(read('week/matchPairings',v=>setMatchPairings(v||{})));
     u.push(read('rosterAdmins',v=>setRosterAdmins(v||{})));
     u.push(read('activityLog',v=>{
       if(v){
@@ -2960,7 +3397,7 @@ function App(){
   }
 
   function startNextWeek(){
-    const nwd=getNextWeekDates();logActivity('week_started',{weekOf:nwd.Friday+' to '+nwd.Monday,by:'admin'});
+    const nwd=getNextWeekDates();logActivity('week_started',{weekOf:nwd.Friday+' to '+nwd.Monday,by:currentUser?currentUser.name:'admin'});
     const nextWeek={activeDays:[],dates:{Friday:nwd.Friday,Saturday:nwd.Saturday,Sunday:nwd.Sunday,Monday:nwd.Monday},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{},emailNotes:null,emailSubject:null,emailEvents:week?.emailEvents||null};
     if(isDemo){setWeek(nextWeek);setTab('home');}
     else{write('week',nextWeek);setTab('home');}
@@ -2999,7 +3436,7 @@ function App(){
 
   function saveTeams(day,teams){if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams}}));}else write('week/teams/'+day,teams);}
   function publishAndLockTeams(day,teams){
-    logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:'admin'});if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams},teamsPublished:{...(w?.teamsPublished||{}),[day]:true},locked:{...(w?.locked||{}),[day]:true}}));}else{update({['week/teams/'+day]:teams,['week/teamsPublished/'+day]:true,['week/locked/'+day]:true});}}
+    logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:teams},teamsPublished:{...(w?.teamsPublished||{}),[day]:true},locked:{...(w?.locked||{}),[day]:true}}));}else{update({['week/teams/'+day]:teams,['week/teamsPublished/'+day]:true,['week/locked/'+day]:true});}}
 
   function unpublishTeams(day){
     if(isDemo){setWeek(w=>({...w,teams:{...(w?.teams||{}),[day]:null},teamsPublished:{...(w?.teamsPublished||{}),[day]:false},locked:{...(w?.locked||{}),[day]:false}}));}
@@ -3017,8 +3454,8 @@ function App(){
   function saveScores(day,scores){const nw={...week,scores:{...(week.scores||{}),[day]:scores}};if(isDemo){setWeek(nw);}else write('week',nw);}
   function moveToHistory(day){archiveDay(day);setTab('history');}
   function updateSignup(key,vals){const s=week&&week.signups&&week.signups[key];if(s)write('week/signups/'+key,{...s,...vals});}
-  function addPlayer(p){const newId=Date.now();const newExtra=[...extra,{...p,id:newId}];logActivity('roster_add',{name:p.name,by:'admin'});write('extraPlayers',newExtra);if(p.isGuest){const existing=safeArray(guestHistory).find(g=>g.name===p.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);}}}
-  function removePlayer(id){const pl=safeArray(extra).find(p=>p.id===id);if(pl)logActivity('roster_remove',{name:pl.name,by:'admin'});write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));}
+  function addPlayer(p){const newId=Date.now();const newExtra=[...extra,{...p,id:newId}];logActivity('roster_add',{name:p.name,by:currentUser?currentUser.name:'admin'});write('extraPlayers',newExtra);if(p.isGuest){const existing=safeArray(guestHistory).find(g=>g.name===p.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===p.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:p.name,addedAt:Date.now(),rounds:1}]);}}}
+  function removePlayer(id){const pl=safeArray(extra).find(p=>p.id===id);if(pl)logActivity('roster_remove',{name:pl.name,by:currentUser?currentUser.name:'admin'});write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));}
   function toggleLock(day,locked){const nw={...week,locked:{...(week.locked||{}),[day]:locked}};if(isDemo){setWeek(nw);}else write('week',nw);}
   function deactivateDay(day){const newWeek={...week,activeDays:safeArray(week.activeDays).filter(d=>d!==day)};const tt={...(week.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;write('week',newWeek);}
   function updatePaid(day,playerName,paid){const nw={...week,paid:{...(week?.paid||{}),[day]:{...((week?.paid||{})[day]||{}),[playerName]:paid}}};if(isDemo){setWeek(nw);}else write('week/paid/'+day+'/'+playerName,paid);}
@@ -3058,15 +3495,13 @@ function App(){
   }
 
   function saveMemberPin(playerId,pin){
+    // Store plain for now — will hash in Session 1 when login front-end is built
     if(!pin||!String(pin).trim()){
       if(isDemo)setRosterPins(p=>{const n={...p};delete n[playerId];return n;});
       else del('rosterPins/'+playerId);
       return;
     }
-    // Admin enters full phone number — store last 4 digits as the PIN
-    const digits=String(pin).trim().split('').filter(c=>c>='0'&&c<='9').join('');
-    const val=digits.slice(-4);
-    if(val.length<4)return;
+    const val=String(pin).trim();
     if(isDemo)setRosterPins(p=>({...p,[playerId]:val}));
     else update({['rosterPins/'+playerId]:val});
   }
@@ -3077,20 +3512,66 @@ function App(){
     push('activityLog',entry);
   }
 
+  function toggleNoteOnly(day,val){
+    if(isDemo){setWeek(w=>({...w,showNoteOnly:{...(w.showNoteOnly||{}),[day]:val}}));}
+    else{update({['week/showNoteOnly/'+day]:val||null});}
+  }
+  function saveAdminFlag(playerId,isAdminFlag){
+    if(isDemo)setRosterAdmins(a=>({...a,[playerId]:isAdminFlag||null}));
+    else update({['rosterAdmins/'+playerId]:isAdminFlag||null});
+  }
+  function saveMemberPin(playerId,pin){
+    if(!pin||!String(pin).trim()){
+      if(isDemo)setRosterPins(p=>{const n={...p};delete n[playerId];return n;});
+      else del('rosterPins/'+playerId);return;
+    }
+    const digits=String(pin).trim().split('').filter(c=>c>='0'&&c<='9').join('');
+    const val=digits.slice(-4);
+    if(val.length<4)return;
+    if(isDemo)setRosterPins(p=>({...p,[playerId]:val}));
+    else update({['rosterPins/'+playerId]:val});
+  }
+  function logActivity(action,details){
+    if(isDemo)return;
+    const entry={action,ts:Date.now(),...details};
+    push('activityLog',entry);
+  }
+  function handleMatchPairingRequest(req){
+    const key='mp_'+Date.now();
+    if(isDemo){setMatchPairings(m=>({...m,[key]:req}));}
+    else{update({['week/matchPairings/'+key]:req});}
+    logActivity('match_request',{name:req.requester,partner:req.partner,day:req.day,by:req.requester,byRole:currentUser?currentUser.role:'member'});
+  }
   function startDemo(role){
     const d=makeDemoData();
     setIsDemo(true);
     setWeek({activeDays:d.activeDays,dates:d.dates,signups:d.signups,teams:d.teams,scores:d.scores,
       teamsPublished:d.teamsPublished,locked:d.locked,teeTimes:d.teeTimes,complete:d.complete,
-      paid:d.paid,waitlist:d.waitlist,emailNotes:d.emailNotes,emailEvents:d.emailEvents});
+      paid:d.paid,waitlist:d.waitlist,emailNotes:d.emailNotes,emailEvents:d.emailEvents,
+      matchPairings:d.matchPairings||{}});
     setHistory(d.history);
+    if(d.activityLog)setActivityLog(d.activityLog);
+    if(d.matchPairings)setMatchPairings(d.matchPairings);
+    const demoUser={name:role==='admin'?'Clark Kunkle':'Tiger Woods',id:role==='admin'?'43':'demo1',role:role==='admin'?'admin':'member',ini:role==='admin'?'CK':'TW'};
+    setCurrentUser(demoUser);
     setRole(role);
     setTab('home');
   }
   function startDemoPlayer(){startDemo('player');}
   function startDemoAdmin(){startDemo('admin');}
 
-  if(!role)return<Landing onPlayer={()=>{setRole('player');setTab('home');}} onAdmin={()=>{setRole('admin');}} onDemoPlayer={startDemoPlayer} onDemoAdmin={startDemoAdmin}/>;
+  if(!role)return<Landing
+    onPlayer={()=>{setCurrentUser({name:'Guest',role:'guest',ini:'?'});setRole('player');setTab('home');}}
+    onAdmin={()=>{setRole('admin');}}
+    onDemoPlayer={startDemoPlayer}
+    onDemoAdmin={startDemoAdmin}
+    onMemberLogin={loginUser}
+    rosterPins={rosterPins}
+    rosterAdmins={rosterAdmins}
+    rosterShared={rosterShared}
+    fullRoster={[...effectiveRoster,...safeArray(extra)]}
+    savePinFn={saveMemberPin}
+  />;
 
   const isAdmin=role==='admin';const activeDays=safeArray(week?.activeDays);
   const hasScores=isDemo||activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].savedAt);
@@ -3108,23 +3589,48 @@ function App(){
   return(
     <div className="app">
       <div className="hdr"><div className="hdr-curve"></div><div className="hdr-inner">
-        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel(week)}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={()=>{setRole(null);setIsDemo(false);}}>Exit &#x2192;</button></div></div>
+        {currentUser&&!isDemo&&(
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div style={{width:26,height:26,borderRadius:'50%',background:currentUser.role==='admin'?'#f59e0b':'#10b981',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Barlow Condensed,sans-serif',fontSize:11,fontWeight:700,color:'#0f172a',flexShrink:0}}>{currentUser.ini}</div>
+              <span style={{fontSize:13,fontWeight:600,color:'#fff'}}>{currentUser.name}</span>
+              {currentUser.role==='admin'&&<span style={{fontSize:9,fontWeight:700,color:'#f59e0b',textTransform:'uppercase',letterSpacing:'0.06em',background:'rgba(245,158,11,0.15)',padding:'2px 6px',borderRadius:20}}>Admin</span>}
+              {currentUser.role==='guest'&&<span style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.06em'}}>Guest</span>}
+            </div>
+            <button onClick={logoutUser} style={{fontSize:11,color:'rgba(255,255,255,0.3)',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:600,padding:'4px 0'}}>Sign out</button>
+          </div>
+        )}
+        <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel(week)}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={logoutUser}>Exit &#x2192;</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
         <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}}>Season Attendance →</a></div>
       </div></div>
-      <nav className="nav">{TABS.map(t=>(<button key={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
+      <nav className="nav">{TABS.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
-        {tab==='home'&&<WeekView week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onSwitchRole={r=>setRole(r)}
-          onSignup={d=>{logActivity('signup',{name:d.name,day:d.day,isGuest:d.isGuest||false,guestOf:d.guestOf||null,by:'player'});if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
-          onRemove={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:'player'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}}
+        {tab==='home'&&<WeekView currentUser={currentUser} week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onSwitchRole={r=>setRole(r)}
+          onSignup={d=>{logActivity('signup',{name:d.name,day:d.day,isGuest:d.isGuest||false,guestOf:d.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
+          onRemove={k=>{
+            const rs=week?.signups?.[k];
+            if(rs){
+              logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});
+              Object.entries(week?.matchPairings||{}).forEach(([mpKey,mp])=>{
+                if(mp.day===rs.day&&(mp.requester===rs.name||mp.partner===rs.name)){
+                  if(isDemo){setMatchPairings(m=>{const n={...m};delete n[mpKey];return n;});}
+                  else del('week/matchPairings/'+mpKey);
+                }
+              });
+            }
+            if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}
+            else del('week/signups/'+k);
+          }}
           onUpdateSignup={updateSignup} onUpdateTeeTime={updateTeeTime} onMarkComplete={markComplete} onReopenDay={reopenDay} onToggleLock={toggleLock}
-          onAddToWaitlist={d=>{logActivity('waitlist_join',{name:d.name,day:d.day,by:'player'});if(isDemo){const k='wl_'+Date.now();setWeek(w=>({...w,waitlist:{...(w.waitlist||{}),[k]:d}}));}else push('week/waitlist',d);}}
-          onRemoveFromWaitlist={k=>{const ws=week?.waitlist?.[k];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:'player'});if(isDemo){setWeek(w=>{const wl={...(w.waitlist||{})};delete wl[k];return{...w,waitlist:wl};});}else del('week/waitlist/'+k);}}/>}
-        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+          onAddToWaitlist={d=>{logActivity('waitlist_join',{name:d.name,day:d.day,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});if(isDemo){const k='wl_'+Date.now();setWeek(w=>({...w,waitlist:{...(w.waitlist||{}),[k]:d}}));}else push('week/waitlist',d);}}
+          onMatchPairingRequest={handleMatchPairingRequest}
+          onRemoveFromWaitlist={k=>{const ws=week?.waitlist?.[k];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});if(isDemo){setWeek(w=>{const wl={...(w.waitlist||{})};delete wl[k];return{...w,waitlist:wl};});}else del('week/waitlist/'+k);}}/>}
+        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} matchPairings={matchPairings} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog||[]} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
     </div>
   );

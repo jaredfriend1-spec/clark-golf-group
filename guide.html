@@ -7,61 +7,70 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  body{font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;line-height:1.7;-webkit-font-smoothing:antialiased;}
   .container{max-width:600px;margin:0 auto;background:#fff;min-height:100vh;}
   .hdr{background:#0f172a;padding:30px 20px 40px;text-align:center;}
   .hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#fff;}
   .hdr-brand em{color:#10b981;font-style:normal;}
-  .hdr-sub{color:rgba(255,255,255,0.6);font-size:14px;margin-top:5px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;}
+  .hdr-sub{color:rgba(255,255,255,0.6);font-size:15px;margin-top:5px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;}
   .content{padding:0 20px 40px;position:relative;top:-20px;}
   .section{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);}
   .section h2{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#0f172a;margin-bottom:8px;border-bottom:2px solid #10b981;padding-bottom:8px;display:inline-block;}
-  .section p{font-size:15px;color:#475569;margin-bottom:16px;}
+  .section p{font-size:16px;color:#475569;margin-bottom:16px;}
   .feature{margin-bottom:28px;}.feature:last-child{margin-bottom:0;}
   .feature h3{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
-  .feature-num{background:#10b981;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'Barlow Condensed',sans-serif;flex-shrink:0;}
+  .feature-num{background:#10b981;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:'Barlow Condensed',sans-serif;flex-shrink:0;}
   .feature-num.gold{background:#f59e0b;}
   .feature-num.dark{background:#0f172a;}
   .mock-ui{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.02);}
-  .btn-m{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border:none;}
-  .btn-m.green{background:#10b981;color:#0f172a;}.btn-m.dark{background:#0f172a;color:#fff;}.btn-m.outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;}.btn-m.red{background:#ef4444;color:#fff;font-size:11px;padding:6px 11px;}.btn-m.gold{background:#f59e0b;color:#0f172a;}
-  .btn-m.full{width:100%;}.btn-m.sm{padding:6px 11px;font-size:11px;}
+  .btn-m{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;border:none;}
+  .btn-m.green{background:#10b981;color:#0f172a;}.btn-m.dark{background:#0f172a;color:#fff;}.btn-m.outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;}.btn-m.red{background:#ef4444;color:#fff;font-size:13px;padding:6px 11px;}.btn-m.gold{background:#f59e0b;color:#0f172a;}
+  .btn-m.full{width:100%;}.btn-m.sm{padding:6px 11px;font-size:13px;}
   .tog-m{display:flex;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:20px;overflow:hidden;padding:3px;}
-  .tog-m div{flex:1;padding:7px 8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:#64748b;border-radius:16px;text-transform:uppercase;text-align:center;}
+  .tog-m div{flex:1;padding:7px 8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:#64748b;border-radius:16px;text-transform:uppercase;text-align:center;}
   .tog-m div.on{background:#0f172a;color:#fff;}
   .tc{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;margin-top:10px;}
   .tc-h{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:#0f172a;}
   .tc-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;}
-  .tc-hcp{font-size:11px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600;}
+  .tc-hcp{font-size:13px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;font-weight:600;}
   .tc-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #f8fafc;}
   .tc-row:last-child{border-bottom:none;}
-  .slot-m{font-size:10px;font-weight:700;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;}
-  .avi-m{width:27px;height:27px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
+  .slot-m{font-size:12px;font-weight:700;background:#f59e0b;color:#0f172a;padding:2px 6px;border-radius:4px;}
+  .avi-m{width:27px;height:27px;border-radius:50%;background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
   .ab{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:13px;}
-  .ab-l{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px;}
+  .ab-l{font-size:13px;font-weight:600;letter-spacing:0.06em;color:#92400e;text-transform:uppercase;margin-bottom:9px;}
   .pay-m{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px;}
   .lb-m{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f8fafc;background:#fff;}
-  .lb-rk{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#0f172a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;}
-  .lb-nm{flex:1;font-size:13px;font-weight:600;color:#0f172a;}
+  .lb-rk{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#0f172a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;}
+  .lb-nm{flex:1;font-size:15px;font-weight:600;color:#0f172a;}
   .chip-m{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px;}
   .callout{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:10px;}
   .callout strong{color:#1e40af;display:block;margin-bottom:4px;}
-  .callout p{margin:0;font-size:14px;color:#1e3a8a;}
+  .callout p{margin:0;font-size:15px;color:#1e3a8a;}
   .info-m{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;margin-top:10px;}
-  .info-m strong{color:#92400e;display:block;margin-bottom:4px;font-size:13px;}
-  .info-m p{margin:0;font-size:13px;color:#64748b;}
+  .info-m strong{color:#92400e;display:block;margin-bottom:4px;font-size:15px;}
+  .info-m p{margin:0;font-size:15px;color:#64748b;}
   .confirm-m{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-top:8px;}
   .pot-m{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px 13px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
   .link-row{display:flex;gap:10px;margin-top:12px;}
-  .link-row a{flex:1;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;}
+  .link-row a{flex:1;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;}
   .pwa-step{display:flex;align-items:flex-start;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 13px;margin-bottom:8px;}
-  .pwa-num{background:#10b981;color:#fff;border-radius:50%;width:24px;height:24px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .pwa-txt{font-size:13px;line-height:1.5;color:#0f172a;}
-  .pwa-txt strong{display:block;font-size:14px;margin-bottom:2px;}
+  .pwa-num{background:#10b981;color:#fff;border-radius:50%;width:24px;height:24px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pwa-txt{font-size:15px;line-height:1.5;color:#0f172a;}
+  .pwa-txt strong{display:block;font-size:15px;margin-bottom:2px;}
   @media(min-width:768px){.container{max-width:700px;box-shadow:0 0 40px rgba(0,0,0,0.08)}.hdr{padding:40px 24px 50px}.hdr-brand{font-size:40px}.content{padding:0 28px 50px}.section{padding:30px;border-radius:16px}.section h2{font-size:28px}.section p{font-size:16px}.feature h3{font-size:18px}}
 </style>
 </head>
 <body>
+<div style="position:fixed;top:0;left:0;right:0;z-index:999;background:#0f172a;border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;">
+  <a href="index.html" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.5);text-decoration:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to App
+  </a>
+  <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.05em;text-transform:uppercase;">User Guide</span>
+  <a href="index.html" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);text-decoration:none;font-size:16px;line-height:1;">✕</a>
+</div>
+<div style="height:53px;"></div>
 <div class="container">
   <div class="hdr">
     <div class="hdr-brand">Clark <em>Golf</em> Group</div>
@@ -99,28 +108,105 @@
       </div>
     </div>
 
+    <!-- DEMO -->
+    <div class="section">
+      <h2>Trying the Demo</h2>
+      <p>Not sure how it all works? The demo lets you explore the full app with sample data &mdash; no sign-in, no real data touched.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num">&#9654;</span> How to Launch the Demo</h3>
+        <p>On the landing page, tap <b>Try the Demo</b>. A PIN pad slides up &mdash; enter <b>1111</b> and tap GO. You&rsquo;re in the demo with a full week of sample data: players signed up, teams published, scores entered, history, and a live activity log.</p>
+        <div class="mock-ui" style="background:#0f172a;border:none;border-radius:14px;padding:16px;text-align:center;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fbbf24;margin-bottom:3px;">Demo Mode</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:12px;">Enter <span style="background:#fef3c7;color:#b45309;padding:2px 10px;border-radius:20px;font-weight:700;margin:0 4px;">1111</span> to explore</div>
+          <div style="display:flex;justify-content:center;gap:12px;margin-bottom:14px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <div style="height:48px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#fff;">1</div>
+            <div style="height:48px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#fff;">1</div>
+            <div style="height:48px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#fff;">1</div>
+          </div>
+          <div style="margin-top:10px;height:48px;background:#f59e0b;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:#0f172a;">GO →</div>
+        </div>
+        <div class="callout" style="margin-top:14px;"><strong>No real data is touched</strong><p>The demo uses sample data only. Nothing you do in demo mode affects the live app or Firebase. Play around freely.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">&#9654;</span> What You Can Explore</h3>
+        <p>The demo loads a full week of realistic data. Use the toggle inside to switch between views:</p>
+        <div class="mock-ui"><div class="tog-m"><div class="on">Player View</div><div>Admin View</div></div></div>
+        <p style="margin-top:12px;"><b>Player View</b> &mdash; see the week schedule, browse published teams, check payouts, view history and season standings.<br/><br/><b>Admin View</b> &mdash; everything a player sees plus: build and publish teams, enter scores, manage sign-ups, try the email builder, view the activity log, and explore all Admin tab features.</p>
+        <p style="margin-top:10px;">The demo is pre-loaded with sign-ups, published Saturday teams, entered scores, 4 rounds of history, a waiting list entry, day notes, and a live activity log showing real-looking events.</p>
+        <div class="info-m" style="margin-top:10px;"><strong>Demo doesn&rsquo;t include sign-in registration</strong><p>The &ldquo;Create Your Sign-In&rdquo; flow is not available in demo mode. PIN 1111 is the only entry point. Demo activity is never logged to Firebase.</p></div>
+      </div>
+    </div>
+
     <!-- PLAYERS -->
     <div class="section">
       <h2>For the Players</h2>
       <p>No more messy email chains. Sign up in seconds and see the results instantly.</p>
 
       <div class="feature">
-        <h3><span class="feature-num">1</span> Pick Your Name</h3>
-        <p>Tap <b>+ Sign up</b>, search for your name, and tap it. Your selection locks in with a green confirmation chip.</p>
-        <div class="mock-ui" style="padding:0;border:none;background:none;">
-          <div class="chip-m"><div class="avi-m" style="width:34px;height:34px;font-size:12px;">JF</div><div style="flex:1"><div style="font-size:14px;font-weight:700;color:#0f172a">Jared Friend</div><div style="font-size:11px;color:#15803d;font-weight:600;">&#10003; Selected</div></div><div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;color:#64748b;">Change</div></div>
+        <h3><span class="feature-num">1</span> First Time? Set Up Your Login</h3>
+        <p>The first time you open the app, you need to register your phone number. Tap the gold <b>&ldquo;Need to set up your login?&rdquo;</b> banner on the landing page.</p>
+        <div class="mock-ui" style="background:#0f172a;border:none;border-radius:12px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(245,158,11,0.12);border:2px solid rgba(245,158,11,0.4);border-radius:12px;padding:14px 16px;cursor:pointer;">
+            <div style="width:40px;height:40px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👋</div>
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#fbbf24;margin-bottom:2px;">Need to set up your login?</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.6);">First time? Register your phone number — takes 30 seconds</div>
+            </div>
+          </div>
         </div>
+        <p style="margin-top:14px;">The setup takes two steps:</p>
+        <p><b>Step 1 &mdash; Find your name</b><br/>Search for your name in the roster and tap it.</p>
+        <p><b>Step 2 &mdash; Enter your phone number</b><br/>Enter your full phone number, then re-enter it to confirm. The app shows your PIN preview &mdash; the last 4 digits of your number. Tap <b>Set up my sign-in</b> and you&rsquo;re done.</p>
+        <div class="callout"><strong>You only do this once</strong><p>After setup, you sign in by tapping <b>Member Sign In</b> and entering the last 4 digits of your phone. The app remembers you until you sign out.</p></div>
+        <div class="info-m" style="margin-top:10px;"><strong>Need to update your number?</strong><p>Tap <b>&ldquo;Need to set up your login?&rdquo;</b> again, find your name, and enter your new number. You&rsquo;ll see a warning that a sign-in already exists &mdash; confirm to replace it. An admin can also update it for you in the Roster.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">1b</span> Signing In After Setup</h3>
+        <p>Once registered, tap <b>Member Sign In</b> on the landing page. A number pad slides up &mdash; enter the <b>last 4 digits of your phone number</b> and tap GO. The app recognizes you instantly and your name locks in automatically.</p>
+        <div class="mock-ui" style="background:#0f172a;border:none;border-radius:12px;padding:18px 16px;text-align:center;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">Member Sign In</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:14px;">Enter the last 4 digits of your phone number</div>
+          <div style="display:flex;justify-content:center;gap:10px;margin-bottom:14px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#fff;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#fff;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#fff;"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#fff;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <div style="height:44px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fff;">1</div>
+            <div style="height:44px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fff;">2</div>
+            <div style="height:44px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fff;">3</div>
+          </div>
+        </div>
+        <p style="margin-top:12px;">Once signed in, a bar at the top of the app shows your name. Tap <b>Sign out</b> to return to the landing page.</p>
+        <div class="callout"><strong>The app remembers you</strong><p>Your sign-in stays active until you sign out. Close the app and come back later &mdash; you&rsquo;re still signed in.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">1c</span> Continuing as a Guest</h3>
+        <p>Not a member? Tap <b>Continue as Guest</b> on the landing page. You&rsquo;ll land on the sign-up form on the <b>Guest tab</b> automatically. Enter your name, pick the member you&rsquo;re playing with from the dropdown, add your tees and handicap, and confirm.</p>
+        <div class="mock-ui"><div class="tog-m"><div style="opacity:0.3;">Member</div><div class="on">Guest</div></div></div>
+        <div class="info-m" style="margin-top:10px;"><strong>Guests can&rsquo;t claim a member name</strong><p>The Member tab is locked when you enter as a guest. You can only sign up under your own name as a guest of a member.</p></div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">2</span> Choose Days, Tees &amp; Handicap</h3>
         <p>Once your name is confirmed, check the days you want, pick your tees, enter your handicap, and hit confirm.</p>
-        <div class="mock-ui"><div class="btn-m green full">Confirm sign-up</div></div>
+        <div class="mock-ui"><div class="btn-m green full">Sign up as Jared Friend</div></div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">3</span> Bringing a Guest?</h3>
-        <p>Toggle over to <b>Guest</b>, fill in their name and handicap, and select who they are a <b>Guest of</b> from the member dropdown. Anyone can add a guest &mdash; you don&rsquo;t have to be the member yourself.</p>
+        <p>If you&rsquo;re signed in as a member, tap <b>+ Sign up</b> and switch to the <b>Guest</b> tab. Fill in your guest&rsquo;s name, select yourself as the <b>Guest of</b> member from the dropdown, add their tees and handicap, and confirm.</p>
         <div class="mock-ui"><div class="tog-m"><div>Member</div><div class="on">Guest</div></div></div>
         <p style="margin-top:12px;">After selecting the member, an optional checkbox appears: <b>&ldquo;Request to pair with [member name]&rdquo;</b>. Check it to request the guest and member be placed on the same team. Leave it unchecked and the guest goes into the random pool like everyone else.</p>
         <div class="info-m" style="margin-top:8px;"><strong>Guest info in the sign-up list</strong><p>Guests show as &ldquo;Guest of [Member Name]&rdquo; in the list. A green &ldquo;Pair req.&rdquo; badge appears next to their name if pairing was requested.</p></div>
@@ -128,11 +214,25 @@
       </div>
 
       <div class="feature">
+        <h3><span class="feature-num">3b</span> Have a Match? Request to Play Together</h3>
+        <p>If you&rsquo;re scheduled for a formal match against another member, tap <b>+ Sign up</b> and look for the blue button: <em>&ldquo;Do you have a match and need to play with another member?&rdquo;</em></p>
+        <div class="mock-ui" style="text-align:center;">
+          <div style="display:inline-block;background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8;font-size:11px;font-weight:600;padding:7px 14px;border-radius:20px;">Do you have a match and need to play with another member?</div>
+        </div>
+        <p style="margin-top:12px;">Tapping it opens a short form where you:</p>
+        <p><b>Pick your opponent</b> from the full member roster.<br/><b>Enter their tees and handicap</b> &mdash; pre-filled from last known values, editable. You know your opponent&rsquo;s handicap anyway.<br/><b>Auto-adds them</b> to the day if they haven&rsquo;t signed up yet &mdash; they appear with a blue <em>&ldquo;Match &mdash; added by [Your Name]&rdquo;</em> badge so everyone can see who put them in and why.</p>
+        <div class="info-m" style="margin-top:10px;"><strong>Match play only &mdash; admin approval required</strong><p>A warning appears before you submit: this is for formal matches only. The admin reviews and approves or denies the pairing before building teams. Requests for non-match reasons will be declined.</p></div>
+        <div class="callout" style="margin-top:10px;"><strong>Changed your mind?</strong><p>Tap the red Remove button next to either your name or your match partner&rsquo;s name. The pairing request clears from the admin queue automatically.</p></div>
+      </div>
+
+      <div class="feature">
         <h3><span class="feature-num">4</span> Need to Remove Someone?</h3>
-        <p>Tap the red <b>Remove Player</b> button next to any name on the Week page. A confirmation pop-up appears &mdash; &ldquo;Are you sure?&rdquo; Admins can remove instantly without the confirmation step.</p>
+        <p>Tap the red <b>Remove</b> button next to a name on the Week page. The button only appears next to players you&rsquo;re allowed to remove:</p>
+        <p><b>Member or Admin (signed in with PIN)</b> &mdash; can remove yourself, any guest you brought, and any match partner you added.<br/><b>Guest</b> &mdash; can remove yourself only.<br/><b>Admin</b> &mdash; can remove anyone, instantly, no confirmation needed.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="confirm-m"><div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:4px;">Remove Jared Friend from Saturday?</div><div style="font-size:11px;color:#64748b;margin-bottom:6px;">Are you sure you want to remove this player? This cannot be undone.</div><div style="display:flex;gap:6px;"><div class="btn-m red sm">Yes, remove</div><div class="btn-m outline sm">Cancel</div></div></div>
         </div>
+        <div class="info-m" style="margin-top:10px;"><strong>No button? You don&rsquo;t have permission</strong><p>If the Remove button doesn&rsquo;t appear next to a name, it&rsquo;s not your sign-up or your guest. Contact an admin if it needs to come down.</p></div>
       </div>
 
       <div class="feature">
@@ -178,6 +278,19 @@
     <div class="section">
       <h2>For the Admins</h2>
       <p>The app does the heavy lifting. You just drag, drop, and push the buttons.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">&#9733;</span> Signing In as Admin</h3>
+        <p>Admins sign in exactly like members &mdash; register your phone number using <b>&ldquo;Need to set up your login?&rdquo;</b> on the landing page, then sign in with your last 4 digits. The app recognises your admin status automatically and unlocks the <b>Admin</b> tab. No separate password needed.</p>
+        <div class="callout"><strong>Admins must register first</strong><p>Before deploying to members, make sure all admins have registered their phone numbers. Otherwise you won&rsquo;t be able to access the Admin tab after deploy.</p></div>
+        <div class="info-m" style="margin-top:10px;"><strong>Granting admin access</strong><p>Admin status is set in the Roster section. Find the member, tap Edit, and toggle the Admin flag on. They&rsquo;ll get ⭐ on the welcome screen when they next sign in.</p></div>
+        <div class="info-m" style="margin-top:10px;background:#fffbeb;border-color:#f59e0b;"><strong>🔒 Master Admin protection</strong><p>Certain admins (Jared and Clark) are flagged as Master Admins in Firebase. Their phone number and admin status are completely locked in the app UI &mdash; no other admin can change them. The only way to update a Master Admin&rsquo;s phone number is through self-registration on the landing page, which requires physical access to their phone. This prevents anyone from accidentally or intentionally locking out a core admin.</p></div>
+      </div>
+
+      <div class="feature" style="background:#f8fafc;border-left:3px solid #10b981;padding-left:14px;">
+        <h3 style="margin-top:0;"><span style="color:#10b981;">&#9679;</span> Quick note on navigation</h3>
+        <p>The bottom tab bar uses colored icons to help you find things fast &mdash; each tab has its own color when active: <b style="color:#10b981;">Week</b> (green), <b style="color:#3b82f6;">Teams</b> (blue), <b style="color:#f59e0b;">Score</b> (amber), <b style="color:#8b5cf6;">History</b> (purple), <b style="color:#06b6d4;">Email</b> (cyan), <b style="color:#f97316;">Admin</b> (orange).</p>
+      </div>
 
       <div class="feature">
         <h3><span class="feature-num">1</span> Set Up Your Days</h3>
@@ -236,6 +349,23 @@
       </div>
 
       <div class="feature">
+        <h3><span class="feature-num">6b</span> Match Pairing Approvals</h3>
+        <p>If any members have submitted a match pairing request, a <b>Match Pairing Requests</b> section appears in the team builder alongside tee time and guest pairing approvals.</p>
+        <p><b>Approve</b> &mdash; both members are placed on the same team. Handicap balancing still applies &mdash; they land on whichever team keeps totals closest.<br/><b>Deny</b> &mdash; both go into the random pool like everyone else.</p>
+        <div class="mock-ui" style="padding:0;border:none;background:none;">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span style="color:#1d4ed8;">&#9889;</span> Match Pairing Requests (1)</div>
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Approve to place these members on the same team. Deny to put them in the random pool.</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;">
+              <div><span style="font-size:13px;font-weight:600;">Jared Friend</span><span style="font-size:11px;color:#64748b;margin:0 5px;">&#9889; match with</span><span style="font-size:13px;font-weight:600;">Chris Allen</span><span style="display:inline-block;padding:1px 6px;background:#eff6ff;color:#1d4ed8;border-radius:20px;font-size:10px;font-weight:600;margin-left:6px;">Match</span></div>
+              <div style="padding:4px 10px;border-radius:6px;border:1.5px solid #10b981;background:#ecfdf5;color:#15803d;font-size:11px;font-weight:600;">&#10003; Approved</div>
+            </div>
+          </div>
+        </div>
+        <div class="info-m" style="margin-top:10px;"><strong>Auto-cleanup</strong><p>When either player removes themselves from the day, the match pairing request is automatically removed from the approval queue. No manual cleanup needed.</p></div>
+      </div>
+
+      <div class="feature">
         <h3><span class="feature-num">7</span> Smart Team Mixing</h3>
         <p>The auto-generate algorithm checks your round history and avoids putting the same players together week after week &mdash; while keeping teams balanced by handicap. Gets smarter the more rounds you play.</p>
       </div>
@@ -282,7 +412,8 @@
 
       <div class="feature">
         <h3><span class="feature-num">13</span> Roster Management</h3>
-        <p><b>Edit</b> &mdash; update name and email. Changes save instantly.<br/><b>Delete</b> &mdash; base roster members are hidden (restorable). New members are removed permanently.<br/><b>Add</b> &mdash; add new members with name, tees, handicap, and email. Each new player gets a unique ID automatically &mdash; no duplicates possible.<br/><b>Export</b> &mdash; download full roster as CSV.</p>
+        <p><b>Edit</b> &mdash; update name, email, member number, and admin status. Changes save instantly.<br/><b>Phone #</b> &mdash; enter the member&rsquo;s full phone number. The app saves the last 4 digits as their sign-in PIN automatically. Set this for each player so they can log in. Only admins can see or edit member numbers.<br/><b>Admin flag</b> &mdash; toggle admin access on or off for any member directly from the edit form.<br/><b>Delete</b> &mdash; base roster members are hidden (restorable from the Hidden Players section). New members added during the season are removed permanently.<br/><b>Add</b> &mdash; add new members with name, tees, handicap, email, member number, and admin flag. Each new player gets a unique ID automatically &mdash; no duplicates possible.</p>
+        <div class="info-m"><strong>Member # badges in the roster</strong><p>Each roster row shows a green &ldquo;&#10003; Member # set&rdquo; badge once a number is saved, and a gold &ldquo;Admin&rdquo; badge if they have admin access. At a glance you can see who still needs a number set up.</p></div>
       </div>
 
       <div class="feature">
@@ -297,14 +428,53 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">16</span> End of Week Closeout</h3>
+        <h3><span class="feature-num">16</span> Activity Log</h3>
+        <p>The <b>Activity Log</b> (bottom of the Admin tab, above End Week) is a running record of everything that happens in the app &mdash; visible to admins only. It tracks:</p>
+        <p>
+          <b>&#128273; Sign-ins</b> &mdash; who logged in and when, with their role (member or admin).<br/>
+          <b>&#128100; Sign-ups</b> &mdash; who signed up, which day, and who did it (self or admin on their behalf).<br/>
+          <b>&#10005; Removals</b> &mdash; who was removed from a day and by whom.<br/>
+          <b>&#8987; Waitlist</b> &mdash; who joined or left the waiting list.<br/>
+          <b>&#10003; Teams published</b> &mdash; which day, how many teams, and which admin published them.<br/>
+          <b>&#128197; Days activated</b> &mdash; when a play day was set up and by whom.<br/>
+          <b>&#128197; New week started</b> &mdash; when the week rolled over.<br/>
+          <b>&#43; Roster changes</b> &mdash; players added or removed from the roster.
+        </p>
+        <div class="mock-ui" style="padding:10px 14px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+            <div style="width:30px;height:30px;border-radius:8px;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128273;</div>
+            <div style="flex:1;">
+              <div style="display:flex;gap:6px;align-items:center;margin-bottom:3px;"><span style="font-size:12px;font-weight:700;color:#0369a1;">Signed in</span><span style="font-size:13px;font-weight:600;color:#0f172a;">Jared Friend</span></div>
+              <div style="display:flex;gap:7px;"><span style="font-size:10px;color:#cbd5e1;">2m ago</span><span style="font-size:10px;font-weight:700;color:#15803d;background:#ecfdf5;padding:1px 6px;border-radius:4px;text-transform:uppercase;">admin</span></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+            <div style="width:30px;height:30px;border-radius:8px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128100;</div>
+            <div style="flex:1;">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="font-size:12px;font-weight:700;color:#15803d;">Signed up</span><span style="font-size:13px;font-weight:600;color:#0f172a;">Chris Allen</span><span style="font-size:12px;color:#64748b;">&mdash; Saturday</span></div>
+              <div style="display:flex;gap:7px;"><span style="font-size:10px;color:#cbd5e1;">14m ago</span><span style="font-size:11px;font-weight:600;color:#475569;">by Chris Allen</span><span style="font-size:10px;font-weight:700;color:#15803d;background:#ecfdf5;padding:1px 6px;border-radius:4px;text-transform:uppercase;">member</span></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;">
+            <div style="width:30px;height:30px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#10005;</div>
+            <div style="flex:1;">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="font-size:12px;font-weight:700;color:#dc2626;">Removed sign-up</span><span style="font-size:13px;font-weight:600;color:#0f172a;">Bob Smith</span><span style="font-size:12px;color:#64748b;">&mdash; Friday</span></div>
+              <div style="display:flex;gap:7px;"><span style="font-size:10px;color:#cbd5e1;">1h ago</span><span style="font-size:11px;font-weight:600;color:#475569;">by Clark Kunkle</span><span style="font-size:10px;font-weight:700;color:#b45309;background:#fffbeb;padding:1px 6px;border-radius:4px;text-transform:uppercase;">admin</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="info-m" style="margin-top:10px;"><strong>90-day rolling window</strong><p>Log entries older than 90 days are automatically pruned. The log shows the most recent 100 entries. Demo activity is never logged.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">17</span> End of Week Closeout</h3>
         <p>Click <b>End Week &amp; Start Fresh</b> at the bottom of the Admin tab. Type <b>END</b> to confirm. All games save to History, attendance updates, and the board resets for next week. Upcoming Events persist &mdash; only day notes and subject line clear.</p>
         <div class="mock-ui"><div class="btn-m dark full">End Week &amp; Start Fresh</div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">17</span> Export Data</h3>
-        <p><b>Export History</b> &mdash; all rounds with dates, players, teams, and pot amounts.<br/><b>Export Attendance</b> &mdash; player names, rounds played, and dates.<br/><b>Export Roster</b> &mdash; full roster with name, handicap, tees, and email.</p>
+        <h3><span class="feature-num">18</span> Export Data</h3>
+        <p><b>Export History</b> &mdash; all rounds with dates, players, teams, and pot amounts.<br/><b>Export Attendance</b> &mdash; player names, rounds played, and dates.<br/><b>Export Roster</b> &mdash; full roster with name, handicap, tees, email, member number, and admin flag. Useful for auditing who has PIN access set up.</p>
       </div>
     </div>
 
