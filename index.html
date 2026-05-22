@@ -2234,7 +2234,36 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
       )}
 
       {currentDisplay.length===0&&!manualMode&&(<div className="empty"><div className="empty-title">No teams yet for {activeDay}</div><div className="empty-sub">{cnt>0?'Admin will generate teams shortly.':'No sign-ups yet for this day.'}</div></div>)}
-      {currentDisplay.length>0&&isAdmin&&!published&&!manualMode&&(<div style={{fontSize:11,color:'#94a3b8',textAlign:'center',marginBottom:8,fontWeight:500}}>Use the dropdowns to set tee order - Group 1 goes first</div>)}
+      {currentDisplay.length>0&&isAdmin&&!published&&!manualMode&&(
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+          <div style={{fontSize:11,color:'#94a3b8',fontWeight:500}}>Use the dropdowns to set tee order — Group 1 goes first</div>
+          <button className="btn btn-outline btn-sm" style={{color:'#dc2626',borderColor:'#fecaca',fontSize:11}} onClick={()=>{if(confirm('Clear teams and start over?')){onUnpublish(activeDay);}}}>✕ Clear Teams</button>
+        </div>
+      )}
+
+      {/* Stale player warning — players in teams but no longer signed up */}
+      {isAdmin&&published&&(()=>{
+        const daySignupNames=new Set(Object.values(week?.signups||{}).filter(s=>s.day===activeDay).map(s=>s.name));
+        const stale=[];
+        (currentDisplay||[]).forEach(team=>{
+          (team.players||[]).forEach(p=>{
+            if(p.name&&!daySignupNames.has(p.name))stale.push(p.name);
+          });
+        });
+        if(!stale.length)return null;
+        return(
+          <div style={{background:'#fef2f2',border:'1.5px solid #fecaca',borderRadius:10,padding:'10px 14px',marginBottom:10,display:'flex',alignItems:'flex-start',gap:10}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:'#dc2626',marginBottom:3}}>Teams are out of date</div>
+              <div style={{fontSize:12,color:'#7f1d1d',lineHeight:1.5}}>
+                {stale.join(', ')} {stale.length===1?'has':'have'} been removed from sign-ups but {stale.length===1?'is':'are'} still in the published teams.
+              </div>
+              <button onClick={()=>{if(confirm('Clear teams and start fresh with current sign-ups?'))onUnpublish(activeDay);}} style={{marginTop:8,padding:'5px 12px',borderRadius:7,border:'1.5px solid #fecaca',background:'#fff',color:'#dc2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>Reset Teams Now</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* TEAM CARDS */}
       {currentDisplay.map((team,ti)=>{
