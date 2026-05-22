@@ -228,7 +228,7 @@
       <div class="feature">
         <h3><span class="feature-num">4</span> Need to Remove Someone?</h3>
         <p>Tap the red <b>Remove</b> button next to a name on the Week page. The button only appears next to players you&rsquo;re allowed to remove:</p>
-        <p><b>Member or Admin (signed in with PIN)</b> &mdash; can remove yourself, any guest you brought, and any match partner you added.<br/><b>Guest</b> &mdash; can remove yourself only.<br/><b>Admin</b> &mdash; can remove anyone, instantly, no confirmation needed.</p>
+        <p><b>Member or Admin (signed in with PIN)</b> &mdash; can remove yourself, any guest you brought, and any match partner you added.<br/><b>Guest</b> &mdash; can remove yourself only.<br/><b>Admin</b> &mdash; can remove anyone instantly. All removals are logged with the admin&rsquo;s name so there&rsquo;s a full audit trail of who removed who.</p>
         <div class="mock-ui" style="padding:0;border:none;background:none;">
           <div class="confirm-m"><div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:4px;">Remove Jared Friend from Saturday?</div><div style="font-size:11px;color:#64748b;margin-bottom:6px;">Are you sure you want to remove this player? This cannot be undone.</div><div style="display:flex;gap:6px;"><div class="btn-m red sm">Yes, remove</div><div class="btn-m outline sm">Cancel</div></div></div>
         </div>
@@ -283,6 +283,7 @@
         <h3><span class="feature-num gold">&#9733;</span> Signing In as Admin</h3>
         <p>Admins sign in exactly like members &mdash; register your phone number using <b>&ldquo;Need to set up your login?&rdquo;</b> on the landing page, then sign in with your last 4 digits. The app recognises your admin status automatically and unlocks the <b>Admin</b> tab. No separate password needed.</p>
         <div class="callout"><strong>Admins must register first</strong><p>Before deploying to members, make sure all admins have registered their phone numbers. Otherwise you won&rsquo;t be able to access the Admin tab after deploy.</p></div>
+        <div class="info-m" style="margin-top:10px;"><strong>Two sign-up buttons for admins</strong><p>On the Week tab, admins see two buttons at the bottom of each day card instead of the usual one:<br/><br/><b style="color:#10b981;">+ Sign me up</b> &mdash; green, instantly pre-fills your own name (same fast experience as a regular member).<br/><b style="color:#3b82f6;">+ Sign up someone</b> &mdash; blue, opens the full roster picker so you can sign up any player on their behalf, set their tees and HCP, add a tee preference, or create a match pairing for them.</p></div>
         <div class="info-m" style="margin-top:10px;"><strong>Granting admin access</strong><p>Admin status is set in the Roster section. Find the member, tap Edit, and toggle the Admin flag on. They&rsquo;ll get ⭐ on the welcome screen when they next sign in.</p></div>
         <div class="info-m" style="margin-top:10px;background:#fffbeb;border-color:#f59e0b;"><strong>🔒 Master Admin protection</strong><p>Certain admins (Jared and Clark) are flagged as Master Admins in Firebase. Their phone number and admin status are completely locked in the app UI &mdash; no other admin can change them. The only way to update a Master Admin&rsquo;s phone number is through self-registration on the landing page, which requires physical access to their phone. This prevents anyone from accidentally or intentionally locking out a core admin.</p></div>
       </div>
@@ -433,7 +434,7 @@
         <p>
           <b>&#128273; Sign-ins</b> &mdash; who logged in and when, with their role (member or admin).<br/>
           <b>&#128100; Sign-ups</b> &mdash; who signed up, which day, and who did it (self or admin on their behalf).<br/>
-          <b>&#10005; Removals</b> &mdash; who was removed from a day and by whom.<br/>
+          <b>&#10005; Removals</b> &mdash; who was removed from a day and exactly which admin or member did it.<br/>
           <b>&#8987; Waitlist</b> &mdash; who joined or left the waiting list.<br/>
           <b>&#10003; Teams published</b> &mdash; which day, how many teams, and which admin published them.<br/>
           <b>&#128197; Days activated</b> &mdash; when a play day was set up and by whom.<br/>
