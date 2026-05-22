@@ -1263,12 +1263,12 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
 }
 
 function SignupConfirmBtn({isGuest,gname,sel,activeDays,signupDays,allSignups,hcp,onConfirm,waitlistDay,currentUser,adminEditMode}){
-  const isMember=!isGuest&&currentUser&&(currentUser.role==='member'||currentUser.role==='admin');
+  const isMember=!isGuest&&currentUser&&currentUser.role==='member'; // admin picks from roster
   const name=isGuest?gname.trim():isMember?currentUser.name:(ROSTER.find(p=>p.id==sel)||{}).name;
   const selectedDays=(activeDays||[]).filter(d=>signupDays[d]&&!Object.values(allSignups||{}).some(s=>s.day===d&&s.name===name));
-  const disabled=adminEditMode?!hcp:(isMember?false:(!sel&&!gname))||!hcp||(waitlistDay?false:selectedDays.length===0);
-  const label=waitlistDay?'Join Waiting List for '+waitlistDay
-    :currentUser&&currentUser.isAdminEdit?'Save Changes'
+  const isAdminSignup=!isGuest&&currentUser&&currentUser.role==='admin'&&!adminEditMode;
+  const disabled=adminEditMode?!hcp:(isMember?false:(isAdminSignup?!sel:(!sel&&!gname)))||!hcp||(waitlistDay?false:selectedDays.length===0);
+  const label=adminEditMode?'Save Changes':waitlistDay?'Join Waiting List for '+waitlistDay
     :name&&selectedDays.length>0?'Sign up as '+name+(selectedDays.length>1?' ('+selectedDays.length+' days)':'')
     :'Confirm sign-up';
   return(<button className="btn btn-green btn-full" onClick={onConfirm} disabled={disabled} style={{opacity:disabled?0.4:1}}>{label}</button>);
@@ -1332,7 +1332,10 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
     const init={};activeDays.forEach(d=>{init[d]=false;});
     setSignupDays(init);setGname('');setHcp('');setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setGuestOf('');setPairWithGuest(false);setWaitlistDay(null);setShowMatchReq(false);setMatchPartner('');setMatchPartnerTee('Whites');setMatchPartnerHcp('');setAdminEditKey(null);setAdminEditData(null);
     if(currentUser&&currentUser.role==='guest'){setIsGuest(true);setSel('');}
-    else if(currentUser&&(currentUser.role==='member'||currentUser.role==='admin')){
+    else if(currentUser&&currentUser.role==='admin'){
+      // Admin: can sign up any player — show full roster search
+      setIsGuest(false);setSel('');
+    } else if(currentUser&&currentUser.role==='member'){
       setIsGuest(false);
       const match=[...(effectiveRoster||ROSTER),...safeArray(extraRoster)].find(p=>String(p.id)===String(currentUser.id));
       setSel(match?match.id:'');if(match)loadMemory(match.id);
@@ -1361,7 +1364,7 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
       setToast('Saved!');setTimeout(()=>setToast(null),2000);
       return;
     }
-    const isMemberLogin=!isGuest&&currentUser&&(currentUser.role==='member'||currentUser.role==='admin');
+    const isMemberLogin=!isGuest&&currentUser&&currentUser.role==='member';
     const name=isGuest?gname.trim():isMemberLogin?currentUser.name:(fullRoster.find(p=>p.id==sel)||{}).name;
     const _pid=isGuest?'g_'+Date.now():isMemberLogin?parseInt(String(currentUser.id)):parseInt(sel);
     if(!name||!hcp)return;
@@ -1548,7 +1551,20 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
                   </div>
                 ))}
                 <div className="day-actions">
-                  {!dayLocked&&<button className="signup-btn" onClick={openSignup}>+ Sign up</button>}
+                  {!dayLocked&&(isAdmin?(
+                    <div style={{display:'flex',gap:6}}>
+                      <button className="signup-btn" style={{background:'#10b981',color:'#fff',border:'none'}} onClick={()=>{
+                        // Admin signing up as themselves — pre-fill own name
+                        const init={};activeDays.forEach(d=>{init[d]=false;});
+                        setSignupDays(init);setGname('');setHcp('');setTee('Whites');setQ('');setHcpMemory(null);setTeePref(null);setShowTeePref(false);setGuestOf('');setPairWithGuest(false);setWaitlistDay(null);setShowMatchReq(false);setMatchPartner('');setMatchPartnerTee('Whites');setMatchPartnerHcp('');setAdminEditKey(null);setAdminEditData(null);
+                        setIsGuest(false);
+                        const match=[...fullRoster].find(p=>String(p.id)===String(currentUser.id));
+                        setSel(match?match.id:'');if(match)loadMemory(match.id);
+                        setShowSignup(true);
+                      }}>+ Sign me up</button>
+                      <button className="signup-btn" style={{background:'#3b82f6',color:'#fff',border:'none'}} onClick={openSignup}>+ Sign up someone</button>
+                    </div>
+                  ):<button className="signup-btn" onClick={openSignup}>+ Sign up</button>)}
                   {!isDemo&&dayLocked&&!isAdmin&&<button style={{fontSize:12,color:'#d97706',fontWeight:600,padding:'8px 12px',background:'#fffbeb',border:'1.5px solid #fde68a',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}} onClick={()=>{setWaitlistDay(day);setShowSignup(true);}}>Join Waiting List</button>}
                   {isAdmin&&!(teeInfo)&&<button className="teeadd-btn" onClick={()=>{setTeeModal(day);setIsLottery(false);setNewTime('');}}>+ Tee time</button>}
                   {isAdmin&&teeInfo&&!teeInfo.lottery&&<button className="teeadd-btn" onClick={()=>{setEditTeeModal(day);setNewTime('');}}>Edit tee time</button>}
@@ -1588,7 +1604,7 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
             {!isGuest?(
               <div className="fg">
                 <label className="fl">Your name</label>
-                {(adminEditData||( currentUser&&(currentUser.role==='member'||currentUser.role==='admin')))?(
+                {(adminEditData||(currentUser&&currentUser.role==='member'))?(
                   <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:12}}>
                     <div style={{width:38,height:38,borderRadius:'50%',background:currentUser.role==='admin'?'#fef3c7':'#dcfce7',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'Barlow Condensed,sans-serif',fontSize:15,fontWeight:700,color:currentUser.role==='admin'?'#92400e':'#15803d'}}>{adminEditData?(adminEditData.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()):currentUser.ini}</div>
                     <div style={{flex:1,minWidth:0}}>
@@ -3807,7 +3823,7 @@ function App(){
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog||[]} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
+        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog||[]} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
     </div>
   );
