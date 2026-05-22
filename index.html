@@ -1488,7 +1488,18 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
                         {editKey===key?(
                           <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                         ):(
-                          <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>{(isAdmin||(currentUser&&(s.name===currentUser.name||s.guestOf===currentUser.name||(s.isMatchAdd&&s.matchAddedBy===currentUser.name))))&&<button className="edit-btn" onClick={()=>{
+                          <div className="p-meta"><span className="tee-dot" style={{background:TC[s.tee]||'#ccc'}}></span><span>{s.tee} HCP {s.handicap}</span>
+                          {/* Tee preference badge */}
+                          {s.teePreference==='first'&&<span style={{display:'inline-flex',alignItems:'center',gap:3,padding:'1px 7px',borderRadius:20,background:'#dcfce7',color:'#15803d',fontSize:10,fontWeight:700,marginLeft:5,textTransform:'uppercase',letterSpacing:'0.04em'}}>⬆ First group</span>}
+                          {s.teePreference==='last'&&<span style={{display:'inline-flex',alignItems:'center',gap:3,padding:'1px 7px',borderRadius:20,background:'#fee2e2',color:'#dc2626',fontSize:10,fontWeight:700,marginLeft:5,textTransform:'uppercase',letterSpacing:'0.04em'}}>⬇ Last group</span>}
+                          {/* Match pairing badge — check matchPairings for this day */}
+                          {(()=>{
+                            const pair=Object.values(matchPairings||{}).find(m=>m.day===day&&(m.requester===s.name||m.partner===s.name));
+                            if(!pair)return null;
+                            const partnerName=pair.requester===s.name?pair.partner:pair.requester;
+                            return<span style={{display:'inline-flex',alignItems:'center',gap:3,padding:'1px 7px',borderRadius:20,background:'#dbeafe',color:'#1d4ed8',fontSize:10,fontWeight:700,marginLeft:5}}>⚡ Match w/ {partnerName}</span>;
+                          })()}
+                          {(isAdmin||(currentUser&&(s.name===currentUser.name||s.guestOf===currentUser.name||(s.isMatchAdd&&s.matchAddedBy===currentUser.name))))&&<button className="edit-btn" onClick={()=>{
   if(isAdmin){
     // Admin: open full modal pre-populated
     setAdminEditKey(key);
