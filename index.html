@@ -913,6 +913,566 @@ function TimePicker({onChange}){
   return(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}><select className="fs" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>{hrs.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>{mins.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}><option>AM</option><option>PM</option></select></div>);
 }
 // -- LANDING ------------------------------------------------------------------
+function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog,effectiveRoster,extra,currentUser}){
+  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra)].filter(p=>!p.hidden);
+  const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const allSignups=Object.values(week?.signups||{});
+  const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const msDay=86400000;
+
+  // ── Collapsible state ─────────────────────────────────────────────────────
+  const [open,setOpen]=React.useState({overview:true,week:true,pots:false,scores:false,players:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false});
+  const toggle=k=>setOpen(o=>({...o,[k]:!o[k]}));
+
+  // ── Core calcs ────────────────────────────────────────────────────────────
+  const totalRounds=histArr.length;
+  const avgField=totalRounds?Math.round(histArr.reduce((s,r)=>s+(r.playerCount||0),0)/totalRounds):0;
+
+  // Pot totals
+  const potTotals=histArr.reduce((acc,r)=>{
+    acc.skins+=(r.scores?.skinsPot||0);
+    acc.front+=(r.scores?.frontPot||0);
+    acc.back+=(r.scores?.backPot||0);
+    acc.overall+=(r.scores?.overallPot||0);
+    acc.fund+=(r.scores?.tournFund||r.tournFund||0);
+    return acc;
+  },{skins:0,front:0,back:0,overall:0,fund:0});
+  const totalPot=potTotals.skins+potTotals.front+potTotals.back+potTotals.overall;
+  const avgPot=totalRounds?Math.round(totalPot/totalRounds):0;
+  const biggestRound=histArr.reduce((best,r)=>{
+    const t=(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0);
+    return t>(best.total||0)?{total:t,date:r.date?.slice(5)||'',day:r.day,players:r.playerCount}:best;
+  },{});
+  const biggestPot=biggestRound.total||0;
+
+  // Winning scores per round — front/back/overall for winning team
+  const winningScores=[];
+  histArr.forEach(r=>{
+    const ts=r.scores?.teamScores||[];
+    const valid=ts.filter(Boolean).filter(t=>t.front!=null&&t.back!=null&&t.overall!=null);
+    if(!valid.length)return;
+    const bestFront=Math.min(...valid.map(t=>t.front));
+    const bestBack=Math.min(...valid.map(t=>t.back));
+    const bestOverall=Math.min(...valid.map(t=>t.overall));
+    winningScores.push({date:r.date?.slice(5)||'',front:bestFront,back:bestBack,overall:bestOverall,players:r.playerCount||0});
+  });
+  const avgWinFront=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.front,0)/winningScores.length):null;
+  const avgWinBack=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.back,0)/winningScores.length):null;
+  const avgWinOverall=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.overall,0)/winningScores.length):null;
+
+  // Skins
+  const skinsByRound=histArr.map(r=>({date:r.date?.slice(5)||'',skins:safeArray(r.scores?.skinCounts).filter(Boolean).reduce((s,x)=>s+(x||0),0),players:r.playerCount||0}));
+  const avgSkins=skinsByRound.length?Math.round(skinsByRound.reduce((s,r)=>s+r.skins,0)/skinsByRound.length*10)/10:null;
+
+  // Player data from teams in history
+  const playerRounds={};
+  const playerHcps={};   // name -> [{hcp, date}]
+  const playerTees={};   // name -> {tee: count}
+  const teamPairs={};
+
+  histArr.forEach(r=>{
+    Object.values(r.teams||{}).forEach(team=>{
+      const players=safeArray(team.players).filter(p=>p.name);
+      players.forEach(p=>{
+        playerRounds[p.name]=(playerRounds[p.name]||0)+1;
+        if(p.handicap!=null){
+          if(!playerHcps[p.name])playerHcps[p.name]=[];
+          playerHcps[p.name].push({hcp:parseFloat(p.handicap),date:r.date||''});
+        }
+        if(p.tee){
+          if(!playerTees[p.name])playerTees[p.name]={};
+          playerTees[p.name][p.tee]=(playerTees[p.name][p.tee]||0)+1;
+        }
+      });
+      for(let i=0;i<players.length;i++){
+        for(let j=i+1;j<players.length;j++){
+          const key=[players[i].name,players[j].name].sort().join('|');
+          teamPairs[key]=(teamPairs[key]||0)+1;
+        }
+      }
+    });
+  });
+
+  const topPlayers=Object.entries(playerRounds).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const topPairs=Object.entries(teamPairs).sort((a,b)=>b[1]-a[1]).slice(0,12);
+
+  // HCP trends — sorted by current HCP
+  const hcpTrends=Object.entries(playerHcps).filter(([,arr])=>arr.length>0).map(([name,arr])=>{
+    const sorted=arr.sort((a,b)=>a.date.localeCompare(b.date));
+    const current=sorted[sorted.length-1].hcp;
+    const first=sorted[0].hcp;
+    const trend=sorted.length>1?Math.round((current-first)*10)/10:0;
+    const avg=Math.round(arr.reduce((s,x)=>s+x.hcp,0)/arr.length*10)/10;
+    return{name,current,first,avg,trend,rounds:arr.length};
+  }).sort((a,b)=>a.current-b.current);
+
+  // Tee stats — overall who plays what
+  const teeTotals={};
+  Object.values(playerTees).forEach(tMap=>{
+    Object.entries(tMap).forEach(([tee,cnt])=>{tee&&(teeTotals[tee]=(teeTotals[tee]||0)+cnt);});
+  });
+  const totalTeeRounds=Object.values(teeTotals).reduce((s,x)=>s+x,0)||1;
+
+  // Engagement
+  const registeredCount=Object.keys(rosterPins||{}).length;
+  const totalMembers=roster.length;
+  const cutoff60=new Date(Date.now()-60*msDay).toISOString().slice(0,10);
+  const activePlayers=new Set();
+  histArr.filter(r=>(r.date||'')>=cutoff60).forEach(r=>Object.values(r.teams||{}).forEach(t=>safeArray(t.players).forEach(p=>{if(p.name)activePlayers.add(p.name);})));
+  const inactive=roster.filter(p=>!activePlayers.has(p.name));
+  const notRegistered=roster.filter(p=>!(rosterPins||{})[p.id]);
+
+  // Sign-up timing
+  const signupLogs=logArr.filter(e=>e.action==='signup'&&e.ts);
+  const signupsByHour=new Array(24).fill(0);
+  const signupsByDayOfWeek=new Array(7).fill(0);
+  // Historical avg signups per round by day name
+  const signupsByDayName={};
+  histArr.forEach(r=>{
+    const day=r.day;
+    if(!day)return;
+    if(!signupsByDayName[day])signupsByDayName[day]={total:0,count:0};
+    signupsByDayName[day].total+=(r.playerCount||0);
+    signupsByDayName[day].count++;
+  });
+  signupLogs.forEach(e=>{
+    const d=new Date(e.ts);
+    signupsByHour[d.getHours()]++;
+    signupsByDayOfWeek[d.getDay()]++;
+  });
+  const peakHour=signupsByHour.indexOf(Math.max(...signupsByHour));
+  const peakDowIdx=signupsByDayOfWeek.indexOf(Math.max(...signupsByDayOfWeek));
+  const peakDow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][peakDowIdx];
+
+  // Week stats
+  const activeDays=safeArray(week?.activeDays||[]);
+  const weekStats=activeDays.map(d=>({
+    day:d,total:allSignups.filter(s=>s.day===d).length,
+    guests:allSignups.filter(s=>s.day===d&&s.isGuest).length,
+    members:allSignups.filter(s=>s.day===d&&!s.isGuest).length,
+  }));
+
+  // Pot chart data
+  const potChartData=histArr.slice(-10).map(r=>({
+    date:r.date?.slice(5)||'',
+    skins:r.scores?.skinsPot||0,
+    front:r.scores?.frontPot||0,
+    back:r.scores?.backPot||0,
+    overall:r.scores?.overallPot||0,
+    fund:r.scores?.tournFund||0,
+    players:r.playerCount||0,
+  }));
+  const maxPotBar=Math.max(...potChartData.map(p=>p.skins+p.front+p.back+p.overall))||1;
+
+  // ── UI Helpers ─────────────────────────────────────────────────────────────
+  const Sec=({id,title,icon,color,summary,children})=>(
+    <div style={{background:'#fff',borderRadius:14,border:'1px solid #e2e8f0',marginBottom:12,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
+      <div onClick={()=>toggle(id)} style={{display:'flex',alignItems:'center',gap:10,padding:'13px 16px',cursor:'pointer',borderLeft:'4px solid '+color,userSelect:'none'}}>
+        <span style={{fontSize:16,flexShrink:0}}>{icon}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>{title}</div>
+          {!open[id]&&summary&&<div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{summary}</div>}
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{transform:open[id]?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      {open[id]&&<div style={{padding:'0 16px 16px'}}>{children}</div>}
+    </div>
+  );
+  const BN=(v,l,c='#10b981',s)=>(
+    <div style={{textAlign:'center',padding:'8px 4px'}}>
+      <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:34,fontWeight:800,color:c,lineHeight:1}}>{v}</div>
+      <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>
+      {s&&<div style={{fontSize:10,color:'#64748b',marginTop:1}}>{s}</div>}
+    </div>
+  );
+  const Bar=({pct,color,h=7})=>(
+    <div style={{background:'#f1f5f9',borderRadius:4,height:h,overflow:'hidden'}}>
+      <div style={{background:color,height:'100%',width:Math.min(100,Math.max(0,pct))+'%',borderRadius:4}}></div>
+    </div>
+  );
+  const Pill=(label,color,bg)=>(
+    <span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:20,background:bg,color,border:'1px solid '+color+'44'}}>{label}</span>
+  );
+  const divider=<div style={{height:1,background:'#f1f5f9',margin:'10px 0'}}/>;
+
+  return(
+    <div style={{background:'#f1f5f9',minHeight:'100%',padding:'14px 12px 80px'}}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+        <div>
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#0f172a'}}>⭐ Master Dashboard</div>
+          <div style={{fontSize:11,color:'#94a3b8'}}>Private analytics — Jared Friend</div>
+        </div>
+        <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,padding:'6px 10px',textAlign:'right'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#0f172a'}}>{totalRounds} rounds</div>
+          <div style={{fontSize:10,color:'#94a3b8'}}>{new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+        </div>
+      </div>
+
+      {/* ── Season Overview ── */}
+      <Sec id="overview" icon="📊" title="Season Overview" color="#10b981"
+        summary={`${totalRounds} rounds · avg ${avgField} players · $${totalPot.toLocaleString()} paid out`}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10}}>
+          {BN(totalRounds,'Rounds','#10b981')}
+          {BN(avgField,'Avg Field','#3b82f6')}
+{BN('$'+avgPot,'Avg Pot','#f59e0b','per round')}
+          {BN('$'+potTotals.fund.toLocaleString(),'Tourn. Fund','#8b5cf6',totalRounds+' rounds')}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginTop:8}}>
+          {BN('$'+totalPot.toLocaleString(),'Total Paid Out','#0f172a')}
+          {BN(Object.keys(playerRounds).length,'Unique Players','#06b6d4')}
+          {BN(Object.keys(playerRounds).length,'Unique Players','#06b6d4','played in history')}
+        </div>
+      </Sec>
+
+      {/* ── This Week ── */}
+      {activeDays.length>0&&(
+      <Sec id="week" icon="📅" title={"This Week"} color="#3b82f6"
+        summary={activeDays.join(', ')+' · '+weekStats.reduce((s,w)=>s+w.total,0)+' total sign-ups'}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:10,marginBottom:12}}>
+          {weekStats.map(w=>(
+            <div key={w.day} style={{flex:1,minWidth:70,background:'#f8fafc',borderRadius:10,padding:'10px',textAlign:'center',border:'1px solid #e2e8f0'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#0f172a'}}>{w.total}</div>
+              <div style={{fontSize:11,fontWeight:700,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.04em'}}>{w.day.slice(0,3)}</div>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{w.members}m{w.guests?' + '+w.guests+'g':''}</div>
+            </div>
+          ))}
+        </div>
+        {divider}
+        <div style={{fontSize:11,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Historical Avg by Day</div>
+        {Object.entries(signupsByDayName).sort((a,b)=>['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].indexOf(a[0])-['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].indexOf(b[0])).map(([day,data])=>(
+          <div key={day} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+            <div style={{width:60,fontSize:12,color:'#0f172a',fontWeight:600}}>{day.slice(0,3)}</div>
+            <div style={{flex:1}}><Bar pct={data.total/data.count/30*100} color="#3b82f6"/></div>
+            <div style={{fontSize:12,fontWeight:700,color:'#3b82f6',width:20,textAlign:'right'}}>{Math.round(data.total/data.count)}</div>
+            <div style={{fontSize:10,color:'#94a3b8',width:40}}>avg/{data.count}r</div>
+          </div>
+        ))}
+      </Sec>
+      )}
+
+      {/* ── Pot Analytics ── */}
+      <Sec id="pots" icon="💰" title="Pot Analytics" color="#f59e0b"
+        summary={`$${totalPot.toLocaleString()} total · $${avgPot} avg · $${potTotals.fund} tourn. fund`}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10,marginBottom:14}}>
+          {BN('$'+Math.round(potTotals.skins/totalRounds||0),'Avg Skins','#10b981','per round')}
+          {BN('$'+Math.round(potTotals.front/totalRounds||0),'Avg Front','#3b82f6','per round')}
+          {BN('$'+Math.round(potTotals.back/totalRounds||0),'Avg Back','#f97316','per round')}
+          {BN('$'+Math.round(potTotals.overall/totalRounds||0),'Avg Overall','#8b5cf6','per round')}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10,marginBottom:4}}>
+          <div style={{background:'#fffbeb',borderRadius:10,padding:'11px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#d97706'}}>${biggestPot}</div>
+            <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Biggest Pot Ever</div>
+            <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{biggestRound.date} {biggestRound.day} · {biggestRound.players}p</div>
+          </div>
+          <div style={{background:'#f5f3ff',borderRadius:10,padding:'11px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#7c3aed'}}>${potTotals.fund}</div>
+            <div style={{fontSize:10,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Tournament Fund</div>
+            <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>$1/player × {totalRounds} rounds</div>
+          </div>
+        </div>
+        {divider}
+        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
+        <div style={{display:'flex',alignItems:'flex-end',gap:5,height:90,marginBottom:6}}>
+          {potChartData.map((r,i)=>{
+            const total=r.skins+r.front+r.back+r.overall;
+            const h=Math.round((total/maxPotBar)*82)+4;
+            return(
+              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                <div style={{fontSize:8,fontWeight:700,color:'#f59e0b'}}>${total}</div>
+                <div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}>
+                  <div style={{flex:r.skins,background:'#10b981'}}></div>
+                  <div style={{flex:r.front,background:'#3b82f6'}}></div>
+                  <div style={{flex:r.back,background:'#f97316'}}></div>
+                  <div style={{flex:r.overall,background:'#8b5cf6'}}></div>
+                </div>
+                <div style={{fontSize:7,color:'#94a3b8',textAlign:'center'}}>{r.date}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'#64748b'}}>
+          {[['#10b981','Skins'],['#3b82f6','Front'],['#f97316','Back'],['#8b5cf6','Overall']].map(([c,l])=>(
+            <span key={l}><span style={{display:'inline-block',width:8,height:8,background:c,borderRadius:2,marginRight:3}}></span>{l}</span>
+          ))}
+        </div>
+      </Sec>
+
+      {/* ── Scoring Analytics ── */}
+      <Sec id="scores" icon="⛳" title="Scoring Analytics" color="#10b981"
+        summary={`Avg winning: F${avgWinFront??'—'} B${avgWinBack??'—'} O${avgWinOverall??'—'} · ${avgSkins??'—'} skins/round`}>
+        <div style={{paddingTop:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Average Winning Score (best team per round)</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'12px',textAlign:'center'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:'#10b981'}}>{avgWinFront??'—'}</div>
+              <div style={{fontSize:10,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Front 9</div>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg best team</div>
+            </div>
+            <div style={{background:'#eff6ff',borderRadius:10,padding:'12px',textAlign:'center'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:'#3b82f6'}}>{avgWinBack??'—'}</div>
+              <div style={{fontSize:10,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Back 9</div>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg best team</div>
+            </div>
+            <div style={{background:'#f5f3ff',borderRadius:10,padding:'12px',textAlign:'center'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:'#8b5cf6'}}>{avgWinOverall??'—'}</div>
+              <div style={{fontSize:10,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Overall</div>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg best team</div>
+            </div>
+          </div>
+          {divider}
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Winning Scores — Last {Math.min(8,winningScores.length)} Rounds</div>
+          {winningScores.slice(-8).map((r,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid #f8fafc'}}>
+              <div style={{fontSize:11,color:'#64748b',width:40,flexShrink:0}}>{r.date}</div>
+              <div style={{flex:1,display:'flex',gap:4}}>
+                <span style={{fontSize:11,fontWeight:700,color:'#10b981',background:'#ecfdf5',padding:'2px 6px',borderRadius:6}}>F: {r.front}</span>
+                <span style={{fontSize:11,fontWeight:700,color:'#3b82f6',background:'#eff6ff',padding:'2px 6px',borderRadius:6}}>B: {r.back}</span>
+                <span style={{fontSize:11,fontWeight:700,color:'#8b5cf6',background:'#f5f3ff',padding:'2px 6px',borderRadius:6}}>O: {r.overall}</span>
+              </div>
+              <div style={{fontSize:10,color:'#94a3b8',flexShrink:0}}>{r.players}p</div>
+            </div>
+          ))}
+          {divider}
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Skins Per Round (last {Math.min(8,skinsByRound.length)})</div>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{avgSkins??'—'}</div>
+            <div style={{fontSize:11,color:'#94a3b8'}}>avg skins per round</div>
+          </div>
+          <div style={{display:'flex',alignItems:'flex-end',gap:4,height:60}}>
+            {skinsByRound.slice(-10).map((r,i)=>{
+              const maxS=Math.max(...skinsByRound.slice(-10).map(x=>x.skins))||1;
+              const h=Math.round((r.skins/maxS)*56)+2;
+              return(
+                <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>
+                  <div style={{fontSize:8,fontWeight:700,color:'#10b981'}}>{r.skins}</div>
+                  <div style={{width:'100%',height:h,background:'linear-gradient(180deg,#10b981,#059669)',borderRadius:'2px 2px 0 0'}}></div>
+                  <div style={{fontSize:7,color:'#94a3b8'}}>{r.date}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Sec>
+
+      {/* ── Player Leaderboard ── */}
+      <Sec id="players" icon="🏆" title="Player Leaderboard" color="#8b5cf6"
+        summary={`Top: ${topPlayers[0]?.[0]??'—'} (${topPlayers[0]?.[1]??0} rounds) · ${Object.keys(playerRounds).length} unique players`}>
+        <div style={{paddingTop:8}}>
+          {topPlayers.map(([name,cnt],i)=>{
+            const hcpArr=(playerHcps[name]||[]);
+            const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
+            const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
+            const pct=Math.round(cnt/topPlayers[0][1]*100);
+            return(
+              <div key={name} style={{padding:'8px 0',borderBottom:i<topPlayers.length-1?'1px solid #f8fafc':'none'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                  <div style={{width:24,height:24,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'#94a3b8',flexShrink:0}}>{i+1}</div>
+                  <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a'}}>{name}</div>
+                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:700,color:'#8b5cf6'}}>{cnt}</div>
+                  <div style={{fontSize:10,color:'#94a3b8',width:30}}>rnds</div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:32}}>
+                  <div style={{flex:1}}><Bar pct={pct} color="#8b5cf6" h={4}/></div>
+                  {currHcp!=null&&<span style={{fontSize:10,color:'#64748b',flexShrink:0}}>HCP {currHcp}</span>}
+                  {topTee&&<span style={{fontSize:10,color:TC[topTee]||'#94a3b8',flexShrink:0}}>● {topTee}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Sec>
+
+      {/* ── Handicap Trends ── */}
+      <Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4"
+        summary={`${hcpTrends.filter(p=>p.trend<0).length} improving · ${hcpTrends.filter(p=>p.trend>0).length} trending up · avg ${Math.round(hcpTrends.reduce((s,p)=>s+p.current,0)/(hcpTrends.length||1))}`}>
+        <div style={{paddingTop:8}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓ HCP</div>
+              {hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(
+                <div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #f0fdf4'}}>
+                  <span style={{color:'#0f172a',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>{p.name}</span>
+                  <span style={{color:'#10b981',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑ HCP</div>
+              {hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(
+                <div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #fef2f2'}}>
+                  <span style={{color:'#0f172a',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>{p.name}</span>
+                  <span style={{color:'#ef4444',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players — Handicap Landscape ({hcpTrends.length} players)</div>
+          {hcpTrends.map((p,i)=>(
+            <div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+              <div style={{width:110,fontSize:11,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div>
+              <div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div>
+              <div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#10b981'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#ef4444'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'#94a3b8'}}>—</span>}</div>
+            </div>
+          ))}
+        </div>
+      </Sec>
+
+      {/* ── Tee Stats ── */}
+      <Sec id="tees" icon="🏌️" title="Tee Stats" color="#f97316"
+        summary={Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`${t}: ${Math.round(c/totalTeeRounds*100)}%`).join(' · ')}>
+        <div style={{paddingTop:10}}>
+          <div style={{marginBottom:14}}>
+            {Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([tee,cnt])=>(
+              <div key={tee} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,width:80,flexShrink:0}}>
+                  <div style={{width:10,height:10,borderRadius:'50%',background:TC[tee]||'#94a3b8',flexShrink:0}}></div>
+                  <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{tee}</div>
+                </div>
+                <div style={{flex:1}}><Bar pct={cnt/totalTeeRounds*100} color={TC[tee]||'#94a3b8'} h={8}/></div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#0f172a',width:30,textAlign:'right',flexShrink:0}}>{Math.round(cnt/totalTeeRounds*100)}%</div>
+                <div style={{fontSize:10,color:'#94a3b8',width:30,flexShrink:0}}>{cnt}</div>
+              </div>
+            ))}
+          </div>
+          {divider}
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Player Preferred Tees</div>
+          {Object.entries(playerTees).map(([name,tMap])=>{
+            const sorted=Object.entries(tMap).sort((a,b)=>b[1]-a[1]);
+            const pref=sorted[0];
+            const total=Object.values(tMap).reduce((s,x)=>s+x,0);
+            return(
+              <div key={name} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid #f8fafc'}}>
+                <div style={{width:5,height:5,borderRadius:'50%',background:TC[pref[0]]||'#94a3b8',flexShrink:0}}></div>
+                <div style={{flex:1,fontSize:12,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                <div style={{display:'flex',gap:3,flexShrink:0}}>
+                  {sorted.map(([tee,cnt])=>(
+                    <span key={tee} style={{fontSize:9,padding:'1px 5px',borderRadius:20,background:(TC[tee]||'#94a3b8')+'22',color:TC[tee]||'#64748b',fontWeight:700}}>{tee.slice(0,1)} {cnt}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Sec>
+
+      {/* ── Team Chemistry ── */}
+      <Sec id="teams" icon="🤝" title="Team Chemistry" color="#06b6d4"
+        summary={`Top pair: ${topPairs[0]?.[0]?.replace('|',' & ')?? '—'} (${topPairs[0]?.[1]??0}x)`}>
+        <div style={{paddingTop:8}}>
+          <div style={{fontSize:11,color:'#94a3b8',marginBottom:10}}>Players who have been on the same team most often — all rounds</div>
+          {topPairs.map(([pair,cnt],i)=>{
+            const [p1,p2]=pair.split('|');
+            const pct=Math.round(cnt/topPairs[0][1]*100);
+            return(
+              <div key={pair} style={{padding:'8px 0',borderBottom:i<topPairs.length-1?'1px solid #f8fafc':'none'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                  <div style={{width:22,height:22,borderRadius:'50%',background:i<3?'#e0f2fe':'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#0369a1':'#94a3b8',flexShrink:0}}>{i+1}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>{p1} <span style={{color:'#94a3b8',fontWeight:400}}>& {p2}</span></div>
+                  </div>
+                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:700,color:'#06b6d4',flexShrink:0}}>{cnt}x</div>
+                </div>
+                <div style={{paddingLeft:30}}><Bar pct={pct} color="#06b6d4" h={4}/></div>
+              </div>
+            );
+          })}
+        </div>
+      </Sec>
+
+      {/* ── Member Engagement ── */}
+      <Sec id="engage" icon="👥" title="Member Engagement" color="#f97316"
+        summary={`${registeredCount}/${totalMembers} registered · ${activePlayers.size} active · ${inactive.length} inactive`}>
+        <div style={{paddingTop:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'12px'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{registeredCount}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div>
+              <div style={{fontSize:10,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Registered</div>
+              <Bar pct={registeredCount/totalMembers*100} color="#10b981" h={5}/>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{Math.round(registeredCount/totalMembers*100)}% adoption</div>
+            </div>
+            <div style={{background:'#eff6ff',borderRadius:10,padding:'12px'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{activePlayers.size}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div>
+              <div style={{fontSize:10,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Active 60d</div>
+              <Bar pct={activePlayers.size/totalMembers*100} color="#3b82f6" h={5}/>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{inactive.length} inactive</div>
+            </div>
+          </div>
+          {notRegistered.length>0&&<>
+            <div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Not Registered ({notRegistered.length})</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:12}}>{notRegistered.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#fff7ed',color:'#c2410c',border:'1px solid #fed7aa'}}>{p.name}</span>)}</div>
+          </>}
+          {inactive.length>0&&<>
+            <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Inactive 60+ Days ({inactive.length})</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{inactive.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#f8fafc',color:'#94a3b8',border:'1px solid #e2e8f0'}}>{p.name}</span>)}</div>
+          </>}
+        </div>
+      </Sec>
+
+      {/* ── Sign-up Timing ── */}
+      <Sec id="timing" icon="⏱️" title="Sign-up Timing" color="#f59e0b"
+        summary={`Busiest day: ${peakDow} · ${signupLogs.length} sign-up events logged`}>
+        <div style={{paddingTop:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
+            {BN((peakHour===0?'12':peakHour>12?peakHour-12:peakHour)+':00'+(peakHour<12?' AM':' PM'),'Peak Hour','#f59e0b')}
+            {BN(peakDow,'Busiest Day','#f97316')}
+            {BN(signupLogs.length,'Logged Sign-ups','#64748b')}
+          </div>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Sign-ups by Day of Week (all time)</div>
+          <div style={{display:'flex',gap:4}}>
+            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i)=>{
+              const maxD=Math.max(...signupsByDayOfWeek)||1;
+              return(
+                <div key={d} style={{flex:1,textAlign:'center'}}>
+                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,color:i===peakDowIdx?'#f59e0b':'#64748b'}}>{signupsByDayOfWeek[i]}</div>
+                  <div style={{background:'#f1f5f9',borderRadius:4,height:36,margin:'3px 0',display:'flex',alignItems:'flex-end',overflow:'hidden'}}>
+                    <div style={{width:'100%',height:Math.round(signupsByDayOfWeek[i]/maxD*100)+'%',background:i===peakDowIdx?'#f59e0b':'#fde68a',transition:'height 0.3s'}}></div>
+                  </div>
+                  <div style={{fontSize:9,color:'#94a3b8'}}>{d}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Sec>
+
+      {/* ── Admin Activity ── */}
+      <Sec id="activity" icon="📋" title="Admin Activity" color="#ef4444"
+        summary={`${logArr.length} total events · ${logArr.filter(e=>e.action==='signup').length} sign-ups · ${logArr.filter(e=>e.action==='remove_signup').length} removals`}>
+        <div style={{paddingTop:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}}>
+            {[['signup','Sign-ups','#10b981'],['remove_signup','Removals','#ef4444'],['login','Logins','#3b82f6'],['teams_published','Teams Built','#8b5cf6'],['roster_add','Roster Adds','#f97316'],['match_request','Match Reqs','#06b6d4']].map(([action,label,color])=>(
+              <div key={action} style={{background:'#f8fafc',borderRadius:8,padding:'8px',textAlign:'center',border:'1px solid #e2e8f0'}}>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color}}>{logArr.filter(e=>e.action===action).length}</div>
+                <div style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.04em',marginTop:1,lineHeight:1.2}}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Recent ({Math.min(15,logArr.length)})</div>
+          {logArr.slice(0,15).map((e,i)=>{
+            const icons={login:'🔑',signup:'👤',remove_signup:'✕',teams_published:'✓',day_setup:'📅',week_started:'🗓',roster_add:'➕',match_request:'⚡',self_register:'📱',roster_remove:'−'};
+            const age=Date.now()-(e.ts||0);
+            const ageStr=age<3600000?Math.round(age/60000)+'m':age<86400000?Math.round(age/3600000)+'h':Math.round(age/86400000)+'d';
+            return(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:i<14?'1px solid #f8fafc':'none'}}>
+                <span style={{fontSize:12,flexShrink:0,width:16,textAlign:'center'}}>{icons[e.action]||'•'}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.action?.replace(/_/g,' ')}{e.name?' — '+e.name:''}</div>
+                  <div style={{fontSize:10,color:'#94a3b8'}}>{e.by&&e.by!=='admin'&&e.by!=='player'?e.by+' · ':''}{ageStr} ago</div>
+                </div>
+                {e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:20,flexShrink:0,background:e.byRole==='admin'?'#fffbeb':'#ecfdf5',color:e.byRole==='admin'?'#b45309':'#15803d'}}>{e.byRole}</span>}
+              </div>
+            );
+          })}
+        </div>
+      </Sec>
+
+    </div>
+  );
+}
+
 function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
   const [step,setStep]=useState(1);
   const [q,setQ]=useState('');
@@ -1235,6 +1795,11 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(129,140,248,0.35)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
 
+        </div>
+
+        {/* Credit */}
+        <div style={{textAlign:'center',marginTop:14,marginBottom:2}}>
+          <span style={{fontSize:11,color:'rgba(255,255,255,0.18)',fontFamily:'DM Sans,sans-serif',letterSpacing:'0.06em'}}>App by <span style={{color:'rgba(255,255,255,0.32)',fontWeight:600}}>Jared Friend</span></span>
         </div>
 
         {/* PWA install */}
@@ -3545,6 +4110,7 @@ function App(){
   const [rosterPins,setRosterPins]=useState({});
   const [rosterShared,setRosterShared]=useState({});
   const [matchPairings,setMatchPairings]=useState({});
+  const [attendance,setAttendance]=useState({});
   const [rosterAdmins,setRosterAdmins]=useState({});
   const [activityLog,setActivityLog]=useState([]);
   const [historyTrash,setHistoryTrash]=useState({});
@@ -3563,6 +4129,7 @@ function App(){
     u.push(read('rosterEmails',v=>setRosterEmails(v||{})));
     u.push(read('rosterPins',v=>setRosterPins(v||{})));
     u.push(read('week/matchPairings',v=>setMatchPairings(v||{})));
+    u.push(read('attendance',v=>setAttendance(v||{})));
     u.push(read('rosterAdmins',v=>setRosterAdmins(v||{})));
     u.push(read('activityLog',v=>{
       if(v){
@@ -3812,8 +4379,10 @@ function App(){
     {id:'scoring',label:'Score',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,locked:!scoringVisible},
     {id:'history',label:'History',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   ];
-  const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'email',label:'Email',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>}];
-  const TABS=role==='admin'?ATABS:PTABS;
+  const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'email',label:'Email',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
+  {id:'master',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}];
+  const isMasterAdmin=!!(rosterAdmins&&currentUser&&rosterAdmins[currentUser.id]==='master');
+  const TABS=role==='admin'?(isMasterAdmin?ATABS:ATABS.filter(t=>t.id!=='master')):PTABS;
 
   return(
     <div className="app">
@@ -3860,7 +4429,18 @@ function App(){
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
-        {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog||[]} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
+        {tab==='master'&&isMasterAdmin&&<MasterView
+        week={week}
+        history={history}
+        attendance={attendance}
+        rosterPins={rosterPins}
+        rosterAdmins={rosterAdmins}
+        activityLog={activityLog}
+        effectiveRoster={effectiveRoster}
+        extra={extra}
+        currentUser={currentUser}
+      />}
+      {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog||[]} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
     </div>
   );
