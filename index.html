@@ -558,6 +558,7 @@ const TEES=['Blends','Whites','Golds','SGA'];
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const ADMIN_PW='clark';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday'];
+function hashPw(str){let h=5381;for(let i=0;i<str.length;i++){h=Math.imul(h,31)+str.charCodeAt(i)|0;}return(h>>>0).toString(16).padStart(8,'0');}
 const safeArray=arr=>Array.isArray(arr)?arr:Object.values(arr||{});
 const sortDays=days=>[...safeArray(days)].sort((a,b)=>DAYS_OF_WEEK.indexOf(a)-DAYS_OF_WEEK.indexOf(b));
 const lastName=n=>(n||'').split(' ').pop();
@@ -1086,28 +1087,57 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
   });
   const topSignupPlayers=Object.entries(signupByPlayer).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-  // ── Money stats ───────────────────────────────────────────────────────────
+  // ── Money stats — uses same logic as calcHistPay (correct) ──────────────────
   const COST=25;
   const playerMoney={};
   activeHist.forEach(r=>{
     const sc=r.scores;if(!sc||!sc.payoutsCalculated)return;
     const teams=Object.values(r.teams||{});if(!teams.length)return;
-    const ts=safeArray(sc.teamScores);
+    const ts=sc.teamScores||[];
+
+    // Helper: pay a segment using calcHistPay logic (matches leaderboard exactly)
+    const paySeg=(pot,places,seg)=>{
+      const p=parseFloat(pot||0);if(!p)return;
+      const scored=teams.map(t=>({t,score:ts[t.id]?parseFloat(ts[t.id][seg]):NaN})).filter(x=>!isNaN(x.score));
+      if(!scored.length)return;
+      scored.sort((a,b)=>a.score-b.score);
+      const best=scored[0].score;
+      const tied=scored.filter(x=>x.score===best);
+      const second=scored.find(x=>x.score!==best);
+      const payTeam=(team,amt)=>{
+        const pl=safeArray(team.players).filter(p=>p.name);
+        const pp=pl.length>0?Math.floor(amt/pl.length):0;
+        pl.forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].won+=pp;});
+      };
+      if(tied.length>1){
+        const split=Math.floor(places===1?p/tied.length:(p*0.6+p*0.4)/tied.length);
+        tied.forEach(x=>payTeam(x.t,split));
+      } else {
+        payTeam(tied[0].t,Math.floor(places===1?p:p*0.6));
+        if(places>=2&&second)payTeam(second.t,Math.floor(p*0.4));
+      }
+    };
+
+    paySeg(sc.frontPot,   sc.frontPlaces||1,   'front');
+    paySeg(sc.backPot,    sc.backPlaces||1,     'back');
+    paySeg(sc.overallPot, sc.overallPlaces||1,  'overall');
+
+    // Skins
     const totalSkins=safeArray(sc.skinCounts).reduce((s,x)=>s+(x||0),0);
     const netSkins=Math.max(0,(sc.skinsPot||0)-(sc.tournFund||0));
     const skinVal=totalSkins>0?Math.floor(netSkins/totalSkins):0;
-    const frontSorted=[...teams].filter(t=>ts[t.id]?.front!=null).sort((a,b)=>ts[a.id].front-ts[b.id].front);
-    const backSorted=[...teams].filter(t=>ts[t.id]?.back!=null).sort((a,b)=>ts[a.id].back-ts[b.id].back);
-    const overallSorted=[...teams].filter(t=>ts[t.id]?.overall!=null).sort((a,b)=>ts[a.id].overall-ts[b.id].overall);
-    const payT=(team,amt)=>{const pl=safeArray(team.players).filter(p=>p.name);const pp=pl.length>0?Math.floor(amt/pl.length):0;pl.forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].won+=pp;});};
-    if(frontSorted[0])payT(frontSorted[0],sc.f1||0);
-    if(sc.frontPlaces>=2&&frontSorted[1])payT(frontSorted[1],sc.f2||0);
-    if(backSorted[0])payT(backSorted[0],sc.b1||0);
-    if(sc.backPlaces>=2&&backSorted[1])payT(backSorted[1],sc.b2||0);
-    if(overallSorted[0])payT(overallSorted[0],sc.o1||0);
-    if(sc.overallPlaces>=2&&overallSorted[1])payT(overallSorted[1],sc.o2||0);
-    safeArray(sc.skinCounts).forEach((cnt,idx)=>{if(!cnt)return;const t=teams.find(t=>String(t.id)===String(idx));if(t)payT(t,cnt*skinVal);});
-    teams.forEach(team=>safeArray(team.players).filter(p=>p.name).forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].paid+=COST;playerMoney[p.name].rounds++;}));
+    safeArray(sc.skinCounts).forEach((cnt,idx)=>{
+      if(!cnt)return;
+      const t=teams.find(t=>String(t.id)===String(idx));
+      if(t){const pl=safeArray(t.players).filter(p=>p.name);const pp=pl.length>0?Math.floor(cnt*skinVal/pl.length):0;pl.forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].won+=pp;});}
+    });
+
+    // Count paid in
+    teams.forEach(team=>safeArray(team.players).filter(p=>p.name).forEach(p=>{
+      if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};
+      playerMoney[p.name].paid+=COST;
+      playerMoney[p.name].rounds++;
+    }));
   });
   const moneyList=Object.entries(playerMoney).map(([name,d])=>({name,won:d.won,paid:d.paid,net:d.won-d.paid,rounds:d.rounds})).sort((a,b)=>b.net-a.net);
   const winners=moneyList.filter(p=>p.net>0);
@@ -1116,76 +1146,83 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
   // ── Export PDF ────────────────────────────────────────────────────────────
   // ── UI helpers ─────────────────────────────────────────────────────────────
   const Sec=({id,title,icon,color,summary,children})=>(
-    <div style={{background:'#fff',borderRadius:14,border:'1px solid #e2e8f0',marginBottom:12,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
+    <div style={{background:'rgba(255,255,255,0.04)',borderRadius:14,border:'1px solid rgba(255,255,255,0.09)',marginBottom:12,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.4)',backdropFilter:'blur(12px)'}}>
       <div onClick={()=>toggle(id)} style={{display:'flex',alignItems:'center',gap:10,padding:'13px 16px',cursor:'pointer',borderLeft:'4px solid '+color,userSelect:'none'}}>
         <span style={{fontSize:16,flexShrink:0}}>{icon}</span>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>{title}</div>
-          {!open[id]&&summary&&<div style={{fontSize:11,color:'#94a3b8',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</div>}
+          <div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{title}</div>
+          {!open[id]&&summary&&<div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</div>}
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{transform:open[id]?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" style={{transform:open[id]?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       {open[id]&&<div style={{padding:'0 16px 16px'}}>{children}</div>}
     </div>
   );
-  const BN=(v,l,c,s)=>(<div style={{textAlign:'center',padding:'8px 4px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:c||'#0f172a',lineHeight:1}}>{v}</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>{s&&<div style={{fontSize:10,color:'#64748b',marginTop:1}}>{s}</div>}</div>);
-  const Bar=({pct,color,h=7})=>(<div style={{background:'#f1f5f9',borderRadius:4,height:h,overflow:'hidden'}}><div style={{background:color,height:'100%',width:Math.min(100,Math.max(0,pct))+'%',borderRadius:4}}></div></div>);
-  const HBar=({label,val,max,color})=>(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><div style={{width:70,fontSize:12,color:'#0f172a',fontWeight:600,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div><div style={{flex:1}}><Bar pct={max>0?val/max*100:0} color={color} h={8}/></div><div style={{fontSize:12,fontWeight:700,color,width:28,textAlign:'right',flexShrink:0}}>{val}</div></div>);
-  const SmallList=({items,emptyMsg})=>items.length===0?<div style={{fontSize:12,color:'#94a3b8'}}>{emptyMsg||'No data yet'}</div>:(<>{items.map(([name,cnt],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:i<items.length-1?'1px solid #f8fafc':'none'}}><div style={{fontSize:12,color:'#0f172a',fontWeight:500}}>{name}</div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#64748b'}}>{cnt}</div></div>))}</>);
-  const divider=<div style={{height:1,background:'#f1f5f9',margin:'12px 0'}}/>;
+  const BN=(v,l,c,s)=>(<div style={{textAlign:'center',padding:'8px 4px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:c||'#e2e8f0',lineHeight:1}}>{v}</div><div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>{s&&<div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:1}}>{s}</div>}</div>);
+  const Bar=({pct,color,h=7})=>(<div style={{background:'rgba(255,255,255,0.07)',borderRadius:4,height:h,overflow:'hidden'}}><div style={{background:color,height:'100%',width:Math.min(100,Math.max(0,pct))+'%',borderRadius:4}}></div></div>);
+  const HBar=({label,val,max,color})=>(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><div style={{width:70,fontSize:12,color:'#fff',fontWeight:600,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div><div style={{flex:1}}><Bar pct={max>0?val/max*100:0} color={color} h={8}/></div><div style={{fontSize:12,fontWeight:700,color,width:28,textAlign:'right',flexShrink:0}}>{val}</div></div>);
+  const SmallList=({items,emptyMsg})=>items.length===0?<div style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>{emptyMsg||'No data yet'}</div>:(<>{items.map(([name,cnt],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:i<items.length-1?'1px solid #f8fafc':'none'}}><div style={{fontSize:12,color:'#fff',fontWeight:500}}>{name}</div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'rgba(255,255,255,0.45)'}}>{cnt}</div></div>))}</>);
+  const divider=<div style={{height:1,background:'rgba(255,255,255,0.07)',margin:'12px 0'}}/>;
 
   const periodLabel=filterPeriod==='all'?'All Time':getMonthLabel(filterPeriod);
 
   return(
-    <div id="master-dashboard" style={{background:'#f1f5f9',minHeight:'100%',padding:'14px 12px 80px'}}>
+    <div id="master-dashboard" style={{background:'linear-gradient(160deg,#080d16 0%,#0d1117 50%,#080d16 100%)',minHeight:'100%',padding:'14px 12px 80px'}}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
         <div>
-          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#0f172a'}}>⭐ Master Dashboard</div>
-          <div style={{fontSize:11,color:'#94a3b8'}}>Jared Friend — {periodLabel}</div>
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#fff'}}>{publicMode?'📊 Clark Golf Stats':'⭐ Master Dashboard'}</div>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{publicMode?'Clark Golf Group':('Jared Friend — '+periodLabel)}</div>
         </div>
-
+        <div style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,padding:'6px 10px',textAlign:'right'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#fff'}}>{totalRounds} rounds</div>
+          <div style={{fontSize:10,color:'rgba(255,255,255,0.4)'}}>{new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+        </div>
       </div>
 
-      {/* ── Stats Access Control — master only ── */}
+      {/* Stats Access Control — master only */}
       {!publicMode&&(
-        <div style={{background:'#fff',borderRadius:14,border:'1px solid #e2e8f0',marginBottom:14,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
-          {/* Tab bar */}
-          <div style={{display:'flex',borderBottom:'1px solid #f1f5f9'}}>
+        <div style={{background:'rgba(15,23,42,0.85)',borderRadius:14,border:'1px solid rgba(255,255,255,0.1)',marginBottom:14,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.3)'}}>
+          <div style={{display:'flex',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
             {[['access','👥 Who Can See'],['sections','📋 What They See']].map(([t,l])=>(
-              <button key={t} onClick={()=>setStatsUITab(t)} style={{flex:1,padding:'10px',border:'none',background:'none',fontSize:12,fontWeight:700,cursor:'pointer',color:statsUITab===t?'#0f172a':'#94a3b8',borderBottom:statsUITab===t?'2px solid #0f172a':'2px solid transparent',fontFamily:'DM Sans,sans-serif'}}>{l}</button>
+              <button key={t} onClick={()=>setStatsUITab(t)} style={{flex:1,padding:'10px',border:'none',background:'none',fontSize:12,fontWeight:700,cursor:'pointer',color:statsUITab===t?'#fff':'rgba(255,255,255,0.4)',borderBottom:statsUITab===t?'2px solid #fff':'2px solid transparent',fontFamily:'DM Sans,sans-serif'}}>{l}</button>
             ))}
           </div>
-
-          {/* Access tab */}
           {statsUITab==='access'&&(
-            <div style={{padding:'14px 16px'}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:10}}>Who can see the Stats tab?</div>
-              {/* Option buttons */}
+            <div style={{padding:'14px 16px',background:'transparent'}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#fff',marginBottom:10}}>Who can see the Stats tab?</div>
               <div style={{display:'flex',gap:6,marginBottom:14}}>
-                {[['none','🔒 Nobody'],['all','🌍 All Members'],['specific','👤 Specific People']].map(([val,label])=>(
-                  <button key={val} onClick={()=>writeStats('statsAccess',val)} style={{flex:1,padding:'7px 4px',borderRadius:8,border:'1.5px solid',borderColor:curAccess===val?'#0f172a':'#e2e8f0',background:curAccess===val?'#0f172a':'#fff',color:curAccess===val?'#fff':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',textAlign:'center'}}>{label}</button>
-                ))}
+                {[['none','🔒 Nobody'],['all','🌍 All Members'],['specific','👤 Specific People']].map(([val,label])=>{
+                  const isActive=curAccess===val;
+                  return(
+                    <div key={val} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                      <button onClick={()=>{
+                        if(val===curAccess)return;
+                        if(val==='none'){writeStats('statsAccess','none');}
+                        else if(window.confirm('Turn ON stats for '+(val==='all'?'ALL members':'specific people')+'? They will see the Stats tab immediately.')){writeStats('statsAccess',val);}
+                      }} style={{width:'100%',padding:'8px 4px',borderRadius:8,border:'1.5px solid',borderColor:isActive?'#34d399':'rgba(255,255,255,0.12)',background:isActive?'rgba(16,185,129,0.15)':'transparent',color:isActive?'#34d399':'rgba(255,255,255,0.45)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',textAlign:'center',transition:'all 0.2s'}}>{label}</button>
+                      {isActive&&<span style={{fontSize:9,fontWeight:800,color:'#34d399',letterSpacing:'0.1em',background:'rgba(16,185,129,0.12)',padding:'1px 8px',borderRadius:20,border:'1px solid rgba(52,211,153,0.25)'}}>● ACTIVE</span>}
+                    </div>
+                  );
+                })}
               </div>
-              {/* Status */}
-              <div style={{padding:'8px 12px',borderRadius:8,background:curAccess==='none'?'#f8fafc':curAccess==='all'?'#ecfdf5':'#eff6ff',fontSize:11,color:curAccess==='none'?'#94a3b8':curAccess==='all'?'#15803d':'#1d4ed8',fontWeight:600,marginBottom:curAccess==='specific'?12:0}}>
+              <div style={{padding:'8px 12px',borderRadius:8,background:curAccess==='none'?'rgba(255,255,255,0.05)':curAccess==='all'?'rgba(16,185,129,0.12)':'rgba(59,130,246,0.12)',fontSize:11,color:curAccess==='none'?'rgba(255,255,255,0.35)':curAccess==='all'?'#34d399':'#60a5fa',fontWeight:600,marginBottom:curAccess==='specific'?12:0}}>
                 {curAccess==='none'&&'Stats tab hidden — only you can see it'}
                 {curAccess==='all'&&'✓ All signed-in members can see the Stats tab'}
                 {curAccess==='specific'&&(Object.keys(curAllowed).length>0?'✓ '+Object.keys(curAllowed).length+' member(s) have access':'No members selected yet')}
               </div>
-              {/* Specific people picker */}
               {curAccess==='specific'&&(
                 <div>
-                  <div style={{position:'relative',marginBottom:8}}>
-                    <svg style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',width:12,height:12,color:'#94a3b8'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input style={{width:'100%',padding:'7px 10px 7px 28px',border:'1.5px solid #e2e8f0',borderRadius:8,fontSize:12,fontFamily:'DM Sans,sans-serif',outline:'none',boxSizing:'border-box'}} placeholder="Search members..." value={playerSearch} onChange={e=>setPlayerSearch(e.target.value)}/>
+                  <div style={{position:'relative',marginBottom:8,marginTop:12}}>
+                    <svg style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',width:12,height:12,color:'rgba(255,255,255,0.4)'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input style={{width:'100%',padding:'7px 10px 7px 28px',border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.06)',color:'#fff',borderRadius:8,fontSize:12,fontFamily:'DM Sans,sans-serif',outline:'none',boxSizing:'border-box'}} placeholder="Search members..." value={playerSearch} onChange={e=>setPlayerSearch(e.target.value)}/>
                   </div>
-                  <div style={{maxHeight:240,overflowY:'auto',border:'1px solid #f1f5f9',borderRadius:8}}>
+                  <div style={{maxHeight:240,overflowY:'auto',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8}}>
                     {(()=>{
-                      const filtered=roster.filter(p=>p.name.toLowerCase().includes(playerSearch.toLowerCase()));
+                      const filtered=[...roster].sort((a,b)=>a.name.localeCompare(b.name)).filter(p=>p.name.toLowerCase().includes(playerSearch.toLowerCase()));
                       const admins=filtered.filter(p=>rosterAdmins&&rosterAdmins[p.id]);
-                      const players=filtered.filter(p=>!(rosterAdmins&&rosterAdmins[p.id]));
+                      const members=filtered.filter(p=>!(rosterAdmins&&rosterAdmins[p.id]));
                       const renderRow=p=>{
                         const hasAccess=!!(curAllowed[p.id]);
                         const isAdmin=!!(rosterAdmins&&rosterAdmins[p.id]);
@@ -1194,243 +1231,277 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
                             const newVal=hasAccess?null:true;
                             if(typeof firebase==='undefined')return;
                             firebase.database().ref('settings/statsAllowedPlayers/'+p.id).set(newVal);
-                          }} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 12px',borderBottom:'1px solid #f8fafc',cursor:'pointer',background:hasAccess?'#f0fdf4':'transparent'}}>
-                            <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:hasAccess?'#10b981':'#d1d5db',background:hasAccess?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          }} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 12px',borderBottom:'1px solid rgba(255,255,255,0.04)',cursor:'pointer',background:hasAccess?'rgba(16,185,129,0.12)':'rgba(255,255,255,0.02)'}}>
+                            <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:hasAccess?'#10b981':'rgba(255,255,255,0.2)',background:hasAccess?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                               {hasAccess&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
                             </div>
-                            <div style={{flex:1,fontSize:12,fontWeight:500,color:'#0f172a'}}>{p.name}</div>
-                            {isAdmin&&<span style={{fontSize:9,fontWeight:700,color:'#f59e0b',background:'#fffbeb',padding:'1px 5px',borderRadius:20,marginRight:2}}>Admin</span>}
-                            {hasAccess&&<span style={{fontSize:9,fontWeight:700,color:'#10b981',background:'#dcfce7',padding:'1px 6px',borderRadius:20}}>✓</span>}
+                            <div style={{flex:1,fontSize:12,fontWeight:500,color:'#fff'}}>{p.name}</div>
+                            {isAdmin&&<span style={{fontSize:9,fontWeight:700,color:'#fbbf24',background:'rgba(245,158,11,0.15)',padding:'1px 5px',borderRadius:20,marginRight:2}}>Admin</span>}
+                            {hasAccess&&<span style={{fontSize:9,fontWeight:700,color:'#34d399',background:'rgba(16,185,129,0.15)',padding:'1px 6px',borderRadius:20}}>✓</span>}
                           </div>
                         );
                       };
                       return(<>
                         {admins.length>0&&<>
-                          <div style={{padding:'5px 12px',background:'#fffbeb',fontSize:10,fontWeight:700,color:'#b45309',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid #fde68a'}}>Admins ({admins.length})</div>
+                          <div style={{padding:'5px 12px',background:'rgba(245,158,11,0.15)',fontSize:10,fontWeight:700,color:'#fbbf24',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid rgba(245,158,11,0.2)'}}>Admins ({admins.length})</div>
                           {admins.map(renderRow)}
                         </>}
-                        {players.length>0&&<>
-                          <div style={{padding:'5px 12px',background:'#f8fafc',fontSize:10,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid #f1f5f9'}}>Members ({players.length})</div>
-                          {players.map(renderRow)}
+                        {members.length>0&&<>
+                          <div style={{padding:'5px 12px',background:'rgba(255,255,255,0.06)',fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Members ({members.length})</div>
+                          {members.map(renderRow)}
                         </>}
                       </>);
                     })()}
                   </div>
                   {Object.keys(curAllowed).length>0&&(
-                    <button onClick={()=>{if(typeof firebase!=='undefined')firebase.database().ref('settings/statsAllowedPlayers').set(null);}} style={{marginTop:8,fontSize:11,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:600}}>Clear all access</button>
+                    <button onClick={()=>{if(typeof firebase!=='undefined')firebase.database().ref('settings/statsAllowedPlayers').set(null);}} style={{marginTop:8,fontSize:11,color:'rgba(248,113,113,0.8)',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:600}}>Clear all access</button>
                   )}
                 </div>
               )}
             </div>
           )}
-
-          {/* Sections tab */}
           {statsUITab==='sections'&&(
-            <div style={{padding:'14px 16px'}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:4}}>What sections can members see?</div>
-              <div style={{fontSize:11,color:'#94a3b8',marginBottom:12}}>Admins always see everything. Money Stats, Admin Activity and Player Behavior are always private.</div>
-              {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['players','🏆 Player Leaderboard'],['money','💵 Money Stats'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Behavior'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity']].map(([id,label])=>{
+            <div style={{padding:'14px 16px',background:'transparent'}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#fff',marginBottom:4}}>What sections can members see?</div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',marginBottom:12}}>Admins always see everything. Toggle off any section to hide it from members.</div>
+              {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['money','💵 Money Stats'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Behavior'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity']].map(([id,label])=>{
                 const isOn=curSections[id]!==false;
                 return(
-                  <div key={id} onClick={()=>writeStats('statsPlayerSections/'+id,!isOn)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #f8fafc',cursor:'pointer'}}>
-                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isOn?'#3b82f6':'#d1d5db',background:isOn?'#3b82f6':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <div key={id} onClick={()=>writeStats('statsPlayerSections/'+id,!isOn)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.05)',cursor:'pointer'}}>
+                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isOn?'#3b82f6':'rgba(255,255,255,0.2)',background:isOn?'#3b82f6':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                       {isOn&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
                     </div>
-                    <div style={{fontSize:12,fontWeight:500,color:'#0f172a'}}>{label}</div>
+                    <div style={{fontSize:12,fontWeight:500,color:'#e2e8f0'}}>{label}</div>
                   </div>
                 );
               })}
-
             </div>
           )}
         </div>
       )}
 
-      {/* ── Period Filter ── */}
+      {/* Period Filter */}
       <div className="master-print-hide" style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16}}>
-        <button onClick={()=>setFilterPeriod('all')} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod==='all'?'#0f172a':'#e2e8f0',background:filterPeriod==='all'?'#0f172a':'#fff',color:filterPeriod==='all'?'#fff':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>All Time</button>
+        <button onClick={()=>setFilterPeriod('all')} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod==='all'?'rgba(255,255,255,0.8)':'rgba(255,255,255,0.12)',background:filterPeriod==='all'?'rgba(255,255,255,0.12)':'transparent',color:filterPeriod==='all'?'#fff':'rgba(255,255,255,0.45)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>All Time</button>
         {availableMonths.map(m=>(
-          <button key={m} onClick={()=>setFilterPeriod(m)} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod===m?'#3b82f6':'#e2e8f0',background:filterPeriod===m?'#3b82f6':'#fff',color:filterPeriod===m?'#fff':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{getMonthLabel(m)}</button>
+          <button key={m} onClick={()=>setFilterPeriod(m)} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod===m?'#3b82f6':'rgba(255,255,255,0.12)',background:filterPeriod===m?'#3b82f6':'transparent',color:filterPeriod===m?'#fff':'rgba(255,255,255,0.45)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{getMonthLabel(m)}</button>
         ))}
       </div>
 
-      {totalRounds===0&&<div style={{textAlign:'center',padding:'40px 20px',color:'#94a3b8',fontSize:14}}>No rounds found for this period</div>}
+      {totalRounds===0&&<div style={{textAlign:'center',padding:'40px 20px',color:'rgba(255,255,255,0.4)',fontSize:14}}>No rounds found for this period</div>}
 
-      {totalRounds>0&&<>
 
-      {/* ── 1. Season Overview ── */}
+
       {showSec('overview')&&<Sec id="overview" icon="📊" title="Season Overview" color="#10b981" summary={totalRounds+' rounds · avg '+avgField+' players · $'+totalPot.toLocaleString()+' paid out'}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10}}>
           {BN(totalRounds,'Rounds','#10b981',filterPeriod==='all'?'since '+seasonStartFmt:getMonthLabel(filterPeriod))}
-          {BN(avgField,'Avg Field','#3b82f6')}
-          {BN('$'+avgPot,'Avg Pot','#f59e0b','per round')}
-          {BN(uniquePlayerCount,'Unique Players','#06b6d4')}
+          {BN(avgField,'Avg Field','#60a5fa')}
+          {BN('$'+avgPot,'Avg Pot','#fbbf24','per round')}
+          {BN(uniquePlayerCount,'Unique Players','#22d3ee')}
         </div>
         {divider}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          <div style={{background:'#f8fafc',borderRadius:10,padding:'12px',textAlign:'center'}}>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#0f172a'}}>${totalPot.toLocaleString()}</div>
-            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Total Paid Out</div>
+          <div style={{background:'rgba(255,255,255,0.05)',borderRadius:10,padding:'12px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#fff'}}>${totalPot.toLocaleString()}</div>
+            <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Total Paid Out</div>
           </div>
-          <div style={{background:'#f5f3ff',borderRadius:10,padding:'12px',textAlign:'center'}}>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#7c3aed'}}>${totalFund}</div>
-            <div style={{fontSize:10,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Tournament Fund</div>
-            <div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>${potTotals.fund} app{startingBalance>0?' + $'+startingBalance+' pre-app':''}</div>
+          <div style={{background:'rgba(99,102,241,0.12)',borderRadius:10,padding:'12px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#a78bfa'}}>${totalFund}</div>
+            <div style={{fontSize:10,fontWeight:700,color:'#a78bfa',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Tournament Fund</div>
+            <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:2}}>${potTotals.fund} app{startingBalance>0?' + $'+startingBalance+' pre-app':''}</div>
           </div>
         </div>
-        {mostImproved&&<div style={{marginTop:8,padding:'8px 12px',background:'#ecfdf5',borderRadius:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:14}}>📈</span><div><div style={{fontSize:12,fontWeight:700,color:'#15803d'}}>Most Improved — {mostImproved.name}</div><div style={{fontSize:11,color:'#64748b'}}>HCP dropped {Math.abs(mostImproved.trend)} pts ({mostImproved.first} → {mostImproved.current})</div></div></div>}
-        {mostConsistent&&<div style={{marginTop:8,padding:'8px 12px',background:'#eff6ff',borderRadius:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:14}}>🏆</span><div><div style={{fontSize:12,fontWeight:700,color:'#1d4ed8'}}>Most Consistent — {mostConsistent}</div><div style={{fontSize:11,color:'#64748b'}}>{playerRounds[mostConsistent]} of {totalRounds} rounds played</div></div></div>}
       </Sec>}
 
-{/* ── 2. Avg Players by Day ── */}
+      {/* ── 2. Avg Players by Day ── */}
       {showSec('avgday')&&<Sec id="avgday" icon="📅" title="Avg Players by Day" color="#3b82f6" summary={Object.entries(signupsByDayName).map(([d,v])=>d.slice(0,3)+': '+Math.round(v.total/v.count)).join(' · ')}>
         <div style={{paddingTop:10}}>
           {Object.entries(signupsByDayName).sort((a,b)=>{const order=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];return order.indexOf(a[0])-order.indexOf(b[0]);}).map(([day,data])=>{
             const avg=Math.round(data.total/data.count);
-            return(<div key={day} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><div style={{width:70,fontSize:13,fontWeight:600,color:'#0f172a',flexShrink:0}}>{day.slice(0,3)}</div><div style={{flex:1}}><Bar pct={avg/30*100} color="#3b82f6" h={10}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#3b82f6',width:24,textAlign:'right',flexShrink:0}}>{avg}</div><div style={{fontSize:10,color:'#94a3b8',width:40,flexShrink:0}}>avg·{data.count}r</div></div>);
+            return(<div key={day} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><div style={{width:70,fontSize:13,fontWeight:600,color:'#fff',flexShrink:0}}>{day.slice(0,3)}</div><div style={{flex:1}}><Bar pct={avg/30*100} color="#3b82f6" h={10}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#60a5fa',width:24,textAlign:'right',flexShrink:0}}>{avg}</div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',width:40,flexShrink:0}}>avg·{data.count}r</div></div>);
           })}
         </div>
       </Sec>}
 
-{/* ── 4. Scoring Analytics ── */}
+      {/* ── 3. Scoring Analytics ── */}
       {showSec('scores')&&<Sec id="scores" icon="⛳" title="Scoring Analytics" color="#10b981" summary={'Avg winning F'+(avgWinFront??'—')+' B'+(avgWinBack??'—')+' O'+(avgWinOverall??'—')+' · '+(avgSkins??'—')+' skins/round'}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10,marginBottom:14}}>
-          <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{avgWinFront??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Front</div></div>
-          <div style={{background:'#eff6ff',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{avgWinBack??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Back</div></div>
-          <div style={{background:'#f5f3ff',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#8b5cf6'}}>{avgWinOverall??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Overall</div></div>
-          <div style={{background:'#f0fdf4',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#16a34a'}}>{avgSkins??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Skins</div></div>
+          <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#34d399'}}>{avgWinFront??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Front</div></div>
+          <div style={{background:'rgba(59,130,246,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#60a5fa'}}>{avgWinBack??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#60a5fa',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Back</div></div>
+          <div style={{background:'rgba(99,102,241,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#a78bfa'}}>{avgWinOverall??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#a78bfa',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Overall</div></div>
+          <div style={{background:'rgba(16,185,129,0.1)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#34d399'}}>{avgSkins??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Skins</div></div>
         </div>
         {divider}
-        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round Results</div>
-        {winningScores.map((r,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid #f8fafc'}}><div style={{fontSize:11,color:'#64748b',width:40,flexShrink:0}}>{r.date}</div><div style={{flex:1,display:'flex',gap:3,flexWrap:'wrap'}}><span style={{fontSize:11,fontWeight:700,color:'#10b981',background:'#ecfdf5',padding:'2px 5px',borderRadius:5}}>F:{r.front}</span><span style={{fontSize:11,fontWeight:700,color:'#3b82f6',background:'#eff6ff',padding:'2px 5px',borderRadius:5}}>B:{r.back}</span><span style={{fontSize:11,fontWeight:700,color:'#8b5cf6',background:'#f5f3ff',padding:'2px 5px',borderRadius:5}}>O:{r.overall}</span><span style={{fontSize:11,fontWeight:700,color:'#16a34a',background:'#f0fdf4',padding:'2px 5px',borderRadius:5}}>S:{r.skins}</span></div><div style={{fontSize:10,color:'#94a3b8',flexShrink:0}}>{r.players}p</div></div>))}
+        <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round Results</div>
+        {winningScores.map((r,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}><div style={{fontSize:11,color:'rgba(255,255,255,0.45)',width:40,flexShrink:0}}>{r.date}</div><div style={{flex:1,display:'flex',gap:3,flexWrap:'wrap'}}><span style={{fontSize:11,fontWeight:700,color:'#34d399',background:'rgba(16,185,129,0.12)',padding:'2px 5px',borderRadius:5}}>F:{r.front}</span><span style={{fontSize:11,fontWeight:700,color:'#60a5fa',background:'rgba(59,130,246,0.12)',padding:'2px 5px',borderRadius:5}}>B:{r.back}</span><span style={{fontSize:11,fontWeight:700,color:'#a78bfa',background:'rgba(99,102,241,0.12)',padding:'2px 5px',borderRadius:5}}>O:{r.overall}</span><span style={{fontSize:11,fontWeight:700,color:'#34d399',background:'rgba(16,185,129,0.1)',padding:'2px 5px',borderRadius:5}}>S:{r.skins}</span></div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',flexShrink:0}}>{r.players}p</div></div>))}
       </Sec>}
 
-{/* ── 3. Pot Analytics ── */}
+      {/* ── 4. Pot Analytics ── */}
       {showSec('pots')&&<Sec id="pots" icon="💰" title="Pot Analytics" color="#f59e0b" summary={'Biggest: $'+(biggestPot?.total||0)+' · Avg: $'+avgPot+' · Fund: $'+totalFund}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,paddingTop:10,marginBottom:14}}>
-          {biggestPot&&<div style={{background:'#fffbeb',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#d97706'}}>${biggestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Biggest Pot</div><div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>{biggestPot.date} {biggestPot.day} · {biggestPot.players}p</div></div>}
-          {smallestPot&&<div style={{background:'#f8fafc',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#64748b'}}>${smallestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Smallest Pot</div><div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>{smallestPot.date} {smallestPot.day} · {smallestPot.players}p</div></div>}
+          {biggestPot&&<div style={{background:'rgba(245,158,11,0.12)',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#fbbf24'}}>${biggestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'#fbbf24',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Biggest Pot</div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:2}}>{biggestPot.date} {biggestPot.day} · {biggestPot.players}p</div></div>}
+          {smallestPot&&<div style={{background:'rgba(255,255,255,0.05)',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'rgba(255,255,255,0.6)'}}>${smallestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.45)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Smallest Pot</div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:2}}>{smallestPot.date} {smallestPot.day} · {smallestPot.players}p</div></div>}
         </div>
         {divider}
-        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
+        <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
         <div style={{display:'flex',alignItems:'flex-end',gap:5,height:90,marginBottom:6}}>
-          {potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;const h=Math.round((total/maxPotBar)*82)+4;return(<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}><div style={{fontSize:8,fontWeight:700,color:'#f59e0b'}}>${total}</div><div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}><div style={{flex:r.skins,background:'#10b981'}}></div><div style={{flex:r.front,background:'#3b82f6'}}></div><div style={{flex:r.back,background:'#f97316'}}></div><div style={{flex:r.overall,background:'#8b5cf6'}}></div></div><div style={{fontSize:7,color:'#94a3b8'}}>{r.date}</div></div>);})}
+          {potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;const h=Math.round((total/maxPotBar)*82)+4;return(<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}><div style={{fontSize:8,fontWeight:700,color:'#fbbf24'}}>${total}</div><div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}><div style={{flex:r.skins,background:'#10b981'}}></div><div style={{flex:r.front,background:'#3b82f6'}}></div><div style={{flex:r.back,background:'#f97316'}}></div><div style={{flex:r.overall,background:'#8b5cf6'}}></div></div><div style={{fontSize:7,color:'rgba(255,255,255,0.35)'}}>{r.date}</div></div>);})}
         </div>
-        <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'#64748b',marginBottom:12}}>
+        <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'rgba(255,255,255,0.45)',marginBottom:12}}>
           {[['#10b981','Skins'],['#3b82f6','Front'],['#f97316','Back'],['#8b5cf6','Overall']].map(([c,l])=>(<span key={l}><span style={{display:'inline-block',width:8,height:8,background:c,borderRadius:2,marginRight:3}}></span>{l}</span>))}
         </div>
         {divider}
-        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Round Breakdown</div>
+        <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Round Breakdown</div>
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-            <thead><tr style={{borderBottom:'2px solid #f1f5f9'}}>{['Date','Players','Skins','Front','Back','Overall','Total'].map(h=>(<th key={h} style={{textAlign:'right',padding:'4px 6px',color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',fontSize:9,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
-            <tbody>{potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;return(<tr key={i} style={{borderBottom:'1px solid #f8fafc',background:i%2===0?'transparent':'#fafafa'}}><td style={{padding:'5px 6px',color:'#64748b',whiteSpace:'nowrap'}}>{r.date}</td><td style={{padding:'5px 6px',textAlign:'right',color:'#64748b'}}>{r.players}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#10b981'}}>${r.skins}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#3b82f6'}}>${r.front}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#f97316'}}>${r.back}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#8b5cf6'}}>${r.overall}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:800,color:'#0f172a',fontFamily:'Barlow Condensed,sans-serif',fontSize:13}}>${total}</td></tr>);})}</tbody>
+            <thead><tr style={{borderBottom:'1px solid rgba(255,255,255,0.08)'}}>{['Date','Players','Skins','Front','Back','Overall','Total'].map(h=>(<th key={h} style={{textAlign:'right',padding:'4px 6px',color:'rgba(255,255,255,0.35)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',fontSize:9,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
+            <tbody>{potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;return(<tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',background:i%2===0?'transparent':'rgba(255,255,255,0.03)'}}><td style={{padding:'5px 6px',color:'rgba(255,255,255,0.45)',whiteSpace:'nowrap'}}>{r.date}</td><td style={{padding:'5px 6px',textAlign:'right',color:'rgba(255,255,255,0.45)'}}>{r.players}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#10b981'}}>${r.skins}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#3b82f6'}}>${r.front}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#f97316'}}>${r.back}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#8b5cf6'}}>${r.overall}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif',fontSize:13}}>${total}</td></tr>);})}</tbody>
           </table>
         </div>
       </Sec>}
 
-{/* ── 5. Player Leaderboard ── */}
-      {showSec('players')&&<Sec id="players" icon="🏆" title="Player Leaderboard" color="#8b5cf6" summary={'Top: '+(topPlayers[0]?.[0]??'—')+' ('+topPlayers[0]?.[1]+' rounds) · '+uniquePlayerCount+' unique'}>
+
+
+      {/* ── 6. Top Rounds Played ── */}
+      {showSec('players')&&<Sec id="players" icon="🏆" title="Top Rounds Played" color="#8b5cf6" summary={'Top: '+(topPlayers[0]?.[0]??'—')+' ('+topPlayers[0]?.[1]+' rounds) · '+uniquePlayerCount+' unique players'}>
         <div style={{paddingTop:8}}>
           {(showAllPlayers?topPlayers:topPlayers.slice(0,20)).map(([name,cnt],i)=>{
             const hcpArr=(playerHcps[name]||[]);const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
             const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
-            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid #f8fafc':'none'}}>
+            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-                <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'#94a3b8',flexShrink:0}}>{i+1}</div>
-                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
-                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#8b5cf6',flexShrink:0}}>{cnt}</div>
-                <div style={{fontSize:10,color:'#94a3b8',width:28}}>rnds</div>
+                <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'rgba(255,255,255,0.4)',flexShrink:0}}>{i+1}</div>
+                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#a78bfa',flexShrink:0}}>{cnt}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',width:28}}>rnds</div>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:30}}>
                 <div style={{flex:1}}><Bar pct={cnt/topPlayers[0][1]*100} color="#8b5cf6" h={4}/></div>
-                {currHcp!=null&&<span style={{fontSize:10,color:'#64748b',flexShrink:0}}>HCP {currHcp}</span>}
-                {topTee&&<span style={{fontSize:10,color:TC[topTee]||'#94a3b8',flexShrink:0}}>● {topTee}</span>}
+                {currHcp!=null&&<span style={{fontSize:10,color:'rgba(255,255,255,0.45)',flexShrink:0}}>HCP {currHcp}</span>}
+                {topTee&&<span style={{fontSize:10,color:TC[topTee]||'rgba(255,255,255,0.4)',flexShrink:0}}>● {topTee}</span>}
               </div>
             </div>);
           })}
-          {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} style={{width:'100%',marginTop:10,padding:'8px',borderRadius:8,border:'1.5px solid #e2e8f0',background:'#f8fafc',color:'#64748b',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' Players ↓'}</button>}
+          {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} style={{width:'100%',marginTop:10,padding:'8px',borderRadius:8,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.5)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' Players ↓'}</button>}
         </div>
       </Sec>}
 
-{/* ── 5. Player Leaderboard ── */}
-      {showSec('players')&&<Sec id="players" icon="🏆" title="Player Leaderboard" color="#8b5cf6" summary={'Top: '+(topPlayers[0]?.[0]??'—')+' ('+topPlayers[0]?.[1]+' rounds) · '+uniquePlayerCount+' unique'}>
-        <div style={{paddingTop:8}}>
-          {(showAllPlayers?topPlayers:topPlayers.slice(0,20)).map(([name,cnt],i)=>{
-            const hcpArr=(playerHcps[name]||[]);const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
-            const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
-            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid #f8fafc':'none'}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-                <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'#94a3b8',flexShrink:0}}>{i+1}</div>
-                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
-                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#8b5cf6',flexShrink:0}}>{cnt}</div>
-                <div style={{fontSize:10,color:'#94a3b8',width:28}}>rnds</div>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:30}}>
-                <div style={{flex:1}}><Bar pct={cnt/topPlayers[0][1]*100} color="#8b5cf6" h={4}/></div>
-                {currHcp!=null&&<span style={{fontSize:10,color:'#64748b',flexShrink:0}}>HCP {currHcp}</span>}
-                {topTee&&<span style={{fontSize:10,color:TC[topTee]||'#94a3b8',flexShrink:0}}>● {topTee}</span>}
-              </div>
-            </div>);
-          })}
-          {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} style={{width:'100%',marginTop:10,padding:'8px',borderRadius:8,border:'1.5px solid #e2e8f0',background:'#f8fafc',color:'#64748b',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' Players ↓'}</button>}
-        </div>
-      </Sec>}
-
-      {showSec('money')&&<>{/* ── 5b. Money Stats ── */}
-      <Sec id="money" icon="💵" title="Money Stats" color="#10b981" summary={(winners.length)+' in profit · '+(donors.length)+' donors · top: '+(moneyList[0]?.name||'—')}>
-        <div style={{paddingTop:10}}>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#10b981'}}>{winners.length}</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>In Profit</div></div>
-            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#ef4444'}}>{donors.length}</div><div style={{fontSize:9,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Net Donors 😅</div></div>
-            <div style={{background:'#f8fafc',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#0f172a'}}>${moneyList.reduce((s,p)=>s+p.won,0)}</div><div style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Total Paid Out</div></div>
-          </div>
-          {moneyList[0]&&<div style={{padding:'8px 12px',background:'#ecfdf5',border:'1px solid #bbf7d0',borderRadius:10,marginBottom:8,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:18,flexShrink:0}}>🏆</span><div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:'#15803d'}}>Top Winner — {moneyList[0].name}</div><div style={{fontSize:11,color:'#64748b'}}>+${moneyList[0].net} net · ${moneyList[0].won} won · {moneyList[0].rounds} rounds</div></div></div>}
-          {donors[0]&&<div style={{padding:'8px 12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,marginBottom:14,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:18,flexShrink:0}}>💸</span><div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:'#dc2626'}}>Top Donor — {donors[0].name}</div><div style={{fontSize:11,color:'#64748b'}}>${Math.abs(donors[0].net)} net loss · ${donors[0].won} won · {donors[0].rounds} rounds</div></div></div>}
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Net Win / Loss — All Players</div>
-          {(()=>{const maxVal=Math.max(...moneyList.map(x=>Math.max(x.paid,x.won)))||1;return moneyList.map((p,i)=>{const isPos=p.net>=0;const paidW=Math.round(p.paid/maxVal*100);const wonW=Math.round(p.won/maxVal*100);return(<div key={p.name} style={{padding:'10px 0',borderBottom:i<moneyList.length-1?'1px solid #f1f5f9':'none'}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-              <div style={{flex:1,fontSize:13,color:'#0f172a',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
-              <div style={{background:'#f1f5f9',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:700,color:'#64748b',flexShrink:0}}>{p.rounds} rds</div>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:800,color:isPos?'#10b981':'#ef4444',flexShrink:0,minWidth:52,textAlign:'right'}}>{isPos?'+':'-'}${Math.abs(p.net)}</div>
-            </div>
-            <div style={{position:'relative',height:22,background:'#f8fafc',borderRadius:8,overflow:'hidden'}}>
-              <div style={{position:'absolute',left:0,top:0,height:'100%',width:paidW+'%',background:'#fee2e2',borderRadius:8}}></div>
-              <div style={{position:'absolute',left:0,top:0,height:'100%',width:wonW+'%',background:'#10b981',borderRadius:8}}></div>
-              <div style={{position:'absolute',left:8,top:0,height:'100%',display:'flex',alignItems:'center',fontSize:10,fontWeight:700,color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,0.3)',zIndex:2}}>{p.won>0?'$'+p.won+' won':'$0 won'}</div>
-              <div style={{position:'absolute',right:8,top:0,height:'100%',display:'flex',alignItems:'center',fontSize:10,fontWeight:700,color:'#ef4444',zIndex:2}}>in: ${p.paid}</div>
-            </div>
-          </div>);});})()}
-          <div style={{marginTop:10,padding:'8px 12px',background:'#f8fafc',borderRadius:8,fontSize:11,color:'#94a3b8',textAlign:'center'}}>Based on $25/round entry · front, back, overall &amp; skins payouts</div>
-        </div>
-      </Sec>
-
-      </> }
-      {/* ── 6. Handicap Trends ── */}
+      {/* ── 7. Handicap Trends ── */}
       {showSec('hcp')&&<Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
         <div style={{paddingTop:8}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #f0fdf4'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#10b981',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
-            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #fef2f2'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#ef4444',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
+            <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(16,185,129,0.15)'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'#34d399',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
+            <div style={{background:'rgba(239,68,68,0.12)',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(239,68,68,0.1)'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'#f87171',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
           </div>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
-          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:110,fontSize:11,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#10b981'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#ef4444'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'#94a3b8'}}>—</span>}</div></div>))}
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
+          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:110,fontSize:11,color:'rgba(255,255,255,0.9)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#fff',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#34d399'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#f87171'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'rgba(255,255,255,0.3)'}}>—</span>}</div></div>))}
         </div>
       </Sec>}
 
-{/* ── 6. Handicap Trends ── */}
-      {showSec('hcp')&&<Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
-        <div style={{paddingTop:8}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #f0fdf4'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#10b981',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
-            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #fef2f2'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#ef4444',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
-          </div>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
-          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:110,fontSize:11,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#10b981'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#ef4444'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'#94a3b8'}}>—</span>}</div></div>))}
-        </div>
-      </Sec>}
 
-{/* ── 7. Tee Stats ── */}
+      {/* ── Period Filter ── */}
+      
+
+      {totalRounds===0&&<div style={{textAlign:'center',padding:'40px 20px',color:'rgba(255,255,255,0.35)',fontSize:14}}>No rounds found for this period</div>}
+
+      {totalRounds>0&&<>
+
+
+      {showSec('money')&&<Sec id="money" icon="💵" title="Money Stats" color="#10b981"
+      summary={(winners.length)+' in profit · '+(donors.length)+' donors · top: '+(moneyList[0]?.name||'—')}>
+      <div style={{paddingTop:10}}>
+
+        {/* 4 headline cards */}
+        {(()=>{
+          const topNet=moneyList[0];
+          const topAbs=[...moneyList].sort((a,b)=>b.won-a.won)[0];
+          const topPct=[...moneyList].filter(p=>p.paid>0).sort((a,b)=>(b.won/b.paid)-(a.won/a.paid))[0];
+          const topDonor=donors[0];
+          return(
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+              <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:4}}>Top Net Winner</div>
+                <div style={{fontSize:12,fontWeight:700,color:'#34d399',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topNet?.name||'—'}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#34d399'}}>+${topNet?.net||0}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:2}}>{topNet?.rounds||0} rounds · ${topNet?.won||0} won</div>
+              </div>
+              <div style={{background:'rgba(59,130,246,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:4}}>Most $ Won</div>
+                <div style={{fontSize:12,fontWeight:700,color:'#60a5fa',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topAbs?.name||'—'}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#60a5fa'}}>${topAbs?.won||0}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:2}}>gross winnings · {topAbs?.rounds||0} rounds</div>
+              </div>
+              <div style={{background:'rgba(245,158,11,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:4}}>Best Return %</div>
+                <div style={{fontSize:12,fontWeight:700,color:'#fbbf24',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topPct?.name||'—'}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#fbbf24'}}>{topPct&&topPct.paid>0?Math.round(topPct.won/topPct.paid*100)+'%':'—'}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:2}}>${topPct?.won||0} won on ${topPct?.paid||0} in</div>
+              </div>
+              <div style={{background:'rgba(239,68,68,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:4}}>Top Donor 😅</div>
+                <div style={{fontSize:12,fontWeight:700,color:'#f87171',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topDonor?.name||'—'}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#f87171'}}>-${Math.abs(topDonor?.net||0)}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',marginTop:2}}>${topDonor?.won||0} won · {topDonor?.rounds||0} rounds</div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Summary line */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+          <div style={{background:'rgba(16,185,129,0.08)',borderRadius:8,padding:'8px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:800,color:'#34d399'}}>{winners.length}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:1}}>In Profit</div>
+          </div>
+          <div style={{background:'rgba(239,68,68,0.08)',borderRadius:8,padding:'8px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:800,color:'#f87171'}}>{donors.length}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:1}}>Donated</div>
+          </div>
+          <div style={{background:'rgba(255,255,255,0.05)',borderRadius:8,padding:'8px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:800,color:'rgba(255,255,255,0.7)'}}>${moneyList.reduce((s,p)=>s+p.won,0)}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:1}}>Gross Paid Out</div>
+          </div>
+        </div>
+
+        <div style={{marginTop:12,padding:'10px 14px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8}}>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',lineHeight:1.7}}>
+            <div style={{marginBottom:6}}>💡 <strong style={{color:'rgba(255,255,255,0.65)'}}>How this works:</strong> $25 entry per round. Before any payouts, <strong style={{color:'rgba(255,255,255,0.55)'}}>$1 per player goes to the tournament fund first</strong> — so only $24/player flows into front, back, overall and skins pots. <em>Net = Winnings − Entry fees.</em></div>
+            <div style={{marginBottom:6}}>🏆 <strong style={{color:'rgba(255,255,255,0.65)'}}>Winning:</strong> Front, back and overall pots go to the lowest scoring team. Skins pot is split by total skins won. All amounts are divided equally among teammates.</div>
+            <div>⚠️ <strong style={{color:'rgba(255,255,255,0.65)'}}>Small differences vs. leaderboard:</strong> Figures here may be off by a few dollars due to rounding — pot money is floored to whole dollars when split per player. The leaderboard rounds slightly differently. Both are correct to within $1–2 per player.</div>
+          </div>
+        </div>
+
+        {/* Column headers */}
+        <div style={{display:'flex',alignItems:'center',gap:8,padding:'0 0 6px',borderBottom:'1px solid rgba(255,255,255,0.08)',marginBottom:4}}>
+          <div style={{flex:1,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.07em'}}>Player · Rounds</div>
+          <div style={{width:56,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>In</div>
+          <div style={{width:56,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Won</div>
+          <div style={{width:60,fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.07em',textAlign:'right'}}>Net</div>
+        </div>
+
+        {/* Player rows */}
+        {moneyList.map((p,i)=>{
+          const isPos=p.net>=0;
+          return(
+            <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:1}}>{p.rounds} round{p.rounds!==1?'s':''}</div>
+              </div>
+              <div style={{width:56,textAlign:'right',fontFamily:'Barlow Condensed,sans-serif',fontSize:17,fontWeight:700,color:'rgba(255,255,255,0.4)',flexShrink:0}}>${p.paid}</div>
+              <div style={{width:56,textAlign:'right',fontFamily:'Barlow Condensed,sans-serif',fontSize:17,fontWeight:700,color:'#60a5fa',flexShrink:0}}>${p.won}</div>
+              <div style={{width:60,textAlign:'right',fontFamily:'Barlow Condensed,sans-serif',fontSize:19,fontWeight:800,color:isPos?'#34d399':'#f87171',flexShrink:0}}>{isPos?'+':''}{p.net}</div>
+            </div>
+          );
+        })}
+
+        {/* Footer note */}
+
+
+      </div>
+    </Sec>}
+
+      {/* ── 8. Tee Stats ── */}
       {showSec('tees')&&<Sec id="tees" icon="🏌️" title="Tee Stats" color="#f97316" summary={Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([t,c])=>t+': '+Math.round(c/totalTeeRounds*100)+'%').join(' · ')}>
         <div style={{paddingTop:10}}>
           {Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([tee,cnt])=>{
@@ -1438,28 +1509,31 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
             const teePlayers=Object.entries(playerTees).filter(([,m])=>m[tee]).map(([name,m])=>({name,cnt:m[tee]})).sort((a,b)=>b.cnt-a.cnt);
             const isExpanded=expandedTee===tee;
             return(<div key={tee} style={{marginBottom:8}}>
-              <div onClick={()=>setExpandedTee(isExpanded?null:tee)} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'6px 8px',borderRadius:8,background:isExpanded?'#f8fafc':'transparent',userSelect:'none'}}>
-                <div style={{width:10,height:10,borderRadius:'50%',background:TC[tee]||'#94a3b8',flexShrink:0}}></div>
-                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a'}}>{tee}</div>
-                <div style={{flex:2}}><Bar pct={pct} color={TC[tee]||'#94a3b8'} h={7}/></div>
-                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#0f172a',width:34,textAlign:'right',flexShrink:0}}>{pct}%</div>
-                <div style={{fontSize:10,color:'#94a3b8',width:20,flexShrink:0}}>{cnt}</div>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{transform:isExpanded?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+              <div onClick={()=>setExpandedTee(isExpanded?null:tee)} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'6px 8px',borderRadius:8,background:isExpanded?'rgba(255,255,255,0.06)':'transparent',userSelect:'none'}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:TC[tee]||'rgba(255,255,255,0.4)',flexShrink:0}}></div>
+                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#fff'}}>{tee}</div>
+                <div style={{flex:2}}><Bar pct={pct} color={TC[tee]||'#f97316'} h={7}/></div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#fff',width:34,textAlign:'right',flexShrink:0}}>{pct}%</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',width:20,flexShrink:0}}>{cnt}</div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" style={{transform:isExpanded?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-              {isExpanded&&<div style={{paddingLeft:18,marginTop:6,paddingBottom:4}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Players on {tee} ({teePlayers.length})</div>{teePlayers.map((p,i)=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:i<teePlayers.length-1?'1px solid #f8fafc':'none'}}><span style={{color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#64748b',fontSize:11}}>{p.cnt} round{p.cnt!==1?'s':''}</span></div>))}</div>}
+              {isExpanded&&<div style={{paddingLeft:18,marginTop:6,paddingBottom:4}}>
+                <div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Players on {tee} ({teePlayers.length})</div>
+                {teePlayers.map((p,i)=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}><span style={{color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'rgba(255,255,255,0.45)',fontSize:11}}>{p.cnt} round{p.cnt!==1?'s':''}</span></div>))}
+              </div>}
             </div>);
           })}
         </div>
       </Sec>}
 
-{/* ── 12. Player Behavior ── */}
+      {/* ── 9. Player Behavior ── */}
       {showSec('behavior')&&<Sec id="behavior" icon="🎯" title="Player Behavior" color="#8b5cf6" summary={'Match reqs · First/Last tee · Guest bringers'}>
         <div style={{paddingTop:10}}>
           {topMatchPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Match Requests</div><SmallList items={topMatchPlayers}/>{divider}</>}
-          {firstTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬆ First Group Requests</div>{firstTeePlayers.map(([name,data])=>(<HBar key={name} label={name} val={data.first} max={firstTeePlayers[0][1].first} color="#10b981"/>))}{divider}</>}
-          {lastTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#ef4444',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬇ Last Group Requests</div>{lastTeePlayers.map(([name,data])=>(<HBar key={name} label={name} val={data.last} max={lastTeePlayers[0][1].last} color="#ef4444"/>))}{divider}</>}
+          {firstTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬆ First Group Requests</div>{firstTeePlayers.map(([name,data],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}><span style={{fontSize:12,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{name}</span><span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:800,color:'#34d399'}}>{data.first}</span></div>))}{divider}</>}
+          {lastTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#ef4444',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬇ Last Group Requests</div>{lastTeePlayers.map(([name,data],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}><span style={{fontSize:12,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{name}</span><span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:800,color:'#f87171'}}>{data.last}</span></div>))}{divider}</>}
           {topGuestBringers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Guests Brought</div><SmallList items={topGuestBringers}/></>}
-          {topMatchPlayers.length===0&&firstTeePlayers.length===0&&lastTeePlayers.length===0&&topGuestBringers.length===0&&<div style={{fontSize:12,color:'#94a3b8',textAlign:'center',padding:'20px 0'}}>Behavior data populates as rounds are played</div>}
+          {topMatchPlayers.length===0&&firstTeePlayers.length===0&&lastTeePlayers.length===0&&topGuestBringers.length===0&&<div style={{fontSize:12,color:'rgba(255,255,255,0.35)',textAlign:'center',padding:'20px 0'}}>Behavior data populates as rounds are played</div>}
         </div>
       </Sec>}
 
@@ -1467,13 +1541,13 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
       {showSec('teams')&&<Sec id="teams" icon="🤝" title="Team Chemistry" color="#06b6d4" summary={'Top pair: '+(topPairs[0]?.[0]?.replace('|',' & ')||'—')+' ('+topPairs[0]?.[1]+'x) · expected avg: '+expectedAvg+'x'}>
         <div style={{paddingTop:8}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#10b981'}}>{expectedAvg}x</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Expected Avg</div><div style={{fontSize:9,color:'#94a3b8',marginTop:1}}>fair distribution</div></div>
-            <div style={{background:'#eff6ff',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#3b82f6'}}>{topPairs[0]?.[1]||0}x</div><div style={{fontSize:9,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Max Pair</div><div style={{fontSize:9,color:'#94a3b8',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topPairs[0]?.[0]?.split('|')[0]||'—'}</div></div>
-            <div style={{background:'#f8fafc',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#64748b'}}>{neverPaired.toLocaleString()}</div><div style={{fontSize:9,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Never Paired</div><div style={{fontSize:9,color:'#94a3b8',marginTop:1}}>unique combos</div></div>
+            <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#10b981'}}>{expectedAvg}x</div><div style={{fontSize:9,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Expected Avg</div><div style={{fontSize:9,color:'rgba(255,255,255,0.35)',marginTop:1}}>fair distribution</div></div>
+            <div style={{background:'rgba(59,130,246,0.12)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#3b82f6'}}>{topPairs[0]?.[1]||0}x</div><div style={{fontSize:9,fontWeight:700,color:'#60a5fa',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Max Pair</div><div style={{fontSize:9,color:'rgba(255,255,255,0.35)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topPairs[0]?.[0]?.split('|')[0]||'—'}</div></div>
+            <div style={{background:'rgba(255,255,255,0.05)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'rgba(255,255,255,0.45)'}}>{neverPaired.toLocaleString()}</div><div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Never Paired</div><div style={{fontSize:9,color:'rgba(255,255,255,0.35)',marginTop:1}}>unique combos</div></div>
           </div>
-          <div style={{padding:'8px 12px',background:'#f0f9ff',borderRadius:8,marginBottom:12,fontSize:11,color:'#0369a1'}}><div style={{fontWeight:700,marginBottom:2}}>About this data</div><div style={{fontSize:11,color:'#64748b',lineHeight:1.5}}>With small fields and few rounds, pairs naturally repeat. Expected avg of {expectedAvg}× is the mathematical baseline. As more rounds are played, outliers stand out more clearly.</div></div>
-          <div style={{padding:'8px 12px',background:'#fefce8',border:'1px solid #fde68a',borderRadius:8,marginBottom:12,fontSize:11,color:'#92400e',lineHeight:1.5}}><strong>Note:</strong> Auto vs manual teams not yet tagged in history. Future rounds will be labeled for filtering.</div>
-          {topPairs.map(([pair,cnt],i)=>{const [p1,p2]=pair.split('|');return(<div key={pair} style={{padding:'7px 0',borderBottom:i<topPairs.length-1?'1px solid #f8fafc':'none'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}><div style={{width:20,height:20,borderRadius:'50%',background:i<3?'#e0f2fe':'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:800,color:i<3?'#0369a1':'#94a3b8',flexShrink:0}}>{i+1}</div><div style={{flex:1,fontSize:12,fontWeight:600,color:'#0f172a'}}>{p1} <span style={{color:'#94a3b8',fontWeight:400}}>& {p2}</span></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#06b6d4',flexShrink:0}}>{cnt}x</div></div><div style={{paddingLeft:28}}><Bar pct={cnt/(topPairs[0][1])*100} color="#06b6d4" h={4}/></div></div>);})}
+          <div style={{padding:'8px 12px',background:'rgba(14,165,233,0.1)',borderRadius:8,marginBottom:12,fontSize:11,color:'#38bdf8'}}><div style={{fontWeight:700,marginBottom:2}}>About this data</div><div style={{fontSize:11,color:'rgba(255,255,255,0.5)',lineHeight:1.5}}>With small fields and few rounds, pairs naturally repeat. Expected avg of {expectedAvg}× is the mathematical baseline. As more rounds are played, outliers stand out more clearly.</div></div>
+          <div style={{padding:'8px 12px',background:'rgba(234,179,8,0.1)',border:'1px solid #fde68a',borderRadius:8,marginBottom:12,fontSize:11,color:'#fbbf24',lineHeight:1.5}}><strong>Note:</strong> Auto vs manual teams not yet tagged in history. Future rounds will be labeled for filtering.</div>
+          {topPairs.map(([pair,cnt],i)=>{const [p1,p2]=pair.split('|');return(<div key={pair} style={{padding:'7px 0',borderBottom:i<topPairs.length-1?'1px solid #f8fafc':'none'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}><div style={{width:20,height:20,borderRadius:'50%',background:i<3?'#e0f2fe':'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:800,color:i<3?'#0369a1':'#94a3b8',flexShrink:0}}>{i+1}</div><div style={{flex:1,fontSize:12,fontWeight:600,color:'#fff'}}>{p1} <span style={{color:'rgba(255,255,255,0.35)',fontWeight:400}}>& {p2}</span></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#06b6d4',flexShrink:0}}>{cnt}x</div></div><div style={{paddingLeft:28}}><Bar pct={cnt/(topPairs[0][1])*100} color="#06b6d4" h={4}/></div></div>);})}
         </div>
       </Sec>}
 
@@ -1481,20 +1555,20 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
       {showSec('engage')&&<Sec id="engage" icon="👥" title="Member Engagement" color="#f97316" summary={registeredCount+'/'+totalMembers+' registered · '+activePlayers.size+' active · '+inactive.length+' inactive'}>
         <div style={{paddingTop:10}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'12px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{registeredCount}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div><div style={{fontSize:10,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Registered</div><Bar pct={registeredCount/totalMembers*100} color="#10b981" h={5}/><div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{Math.round(registeredCount/totalMembers*100)}% adoption</div></div>
-            <div style={{background:'#eff6ff',borderRadius:10,padding:'12px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{activePlayers.size}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div><div style={{fontSize:10,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Active 60d</div><Bar pct={activePlayers.size/totalMembers*100} color="#3b82f6" h={5}/><div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{inactive.length} inactive</div></div>
+            <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'12px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{registeredCount}<span style={{fontSize:14,color:'rgba(255,255,255,0.35)',fontWeight:400}}>/{totalMembers}</span></div><div style={{fontSize:10,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Registered</div><Bar pct={registeredCount/totalMembers*100} color="#10b981" h={5}/><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:3}}>{Math.round(registeredCount/totalMembers*100)}% adoption</div></div>
+            <div style={{background:'rgba(59,130,246,0.12)',borderRadius:10,padding:'12px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{activePlayers.size}<span style={{fontSize:14,color:'rgba(255,255,255,0.35)',fontWeight:400}}>/{totalMembers}</span></div><div style={{fontSize:10,fontWeight:700,color:'#60a5fa',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Active 60d</div><Bar pct={activePlayers.size/totalMembers*100} color="#3b82f6" h={5}/><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:3}}>{inactive.length} inactive</div></div>
           </div>
           {topSignupPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Sign-ups (since PIN)</div><SmallList items={topSignupPlayers}/>{divider}</>}
-          {notRegistered.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Not Registered ({notRegistered.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>{notRegistered.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#fff7ed',color:'#c2410c',border:'1px solid #fed7aa'}}>{p.name}</span>)}</div></>}
-          {inactive.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Inactive 60+ Days ({inactive.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{inactive.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#f8fafc',color:'#94a3b8',border:'1px solid #e2e8f0'}}>{p.name}</span>)}</div></>}
+          {notRegistered.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Not Registered ({notRegistered.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>{notRegistered.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'rgba(249,115,22,0.12)',color:'#fb923c',border:'1px solid #fed7aa'}}>{p.name}</span>)}</div></>}
+          {inactive.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.35)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Inactive 60+ Days ({inactive.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{inactive.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.6)',border:'1px solid rgba(255,255,255,0.08)'}}>{p.name}</span>)}</div></>}
         </div>
       </Sec>}
 
 {/* ── 10. Sign-up Timing ── */}
       {showSec('timing')&&<Sec id="timing" icon="⏱️" title="Sign-up Timing" color="#f59e0b" summary={'Busiest: '+peakDow+' · '+signupLogs.length+' sign-ups logged'}>
         <div style={{paddingTop:10}}>
-          <div style={{marginBottom:14}}><div style={{fontSize:20,fontWeight:800,fontFamily:'Barlow Condensed,sans-serif',color:'#f59e0b',marginBottom:2}}>{peakDow}</div><div style={{fontSize:11,color:'#94a3b8'}}>Busiest sign-up day</div></div>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Sign-ups by Day (Mon → Sun)</div>
+          <div style={{marginBottom:14}}><div style={{fontSize:20,fontWeight:800,fontFamily:'Barlow Condensed,sans-serif',color:'#f59e0b',marginBottom:2}}>{peakDow}</div><div style={{fontSize:11,color:'rgba(255,255,255,0.35)'}}>Busiest sign-up day</div></div>
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.35)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Sign-ups by Day (Mon → Sun)</div>
           {dowOrder.map((dowIdx,i)=>{const cnt=signupsByDow[dowIdx];const maxCnt=Math.max(...dowOrder.map(d=>signupsByDow[d]))||1;const isActive=dowIdx===peakDowIdx;return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><div style={{width:36,fontSize:12,fontWeight:isActive?700:500,color:isActive?'#f59e0b':'#0f172a',flexShrink:0}}>{dowLabels[i]}</div><div style={{flex:1}}><Bar pct={maxCnt>0?cnt/maxCnt*100:0} color={isActive?'#f59e0b':'#fde68a'} h={10}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:isActive?'#f59e0b':'#64748b',width:28,textAlign:'right',flexShrink:0}}>{cnt}</div></div>);})}
         </div>
       </Sec>}
@@ -1503,15 +1577,16 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
       {showSec('activity')&&<Sec id="activity" icon="📋" title="Admin Activity" color="#ef4444" summary={signupCount+' sign-ups · '+totalOfficialTeams+' official teams · '+matchReqs+' match reqs'}>
         <div style={{paddingTop:10}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}}>
-            {[['#10b981',signupCount,'Sign-ups','since PIN'],['#3b82f6',memberLogins,'Member Logins',null],['#f59e0b',adminLogins,'Admin Logins',null],['#8b5cf6',totalOfficialTeams,'Official Teams',totalRounds+' rounds'],['#f97316',rosterAdds,'Roster Adds',null],['#06b6d4',matchReqs,'Match Reqs',null]].map(([color,val,label,sub])=>(<div key={label} style={{background:'#f8fafc',borderRadius:8,padding:'8px',textAlign:'center',border:'1px solid #e2e8f0'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color}}>{val}</div><div style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.04em',marginTop:1,lineHeight:1.3}}>{label}</div>{sub&&<div style={{fontSize:8,color:'#94a3b8',marginTop:1}}>{sub}</div>}</div>))}
+            {[['#10b981',signupCount,'Sign-ups','since PIN'],['#3b82f6',memberLogins,'Member Logins',null],['#f59e0b',adminLogins,'Admin Logins',null],['#8b5cf6',totalOfficialTeams,'Official Teams',totalRounds+' rounds'],['#f97316',rosterAdds,'Roster Adds',null],['#06b6d4',matchReqs,'Match Reqs',null]].map(([color,val,label,sub])=>(<div key={label} style={{background:'rgba(255,255,255,0.05)',borderRadius:8,padding:'8px',textAlign:'center',border:'1px solid rgba(255,255,255,0.08)'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color}}>{val}</div><div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,0.35)',textTransform:'uppercase',letterSpacing:'0.04em',marginTop:1,lineHeight:1.3}}>{label}</div>{sub&&<div style={{fontSize:8,color:'rgba(255,255,255,0.35)',marginTop:1}}>{sub}</div>}</div>))}
           </div>
           {divider}
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Recent Events</div>
-          {activeLog.slice(0,15).map((e,i)=>{const icons={login:'🔑',signup:'👤',remove_signup:'✕',teams_published:'✓',day_setup:'📅',week_started:'🗓',roster_add:'➕',match_request:'⚡',self_register:'📱',roster_remove:'−'};const age=Date.now()-(e.ts||0);const ageStr=age<3600000?Math.round(age/60000)+'m':age<86400000?Math.round(age/3600000)+'h':Math.round(age/86400000)+'d';return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:i<14?'1px solid #f8fafc':'none'}}><span style={{fontSize:12,flexShrink:0,width:16,textAlign:'center'}}>{icons[e.action]||'•'}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.action?.replace(/_/g,' ')}{e.name?' — '+e.name:''}</div><div style={{fontSize:10,color:'#94a3b8'}}>{e.by&&e.by!=='admin'&&e.by!=='player'?e.by+' · ':''}{ageStr} ago</div></div>{e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:20,flexShrink:0,background:e.byRole==='admin'?'#fffbeb':'#ecfdf5',color:e.byRole==='admin'?'#b45309':'#15803d'}}>{e.byRole}</span>}</div>);})}
+          <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.35)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Recent Events</div>
+          {activeLog.slice(0,15).map((e,i)=>{const icons={login:'🔑',signup:'👤',remove_signup:'✕',teams_published:'✓',day_setup:'📅',week_started:'🗓',roster_add:'➕',match_request:'⚡',self_register:'📱',roster_remove:'−'};const age=Date.now()-(e.ts||0);const ageStr=age<3600000?Math.round(age/60000)+'m':age<86400000?Math.round(age/3600000)+'h':Math.round(age/86400000)+'d';return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:i<14?'1px solid #f8fafc':'none'}}><span style={{fontSize:12,flexShrink:0,width:16,textAlign:'center'}}>{icons[e.action]||'•'}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.action?.replace(/_/g,' ')}{e.name?' — '+e.name:''}</div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)'}}>{e.by&&e.by!=='admin'&&e.by!=='player'?e.by+' · ':''}{ageStr} ago</div></div>{e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:20,flexShrink:0,background:e.byRole==='admin'?'#fffbeb':'#ecfdf5',color:e.byRole==='admin'?'#b45309':'#15803d'}}>{e.byRole}</span>}</div>);})}
         </div>
       </Sec>}
 
       </> }
+
     </div>
   );
 }
@@ -1627,7 +1702,7 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
   const [showRegBanner,setShowRegBanner]=useState(()=>{try{return!localStorage.getItem('cgRegistered');}catch{return true;}});
   const [pinShake,setPinShake]=useState(false);
   function dismissBanner(){try{localStorage.setItem('cgRegistered','1');}catch{}setShowRegBanner(false);}
-  function tryAdminPw(){if(pw.toLowerCase()==='clark'){onAdmin();}else{setPwErr(true);setTimeout(()=>setPwErr(false),1500);}}
+  function tryAdminPw(){if(hashPw(pw)==='8c186caf'){onAdmin();}else{setPwErr(true);setTimeout(()=>setPwErr(false),1500);}}
   function mkIni(n){return(n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
   function addDigit(d){if(pin.length>=4)return;setPinShake(false);setPin(p=>p+d);}
   function tryLogin(){
@@ -1663,15 +1738,96 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
       }}
     />
   );
-  if(showWelcome&&welcomeData)return(
-    <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9998,backdropFilter:'blur(12px)'}}>
-      <div style={{background:'#fff',borderRadius:24,padding:'36px 44px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.15)'}}>
-        <div style={{fontSize:56,marginBottom:10}}>{welcomeData.role==='admin'?'⭐':'⛳'}</div>
-        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:36,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
-        <div style={{fontSize:14,color:'#94a3b8',marginTop:6}}>{welcomeData.role==='admin'?'Admin Access':'Welcome back!'}</div>
-      </div>
+  if(showWelcome&&welcomeData){
+    const isMaster=!!(rosterAdmins&&welcomeData.id&&rosterAdmins[welcomeData.id]==='master');
+    return(
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:9998,backdropFilter:'blur(16px)',background:isMaster?'rgba(10,14,26,0.92)':'rgba(15,23,42,0.85)'}}>
+
+      {/* Master admin — premium dark card */}
+      {isMaster&&(
+        <div style={{position:'relative',width:300,textAlign:'center'}}>
+          {/* Glow rings */}
+          <div style={{position:'absolute',inset:-40,borderRadius:'50%',background:'radial-gradient(circle,rgba(245,158,11,0.15) 0%,transparent 70%)',pointerEvents:'none'}}></div>
+          <div style={{position:'absolute',inset:-20,borderRadius:'50%',background:'radial-gradient(circle,rgba(99,102,241,0.12) 0%,transparent 70%)',pointerEvents:'none'}}></div>
+
+          {/* Card */}
+          <div style={{position:'relative',background:'linear-gradient(145deg,#0f172a,#1e1b4b)',borderRadius:28,padding:'32px 36px 28px',boxShadow:'0 0 0 1px rgba(245,158,11,0.3), 0 0 60px rgba(245,158,11,0.12), 0 30px 80px rgba(0,0,0,0.5)'}}>
+
+            {/* Logo mark — golf flag + crown */}
+            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+              <div style={{position:'relative',width:72,height:72}}>
+                {/* Outer gold ring */}
+                <div style={{position:'absolute',inset:0,borderRadius:'50%',border:'2px solid rgba(245,158,11,0.5)',background:'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(99,102,241,0.1))'}}></div>
+                {/* Inner dark circle */}
+                <div style={{position:'absolute',inset:4,borderRadius:'50%',background:'#0f172a',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {/* Custom SVG — crown + flag combo */}
+                  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                    {/* Crown */}
+                    <path d="M6 26h24l-3-14-5 7-4-10-4 10-5-7-3 14z" fill="url(#goldGrad)" opacity="0.95"/>
+                    <path d="M6 26h24" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+                    {/* Crown jewels */}
+                    <circle cx="18" cy="13" r="1.5" fill="#fbbf24"/>
+                    <circle cx="9" cy="19" r="1.2" fill="#fbbf24"/>
+                    <circle cx="27" cy="19" r="1.2" fill="#fbbf24"/>
+                    {/* Golf flag pin */}
+                    <line x1="18" y1="26" x2="18" y2="32" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M18 28 L23 30 L18 32" fill="#6366f1" opacity="0.8"/>
+                    <defs>
+                      <linearGradient id="goldGrad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#fbbf24"/>
+                        <stop offset="100%" stopColor="#f59e0b"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                {/* Spinning accent ring */}
+                <div style={{position:'absolute',inset:-2,borderRadius:'50%',border:'1px dashed rgba(245,158,11,0.3)'}}></div>
+              </div>
+            </div>
+
+            {/* Name */}
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:38,fontWeight:800,letterSpacing:'0.02em',marginBottom:4,background:'linear-gradient(135deg,#fff 0%,#fbbf24 50%,#a78bfa 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>{welcomeData.name}</div>
+
+            {/* Master badge */}
+            <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 14px',borderRadius:20,background:'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(99,102,241,0.15))',border:'1px solid rgba(245,158,11,0.3)',marginBottom:16}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:'#f59e0b',boxShadow:'0 0 6px #f59e0b'}}></div>
+              <span style={{fontSize:11,fontWeight:700,color:'#fbbf24',letterSpacing:'0.12em',textTransform:'uppercase'}}>Master Admin</span>
+              <div style={{width:6,height:6,borderRadius:'50%',background:'#818cf8',boxShadow:'0 0 6px #818cf8'}}></div>
+            </div>
+
+            {/* Divider */}
+            <div style={{height:1,background:'linear-gradient(90deg,transparent,rgba(245,158,11,0.3),transparent)',marginBottom:12}}></div>
+
+            {/* Tagline */}
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',letterSpacing:'0.08em',textTransform:'uppercase'}}>Clark Golf Group</div>
+          </div>
+        </div>
+      )}
+
+      {/* Regular admin welcome */}
+      {!isMaster&&welcomeData.role==='admin'&&(
+        <div style={{background:'#fff',borderRadius:24,padding:'36px 44px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+          <div style={{width:64,height:64,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#d97706)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',boxShadow:'0 4px 20px rgba(245,158,11,0.35)'}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:34,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
+          <div style={{fontSize:13,color:'#94a3b8',marginTop:5,fontWeight:600}}>Admin Access</div>
+        </div>
+      )}
+
+      {/* Member welcome */}
+      {welcomeData.role!=='admin'&&(
+        <div style={{background:'#fff',borderRadius:24,padding:'36px 44px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.15)'}}>
+          <div style={{width:64,height:64,borderRadius:'50%',background:'linear-gradient(135deg,#10b981,#059669)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',boxShadow:'0 4px 20px rgba(16,185,129,0.3)'}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:34,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
+          <div style={{fontSize:13,color:'#94a3b8',marginTop:5,fontWeight:600}}>Welcome back! ⛳</div>
+        </div>
+      )}
+
     </div>
-  );
+  );}
   if(disambigList.length>0)return(
     <div className="land">
       <div style={{width:'100%',maxWidth:420}}>
