@@ -1150,18 +1150,18 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
       <div onClick={()=>toggle(id)} style={{display:'flex',alignItems:'center',gap:10,padding:'13px 16px',cursor:'pointer',borderLeft:'4px solid '+color,userSelect:'none'}}>
         <span style={{fontSize:16,flexShrink:0}}>{icon}</span>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:700,color:'#fff'}}>{title}</div>
-          {!open[id]&&summary&&<div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</div>}
+          <div style={{fontSize:15,fontWeight:700,color:'#fff'}}>{title}</div>
+          {!open[id]&&summary&&<div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:1,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</div>}
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" style={{transform:open[id]?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       {open[id]&&<div style={{padding:'0 16px 16px'}}>{children}</div>}
     </div>
   );
-  const BN=(v,l,c,s)=>(<div style={{textAlign:'center',padding:'8px 4px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:c||'#e2e8f0',lineHeight:1}}>{v}</div><div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>{s&&<div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:1}}>{s}</div>}</div>);
+  const BN=(v,l,c,s)=>(<div style={{textAlign:'center',padding:'8px 4px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:c||'#e2e8f0',lineHeight:1}}>{v}</div><div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>{s&&<div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:1}}>{s}</div>}</div>);
   const Bar=({pct,color,h=7})=>(<div style={{background:'rgba(255,255,255,0.07)',borderRadius:4,height:h,overflow:'hidden'}}><div style={{background:color,height:'100%',width:Math.min(100,Math.max(0,pct))+'%',borderRadius:4}}></div></div>);
   const HBar=({label,val,max,color})=>(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><div style={{width:70,fontSize:12,color:'#fff',fontWeight:600,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div><div style={{flex:1}}><Bar pct={max>0?val/max*100:0} color={color} h={8}/></div><div style={{fontSize:12,fontWeight:700,color,width:28,textAlign:'right',flexShrink:0}}>{val}</div></div>);
-  const SmallList=({items,emptyMsg})=>items.length===0?<div style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>{emptyMsg||'No data yet'}</div>:(<>{items.map(([name,cnt],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:i<items.length-1?'1px solid #f8fafc':'none'}}><div style={{fontSize:12,color:'#fff',fontWeight:500}}>{name}</div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'rgba(255,255,255,0.45)'}}>{cnt}</div></div>))}</>);
+  const SmallList=({items,emptyMsg})=>items.length===0?<div style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>{emptyMsg||'No data yet'}</div>:(<>{items.map(([name,cnt],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:i<items.length-1?'1px solid #f8fafc':'none'}}><div style={{fontSize:13,color:'#fff',fontWeight:500}}>{name}</div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'rgba(255,255,255,0.45)'}}>{cnt}</div></div>))}</>);
   const divider=<div style={{height:1,background:'rgba(255,255,255,0.07)',margin:'12px 0'}}/>;
 
   const periodLabel=filterPeriod==='all'?'All Time':getMonthLabel(filterPeriod);
@@ -1332,7 +1332,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
           <div style={{background:'rgba(16,185,129,0.1)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#34d399'}}>{avgSkins??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Skins</div></div>
         </div>
         {divider}
-        <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round Results</div>
+        <div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round Results</div>
         {winningScores.map((r,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}><div style={{fontSize:11,color:'rgba(255,255,255,0.45)',width:40,flexShrink:0}}>{r.date}</div><div style={{flex:1,display:'flex',gap:3,flexWrap:'wrap'}}><span style={{fontSize:11,fontWeight:700,color:'#34d399',background:'rgba(16,185,129,0.12)',padding:'2px 5px',borderRadius:5}}>F:{r.front}</span><span style={{fontSize:11,fontWeight:700,color:'#60a5fa',background:'rgba(59,130,246,0.12)',padding:'2px 5px',borderRadius:5}}>B:{r.back}</span><span style={{fontSize:11,fontWeight:700,color:'#a78bfa',background:'rgba(99,102,241,0.12)',padding:'2px 5px',borderRadius:5}}>O:{r.overall}</span><span style={{fontSize:11,fontWeight:700,color:'#34d399',background:'rgba(16,185,129,0.1)',padding:'2px 5px',borderRadius:5}}>S:{r.skins}</span></div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',flexShrink:0}}>{r.players}p</div></div>))}
       </Sec>}
 
@@ -1343,7 +1343,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
           {smallestPot&&<div style={{background:'rgba(255,255,255,0.05)',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'rgba(255,255,255,0.6)'}}>${smallestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'rgba(255,255,255,0.45)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Smallest Pot</div><div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:2}}>{smallestPot.date} {smallestPot.day} · {smallestPot.players}p</div></div>}
         </div>
         {divider}
-        <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
+        <div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
         <div style={{display:'flex',alignItems:'flex-end',gap:5,height:90,marginBottom:6}}>
           {potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;const h=Math.round((total/maxPotBar)*82)+4;return(<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}><div style={{fontSize:8,fontWeight:700,color:'#fbbf24'}}>${total}</div><div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}><div style={{flex:r.skins,background:'#10b981'}}></div><div style={{flex:r.front,background:'#3b82f6'}}></div><div style={{flex:r.back,background:'#f97316'}}></div><div style={{flex:r.overall,background:'#8b5cf6'}}></div></div><div style={{fontSize:7,color:'rgba(255,255,255,0.35)'}}>{r.date}</div></div>);})}
         </div>
@@ -1371,7 +1371,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
             return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
                 <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'rgba(255,255,255,0.4)',flexShrink:0}}>{i+1}</div>
-                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                <div style={{flex:1,fontSize:14,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
                 <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#a78bfa',flexShrink:0}}>{cnt}</div>
                 <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',width:28}}>rnds</div>
               </div>
@@ -1385,19 +1385,6 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
           {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} style={{width:'100%',marginTop:10,padding:'8px',borderRadius:8,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.5)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' Players ↓'}</button>}
         </div>
       </Sec>}
-
-      {/* ── 7. Handicap Trends ── */}
-      {showSec('hcp')&&<Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
-        <div style={{paddingTop:8}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-            <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(16,185,129,0.15)'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'#34d399',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
-            <div style={{background:'rgba(239,68,68,0.12)',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(239,68,68,0.1)'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'#f87171',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
-          </div>
-          <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
-          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:110,fontSize:11,color:'rgba(255,255,255,0.9)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#fff',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#34d399'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#f87171'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'rgba(255,255,255,0.3)'}}>—</span>}</div></div>))}
-        </div>
-      </Sec>}
-
 
       {/* ── Period Filter ── */}
       
@@ -1485,7 +1472,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
           return(
             <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:13,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                <div style={{fontSize:14,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
                 <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:1}}>{p.rounds} round{p.rounds!==1?'s':''}</div>
               </div>
               <div style={{width:56,textAlign:'right',fontFamily:'Barlow Condensed,sans-serif',fontSize:17,fontWeight:700,color:'rgba(255,255,255,0.4)',flexShrink:0}}>${p.paid}</div>
@@ -1500,6 +1487,22 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
 
       </div>
     </Sec>}
+
+
+      {/* ── 7. Handicap Trends ── */}
+      {showSec('hcp')&&<Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
+        <div style={{paddingTop:8}}>
+          <div style={{padding:'8px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,marginBottom:12}}>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.45)',lineHeight:1.6}}>📝 <strong style={{color:'rgba(255,255,255,0.6)'}}>Note:</strong> Handicaps are based on what each player self-reported when signing up — not official GHIN scores. Trends reflect changes over the season.</div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+            <div style={{background:'rgba(16,185,129,0.12)',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(16,185,129,0.15)'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'#34d399',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
+            <div style={{background:'rgba(239,68,68,0.12)',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid rgba(239,68,68,0.1)'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{p.name}</span><span style={{color:'#f87171',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
+          </div>
+          <div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
+          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:120,fontSize:12,color:'rgba(255,255,255,0.9)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#fff',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#34d399'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#f87171'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'rgba(255,255,255,0.3)'}}>—</span>}</div></div>))}
+        </div>
+      </Sec>}
 
       {/* ── 8. Tee Stats ── */}
       {showSec('tees')&&<Sec id="tees" icon="🏌️" title="Tee Stats" color="#f97316" summary={Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([t,c])=>t+': '+Math.round(c/totalTeeRounds*100)+'%').join(' · ')}>
@@ -4618,7 +4621,7 @@ function App(){
         )}
         <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel(week)}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={logoutUser}>Exit &#x2192;</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
-        <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}}>Season Attendance →</a></div>
+        <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}} target="_blank" rel="noopener">Season Attendance →</a></div>
       </div></div>
       <nav className="nav">{TABS.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
