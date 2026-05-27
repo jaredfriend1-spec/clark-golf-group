@@ -913,23 +913,52 @@ function TimePicker({onChange}){
   return(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}><select className="fs" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>{hrs.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>{mins.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}><option>AM</option><option>PM</option></select></div>);
 }
 // -- LANDING ------------------------------------------------------------------
-function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog,effectiveRoster,extra,currentUser}){
+function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog,effectiveRoster,extra,currentUser,settings,publicMode}){
   const roster=[...(effectiveRoster||ROSTER),...safeArray(extra)].filter(p=>!p.hidden);
   const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const allSignups=Object.values(week?.signups||{});
   const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
   const msDay=86400000;
 
-  // ── Collapsible state ─────────────────────────────────────────────────────
-  const [open,setOpen]=React.useState({overview:true,week:true,pots:false,scores:false,players:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false});
+  // ── Filter & export state ─────────────────────────────────────────────────
+  const [filterPeriod,setFilterPeriod]=React.useState('all');
+  const [statsUITab,setStatsUITab]=React.useState('access'); // 'access' | 'sections'
+  const [playerSearch,setPlayerSearch]=React.useState('');
+
+  // Section visibility gate — in public mode, check settings
+  const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','behavior'];
+  const showSec=id=>!publicMode||(settings?.statsPlayerSections?.[id]!==false);
+
+  // Current access settings
+  const curAccess=settings?.statsAccess||'none';
+  const curAllowed=settings?.statsAllowedPlayers||{};
+  const curSections=settings?.statsPlayerSections||SHAREABLE_SECTIONS.reduce((a,k)=>{a[k]=true;return a;},{});
+
+  // Firebase write helpers — safe, only called from MasterView
+  function writeStats(path,val){
+    if(typeof firebase==='undefined')return;
+    firebase.database().ref('settings/'+path).set(val);
+  }
+  const [open,setOpen]=React.useState({overview:true,avgday:false,pots:false,scores:false,players:false,money:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false,behavior:false});
+  const [expandedTee,setExpandedTee]=React.useState(null);
+  const [showAllPlayers,setShowAllPlayers]=React.useState(false);
   const toggle=k=>setOpen(o=>({...o,[k]:!o[k]}));
 
-  // ── Core calcs ────────────────────────────────────────────────────────────
-  const totalRounds=histArr.length;
-  const avgField=totalRounds?Math.round(histArr.reduce((s,r)=>s+(r.playerCount||0),0)/totalRounds):0;
+  // Available months from history
+  const availableMonths=[...new Set(histArr.map(r=>r.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+  const getMonthLabel=m=>{const[y,mo]=m.split('-');return new Date(y,parseInt(mo)-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});};
 
-  // Pot totals
-  const potTotals=histArr.reduce((acc,r)=>{
+  // Filtered data
+  const activeHist=filterPeriod==='all'?histArr:histArr.filter(r=>r.date?.startsWith(filterPeriod));
+  const activeLog=filterPeriod==='all'?logArr:logArr.filter(e=>{if(!e.ts)return false;return new Date(e.ts).toISOString().slice(0,7)===filterPeriod;});
+
+  // ── Season dates ──────────────────────────────────────────────────────────
+  const seasonStart=histArr.length?histArr[0].date:null;
+  const seasonStartFmt=seasonStart?new Date(seasonStart+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+  const totalRounds=activeHist.length;
+  const avgField=totalRounds?Math.round(activeHist.reduce((s,r)=>s+(r.playerCount||0),0)/totalRounds):0;
+
+  // ── Pots ─────────────────────────────────────────────────────────────────
+  const potTotals=activeHist.reduce((acc,r)=>{
     acc.skins+=(r.scores?.skinsPot||0);
     acc.front+=(r.scores?.frontPot||0);
     acc.back+=(r.scores?.backPot||0);
@@ -939,81 +968,83 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
   },{skins:0,front:0,back:0,overall:0,fund:0});
   const totalPot=potTotals.skins+potTotals.front+potTotals.back+potTotals.overall;
   const avgPot=totalRounds?Math.round(totalPot/totalRounds):0;
-  const biggestRound=histArr.reduce((best,r)=>{
-    const t=(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0);
-    return t>(best.total||0)?{total:t,date:r.date?.slice(5)||'',day:r.day,players:r.playerCount}:best;
-  },{});
-  const biggestPot=biggestRound.total||0;
+  const startingBalance=filterPeriod==='all'?(settings?.tournFundStartingBalance||0):0;
+  const totalFund=potTotals.fund+startingBalance;
 
-  // Winning scores per round — front/back/overall for winning team
-  const winningScores=[];
-  histArr.forEach(r=>{
-    const ts=r.scores?.teamScores||[];
-    const valid=ts.filter(Boolean).filter(t=>t.front!=null&&t.back!=null&&t.overall!=null);
-    if(!valid.length)return;
-    const bestFront=Math.min(...valid.map(t=>t.front));
-    const bestBack=Math.min(...valid.map(t=>t.back));
-    const bestOverall=Math.min(...valid.map(t=>t.overall));
-    winningScores.push({date:r.date?.slice(5)||'',front:bestFront,back:bestBack,overall:bestOverall,players:r.playerCount||0});
-  });
-  const avgWinFront=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.front,0)/winningScores.length):null;
-  const avgWinBack=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.back,0)/winningScores.length):null;
-  const avgWinOverall=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.overall,0)/winningScores.length):null;
+  const potRounds=activeHist.map(r=>({
+    total:(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0),
+    date:r.date?.slice(5)||'',day:r.day||'',players:r.playerCount||0,
+  })).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+  const biggestPot=potRounds[0]||null;
+  const smallestPot=potRounds.length>1?potRounds[potRounds.length-1]:null;
+  const potChartData=activeHist.slice(-10).map(r=>({
+    date:r.date?.slice(5)||'',
+    skins:r.scores?.skinsPot||0,front:r.scores?.frontPot||0,
+    back:r.scores?.backPot||0,overall:r.scores?.overallPot||0,
+    players:r.playerCount||0,
+  }));
+  const maxPotBar=Math.max(...potChartData.map(p=>p.skins+p.front+p.back+p.overall))||1;
 
-  // Skins
-  const skinsByRound=histArr.map(r=>({date:r.date?.slice(5)||'',skins:safeArray(r.scores?.skinCounts).filter(Boolean).reduce((s,x)=>s+(x||0),0),players:r.playerCount||0}));
-  const avgSkins=skinsByRound.length?Math.round(skinsByRound.reduce((s,r)=>s+r.skins,0)/skinsByRound.length*10)/10:null;
-
-  // Player data from teams in history
-  const playerRounds={};
-  const playerHcps={};   // name -> [{hcp, date}]
-  const playerTees={};   // name -> {tee: count}
-  const teamPairs={};
-
-  histArr.forEach(r=>{
+  // ── Player data ───────────────────────────────────────────────────────────
+  const playerRounds={};const playerHcps={};const playerTees={};
+  const teamPairs={};const playerTeePrefs={};const playerGuestCount={};
+  activeHist.forEach(r=>{
+    Object.values(r.signups||{}).filter(s=>s.isGuest&&s.guestOf).forEach(s=>{
+      playerGuestCount[s.guestOf]=(playerGuestCount[s.guestOf]||0)+1;
+    });
     Object.values(r.teams||{}).forEach(team=>{
       const players=safeArray(team.players).filter(p=>p.name);
       players.forEach(p=>{
         playerRounds[p.name]=(playerRounds[p.name]||0)+1;
-        if(p.handicap!=null){
-          if(!playerHcps[p.name])playerHcps[p.name]=[];
-          playerHcps[p.name].push({hcp:parseFloat(p.handicap),date:r.date||''});
-        }
-        if(p.tee){
-          if(!playerTees[p.name])playerTees[p.name]={};
-          playerTees[p.name][p.tee]=(playerTees[p.name][p.tee]||0)+1;
-        }
+        if(p.handicap!=null){if(!playerHcps[p.name])playerHcps[p.name]=[];playerHcps[p.name].push({hcp:parseFloat(p.handicap),date:r.date||''});}
+        if(p.tee){if(!playerTees[p.name])playerTees[p.name]={};playerTees[p.name][p.tee]=(playerTees[p.name][p.tee]||0)+1;}
+        if(p.teePreference==='first'){if(!playerTeePrefs[p.name])playerTeePrefs[p.name]={first:0,last:0};playerTeePrefs[p.name].first++;}
+        if(p.teePreference==='last'){if(!playerTeePrefs[p.name])playerTeePrefs[p.name]={first:0,last:0};playerTeePrefs[p.name].last++;}
       });
-      for(let i=0;i<players.length;i++){
-        for(let j=i+1;j<players.length;j++){
-          const key=[players[i].name,players[j].name].sort().join('|');
-          teamPairs[key]=(teamPairs[key]||0)+1;
-        }
+      for(let i=0;i<players.length;i++)for(let j=i+1;j<players.length;j++){
+        const key=[players[i].name,players[j].name].sort().join('|');
+        teamPairs[key]=(teamPairs[key]||0)+1;
       }
     });
   });
 
-  const topPlayers=Object.entries(playerRounds).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const topPlayers=Object.entries(playerRounds).sort((a,b)=>b[1]-a[1]);
   const topPairs=Object.entries(teamPairs).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const uniquePlayerCount=Object.keys(playerRounds).length;
+  const totalOfficialTeams=activeHist.reduce((s,r)=>s+Object.values(r.teams||{}).length,0);
 
-  // HCP trends — sorted by current HCP
   const hcpTrends=Object.entries(playerHcps).filter(([,arr])=>arr.length>0).map(([name,arr])=>{
     const sorted=arr.sort((a,b)=>a.date.localeCompare(b.date));
-    const current=sorted[sorted.length-1].hcp;
-    const first=sorted[0].hcp;
-    const trend=sorted.length>1?Math.round((current-first)*10)/10:0;
-    const avg=Math.round(arr.reduce((s,x)=>s+x.hcp,0)/arr.length*10)/10;
-    return{name,current,first,avg,trend,rounds:arr.length};
+    const current=sorted[sorted.length-1].hcp;const first=sorted[0].hcp;
+    return{name,current,first,avg:Math.round(arr.reduce((s,x)=>s+x.hcp,0)/arr.length*10)/10,trend:Math.round((current-first)*10)/10,rounds:arr.length};
   }).sort((a,b)=>a.current-b.current);
 
-  // Tee stats — overall who plays what
+  const mostImproved=hcpTrends.filter(p=>p.trend<0).sort((a,b)=>a.trend-b.trend)[0]||null;
+  const mostConsistent=topPlayers[0]?topPlayers[0][0]:null;
+
   const teeTotals={};
-  Object.values(playerTees).forEach(tMap=>{
-    Object.entries(tMap).forEach(([tee,cnt])=>{tee&&(teeTotals[tee]=(teeTotals[tee]||0)+cnt);});
-  });
+  Object.values(playerTees).forEach(tMap=>Object.entries(tMap).forEach(([tee,cnt])=>{if(tee)teeTotals[tee]=(teeTotals[tee]||0)+cnt;}));
   const totalTeeRounds=Object.values(teeTotals).reduce((s,x)=>s+x,0)||1;
 
-  // Engagement
+  const winningScores=[];
+  const skinsByRound=activeHist.map(r=>({date:r.date?.slice(5)||'',skins:safeArray(r.scores?.skinCounts).filter(Boolean).reduce((s,x)=>s+(x||0),0),players:r.playerCount||0}));
+  activeHist.forEach(r=>{
+    const ts=safeArray(r.scores?.teamScores).filter(Boolean).filter(t=>t.front!=null&&t.back!=null&&t.overall!=null);
+    if(!ts.length)return;
+    winningScores.push({date:r.date?.slice(5)||'',front:Math.min(...ts.map(t=>t.front)),back:Math.min(...ts.map(t=>t.back)),overall:Math.min(...ts.map(t=>t.overall)),skins:safeArray(r.scores?.skinCounts).filter(Boolean).reduce((s,x)=>s+(x||0),0),players:r.playerCount||0});
+  });
+  const avgWinFront=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.front,0)/winningScores.length):null;
+  const avgWinBack=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.back,0)/winningScores.length):null;
+  const avgWinOverall=winningScores.length?Math.round(winningScores.reduce((s,r)=>s+r.overall,0)/winningScores.length):null;
+  const avgSkins=skinsByRound.length?Math.round(skinsByRound.reduce((s,r)=>s+r.skins,0)/skinsByRound.length*10)/10:null;
+
+  // ── Team chemistry ────────────────────────────────────────────────────────
+  const totalPairings=Object.values(teamPairs).reduce((s,x)=>s+x,0);
+  const possiblePairs=Math.max(1,uniquePlayerCount*(uniquePlayerCount-1)/2);
+  const expectedAvg=totalPairings>0?Math.round(totalPairings/possiblePairs*10)/10:0;
+  const neverPaired=possiblePairs-Object.keys(teamPairs).length;
+
+  // ── Engagement ────────────────────────────────────────────────────────────
   const registeredCount=Object.keys(rosterPins||{}).length;
   const totalMembers=roster.length;
   const cutoff60=new Date(Date.now()-60*msDay).toISOString().slice(0,10);
@@ -1022,453 +1053,465 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
   const inactive=roster.filter(p=>!activePlayers.has(p.name));
   const notRegistered=roster.filter(p=>!(rosterPins||{})[p.id]);
 
-  // Sign-up timing
-  const signupLogs=logArr.filter(e=>e.action==='signup'&&e.ts);
-  const signupsByHour=new Array(24).fill(0);
-  const signupsByDayOfWeek=new Array(7).fill(0);
-  // Historical avg signups per round by day name
+  // ── Sign-up timing ────────────────────────────────────────────────────────
+  const signupLogs=activeLog.filter(e=>e.action==='signup'&&e.ts);
+  const dowOrder=[1,2,3,4,5,6,0];
+  const dowLabels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const signupsByDow=new Array(7).fill(0);
+  signupLogs.forEach(e=>{signupsByDow[new Date(e.ts).getDay()]++;});
+  const peakDowIdx=dowOrder.reduce((best,d)=>signupsByDow[d]>signupsByDow[best]?d:best,dowOrder[0]);
+  const peakDow=dowLabels[dowOrder.indexOf(peakDowIdx)];
   const signupsByDayName={};
-  histArr.forEach(r=>{
-    const day=r.day;
-    if(!day)return;
-    if(!signupsByDayName[day])signupsByDayName[day]={total:0,count:0};
-    signupsByDayName[day].total+=(r.playerCount||0);
-    signupsByDayName[day].count++;
+  activeHist.forEach(r=>{const day=r.day;if(!day)return;if(!signupsByDayName[day])signupsByDayName[day]={total:0,count:0};signupsByDayName[day].total+=(r.playerCount||0);signupsByDayName[day].count++;});
+
+  // ── Activity ──────────────────────────────────────────────────────────────
+  const memberLogins=activeLog.filter(e=>e.action==='login'&&e.role!=='admin').length;
+  const adminLogins=activeLog.filter(e=>e.action==='login'&&e.role==='admin').length;
+  const signupCount=activeLog.filter(e=>e.action==='signup').length;
+  const rosterAdds=activeLog.filter(e=>e.action==='roster_add').length;
+  const matchReqs=activeLog.filter(e=>e.action==='match_request').length;
+
+  // ── Player behavior ───────────────────────────────────────────────────────
+  const matchReqByPlayer={};
+  activeLog.filter(e=>e.action==='match_request'&&e.name).forEach(e=>{matchReqByPlayer[e.name]=(matchReqByPlayer[e.name]||0)+1;});
+  const topMatchPlayers=Object.entries(matchReqByPlayer).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const firstTeePlayers=Object.entries(playerTeePrefs).filter(([,v])=>v.first>0).sort((a,b)=>b[1].first-a[1].first).slice(0,5);
+  const lastTeePlayers=Object.entries(playerTeePrefs).filter(([,v])=>v.last>0).sort((a,b)=>b[1].last-a[1].last).slice(0,5);
+  const topGuestBringers=Object.entries(playerGuestCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const signupByPlayer={};
+  activeLog.filter(e=>e.action==='signup'&&e.name&&!e.isGuest).forEach(e=>{
+    // Count by who signed up (self sign-ups), not who was signed up on their behalf
+    const player=e.by&&e.by!=='player'&&e.by!=='admin'?e.by:e.name;
+    signupByPlayer[player]=(signupByPlayer[player]||0)+1;
   });
-  signupLogs.forEach(e=>{
-    const d=new Date(e.ts);
-    signupsByHour[d.getHours()]++;
-    signupsByDayOfWeek[d.getDay()]++;
+  const topSignupPlayers=Object.entries(signupByPlayer).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  // ── Money stats ───────────────────────────────────────────────────────────
+  const COST=25;
+  const playerMoney={};
+  activeHist.forEach(r=>{
+    const sc=r.scores;if(!sc||!sc.payoutsCalculated)return;
+    const teams=Object.values(r.teams||{});if(!teams.length)return;
+    const ts=safeArray(sc.teamScores);
+    const totalSkins=safeArray(sc.skinCounts).reduce((s,x)=>s+(x||0),0);
+    const netSkins=Math.max(0,(sc.skinsPot||0)-(sc.tournFund||0));
+    const skinVal=totalSkins>0?Math.floor(netSkins/totalSkins):0;
+    const frontSorted=[...teams].filter(t=>ts[t.id]?.front!=null).sort((a,b)=>ts[a.id].front-ts[b.id].front);
+    const backSorted=[...teams].filter(t=>ts[t.id]?.back!=null).sort((a,b)=>ts[a.id].back-ts[b.id].back);
+    const overallSorted=[...teams].filter(t=>ts[t.id]?.overall!=null).sort((a,b)=>ts[a.id].overall-ts[b.id].overall);
+    const payT=(team,amt)=>{const pl=safeArray(team.players).filter(p=>p.name);const pp=pl.length>0?Math.floor(amt/pl.length):0;pl.forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].won+=pp;});};
+    if(frontSorted[0])payT(frontSorted[0],sc.f1||0);
+    if(sc.frontPlaces>=2&&frontSorted[1])payT(frontSorted[1],sc.f2||0);
+    if(backSorted[0])payT(backSorted[0],sc.b1||0);
+    if(sc.backPlaces>=2&&backSorted[1])payT(backSorted[1],sc.b2||0);
+    if(overallSorted[0])payT(overallSorted[0],sc.o1||0);
+    if(sc.overallPlaces>=2&&overallSorted[1])payT(overallSorted[1],sc.o2||0);
+    safeArray(sc.skinCounts).forEach((cnt,idx)=>{if(!cnt)return;const t=teams.find(t=>String(t.id)===String(idx));if(t)payT(t,cnt*skinVal);});
+    teams.forEach(team=>safeArray(team.players).filter(p=>p.name).forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].paid+=COST;playerMoney[p.name].rounds++;}));
   });
-  const peakHour=signupsByHour.indexOf(Math.max(...signupsByHour));
-  const peakDowIdx=signupsByDayOfWeek.indexOf(Math.max(...signupsByDayOfWeek));
-  const peakDow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][peakDowIdx];
+  const moneyList=Object.entries(playerMoney).map(([name,d])=>({name,won:d.won,paid:d.paid,net:d.won-d.paid,rounds:d.rounds})).sort((a,b)=>b.net-a.net);
+  const winners=moneyList.filter(p=>p.net>0);
+  const donors=moneyList.filter(p=>p.net<0).sort((a,b)=>a.net-b.net);
 
-  // Week stats
-  const activeDays=safeArray(week?.activeDays||[]);
-  const weekStats=activeDays.map(d=>({
-    day:d,total:allSignups.filter(s=>s.day===d).length,
-    guests:allSignups.filter(s=>s.day===d&&s.isGuest).length,
-    members:allSignups.filter(s=>s.day===d&&!s.isGuest).length,
-  }));
-
-  // Pot chart data
-  const potChartData=histArr.slice(-10).map(r=>({
-    date:r.date?.slice(5)||'',
-    skins:r.scores?.skinsPot||0,
-    front:r.scores?.frontPot||0,
-    back:r.scores?.backPot||0,
-    overall:r.scores?.overallPot||0,
-    fund:r.scores?.tournFund||0,
-    players:r.playerCount||0,
-  }));
-  const maxPotBar=Math.max(...potChartData.map(p=>p.skins+p.front+p.back+p.overall))||1;
-
-  // ── UI Helpers ─────────────────────────────────────────────────────────────
+  // ── Export PDF ────────────────────────────────────────────────────────────
+  // ── UI helpers ─────────────────────────────────────────────────────────────
   const Sec=({id,title,icon,color,summary,children})=>(
     <div style={{background:'#fff',borderRadius:14,border:'1px solid #e2e8f0',marginBottom:12,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
       <div onClick={()=>toggle(id)} style={{display:'flex',alignItems:'center',gap:10,padding:'13px 16px',cursor:'pointer',borderLeft:'4px solid '+color,userSelect:'none'}}>
         <span style={{fontSize:16,flexShrink:0}}>{icon}</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>{title}</div>
-          {!open[id]&&summary&&<div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>{summary}</div>}
+          {!open[id]&&summary&&<div style={{fontSize:11,color:'#94a3b8',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</div>}
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{transform:open[id]?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       {open[id]&&<div style={{padding:'0 16px 16px'}}>{children}</div>}
     </div>
   );
-  const BN=(v,l,c='#10b981',s)=>(
-    <div style={{textAlign:'center',padding:'8px 4px'}}>
-      <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:34,fontWeight:800,color:c,lineHeight:1}}>{v}</div>
-      <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>
-      {s&&<div style={{fontSize:10,color:'#64748b',marginTop:1}}>{s}</div>}
-    </div>
-  );
-  const Bar=({pct,color,h=7})=>(
-    <div style={{background:'#f1f5f9',borderRadius:4,height:h,overflow:'hidden'}}>
-      <div style={{background:color,height:'100%',width:Math.min(100,Math.max(0,pct))+'%',borderRadius:4}}></div>
-    </div>
-  );
-  const Pill=(label,color,bg)=>(
-    <span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:20,background:bg,color,border:'1px solid '+color+'44'}}>{label}</span>
-  );
-  const divider=<div style={{height:1,background:'#f1f5f9',margin:'10px 0'}}/>;
+  const BN=(v,l,c,s)=>(<div style={{textAlign:'center',padding:'8px 4px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:c||'#0f172a',lineHeight:1}}>{v}</div><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>{l}</div>{s&&<div style={{fontSize:10,color:'#64748b',marginTop:1}}>{s}</div>}</div>);
+  const Bar=({pct,color,h=7})=>(<div style={{background:'#f1f5f9',borderRadius:4,height:h,overflow:'hidden'}}><div style={{background:color,height:'100%',width:Math.min(100,Math.max(0,pct))+'%',borderRadius:4}}></div></div>);
+  const HBar=({label,val,max,color})=>(<div style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><div style={{width:70,fontSize:12,color:'#0f172a',fontWeight:600,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div><div style={{flex:1}}><Bar pct={max>0?val/max*100:0} color={color} h={8}/></div><div style={{fontSize:12,fontWeight:700,color,width:28,textAlign:'right',flexShrink:0}}>{val}</div></div>);
+  const SmallList=({items,emptyMsg})=>items.length===0?<div style={{fontSize:12,color:'#94a3b8'}}>{emptyMsg||'No data yet'}</div>:(<>{items.map(([name,cnt],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:i<items.length-1?'1px solid #f8fafc':'none'}}><div style={{fontSize:12,color:'#0f172a',fontWeight:500}}>{name}</div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#64748b'}}>{cnt}</div></div>))}</>);
+  const divider=<div style={{height:1,background:'#f1f5f9',margin:'12px 0'}}/>;
+
+  const periodLabel=filterPeriod==='all'?'All Time':getMonthLabel(filterPeriod);
 
   return(
-    <div style={{background:'#f1f5f9',minHeight:'100%',padding:'14px 12px 80px'}}>
-      {/* Header */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+    <div id="master-dashboard" style={{background:'#f1f5f9',minHeight:'100%',padding:'14px 12px 80px'}}>
+
+      {/* ── Header ── */}
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
         <div>
           <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#0f172a'}}>⭐ Master Dashboard</div>
-          <div style={{fontSize:11,color:'#94a3b8'}}>Private analytics — Jared Friend</div>
+          <div style={{fontSize:11,color:'#94a3b8'}}>Jared Friend — {periodLabel}</div>
         </div>
-        <div style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:10,padding:'6px 10px',textAlign:'right'}}>
-          <div style={{fontSize:11,fontWeight:700,color:'#0f172a'}}>{totalRounds} rounds</div>
-          <div style={{fontSize:10,color:'#94a3b8'}}>{new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-        </div>
+
       </div>
 
-      {/* ── Season Overview ── */}
-      <Sec id="overview" icon="📊" title="Season Overview" color="#10b981"
-        summary={`${totalRounds} rounds · avg ${avgField} players · $${totalPot.toLocaleString()} paid out`}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10}}>
-          {BN(totalRounds,'Rounds','#10b981')}
-          {BN(avgField,'Avg Field','#3b82f6')}
-{BN('$'+avgPot,'Avg Pot','#f59e0b','per round')}
-          {BN('$'+potTotals.fund.toLocaleString(),'Tourn. Fund','#8b5cf6',totalRounds+' rounds')}
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginTop:8}}>
-          {BN('$'+totalPot.toLocaleString(),'Total Paid Out','#0f172a')}
-          {BN(Object.keys(playerRounds).length,'Unique Players','#06b6d4')}
-          {BN(Object.keys(playerRounds).length,'Unique Players','#06b6d4','played in history')}
-        </div>
-      </Sec>
-
-      {/* ── This Week ── */}
-      {activeDays.length>0&&(
-      <Sec id="week" icon="📅" title={"This Week"} color="#3b82f6"
-        summary={activeDays.join(', ')+' · '+weekStats.reduce((s,w)=>s+w.total,0)+' total sign-ups'}>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:10,marginBottom:12}}>
-          {weekStats.map(w=>(
-            <div key={w.day} style={{flex:1,minWidth:70,background:'#f8fafc',borderRadius:10,padding:'10px',textAlign:'center',border:'1px solid #e2e8f0'}}>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#0f172a'}}>{w.total}</div>
-              <div style={{fontSize:11,fontWeight:700,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.04em'}}>{w.day.slice(0,3)}</div>
-              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{w.members}m{w.guests?' + '+w.guests+'g':''}</div>
-            </div>
-          ))}
-        </div>
-        {divider}
-        <div style={{fontSize:11,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Historical Avg by Day</div>
-        {Object.entries(signupsByDayName).sort((a,b)=>['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].indexOf(a[0])-['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].indexOf(b[0])).map(([day,data])=>(
-          <div key={day} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-            <div style={{width:60,fontSize:12,color:'#0f172a',fontWeight:600}}>{day.slice(0,3)}</div>
-            <div style={{flex:1}}><Bar pct={data.total/data.count/30*100} color="#3b82f6"/></div>
-            <div style={{fontSize:12,fontWeight:700,color:'#3b82f6',width:20,textAlign:'right'}}>{Math.round(data.total/data.count)}</div>
-            <div style={{fontSize:10,color:'#94a3b8',width:40}}>avg/{data.count}r</div>
+      {/* ── Stats Access Control — master only ── */}
+      {!publicMode&&(
+        <div style={{background:'#fff',borderRadius:14,border:'1px solid #e2e8f0',marginBottom:14,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,0.04)'}}>
+          {/* Tab bar */}
+          <div style={{display:'flex',borderBottom:'1px solid #f1f5f9'}}>
+            {[['access','👥 Who Can See'],['sections','📋 What They See']].map(([t,l])=>(
+              <button key={t} onClick={()=>setStatsUITab(t)} style={{flex:1,padding:'10px',border:'none',background:'none',fontSize:12,fontWeight:700,cursor:'pointer',color:statsUITab===t?'#0f172a':'#94a3b8',borderBottom:statsUITab===t?'2px solid #0f172a':'2px solid transparent',fontFamily:'DM Sans,sans-serif'}}>{l}</button>
+            ))}
           </div>
-        ))}
-      </Sec>
+
+          {/* Access tab */}
+          {statsUITab==='access'&&(
+            <div style={{padding:'14px 16px'}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:10}}>Who can see the Stats tab?</div>
+              {/* Option buttons */}
+              <div style={{display:'flex',gap:6,marginBottom:14}}>
+                {[['none','🔒 Nobody'],['all','🌍 All Members'],['specific','👤 Specific People']].map(([val,label])=>(
+                  <button key={val} onClick={()=>writeStats('statsAccess',val)} style={{flex:1,padding:'7px 4px',borderRadius:8,border:'1.5px solid',borderColor:curAccess===val?'#0f172a':'#e2e8f0',background:curAccess===val?'#0f172a':'#fff',color:curAccess===val?'#fff':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',textAlign:'center'}}>{label}</button>
+                ))}
+              </div>
+              {/* Status */}
+              <div style={{padding:'8px 12px',borderRadius:8,background:curAccess==='none'?'#f8fafc':curAccess==='all'?'#ecfdf5':'#eff6ff',fontSize:11,color:curAccess==='none'?'#94a3b8':curAccess==='all'?'#15803d':'#1d4ed8',fontWeight:600,marginBottom:curAccess==='specific'?12:0}}>
+                {curAccess==='none'&&'Stats tab hidden — only you can see it'}
+                {curAccess==='all'&&'✓ All signed-in members can see the Stats tab'}
+                {curAccess==='specific'&&(Object.keys(curAllowed).length>0?'✓ '+Object.keys(curAllowed).length+' member(s) have access':'No members selected yet')}
+              </div>
+              {/* Specific people picker */}
+              {curAccess==='specific'&&(
+                <div>
+                  <div style={{position:'relative',marginBottom:8}}>
+                    <svg style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',width:12,height:12,color:'#94a3b8'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input style={{width:'100%',padding:'7px 10px 7px 28px',border:'1.5px solid #e2e8f0',borderRadius:8,fontSize:12,fontFamily:'DM Sans,sans-serif',outline:'none',boxSizing:'border-box'}} placeholder="Search members..." value={playerSearch} onChange={e=>setPlayerSearch(e.target.value)}/>
+                  </div>
+                  <div style={{maxHeight:240,overflowY:'auto',border:'1px solid #f1f5f9',borderRadius:8}}>
+                    {(()=>{
+                      const filtered=roster.filter(p=>p.name.toLowerCase().includes(playerSearch.toLowerCase()));
+                      const admins=filtered.filter(p=>rosterAdmins&&rosterAdmins[p.id]);
+                      const players=filtered.filter(p=>!(rosterAdmins&&rosterAdmins[p.id]));
+                      const renderRow=p=>{
+                        const hasAccess=!!(curAllowed[p.id]);
+                        const isAdmin=!!(rosterAdmins&&rosterAdmins[p.id]);
+                        return(
+                          <div key={p.id} onClick={()=>{
+                            const newVal=hasAccess?null:true;
+                            if(typeof firebase==='undefined')return;
+                            firebase.database().ref('settings/statsAllowedPlayers/'+p.id).set(newVal);
+                          }} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 12px',borderBottom:'1px solid #f8fafc',cursor:'pointer',background:hasAccess?'#f0fdf4':'transparent'}}>
+                            <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:hasAccess?'#10b981':'#d1d5db',background:hasAccess?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                              {hasAccess&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                            </div>
+                            <div style={{flex:1,fontSize:12,fontWeight:500,color:'#0f172a'}}>{p.name}</div>
+                            {isAdmin&&<span style={{fontSize:9,fontWeight:700,color:'#f59e0b',background:'#fffbeb',padding:'1px 5px',borderRadius:20,marginRight:2}}>Admin</span>}
+                            {hasAccess&&<span style={{fontSize:9,fontWeight:700,color:'#10b981',background:'#dcfce7',padding:'1px 6px',borderRadius:20}}>✓</span>}
+                          </div>
+                        );
+                      };
+                      return(<>
+                        {admins.length>0&&<>
+                          <div style={{padding:'5px 12px',background:'#fffbeb',fontSize:10,fontWeight:700,color:'#b45309',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid #fde68a'}}>Admins ({admins.length})</div>
+                          {admins.map(renderRow)}
+                        </>}
+                        {players.length>0&&<>
+                          <div style={{padding:'5px 12px',background:'#f8fafc',fontSize:10,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid #f1f5f9'}}>Members ({players.length})</div>
+                          {players.map(renderRow)}
+                        </>}
+                      </>);
+                    })()}
+                  </div>
+                  {Object.keys(curAllowed).length>0&&(
+                    <button onClick={()=>{if(typeof firebase!=='undefined')firebase.database().ref('settings/statsAllowedPlayers').set(null);}} style={{marginTop:8,fontSize:11,color:'#dc2626',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:600}}>Clear all access</button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sections tab */}
+          {statsUITab==='sections'&&(
+            <div style={{padding:'14px 16px'}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:4}}>What sections can members see?</div>
+              <div style={{fontSize:11,color:'#94a3b8',marginBottom:12}}>Admins always see everything. Money Stats, Admin Activity and Player Behavior are always private.</div>
+              {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['players','🏆 Player Leaderboard'],['money','💵 Money Stats'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Behavior'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity']].map(([id,label])=>{
+                const isOn=curSections[id]!==false;
+                return(
+                  <div key={id} onClick={()=>writeStats('statsPlayerSections/'+id,!isOn)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #f8fafc',cursor:'pointer'}}>
+                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isOn?'#3b82f6':'#d1d5db',background:isOn?'#3b82f6':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {isOn&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                    </div>
+                    <div style={{fontSize:12,fontWeight:500,color:'#0f172a'}}>{label}</div>
+                  </div>
+                );
+              })}
+
+            </div>
+          )}
+        </div>
       )}
 
-      {/* ── Pot Analytics ── */}
-      <Sec id="pots" icon="💰" title="Pot Analytics" color="#f59e0b"
-        summary={`$${totalPot.toLocaleString()} total · $${avgPot} avg · $${potTotals.fund} tourn. fund`}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10,marginBottom:14}}>
-          {BN('$'+Math.round(potTotals.skins/totalRounds||0),'Avg Skins','#10b981','per round')}
-          {BN('$'+Math.round(potTotals.front/totalRounds||0),'Avg Front','#3b82f6','per round')}
-          {BN('$'+Math.round(potTotals.back/totalRounds||0),'Avg Back','#f97316','per round')}
-          {BN('$'+Math.round(potTotals.overall/totalRounds||0),'Avg Overall','#8b5cf6','per round')}
+      {/* ── Period Filter ── */}
+      <div className="master-print-hide" style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16}}>
+        <button onClick={()=>setFilterPeriod('all')} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod==='all'?'#0f172a':'#e2e8f0',background:filterPeriod==='all'?'#0f172a':'#fff',color:filterPeriod==='all'?'#fff':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>All Time</button>
+        {availableMonths.map(m=>(
+          <button key={m} onClick={()=>setFilterPeriod(m)} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod===m?'#3b82f6':'#e2e8f0',background:filterPeriod===m?'#3b82f6':'#fff',color:filterPeriod===m?'#fff':'#64748b',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{getMonthLabel(m)}</button>
+        ))}
+      </div>
+
+      {totalRounds===0&&<div style={{textAlign:'center',padding:'40px 20px',color:'#94a3b8',fontSize:14}}>No rounds found for this period</div>}
+
+      {totalRounds>0&&<>
+
+      {/* ── 1. Season Overview ── */}
+      {showSec('overview')&&<Sec id="overview" icon="📊" title="Season Overview" color="#10b981" summary={totalRounds+' rounds · avg '+avgField+' players · $'+totalPot.toLocaleString()+' paid out'}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10}}>
+          {BN(totalRounds,'Rounds','#10b981',filterPeriod==='all'?'since '+seasonStartFmt:getMonthLabel(filterPeriod))}
+          {BN(avgField,'Avg Field','#3b82f6')}
+          {BN('$'+avgPot,'Avg Pot','#f59e0b','per round')}
+          {BN(uniquePlayerCount,'Unique Players','#06b6d4')}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10,marginBottom:4}}>
-          <div style={{background:'#fffbeb',borderRadius:10,padding:'11px',textAlign:'center'}}>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#d97706'}}>${biggestPot}</div>
-            <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Biggest Pot Ever</div>
-            <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{biggestRound.date} {biggestRound.day} · {biggestRound.players}p</div>
+        {divider}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <div style={{background:'#f8fafc',borderRadius:10,padding:'12px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#0f172a'}}>${totalPot.toLocaleString()}</div>
+            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Total Paid Out</div>
           </div>
-          <div style={{background:'#f5f3ff',borderRadius:10,padding:'11px',textAlign:'center'}}>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#7c3aed'}}>${potTotals.fund}</div>
+          <div style={{background:'#f5f3ff',borderRadius:10,padding:'12px',textAlign:'center'}}>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#7c3aed'}}>${totalFund}</div>
             <div style={{fontSize:10,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Tournament Fund</div>
-            <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>$1/player × {totalRounds} rounds</div>
+            <div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>${potTotals.fund} app{startingBalance>0?' + $'+startingBalance+' pre-app':''}</div>
           </div>
+        </div>
+        {mostImproved&&<div style={{marginTop:8,padding:'8px 12px',background:'#ecfdf5',borderRadius:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:14}}>📈</span><div><div style={{fontSize:12,fontWeight:700,color:'#15803d'}}>Most Improved — {mostImproved.name}</div><div style={{fontSize:11,color:'#64748b'}}>HCP dropped {Math.abs(mostImproved.trend)} pts ({mostImproved.first} → {mostImproved.current})</div></div></div>}
+        {mostConsistent&&<div style={{marginTop:8,padding:'8px 12px',background:'#eff6ff',borderRadius:10,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:14}}>🏆</span><div><div style={{fontSize:12,fontWeight:700,color:'#1d4ed8'}}>Most Consistent — {mostConsistent}</div><div style={{fontSize:11,color:'#64748b'}}>{playerRounds[mostConsistent]} of {totalRounds} rounds played</div></div></div>}
+      </Sec>}
+
+{/* ── 2. Avg Players by Day ── */}
+      {showSec('avgday')&&<Sec id="avgday" icon="📅" title="Avg Players by Day" color="#3b82f6" summary={Object.entries(signupsByDayName).map(([d,v])=>d.slice(0,3)+': '+Math.round(v.total/v.count)).join(' · ')}>
+        <div style={{paddingTop:10}}>
+          {Object.entries(signupsByDayName).sort((a,b)=>{const order=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];return order.indexOf(a[0])-order.indexOf(b[0]);}).map(([day,data])=>{
+            const avg=Math.round(data.total/data.count);
+            return(<div key={day} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><div style={{width:70,fontSize:13,fontWeight:600,color:'#0f172a',flexShrink:0}}>{day.slice(0,3)}</div><div style={{flex:1}}><Bar pct={avg/30*100} color="#3b82f6" h={10}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#3b82f6',width:24,textAlign:'right',flexShrink:0}}>{avg}</div><div style={{fontSize:10,color:'#94a3b8',width:40,flexShrink:0}}>avg·{data.count}r</div></div>);
+          })}
+        </div>
+      </Sec>}
+
+{/* ── 4. Scoring Analytics ── */}
+      {showSec('scores')&&<Sec id="scores" icon="⛳" title="Scoring Analytics" color="#10b981" summary={'Avg winning F'+(avgWinFront??'—')+' B'+(avgWinBack??'—')+' O'+(avgWinOverall??'—')+' · '+(avgSkins??'—')+' skins/round'}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:10,marginBottom:14}}>
+          <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{avgWinFront??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Front</div></div>
+          <div style={{background:'#eff6ff',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{avgWinBack??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Back</div></div>
+          <div style={{background:'#f5f3ff',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#8b5cf6'}}>{avgWinOverall??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Win Overall</div></div>
+          <div style={{background:'#f0fdf4',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#16a34a'}}>{avgSkins??'—'}</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Avg Skins</div></div>
+        </div>
+        {divider}
+        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round Results</div>
+        {winningScores.map((r,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid #f8fafc'}}><div style={{fontSize:11,color:'#64748b',width:40,flexShrink:0}}>{r.date}</div><div style={{flex:1,display:'flex',gap:3,flexWrap:'wrap'}}><span style={{fontSize:11,fontWeight:700,color:'#10b981',background:'#ecfdf5',padding:'2px 5px',borderRadius:5}}>F:{r.front}</span><span style={{fontSize:11,fontWeight:700,color:'#3b82f6',background:'#eff6ff',padding:'2px 5px',borderRadius:5}}>B:{r.back}</span><span style={{fontSize:11,fontWeight:700,color:'#8b5cf6',background:'#f5f3ff',padding:'2px 5px',borderRadius:5}}>O:{r.overall}</span><span style={{fontSize:11,fontWeight:700,color:'#16a34a',background:'#f0fdf4',padding:'2px 5px',borderRadius:5}}>S:{r.skins}</span></div><div style={{fontSize:10,color:'#94a3b8',flexShrink:0}}>{r.players}p</div></div>))}
+      </Sec>}
+
+{/* ── 3. Pot Analytics ── */}
+      {showSec('pots')&&<Sec id="pots" icon="💰" title="Pot Analytics" color="#f59e0b" summary={'Biggest: $'+(biggestPot?.total||0)+' · Avg: $'+avgPot+' · Fund: $'+totalFund}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,paddingTop:10,marginBottom:14}}>
+          {biggestPot&&<div style={{background:'#fffbeb',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#d97706'}}>${biggestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Biggest Pot</div><div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>{biggestPot.date} {biggestPot.day} · {biggestPot.players}p</div></div>}
+          {smallestPot&&<div style={{background:'#f8fafc',borderRadius:10,padding:'12px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:30,fontWeight:800,color:'#64748b'}}>${smallestPot.total}</div><div style={{fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Smallest Pot</div><div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>{smallestPot.date} {smallestPot.day} · {smallestPot.players}p</div></div>}
         </div>
         {divider}
         <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
         <div style={{display:'flex',alignItems:'flex-end',gap:5,height:90,marginBottom:6}}>
-          {potChartData.map((r,i)=>{
-            const total=r.skins+r.front+r.back+r.overall;
-            const h=Math.round((total/maxPotBar)*82)+4;
-            return(
-              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
-                <div style={{fontSize:8,fontWeight:700,color:'#f59e0b'}}>${total}</div>
-                <div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}>
-                  <div style={{flex:r.skins,background:'#10b981'}}></div>
-                  <div style={{flex:r.front,background:'#3b82f6'}}></div>
-                  <div style={{flex:r.back,background:'#f97316'}}></div>
-                  <div style={{flex:r.overall,background:'#8b5cf6'}}></div>
-                </div>
-                <div style={{fontSize:7,color:'#94a3b8',textAlign:'center'}}>{r.date}</div>
-              </div>
-            );
-          })}
+          {potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;const h=Math.round((total/maxPotBar)*82)+4;return(<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}><div style={{fontSize:8,fontWeight:700,color:'#f59e0b'}}>${total}</div><div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}><div style={{flex:r.skins,background:'#10b981'}}></div><div style={{flex:r.front,background:'#3b82f6'}}></div><div style={{flex:r.back,background:'#f97316'}}></div><div style={{flex:r.overall,background:'#8b5cf6'}}></div></div><div style={{fontSize:7,color:'#94a3b8'}}>{r.date}</div></div>);})}
         </div>
-        <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'#64748b'}}>
-          {[['#10b981','Skins'],['#3b82f6','Front'],['#f97316','Back'],['#8b5cf6','Overall']].map(([c,l])=>(
-            <span key={l}><span style={{display:'inline-block',width:8,height:8,background:c,borderRadius:2,marginRight:3}}></span>{l}</span>
-          ))}
+        <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'#64748b',marginBottom:12}}>
+          {[['#10b981','Skins'],['#3b82f6','Front'],['#f97316','Back'],['#8b5cf6','Overall']].map(([c,l])=>(<span key={l}><span style={{display:'inline-block',width:8,height:8,background:c,borderRadius:2,marginRight:3}}></span>{l}</span>))}
         </div>
-      </Sec>
+        {divider}
+        <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Round Breakdown</div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr style={{borderBottom:'2px solid #f1f5f9'}}>{['Date','Players','Skins','Front','Back','Overall','Total'].map(h=>(<th key={h} style={{textAlign:'right',padding:'4px 6px',color:'#94a3b8',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',fontSize:9,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
+            <tbody>{potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;return(<tr key={i} style={{borderBottom:'1px solid #f8fafc',background:i%2===0?'transparent':'#fafafa'}}><td style={{padding:'5px 6px',color:'#64748b',whiteSpace:'nowrap'}}>{r.date}</td><td style={{padding:'5px 6px',textAlign:'right',color:'#64748b'}}>{r.players}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#10b981'}}>${r.skins}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#3b82f6'}}>${r.front}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#f97316'}}>${r.back}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#8b5cf6'}}>${r.overall}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:800,color:'#0f172a',fontFamily:'Barlow Condensed,sans-serif',fontSize:13}}>${total}</td></tr>);})}</tbody>
+          </table>
+        </div>
+      </Sec>}
 
-      {/* ── Scoring Analytics ── */}
-      <Sec id="scores" icon="⛳" title="Scoring Analytics" color="#10b981"
-        summary={`Avg winning: F${avgWinFront??'—'} B${avgWinBack??'—'} O${avgWinOverall??'—'} · ${avgSkins??'—'} skins/round`}>
-        <div style={{paddingTop:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Average Winning Score (best team per round)</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'12px',textAlign:'center'}}>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:'#10b981'}}>{avgWinFront??'—'}</div>
-              <div style={{fontSize:10,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Front 9</div>
-              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg best team</div>
-            </div>
-            <div style={{background:'#eff6ff',borderRadius:10,padding:'12px',textAlign:'center'}}>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:'#3b82f6'}}>{avgWinBack??'—'}</div>
-              <div style={{fontSize:10,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Back 9</div>
-              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg best team</div>
-            </div>
-            <div style={{background:'#f5f3ff',borderRadius:10,padding:'12px',textAlign:'center'}}>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:32,fontWeight:800,color:'#8b5cf6'}}>{avgWinOverall??'—'}</div>
-              <div style={{fontSize:10,fontWeight:700,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Overall</div>
-              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg best team</div>
-            </div>
-          </div>
-          {divider}
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Winning Scores — Last {Math.min(8,winningScores.length)} Rounds</div>
-          {winningScores.slice(-8).map((r,i)=>(
-            <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid #f8fafc'}}>
-              <div style={{fontSize:11,color:'#64748b',width:40,flexShrink:0}}>{r.date}</div>
-              <div style={{flex:1,display:'flex',gap:4}}>
-                <span style={{fontSize:11,fontWeight:700,color:'#10b981',background:'#ecfdf5',padding:'2px 6px',borderRadius:6}}>F: {r.front}</span>
-                <span style={{fontSize:11,fontWeight:700,color:'#3b82f6',background:'#eff6ff',padding:'2px 6px',borderRadius:6}}>B: {r.back}</span>
-                <span style={{fontSize:11,fontWeight:700,color:'#8b5cf6',background:'#f5f3ff',padding:'2px 6px',borderRadius:6}}>O: {r.overall}</span>
-              </div>
-              <div style={{fontSize:10,color:'#94a3b8',flexShrink:0}}>{r.players}p</div>
-            </div>
-          ))}
-          {divider}
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Skins Per Round (last {Math.min(8,skinsByRound.length)})</div>
-          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{avgSkins??'—'}</div>
-            <div style={{fontSize:11,color:'#94a3b8'}}>avg skins per round</div>
-          </div>
-          <div style={{display:'flex',alignItems:'flex-end',gap:4,height:60}}>
-            {skinsByRound.slice(-10).map((r,i)=>{
-              const maxS=Math.max(...skinsByRound.slice(-10).map(x=>x.skins))||1;
-              const h=Math.round((r.skins/maxS)*56)+2;
-              return(
-                <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>
-                  <div style={{fontSize:8,fontWeight:700,color:'#10b981'}}>{r.skins}</div>
-                  <div style={{width:'100%',height:h,background:'linear-gradient(180deg,#10b981,#059669)',borderRadius:'2px 2px 0 0'}}></div>
-                  <div style={{fontSize:7,color:'#94a3b8'}}>{r.date}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </Sec>
-
-      {/* ── Player Leaderboard ── */}
-      <Sec id="players" icon="🏆" title="Player Leaderboard" color="#8b5cf6"
-        summary={`Top: ${topPlayers[0]?.[0]??'—'} (${topPlayers[0]?.[1]??0} rounds) · ${Object.keys(playerRounds).length} unique players`}>
+{/* ── 5. Player Leaderboard ── */}
+      {showSec('players')&&<Sec id="players" icon="🏆" title="Player Leaderboard" color="#8b5cf6" summary={'Top: '+(topPlayers[0]?.[0]??'—')+' ('+topPlayers[0]?.[1]+' rounds) · '+uniquePlayerCount+' unique'}>
         <div style={{paddingTop:8}}>
-          {topPlayers.map(([name,cnt],i)=>{
-            const hcpArr=(playerHcps[name]||[]);
-            const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
+          {(showAllPlayers?topPlayers:topPlayers.slice(0,20)).map(([name,cnt],i)=>{
+            const hcpArr=(playerHcps[name]||[]);const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
             const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
-            const pct=Math.round(cnt/topPlayers[0][1]*100);
-            return(
-              <div key={name} style={{padding:'8px 0',borderBottom:i<topPlayers.length-1?'1px solid #f8fafc':'none'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-                  <div style={{width:24,height:24,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'#94a3b8',flexShrink:0}}>{i+1}</div>
-                  <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a'}}>{name}</div>
-                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:700,color:'#8b5cf6'}}>{cnt}</div>
-                  <div style={{fontSize:10,color:'#94a3b8',width:30}}>rnds</div>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:32}}>
-                  <div style={{flex:1}}><Bar pct={pct} color="#8b5cf6" h={4}/></div>
-                  {currHcp!=null&&<span style={{fontSize:10,color:'#64748b',flexShrink:0}}>HCP {currHcp}</span>}
-                  {topTee&&<span style={{fontSize:10,color:TC[topTee]||'#94a3b8',flexShrink:0}}>● {topTee}</span>}
-                </div>
+            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid #f8fafc':'none'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'#94a3b8',flexShrink:0}}>{i+1}</div>
+                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#8b5cf6',flexShrink:0}}>{cnt}</div>
+                <div style={{fontSize:10,color:'#94a3b8',width:28}}>rnds</div>
               </div>
-            );
+              <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:30}}>
+                <div style={{flex:1}}><Bar pct={cnt/topPlayers[0][1]*100} color="#8b5cf6" h={4}/></div>
+                {currHcp!=null&&<span style={{fontSize:10,color:'#64748b',flexShrink:0}}>HCP {currHcp}</span>}
+                {topTee&&<span style={{fontSize:10,color:TC[topTee]||'#94a3b8',flexShrink:0}}>● {topTee}</span>}
+              </div>
+            </div>);
           })}
+          {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} style={{width:'100%',marginTop:10,padding:'8px',borderRadius:8,border:'1.5px solid #e2e8f0',background:'#f8fafc',color:'#64748b',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' Players ↓'}</button>}
+        </div>
+      </Sec>}
+
+{/* ── 5. Player Leaderboard ── */}
+      {showSec('players')&&<Sec id="players" icon="🏆" title="Player Leaderboard" color="#8b5cf6" summary={'Top: '+(topPlayers[0]?.[0]??'—')+' ('+topPlayers[0]?.[1]+' rounds) · '+uniquePlayerCount+' unique'}>
+        <div style={{paddingTop:8}}>
+          {(showAllPlayers?topPlayers:topPlayers.slice(0,20)).map(([name,cnt],i)=>{
+            const hcpArr=(playerHcps[name]||[]);const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
+            const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
+            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid #f8fafc':'none'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'#94a3b8',flexShrink:0}}>{i+1}</div>
+                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#8b5cf6',flexShrink:0}}>{cnt}</div>
+                <div style={{fontSize:10,color:'#94a3b8',width:28}}>rnds</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:30}}>
+                <div style={{flex:1}}><Bar pct={cnt/topPlayers[0][1]*100} color="#8b5cf6" h={4}/></div>
+                {currHcp!=null&&<span style={{fontSize:10,color:'#64748b',flexShrink:0}}>HCP {currHcp}</span>}
+                {topTee&&<span style={{fontSize:10,color:TC[topTee]||'#94a3b8',flexShrink:0}}>● {topTee}</span>}
+              </div>
+            </div>);
+          })}
+          {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} style={{width:'100%',marginTop:10,padding:'8px',borderRadius:8,border:'1.5px solid #e2e8f0',background:'#f8fafc',color:'#64748b',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' Players ↓'}</button>}
+        </div>
+      </Sec>}
+
+      {showSec('money')&&<>{/* ── 5b. Money Stats ── */}
+      <Sec id="money" icon="💵" title="Money Stats" color="#10b981" summary={(winners.length)+' in profit · '+(donors.length)+' donors · top: '+(moneyList[0]?.name||'—')}>
+        <div style={{paddingTop:10}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#10b981'}}>{winners.length}</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>In Profit</div></div>
+            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#ef4444'}}>{donors.length}</div><div style={{fontSize:9,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Net Donors 😅</div></div>
+            <div style={{background:'#f8fafc',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#0f172a'}}>${moneyList.reduce((s,p)=>s+p.won,0)}</div><div style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Total Paid Out</div></div>
+          </div>
+          {moneyList[0]&&<div style={{padding:'8px 12px',background:'#ecfdf5',border:'1px solid #bbf7d0',borderRadius:10,marginBottom:8,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:18,flexShrink:0}}>🏆</span><div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:'#15803d'}}>Top Winner — {moneyList[0].name}</div><div style={{fontSize:11,color:'#64748b'}}>+${moneyList[0].net} net · ${moneyList[0].won} won · {moneyList[0].rounds} rounds</div></div></div>}
+          {donors[0]&&<div style={{padding:'8px 12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,marginBottom:14,display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:18,flexShrink:0}}>💸</span><div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:'#dc2626'}}>Top Donor — {donors[0].name}</div><div style={{fontSize:11,color:'#64748b'}}>${Math.abs(donors[0].net)} net loss · ${donors[0].won} won · {donors[0].rounds} rounds</div></div></div>}
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Net Win / Loss — All Players</div>
+          {(()=>{const maxVal=Math.max(...moneyList.map(x=>Math.max(x.paid,x.won)))||1;return moneyList.map((p,i)=>{const isPos=p.net>=0;const paidW=Math.round(p.paid/maxVal*100);const wonW=Math.round(p.won/maxVal*100);return(<div key={p.name} style={{padding:'10px 0',borderBottom:i<moneyList.length-1?'1px solid #f1f5f9':'none'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+              <div style={{flex:1,fontSize:13,color:'#0f172a',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+              <div style={{background:'#f1f5f9',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:700,color:'#64748b',flexShrink:0}}>{p.rounds} rds</div>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:800,color:isPos?'#10b981':'#ef4444',flexShrink:0,minWidth:52,textAlign:'right'}}>{isPos?'+':'-'}${Math.abs(p.net)}</div>
+            </div>
+            <div style={{position:'relative',height:22,background:'#f8fafc',borderRadius:8,overflow:'hidden'}}>
+              <div style={{position:'absolute',left:0,top:0,height:'100%',width:paidW+'%',background:'#fee2e2',borderRadius:8}}></div>
+              <div style={{position:'absolute',left:0,top:0,height:'100%',width:wonW+'%',background:'#10b981',borderRadius:8}}></div>
+              <div style={{position:'absolute',left:8,top:0,height:'100%',display:'flex',alignItems:'center',fontSize:10,fontWeight:700,color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,0.3)',zIndex:2}}>{p.won>0?'$'+p.won+' won':'$0 won'}</div>
+              <div style={{position:'absolute',right:8,top:0,height:'100%',display:'flex',alignItems:'center',fontSize:10,fontWeight:700,color:'#ef4444',zIndex:2}}>in: ${p.paid}</div>
+            </div>
+          </div>);});})()}
+          <div style={{marginTop:10,padding:'8px 12px',background:'#f8fafc',borderRadius:8,fontSize:11,color:'#94a3b8',textAlign:'center'}}>Based on $25/round entry · front, back, overall &amp; skins payouts</div>
         </div>
       </Sec>
 
-      {/* ── Handicap Trends ── */}
-      <Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4"
-        summary={`${hcpTrends.filter(p=>p.trend<0).length} improving · ${hcpTrends.filter(p=>p.trend>0).length} trending up · avg ${Math.round(hcpTrends.reduce((s,p)=>s+p.current,0)/(hcpTrends.length||1))}`}>
+      </> }
+      {/* ── 6. Handicap Trends ── */}
+      {showSec('hcp')&&<Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
         <div style={{paddingTop:8}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px'}}>
-              <div style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓ HCP</div>
-              {hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(
-                <div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #f0fdf4'}}>
-                  <span style={{color:'#0f172a',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>{p.name}</span>
-                  <span style={{color:'#10b981',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px'}}>
-              <div style={{fontSize:11,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑ HCP</div>
-              {hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(
-                <div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #fef2f2'}}>
-                  <span style={{color:'#0f172a',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>{p.name}</span>
-                  <span style={{color:'#ef4444',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #f0fdf4'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#10b981',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
+            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #fef2f2'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#ef4444',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
           </div>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players — Handicap Landscape ({hcpTrends.length} players)</div>
-          {hcpTrends.map((p,i)=>(
-            <div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
-              <div style={{width:110,fontSize:11,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div>
-              <div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div>
-              <div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#10b981'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#ef4444'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'#94a3b8'}}>—</span>}</div>
-            </div>
-          ))}
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
+          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:110,fontSize:11,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#10b981'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#ef4444'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'#94a3b8'}}>—</span>}</div></div>))}
         </div>
-      </Sec>
+      </Sec>}
 
-      {/* ── Tee Stats ── */}
-      <Sec id="tees" icon="🏌️" title="Tee Stats" color="#f97316"
-        summary={Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`${t}: ${Math.round(c/totalTeeRounds*100)}%`).join(' · ')}>
-        <div style={{paddingTop:10}}>
-          <div style={{marginBottom:14}}>
-            {Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([tee,cnt])=>(
-              <div key={tee} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                <div style={{display:'flex',alignItems:'center',gap:6,width:80,flexShrink:0}}>
-                  <div style={{width:10,height:10,borderRadius:'50%',background:TC[tee]||'#94a3b8',flexShrink:0}}></div>
-                  <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{tee}</div>
-                </div>
-                <div style={{flex:1}}><Bar pct={cnt/totalTeeRounds*100} color={TC[tee]||'#94a3b8'} h={8}/></div>
-                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#0f172a',width:30,textAlign:'right',flexShrink:0}}>{Math.round(cnt/totalTeeRounds*100)}%</div>
-                <div style={{fontSize:10,color:'#94a3b8',width:30,flexShrink:0}}>{cnt}</div>
-              </div>
-            ))}
-          </div>
-          {divider}
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Player Preferred Tees</div>
-          {Object.entries(playerTees).map(([name,tMap])=>{
-            const sorted=Object.entries(tMap).sort((a,b)=>b[1]-a[1]);
-            const pref=sorted[0];
-            const total=Object.values(tMap).reduce((s,x)=>s+x,0);
-            return(
-              <div key={name} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid #f8fafc'}}>
-                <div style={{width:5,height:5,borderRadius:'50%',background:TC[pref[0]]||'#94a3b8',flexShrink:0}}></div>
-                <div style={{flex:1,fontSize:12,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
-                <div style={{display:'flex',gap:3,flexShrink:0}}>
-                  {sorted.map(([tee,cnt])=>(
-                    <span key={tee} style={{fontSize:9,padding:'1px 5px',borderRadius:20,background:(TC[tee]||'#94a3b8')+'22',color:TC[tee]||'#64748b',fontWeight:700}}>{tee.slice(0,1)} {cnt}</span>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Sec>
-
-      {/* ── Team Chemistry ── */}
-      <Sec id="teams" icon="🤝" title="Team Chemistry" color="#06b6d4"
-        summary={`Top pair: ${topPairs[0]?.[0]?.replace('|',' & ')?? '—'} (${topPairs[0]?.[1]??0}x)`}>
+{/* ── 6. Handicap Trends ── */}
+      {showSec('hcp')&&<Sec id="hcp" icon="📈" title="Handicap Trends" color="#06b6d4" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
         <div style={{paddingTop:8}}>
-          <div style={{fontSize:11,color:'#94a3b8',marginBottom:10}}>Players who have been on the same team most often — all rounds</div>
-          {topPairs.map(([pair,cnt],i)=>{
-            const [p1,p2]=pair.split('|');
-            const pct=Math.round(cnt/topPairs[0][1]*100);
-            return(
-              <div key={pair} style={{padding:'8px 0',borderBottom:i<topPairs.length-1?'1px solid #f8fafc':'none'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-                  <div style={{width:22,height:22,borderRadius:'50%',background:i<3?'#e0f2fe':'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#0369a1':'#94a3b8',flexShrink:0}}>{i+1}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:12,fontWeight:600,color:'#0f172a'}}>{p1} <span style={{color:'#94a3b8',fontWeight:400}}>& {p2}</span></div>
-                  </div>
-                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:700,color:'#06b6d4',flexShrink:0}}>{cnt}x</div>
-                </div>
-                <div style={{paddingLeft:30}}><Bar pct={pct} color="#06b6d4" h={4}/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Improving ↓</div>{hcpTrends.filter(p=>p.trend<0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #f0fdf4'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#10b981',fontWeight:700,flexShrink:0}}>↓{Math.abs(p.trend)}</span></div>))}</div>
+            <div style={{background:'#fef2f2',borderRadius:10,padding:'10px'}}><div style={{fontSize:11,fontWeight:700,color:'#dc2626',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Trending Up ↑</div>{hcpTrends.filter(p=>p.trend>0).slice(0,5).map(p=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:'1px solid #fef2f2'}}><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100,color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#ef4444',fontWeight:700,flexShrink:0}}>↑{Math.abs(p.trend)}</span></div>))}</div>
+          </div>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>All Players ({hcpTrends.length} tracked)</div>
+          {hcpTrends.map((p,i)=>(<div key={p.name} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}><div style={{width:110,fontSize:11,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}}>{p.name}</div><div style={{flex:1}}><Bar pct={p.current/36*100} color={p.current<10?'#10b981':p.current<18?'#f59e0b':'#ef4444'} h={6}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,color:'#0f172a',width:22,textAlign:'right',flexShrink:0}}>{p.current}</div><div style={{width:24,textAlign:'center',flexShrink:0,fontSize:11}}>{p.trend<0?<span style={{color:'#10b981'}}>↓{Math.abs(p.trend)}</span>:p.trend>0?<span style={{color:'#ef4444'}}>↑{Math.abs(p.trend)}</span>:<span style={{color:'#94a3b8'}}>—</span>}</div></div>))}
+        </div>
+      </Sec>}
+
+{/* ── 7. Tee Stats ── */}
+      {showSec('tees')&&<Sec id="tees" icon="🏌️" title="Tee Stats" color="#f97316" summary={Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([t,c])=>t+': '+Math.round(c/totalTeeRounds*100)+'%').join(' · ')}>
+        <div style={{paddingTop:10}}>
+          {Object.entries(teeTotals).sort((a,b)=>b[1]-a[1]).map(([tee,cnt])=>{
+            const pct=Math.round(cnt/totalTeeRounds*100);
+            const teePlayers=Object.entries(playerTees).filter(([,m])=>m[tee]).map(([name,m])=>({name,cnt:m[tee]})).sort((a,b)=>b.cnt-a.cnt);
+            const isExpanded=expandedTee===tee;
+            return(<div key={tee} style={{marginBottom:8}}>
+              <div onClick={()=>setExpandedTee(isExpanded?null:tee)} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'6px 8px',borderRadius:8,background:isExpanded?'#f8fafc':'transparent',userSelect:'none'}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:TC[tee]||'#94a3b8',flexShrink:0}}></div>
+                <div style={{flex:1,fontSize:13,fontWeight:600,color:'#0f172a'}}>{tee}</div>
+                <div style={{flex:2}}><Bar pct={pct} color={TC[tee]||'#94a3b8'} h={7}/></div>
+                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:'#0f172a',width:34,textAlign:'right',flexShrink:0}}>{pct}%</div>
+                <div style={{fontSize:10,color:'#94a3b8',width:20,flexShrink:0}}>{cnt}</div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{transform:isExpanded?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-            );
+              {isExpanded&&<div style={{paddingLeft:18,marginTop:6,paddingBottom:4}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Players on {tee} ({teePlayers.length})</div>{teePlayers.map((p,i)=>(<div key={p.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderBottom:i<teePlayers.length-1?'1px solid #f8fafc':'none'}}><span style={{color:'#0f172a',fontWeight:500}}>{p.name}</span><span style={{color:'#64748b',fontSize:11}}>{p.cnt} round{p.cnt!==1?'s':''}</span></div>))}</div>}
+            </div>);
           })}
         </div>
-      </Sec>
+      </Sec>}
 
-      {/* ── Member Engagement ── */}
-      <Sec id="engage" icon="👥" title="Member Engagement" color="#f97316"
-        summary={`${registeredCount}/${totalMembers} registered · ${activePlayers.size} active · ${inactive.length} inactive`}>
+{/* ── 12. Player Behavior ── */}
+      {showSec('behavior')&&<Sec id="behavior" icon="🎯" title="Player Behavior" color="#8b5cf6" summary={'Match reqs · First/Last tee · Guest bringers'}>
+        <div style={{paddingTop:10}}>
+          {topMatchPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Match Requests</div><SmallList items={topMatchPlayers}/>{divider}</>}
+          {firstTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬆ First Group Requests</div>{firstTeePlayers.map(([name,data])=>(<HBar key={name} label={name} val={data.first} max={firstTeePlayers[0][1].first} color="#10b981"/>))}{divider}</>}
+          {lastTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#ef4444',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬇ Last Group Requests</div>{lastTeePlayers.map(([name,data])=>(<HBar key={name} label={name} val={data.last} max={lastTeePlayers[0][1].last} color="#ef4444"/>))}{divider}</>}
+          {topGuestBringers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Guests Brought</div><SmallList items={topGuestBringers}/></>}
+          {topMatchPlayers.length===0&&firstTeePlayers.length===0&&lastTeePlayers.length===0&&topGuestBringers.length===0&&<div style={{fontSize:12,color:'#94a3b8',textAlign:'center',padding:'20px 0'}}>Behavior data populates as rounds are played</div>}
+        </div>
+      </Sec>}
+
+{/* ── 8. Team Chemistry ── */}
+      {showSec('teams')&&<Sec id="teams" icon="🤝" title="Team Chemistry" color="#06b6d4" summary={'Top pair: '+(topPairs[0]?.[0]?.replace('|',' & ')||'—')+' ('+topPairs[0]?.[1]+'x) · expected avg: '+expectedAvg+'x'}>
+        <div style={{paddingTop:8}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#10b981'}}>{expectedAvg}x</div><div style={{fontSize:9,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Expected Avg</div><div style={{fontSize:9,color:'#94a3b8',marginTop:1}}>fair distribution</div></div>
+            <div style={{background:'#eff6ff',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#3b82f6'}}>{topPairs[0]?.[1]||0}x</div><div style={{fontSize:9,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Max Pair</div><div style={{fontSize:9,color:'#94a3b8',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topPairs[0]?.[0]?.split('|')[0]||'—'}</div></div>
+            <div style={{background:'#f8fafc',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color:'#64748b'}}>{neverPaired.toLocaleString()}</div><div style={{fontSize:9,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}}>Never Paired</div><div style={{fontSize:9,color:'#94a3b8',marginTop:1}}>unique combos</div></div>
+          </div>
+          <div style={{padding:'8px 12px',background:'#f0f9ff',borderRadius:8,marginBottom:12,fontSize:11,color:'#0369a1'}}><div style={{fontWeight:700,marginBottom:2}}>About this data</div><div style={{fontSize:11,color:'#64748b',lineHeight:1.5}}>With small fields and few rounds, pairs naturally repeat. Expected avg of {expectedAvg}× is the mathematical baseline. As more rounds are played, outliers stand out more clearly.</div></div>
+          <div style={{padding:'8px 12px',background:'#fefce8',border:'1px solid #fde68a',borderRadius:8,marginBottom:12,fontSize:11,color:'#92400e',lineHeight:1.5}}><strong>Note:</strong> Auto vs manual teams not yet tagged in history. Future rounds will be labeled for filtering.</div>
+          {topPairs.map(([pair,cnt],i)=>{const [p1,p2]=pair.split('|');return(<div key={pair} style={{padding:'7px 0',borderBottom:i<topPairs.length-1?'1px solid #f8fafc':'none'}}><div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}><div style={{width:20,height:20,borderRadius:'50%',background:i<3?'#e0f2fe':'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:800,color:i<3?'#0369a1':'#94a3b8',flexShrink:0}}>{i+1}</div><div style={{flex:1,fontSize:12,fontWeight:600,color:'#0f172a'}}>{p1} <span style={{color:'#94a3b8',fontWeight:400}}>& {p2}</span></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#06b6d4',flexShrink:0}}>{cnt}x</div></div><div style={{paddingLeft:28}}><Bar pct={cnt/(topPairs[0][1])*100} color="#06b6d4" h={4}/></div></div>);})}
+        </div>
+      </Sec>}
+
+{/* ── 9. Member Engagement ── */}
+      {showSec('engage')&&<Sec id="engage" icon="👥" title="Member Engagement" color="#f97316" summary={registeredCount+'/'+totalMembers+' registered · '+activePlayers.size+' active · '+inactive.length+' inactive'}>
         <div style={{paddingTop:10}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-            <div style={{background:'#ecfdf5',borderRadius:10,padding:'12px'}}>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{registeredCount}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div>
-              <div style={{fontSize:10,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Registered</div>
-              <Bar pct={registeredCount/totalMembers*100} color="#10b981" h={5}/>
-              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{Math.round(registeredCount/totalMembers*100)}% adoption</div>
-            </div>
-            <div style={{background:'#eff6ff',borderRadius:10,padding:'12px'}}>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{activePlayers.size}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div>
-              <div style={{fontSize:10,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Active 60d</div>
-              <Bar pct={activePlayers.size/totalMembers*100} color="#3b82f6" h={5}/>
-              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{inactive.length} inactive</div>
-            </div>
+            <div style={{background:'#ecfdf5',borderRadius:10,padding:'12px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#10b981'}}>{registeredCount}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div><div style={{fontSize:10,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Registered</div><Bar pct={registeredCount/totalMembers*100} color="#10b981" h={5}/><div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{Math.round(registeredCount/totalMembers*100)}% adoption</div></div>
+            <div style={{background:'#eff6ff',borderRadius:10,padding:'12px'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:28,fontWeight:800,color:'#3b82f6'}}>{activePlayers.size}<span style={{fontSize:14,color:'#94a3b8',fontWeight:400}}>/{totalMembers}</span></div><div style={{fontSize:10,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2}}>Active 60d</div><Bar pct={activePlayers.size/totalMembers*100} color="#3b82f6" h={5}/><div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>{inactive.length} inactive</div></div>
           </div>
-          {notRegistered.length>0&&<>
-            <div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Not Registered ({notRegistered.length})</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:12}}>{notRegistered.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#fff7ed',color:'#c2410c',border:'1px solid #fed7aa'}}>{p.name}</span>)}</div>
-          </>}
-          {inactive.length>0&&<>
-            <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Inactive 60+ Days ({inactive.length})</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{inactive.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#f8fafc',color:'#94a3b8',border:'1px solid #e2e8f0'}}>{p.name}</span>)}</div>
-          </>}
+          {topSignupPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Sign-ups (since PIN)</div><SmallList items={topSignupPlayers}/>{divider}</>}
+          {notRegistered.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#f97316',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Not Registered ({notRegistered.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>{notRegistered.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#fff7ed',color:'#c2410c',border:'1px solid #fed7aa'}}>{p.name}</span>)}</div></>}
+          {inactive.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Inactive 60+ Days ({inactive.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{inactive.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'#f8fafc',color:'#94a3b8',border:'1px solid #e2e8f0'}}>{p.name}</span>)}</div></>}
         </div>
-      </Sec>
+      </Sec>}
 
-      {/* ── Sign-up Timing ── */}
-      <Sec id="timing" icon="⏱️" title="Sign-up Timing" color="#f59e0b"
-        summary={`Busiest day: ${peakDow} · ${signupLogs.length} sign-up events logged`}>
+{/* ── 10. Sign-up Timing ── */}
+      {showSec('timing')&&<Sec id="timing" icon="⏱️" title="Sign-up Timing" color="#f59e0b" summary={'Busiest: '+peakDow+' · '+signupLogs.length+' sign-ups logged'}>
         <div style={{paddingTop:10}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
-            {BN((peakHour===0?'12':peakHour>12?peakHour-12:peakHour)+':00'+(peakHour<12?' AM':' PM'),'Peak Hour','#f59e0b')}
-            {BN(peakDow,'Busiest Day','#f97316')}
-            {BN(signupLogs.length,'Logged Sign-ups','#64748b')}
-          </div>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Sign-ups by Day of Week (all time)</div>
-          <div style={{display:'flex',gap:4}}>
-            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i)=>{
-              const maxD=Math.max(...signupsByDayOfWeek)||1;
-              return(
-                <div key={d} style={{flex:1,textAlign:'center'}}>
-                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:14,fontWeight:700,color:i===peakDowIdx?'#f59e0b':'#64748b'}}>{signupsByDayOfWeek[i]}</div>
-                  <div style={{background:'#f1f5f9',borderRadius:4,height:36,margin:'3px 0',display:'flex',alignItems:'flex-end',overflow:'hidden'}}>
-                    <div style={{width:'100%',height:Math.round(signupsByDayOfWeek[i]/maxD*100)+'%',background:i===peakDowIdx?'#f59e0b':'#fde68a',transition:'height 0.3s'}}></div>
-                  </div>
-                  <div style={{fontSize:9,color:'#94a3b8'}}>{d}</div>
-                </div>
-              );
-            })}
-          </div>
+          <div style={{marginBottom:14}}><div style={{fontSize:20,fontWeight:800,fontFamily:'Barlow Condensed,sans-serif',color:'#f59e0b',marginBottom:2}}>{peakDow}</div><div style={{fontSize:11,color:'#94a3b8'}}>Busiest sign-up day</div></div>
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Sign-ups by Day (Mon → Sun)</div>
+          {dowOrder.map((dowIdx,i)=>{const cnt=signupsByDow[dowIdx];const maxCnt=Math.max(...dowOrder.map(d=>signupsByDow[d]))||1;const isActive=dowIdx===peakDowIdx;return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><div style={{width:36,fontSize:12,fontWeight:isActive?700:500,color:isActive?'#f59e0b':'#0f172a',flexShrink:0}}>{dowLabels[i]}</div><div style={{flex:1}}><Bar pct={maxCnt>0?cnt/maxCnt*100:0} color={isActive?'#f59e0b':'#fde68a'} h={10}/></div><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:18,fontWeight:700,color:isActive?'#f59e0b':'#64748b',width:28,textAlign:'right',flexShrink:0}}>{cnt}</div></div>);})}
         </div>
-      </Sec>
+      </Sec>}
 
-      {/* ── Admin Activity ── */}
-      <Sec id="activity" icon="📋" title="Admin Activity" color="#ef4444"
-        summary={`${logArr.length} total events · ${logArr.filter(e=>e.action==='signup').length} sign-ups · ${logArr.filter(e=>e.action==='remove_signup').length} removals`}>
+
+      {showSec('activity')&&<Sec id="activity" icon="📋" title="Admin Activity" color="#ef4444" summary={signupCount+' sign-ups · '+totalOfficialTeams+' official teams · '+matchReqs+' match reqs'}>
         <div style={{paddingTop:10}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}}>
-            {[['signup','Sign-ups','#10b981'],['remove_signup','Removals','#ef4444'],['login','Logins','#3b82f6'],['teams_published','Teams Built','#8b5cf6'],['roster_add','Roster Adds','#f97316'],['match_request','Match Reqs','#06b6d4']].map(([action,label,color])=>(
-              <div key={action} style={{background:'#f8fafc',borderRadius:8,padding:'8px',textAlign:'center',border:'1px solid #e2e8f0'}}>
-                <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color}}>{logArr.filter(e=>e.action===action).length}</div>
-                <div style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.04em',marginTop:1,lineHeight:1.2}}>{label}</div>
-              </div>
-            ))}
+            {[['#10b981',signupCount,'Sign-ups','since PIN'],['#3b82f6',memberLogins,'Member Logins',null],['#f59e0b',adminLogins,'Admin Logins',null],['#8b5cf6',totalOfficialTeams,'Official Teams',totalRounds+' rounds'],['#f97316',rosterAdds,'Roster Adds',null],['#06b6d4',matchReqs,'Match Reqs',null]].map(([color,val,label,sub])=>(<div key={label} style={{background:'#f8fafc',borderRadius:8,padding:'8px',textAlign:'center',border:'1px solid #e2e8f0'}}><div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:800,color}}>{val}</div><div style={{fontSize:9,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.04em',marginTop:1,lineHeight:1.3}}>{label}</div>{sub&&<div style={{fontSize:8,color:'#94a3b8',marginTop:1}}>{sub}</div>}</div>))}
           </div>
-          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Recent ({Math.min(15,logArr.length)})</div>
-          {logArr.slice(0,15).map((e,i)=>{
-            const icons={login:'🔑',signup:'👤',remove_signup:'✕',teams_published:'✓',day_setup:'📅',week_started:'🗓',roster_add:'➕',match_request:'⚡',self_register:'📱',roster_remove:'−'};
-            const age=Date.now()-(e.ts||0);
-            const ageStr=age<3600000?Math.round(age/60000)+'m':age<86400000?Math.round(age/3600000)+'h':Math.round(age/86400000)+'d';
-            return(
-              <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:i<14?'1px solid #f8fafc':'none'}}>
-                <span style={{fontSize:12,flexShrink:0,width:16,textAlign:'center'}}>{icons[e.action]||'•'}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.action?.replace(/_/g,' ')}{e.name?' — '+e.name:''}</div>
-                  <div style={{fontSize:10,color:'#94a3b8'}}>{e.by&&e.by!=='admin'&&e.by!=='player'?e.by+' · ':''}{ageStr} ago</div>
-                </div>
-                {e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:20,flexShrink:0,background:e.byRole==='admin'?'#fffbeb':'#ecfdf5',color:e.byRole==='admin'?'#b45309':'#15803d'}}>{e.byRole}</span>}
-              </div>
-            );
-          })}
+          {divider}
+          <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Recent Events</div>
+          {activeLog.slice(0,15).map((e,i)=>{const icons={login:'🔑',signup:'👤',remove_signup:'✕',teams_published:'✓',day_setup:'📅',week_started:'🗓',roster_add:'➕',match_request:'⚡',self_register:'📱',roster_remove:'−'};const age=Date.now()-(e.ts||0);const ageStr=age<3600000?Math.round(age/60000)+'m':age<86400000?Math.round(age/3600000)+'h':Math.round(age/86400000)+'d';return(<div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:i<14?'1px solid #f8fafc':'none'}}><span style={{fontSize:12,flexShrink:0,width:16,textAlign:'center'}}>{icons[e.action]||'•'}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.action?.replace(/_/g,' ')}{e.name?' — '+e.name:''}</div><div style={{fontSize:10,color:'#94a3b8'}}>{e.by&&e.by!=='admin'&&e.by!=='player'?e.by+' · ':''}{ageStr} ago</div></div>{e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:20,flexShrink:0,background:e.byRole==='admin'?'#fffbeb':'#ecfdf5',color:e.byRole==='admin'?'#b45309':'#15803d'}}>{e.byRole}</span>}</div>);})}
         </div>
-      </Sec>
+      </Sec>}
 
+      </> }
     </div>
   );
 }
@@ -4111,6 +4154,7 @@ function App(){
   const [rosterShared,setRosterShared]=useState({});
   const [matchPairings,setMatchPairings]=useState({});
   const [attendance,setAttendance]=useState({});
+  const [settings,setSettings]=useState({});
   const [rosterAdmins,setRosterAdmins]=useState({});
   const [activityLog,setActivityLog]=useState([]);
   const [historyTrash,setHistoryTrash]=useState({});
@@ -4130,6 +4174,7 @@ function App(){
     u.push(read('rosterPins',v=>setRosterPins(v||{})));
     u.push(read('week/matchPairings',v=>setMatchPairings(v||{})));
     u.push(read('attendance',v=>setAttendance(v||{})));
+    u.push(read('settings',v=>setSettings(v||{})));
     u.push(read('rosterAdmins',v=>setRosterAdmins(v||{})));
     u.push(read('activityLog',v=>{
       if(v){
@@ -4302,6 +4347,11 @@ function App(){
     else update({['rosterPins/'+playerId]:val});
   }
 
+  function toggleStatsVisible(){
+    const newVal=!(settings?.statsVisible);
+    if(isDemo){setSettings(s=>({...s,statsVisible:newVal}));}
+    else{update({'settings/statsVisible':newVal});}
+  }
   function logActivity(action,details){
     if(isDemo)return; // never log demo activity
     const entry={action,ts:Date.now(),...details};
@@ -4326,6 +4376,11 @@ function App(){
     if(val.length<4)return;
     if(isDemo)setRosterPins(p=>({...p,[playerId]:val}));
     else update({['rosterPins/'+playerId]:val});
+  }
+  function toggleStatsVisible(){
+    const newVal=!(settings?.statsVisible);
+    if(isDemo){setSettings(s=>({...s,statsVisible:newVal}));}
+    else{update({'settings/statsVisible':newVal});}
   }
   function logActivity(action,details){
     if(isDemo)return;
@@ -4382,7 +4437,14 @@ function App(){
   const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'email',label:'Email',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
   {id:'master',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}];
   const isMasterAdmin=!!(rosterAdmins&&currentUser&&rosterAdmins[currentUser.id]==='master');
-  const TABS=role==='admin'?(isMasterAdmin?ATABS:ATABS.filter(t=>t.id!=='master')):PTABS;
+  const statsAccess=settings?.statsAccess||'none';
+  const hasStatsAccess=!!(
+    statsAccess==='all' ||
+    (statsAccess==='specific'&&currentUser&&settings?.statsAllowedPlayers?.[currentUser.id])
+  );
+  const statsNavTab={id:'playerstats',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>};
+  const PTABS_WITH_STATS=hasStatsAccess?[...PTABS,statsNavTab]:PTABS;
+  const TABS=role==='admin'?(isMasterAdmin?ATABS:ATABS.filter(t=>t.id!=='master')):PTABS_WITH_STATS;
 
   return(
     <div className="app">
@@ -4429,7 +4491,7 @@ function App(){
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
-        {tab==='master'&&isMasterAdmin&&<MasterView
+        {tab==='playerstats'&&hasStatsAccess&&!isMasterAdmin&&<MasterView
         week={week}
         history={history}
         attendance={attendance}
@@ -4439,6 +4501,20 @@ function App(){
         effectiveRoster={effectiveRoster}
         extra={extra}
         currentUser={currentUser}
+        settings={settings}
+        publicMode={true}
+      />}
+      {tab==='master'&&isMasterAdmin&&<MasterView
+        week={week}
+        history={history}
+        attendance={attendance}
+        rosterPins={rosterPins}
+        rosterAdmins={rosterAdmins}
+        activityLog={activityLog}
+        effectiveRoster={effectiveRoster}
+        extra={extra}
+        currentUser={currentUser}
+        settings={settings}
       />}
       {tab==='admin'&&<AdminView isAdmin={isAdmin} onLogout={()=>{setRole(null);setIsDemo(false);}} week={week} history={history} onCreate={createWeek} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} roster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onEditRosterName={editRosterName} onHidePlayer={hideRosterPlayer} onUnhidePlayer={unhideRosterPlayer} rosterHidden={rosterHidden} rosterEmails={rosterEmails} onEditRosterEmail={editRosterEmail} onRemoveSignup={k=>{const rs=week?.signups?.[k];if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:'admin'});if(isDemo){setWeek(w=>{const s={...(w.signups||{})};delete s[k];return{...w,signups:s};});}else del('week/signups/'+k);}} onAddSignup={d=>{if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);}} onUpdateTeeTime={updateTeeTime} onDeactivateDay={deactivateDay} onClearWeek={clearWeek} onEndWeek={endWeek} onStartNextWeek={startNextWeek} onToggleNoteOnly={toggleNoteOnly} activityLog={activityLog||[]} rosterPins={rosterPins} onSaveMemberPin={saveMemberPin} rosterAdmins={rosterAdmins} onSaveAdminFlag={saveAdminFlag} onGoTo={t=>setTab(t)} guestHistory={guestHistory} onSaveTeams={saveTeams} onPublishTeams={d=>update({['week/teamsPublished/'+d]:true})} onToggleLock={toggleLock} isDemo={isDemo} onSaveNotes={n=>{if(!isDemo)write('week/emailNotes',n);else setWeek(w=>({...w,emailNotes:n}));}} onSaveEvents={ev=>{if(!isDemo)write('week/emailEvents',ev);else setWeek(w=>({...w,emailEvents:ev}));}}/>}
       </div>
