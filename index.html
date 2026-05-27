@@ -942,6 +942,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
   const [open,setOpen]=React.useState({overview:true,avgday:false,pots:false,scores:false,players:false,money:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false,behavior:false});
   const [expandedTee,setExpandedTee]=React.useState(null);
   const [showAllPlayers,setShowAllPlayers]=React.useState(false);
+  const [showStatsControl,setShowStatsControl]=React.useState(false);
   const toggle=k=>setOpen(o=>({...o,[k]:!o[k]}));
 
   // Available months from history
@@ -1183,7 +1184,12 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
 
       {/* Stats Access Control — master only */}
       {!publicMode&&(
-        <div style={{background:'rgba(15,23,42,0.85)',borderRadius:14,border:'1px solid rgba(255,255,255,0.1)',marginBottom:14,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.3)'}}>
+        <div style={{marginBottom:14}}>
+          <button onClick={()=>setShowStatsControl(v=>!v)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 14px',background:'rgba(255,255,255,0.05)',border:'0.5px solid rgba(255,255,255,0.12)',borderRadius:showStatsControl?'12px 12px 0 0':'12px',cursor:'pointer',fontFamily:'inherit',transition:'border-radius 0.2s'}}>
+            <span style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.6)',letterSpacing:'0.04em'}}>⚙️ Stats Access Control</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" style={{transform:showStatsControl?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {showStatsControl&&<div style={{background:'rgba(15,23,42,0.85)',borderRadius:'0 0 12px 12px',border:'0.5px solid rgba(255,255,255,0.12)',borderTop:'none',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.3)'}}>
           <div style={{display:'flex',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
             {[['access','👥 Who Can See'],['sections','📋 What They See']].map(([t,l])=>(
               <button key={t} onClick={()=>setStatsUITab(t)} style={{flex:1,padding:'10px',border:'none',background:'none',fontSize:12,fontWeight:700,cursor:'pointer',color:statsUITab===t?'#fff':'rgba(255,255,255,0.4)',borderBottom:statsUITab===t?'2px solid #fff':'2px solid transparent',fontFamily:'DM Sans,sans-serif'}}>{l}</button>
@@ -1277,6 +1283,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
               })}
             </div>
           )}
+        </div>}
         </div>
       )}
 
