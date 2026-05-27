@@ -836,19 +836,33 @@ function makeDemoData(){
 
   // ── HISTORY — 4 past rounds ──
   const mkDate=(w)=>{const d=new Date();d.setDate(d.getDate()-w*7);return d.toISOString().split('T')[0];};
-  const N=['Tiger Woods','Scottie Scheffler','Rory McIlroy','Jon Rahm','Dustin Johnson','Brooks Koepka','Phil Mickelson','Justin Thomas','Xander Schauffele','Jordan Spieth','Patrick Cantlay','Collin Morikawa','Tony Finau','Viktor Hovland','Matt Fitzpatrick','John Daly'];
+  const N=['Tiger Woods','Scottie Scheffler','Rory McIlroy','Jon Rahm','Dustin Johnson','Brooks Koepka','Phil Mickelson','Justin Thomas','Xander Schauffele','Jordan Spieth','Patrick Cantlay','Collin Morikawa','Tony Finau','Viktor Hovland','Matt Fitzpatrick','John Daly','Lee Trevino','Jack Nicklaus','Arnold Palmer','Gary Player'];
   const mkT=(g1,g2,g3,g4)=>[
     {id:1,name:'Team One',totalHcp:29,players:[{name:g1[0],tee:'Whites',handicap:3,slot:'A'},{name:g1[1],tee:'Whites',handicap:7,slot:'B'},{name:g1[2],tee:'Golds',handicap:12,slot:'C'},{name:g1[3],tee:'Whites',handicap:18,slot:'D'}]},
     {id:2,name:'Team Two',totalHcp:32,players:[{name:g2[0],tee:'Whites',handicap:4,slot:'A'},{name:g2[1],tee:'Whites',handicap:8,slot:'B'},{name:g2[2],tee:'Whites',handicap:11,slot:'C'},{name:g2[3],tee:'Whites',handicap:20,slot:'D'}]},
     {id:3,name:'Team Three',totalHcp:34,players:[{name:g3[0],tee:'Whites',handicap:5,slot:'A'},{name:g3[1],tee:'Whites',handicap:9,slot:'B'},{name:g3[2],tee:'Golds',handicap:14,slot:'C'},{name:g3[3],tee:'Whites',handicap:24,slot:'D'}]},
     {id:4,name:'Team Four',totalHcp:31,players:[{name:g4[0],tee:'Whites',handicap:6,slot:'A'},{name:g4[1],tee:'Whites',handicap:10,slot:'B'},{name:g4[2],tee:'Golds',handicap:16,slot:'C'},{name:g4[3],tee:'Whites',handicap:22,slot:'D'}]},
   ];
-  const mkS=(ts,sk)=>{const pc=16;const pot=calcPot(pc);return{teamScores:ts,skinCounts:sk,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,frontPlaces:1,backPlaces:1,overallPlaces:1,playerCount:pc,tournFund:pc,drawAdj:0,savedAt:Date.now(),payoutsCalculated:true};};
+  const mkS=(ts,sk,pc=16)=>{const pot=calcPot(pc);return{teamScores:ts,skinCounts:sk,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,frontPlaces:1,backPlaces:1,overallPlaces:1,playerCount:pc,tournFund:pc,drawAdj:0,savedAt:Date.now(),payoutsCalculated:true};};
   const history={
     'dh1':{day:'Saturday',date:mkDate(1),playerCount:16,teams:mkT([N[0],N[5],N[10],N[13]],[N[1],N[6],N[11],N[14]],[N[2],N[7],N[12],N[15]],[N[3],N[4],N[8],N[9]]),scores:mkS({1:{front:-3,back:-4,overall:-7},2:{front:-5,back:-2,overall:-6},3:{front:-2,back:-3,overall:-5},4:{front:-1,back:-5,overall:-4}},{1:1,2:2,3:0,4:1})},
     'dh2':{day:'Saturday',date:mkDate(2),playerCount:16,teams:mkT([N[1],N[4],N[9],N[14]],[N[0],N[6],N[10],N[15]],[N[3],N[7],N[11],N[13]],[N[2],N[5],N[8],N[12]]),scores:mkS({1:{front:-2,back:-6,overall:-8},2:{front:-4,back:-3,overall:-7},3:{front:-6,back:-1,overall:-5},4:{front:-3,back:-4,overall:-6}},{1:0,2:1,3:3,4:0})},
     'dh3':{day:'Friday',date:mkDate(3),playerCount:16,teams:mkT([N[2],N[5],N[11],N[15]],[N[0],N[6],N[10],N[14]],[N[1],N[7],N[12],N[13]],[N[3],N[4],N[8],N[9]]),scores:mkS({1:{front:-5,back:-2,overall:-6},2:{front:-1,back:-4,overall:-5},3:{front:-3,back:-5,overall:-7},4:{front:-4,back:-3,overall:-8}},{1:2,2:0,3:1,4:1})},
     'dh4':{day:'Saturday',date:mkDate(4),playerCount:16,teams:mkT([N[3],N[7],N[10],N[14]],[N[0],N[6],N[11],N[15]],[N[1],N[5],N[12],N[13]],[N[2],N[4],N[8],N[9]]),scores:mkS({1:{front:-4,back:-3,overall:-7},2:{front:-2,back:-5,overall:-8},3:{front:-5,back:-2,overall:-6},4:{front:-3,back:-4,overall:-5}},{1:0,2:2,3:0,4:2})},
+    'dh5':{day:'Sunday',date:mkDate(5),playerCount:14,teams:mkT([N[0],N[4],N[9],N[16]],[N[2],N[6],N[12],N[17]],[N[1],N[8],N[13],N[18]],[N[3],N[7],N[11],N[19]]),scores:mkS({1:{front:-6,back:-3,overall:-9},2:{front:-2,back:-5,overall:-6},3:{front:-3,back:-4,overall:-7},4:{front:-4,back:-2,overall:-5}},{1:3,2:0,3:1,4:0},14)},
+    'dh6':{day:'Saturday',date:mkDate(6),playerCount:18,teams:mkT([N[0],N[3],N[8],N[14]],[N[2],N[5],N[10],N[16]],[N[1],N[6],N[11],N[17]],[N[4],N[7],N[12],N[18]]),scores:mkS({1:{front:-3,back:-6,overall:-8},2:{front:-5,back:-4,overall:-9},3:{front:-4,back:-3,overall:-6},4:{front:-2,back:-5,overall:-7}},{1:1,2:2,3:0,4:1},18)},
+    'dh7':{day:'Friday',date:mkDate(7),playerCount:16,teams:mkT([N[1],N[5],N[9],N[15]],[N[0],N[7],N[10],N[16]],[N[2],N[4],N[13],N[17]],[N[3],N[6],N[11],N[19]]),scores:mkS({1:{front:-4,back:-5,overall:-9},2:{front:-6,back:-2,overall:-7},3:{front:-2,back:-4,overall:-6},4:{front:-5,back:-3,overall:-8}},{1:0,2:3,3:0,4:1},16)},
+    'dh8':{day:'Saturday',date:mkDate(8),playerCount:16,teams:mkT([N[0],N[6],N[9],N[18]],[N[1],N[4],N[12],N[15]],[N[2],N[7],N[10],N[17]],[N[3],N[5],N[11],N[16]]),scores:mkS({1:{front:-7,back:-4,overall:-11},2:{front:-3,back:-5,overall:-8},3:{front:-4,back:-3,overall:-7},4:{front:-2,back:-6,overall:-7}},{1:2,2:1,3:0,4:1},16)},
+    'dh9':{day:'Sunday',date:mkDate(9),playerCount:12,teams:mkT([N[0],N[3],N[11],N[16]],[N[1],N[5],N[9],N[18]],[N[2],N[8],N[13],N[17]],[N[4],N[7],N[12],N[19]]),scores:mkS({1:{front:-3,back:-3,overall:-6},2:{front:-5,back:-4,overall:-9},3:{front:-4,back:-5,overall:-8},4:{front:-2,back:-3,overall:-5}},{1:0,2:2,3:2,4:0},12)},
+    'dh10':{day:'Saturday',date:mkDate(10),playerCount:20,teams:mkT([N[0],N[4],N[11],N[19]],[N[1],N[6],N[10],N[16]],[N[2],N[5],N[13],N[17]],[N[3],N[7],N[12],N[18]]),scores:mkS({1:{front:-5,back:-5,overall:-10},2:{front:-3,back:-6,overall:-8},3:{front:-6,back:-3,overall:-9},4:{front:-4,back:-4,overall:-7}},{1:1,2:1,3:2,4:0},20)},
+    'dh11':{day:'Friday',date:mkDate(11),playerCount:16,teams:mkT([N[1],N[3],N[10],N[15]],[N[0],N[5],N[12],N[19]],[N[2],N[6],N[9],N[16]],[N[4],N[8],N[13],N[17]]),scores:mkS({1:{front:-4,back:-4,overall:-8},2:{front:-6,back:-2,overall:-8},3:{front:-2,back:-5,overall:-7},4:{front:-3,back:-4,overall:-6}},{1:1,2:2,3:0,4:1},16)},
+    'dh12':{day:'Saturday',date:mkDate(12),playerCount:16,teams:mkT([N[0],N[7],N[11],N[16]],[N[2],N[4],N[9],N[18]],[N[1],N[6],N[14],N[17]],[N[3],N[5],N[10],N[19]]),scores:mkS({1:{front:-3,back:-7,overall:-10},2:{front:-5,back:-3,overall:-8},3:{front:-4,back:-4,overall:-8},4:{front:-7,back:-2,overall:-9}},{1:0,2:0,3:3,4:1},16)},
+    'dh13':{day:'Sunday',date:mkDate(13),playerCount:14,teams:mkT([N[0],N[6],N[8],N[17]],[N[1],N[3],N[13],N[16]],[N[2],N[5],N[12],N[18]],[N[4],N[7],N[11],N[19]]),scores:mkS({1:{front:-5,back:-4,overall:-9},2:{front:-3,back:-6,overall:-8},3:{front:-6,back:-3,overall:-9},4:{front:-2,back:-5,overall:-7}},{1:2,2:1,3:0,4:1},14)},
+    'dh14':{day:'Saturday',date:mkDate(14),playerCount:16,teams:mkT([N[0],N[5],N[13],N[17]],[N[1],N[7],N[10],N[19]],[N[2],N[6],N[12],N[16]],[N[3],N[4],N[9],N[18]]),scores:mkS({1:{front:-4,back:-3,overall:-7},2:{front:-5,back:-5,overall:-10},3:{front:-3,back:-4,overall:-7},4:{front:-6,back:-2,overall:-8}},{1:0,2:3,3:1,4:0},16)},
+    'dh15':{day:'Friday',date:mkDate(15),playerCount:16,teams:mkT([N[1],N[4],N[11],N[16]],[N[0],N[8],N[12],N[19]],[N[2],N[6],N[10],N[17]],[N[3],N[5],N[9],N[18]]),scores:mkS({1:{front:-6,back:-4,overall:-10},2:{front:-4,back:-5,overall:-9},3:{front:-3,back:-6,overall:-8},4:{front:-5,back:-3,overall:-7}},{1:2,2:1,3:1,4:0},16)},
+    'dh16':{day:'Saturday',date:mkDate(16),playerCount:18,teams:mkT([N[0],N[3],N[12],N[16]],[N[1],N[5],N[11],N[18]],[N[2],N[7],N[9],N[17]],[N[4],N[6],N[13],N[19]]),scores:mkS({1:{front:-4,back:-5,overall:-9},2:{front:-5,back:-3,overall:-8},3:{front:-3,back:-6,overall:-9},4:{front:-6,back:-4,overall:-10}},{1:1,2:0,3:2,4:1},18)},
+    'dh17':{day:'Sunday',date:mkDate(17),playerCount:12,teams:mkT([N[0],N[4],N[10],N[17]],[N[1],N[6],N[9],N[19]],[N[2],N[5],N[14],N[16]],[N[3],N[8],N[11],N[18]]),scores:mkS({1:{front:-5,back:-3,overall:-8},2:{front:-3,back:-5,overall:-8},3:{front:-4,back:-4,overall:-8},4:{front:-6,back:-2,overall:-7}},{1:1,2:1,3:0,4:2},12)},
+    'dh18':{day:'Saturday',date:mkDate(18),playerCount:16,teams:mkT([N[1],N[3],N[8],N[16]],[N[0],N[5],N[11],N[18]],[N[2],N[7],N[13],N[17]],[N[4],N[6],N[10],N[19]]),scores:mkS({1:{front:-3,back:-5,overall:-8},2:{front:-6,back:-3,overall:-9},3:{front:-4,back:-4,overall:-8},4:{front:-2,back:-6,overall:-7}},{1:0,2:2,3:1,4:1},16)},
   };
 
   const waitlist={};
@@ -926,6 +940,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
   const [playerSearch,setPlayerSearch]=React.useState('');
 
   // Section visibility gate — in public mode, check settings
+  const meName=currentUser?.name||null;
   const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','logins','behavior'];
   const showSec=id=>{
     if(!publicMode)return true;
@@ -1367,7 +1382,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
         </div>
         {divider}
         <div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Pot by Round (last {potChartData.length})</div>
-        <div style={{display:'flex',alignItems:'flex-end',gap:5,height:90,marginBottom:6}}>
+        <div style={{display:'flex',alignItems:'flex-end',gap:5,height:90,marginBottom:6,marginTop:18}}>
           {potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;const h=Math.round((total/maxPotBar)*82)+4;return(<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}><div style={{fontSize:8,fontWeight:700,color:'#fbbf24'}}>${total}</div><div style={{width:'100%',height:h,display:'flex',flexDirection:'column',borderRadius:'4px 4px 0 0',overflow:'hidden'}}><div style={{flex:r.skins,background:'#10b981'}}></div><div style={{flex:r.front,background:'#3b82f6'}}></div><div style={{flex:r.back,background:'#f97316'}}></div><div style={{flex:r.overall,background:'#8b5cf6'}}></div></div><div style={{fontSize:7,color:'rgba(255,255,255,0.35)'}}>{r.date}</div></div>);})}
         </div>
         <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'rgba(255,255,255,0.45)',marginBottom:12}}>
@@ -1391,10 +1406,10 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
           {(showAllPlayers?topPlayers:topPlayers.slice(0,20)).map(([name,cnt],i)=>{
             const hcpArr=(playerHcps[name]||[]);const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
             const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
-            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
+            return(<div key={name} style={{padding:'7px 0',borderBottom:i<(showAllPlayers?topPlayers.length:Math.min(20,topPlayers.length))-1?'1px solid rgba(255,255,255,0.05)':'none',background:meName&&name===meName?'rgba(245,158,11,0.07)':'transparent',borderLeft:meName&&name===meName?'3px solid #f59e0b':'none',paddingLeft:meName&&name===meName?8:0,borderRadius:4}}>
               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
                 <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:i<3?'#fff':'rgba(255,255,255,0.4)',flexShrink:0}}>{i+1}</div>
-                <div style={{flex:1,fontSize:14,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</div>
+                <div style={{flex:1,fontSize:14,fontWeight:600,color:meName&&name===meName?'#fbbf24':'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}{meName&&name===meName&&<span style={{fontSize:9,fontWeight:800,color:'#b45309',background:'#fef3c7',padding:'1px 5px',borderRadius:20,marginLeft:6,textTransform:'uppercase'}}>you</span>}</div>
                 <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'#a78bfa',flexShrink:0}}>{cnt}</div>
                 <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',width:28}}>rnds</div>
               </div>
@@ -1493,7 +1508,7 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
         {moneyList.map((p,i)=>{
           const isPos=p.net>=0;
           return(
-            <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+            <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',background:meName&&p.name===meName?'rgba(245,158,11,0.07)':'transparent',borderLeft:meName&&p.name===meName?'3px solid #f59e0b':'none',paddingLeft:meName&&p.name===meName?8:0,borderRadius:4,borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:14,fontWeight:600,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
                 <div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:1}}>{p.rounds} round{p.rounds!==1?'s':''}</div>
@@ -2306,10 +2321,10 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
                   </div>))}</div>);})()}
                 {daySignups.map(([key,s])=>(
                   <div key={key}>
-                    <div className="p-row">
-                      <div className="avi">{ini(s.name)}</div>
+                    <div className="p-row" style={currentUser?.name&&s.name===currentUser.name?{background:'rgba(245,158,11,0.08)',borderLeft:'3px solid #f59e0b',paddingLeft:13}:{}}>
+                      <div className="avi" style={currentUser?.name&&s.name===currentUser.name?{background:'#fef3c7',color:'#b45309'}:{}}>{ini(s.name)}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="p-name">{s.name}{s.isGuest&&<span className="guest-tag">{s.guestOf?'Guest of '+s.guestOf:'Guest'}</span>}{s.isGuest&&s.pairWithGuest&&<span style={{display:'inline-block',padding:'1px 5px',background:'#f0fdf4',color:'#15803d',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>Pair req.</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
+                        <div className="p-name">{s.name}{currentUser?.name&&s.name===currentUser.name&&<span style={{fontSize:9,fontWeight:800,color:'#b45309',background:'#fef3c7',padding:'1px 6px',borderRadius:20,marginLeft:6,textTransform:'uppercase',letterSpacing:'0.05em'}}>you</span>}{s.isGuest&&<span className="guest-tag">{s.guestOf?'Guest of '+s.guestOf:'Guest'}</span>}{s.isGuest&&s.pairWithGuest&&<span style={{display:'inline-block',padding:'1px 5px',background:'#f0fdf4',color:'#15803d',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>Pair req.</span>}{s.teePreference&&<span style={{display:'inline-block',padding:'1px 5px',background:s.teePreference==='first'?'#dbeafe':'#fef3c7',color:s.teePreference==='first'?'#1d4ed8':'#d97706',borderRadius:20,fontSize:10,fontWeight:600,marginLeft:4}}>{s.teePreference==='first'?'1st':'Last'}</span>}<TeamBadge name={s.name} week={week} day={day}/></div>
                         {editKey===key?(
                           <div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>{onUpdateSignup(key,{handicap:parseFloat(editVal.hcp),tee:editVal.tee});setEditKey(null);}}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>
                         ):(
@@ -3131,10 +3146,10 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
             )}
             {safeArray(team.players).map((p,pi)=>(
               <div key={pi}>
-                <div className="team-row" draggable={!!(!published&&isAdmin)} onDragStart={e=>{e.stopPropagation();if(isAdmin&&!published){if(!editTeams&&!manualMode)setEditTeams(savedTeams);setDrag({ti,pi});}}} onDragOver={e=>{e.preventDefault();e.stopPropagation();}} onDrop={e=>{e.stopPropagation();drop(ti,pi);}}>
+                <div className="team-row" style={myName&&p.name===myName?{background:'rgba(245,158,11,0.07)',borderLeft:'2px solid #f59e0b'}:{}} draggable={!!(!published&&isAdmin)} onDragStart={e=>{e.stopPropagation();if(isAdmin&&!published){if(!editTeams&&!manualMode)setEditTeams(savedTeams);setDrag({ti,pi});}}} onDragOver={e=>{e.preventDefault();e.stopPropagation();}} onDrop={e=>{e.stopPropagation();drop(ti,pi);}}>
                   {!published&&isAdmin&&<span style={{color:'#cbd5e1',cursor:'grab',fontSize:18,fontWeight:700,flexShrink:0,marginRight:4}}>⋮</span>}
                   <span className="slot">{p.slot}</span>
-                  <div className="avi" style={{width:27,height:27,fontSize:10}}>{ini(p.name)}</div>
+                  <div className="avi" style={{width:27,height:27,fontSize:10,background:myName&&p.name===myName?'#fef3c7':'#dcfce7',color:myName&&p.name===myName?'#b45309':'#15803d'}}>{ini(p.name)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}{p.fromDraw&&<span style={{fontSize:10,color:'#f59e0b',marginLeft:5,fontWeight:500}}>(added from draw)</span>}</div>
                     {editKey===ti+'-'+pi?(<div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>):(
@@ -4757,8 +4772,8 @@ function App(){
           onMatchPairingRequest={handleMatchPairingRequest}
           matchPairings={matchPairings}
           onRemoveFromWaitlist={k=>{const ws=week?.waitlist?.[k];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});if(isDemo){setWeek(w=>{const wl={...(w.waitlist||{})};delete wl[k];return{...w,waitlist:wl};});}else del('week/waitlist/'+k);}}/>}
-        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} matchPairings={matchPairings} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
-        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={typeof localStorage!=='undefined'?localStorage.getItem('cgMyName'):null}/>}
+        {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} matchPairings={matchPairings} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={currentUser?.name||null}/>}
+        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={currentUser?.name||null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
         {(tab==='playerstats'||tab==='master')&&(

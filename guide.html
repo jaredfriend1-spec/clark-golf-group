@@ -140,7 +140,7 @@
         <p>The demo loads a full week of realistic data. Use the toggle inside to switch between views:</p>
         <div class="mock-ui"><div class="tog-m"><div class="on">Player View</div><div>Admin View</div></div></div>
         <p style="margin-top:12px;"><b>Player View</b> &mdash; see the week schedule, browse published teams, check payouts, view history and season standings.<br/><br/><b>Admin View</b> &mdash; everything a player sees plus: build and publish teams, enter scores, manage sign-ups, try the email builder, view the activity log, and explore all Admin tab features.</p>
-        <p style="margin-top:10px;">The demo is pre-loaded with sign-ups, published Saturday teams, entered scores, 4 rounds of history, a waiting list entry, day notes, and a live activity log showing real-looking events.</p>
+        <p style="margin-top:10px;">The demo is pre-loaded with sign-ups, published Saturday teams, entered scores, 18 rounds of history, a waiting list entry, day notes, and a live activity and login log &mdash; enough to populate every section of the Stats dashboard including scoring analytics, team chemistry, money standings, and handicap trends.</p>
         <div class="info-m" style="margin-top:10px;"><strong>Demo doesn&rsquo;t include sign-in registration</strong><p>The &ldquo;Create Your Sign-In&rdquo; flow is not available in demo mode. PIN 1111 is the only entry point. Demo activity is never logged to Firebase.</p></div>
       </div>
     </div>
@@ -433,11 +433,10 @@
 
       <div class="feature">
         <h3><span class="feature-num">16</span> Activity Log</h3>
-        <p>The <b>Activity Log</b> (bottom of the Admin tab, above End Week) is a running record of everything that happens in the app &mdash; visible to admins only. It tracks:</p>
+        <p>The <b>Activity Log</b> (Admin tab, above End Week) records every meaningful action in the app &mdash; visible to admins only. Sign-ins are split into a separate log below.</p>
         <p>
-          <b>&#128273; Sign-ins</b> &mdash; who logged in and when, with their role (member or admin).<br/>
           <b>&#128100; Sign-ups</b> &mdash; who signed up, which day, and who did it (self or admin on their behalf).<br/>
-          <b>&#10005; Removals</b> &mdash; who was removed from a day and exactly which admin or member did it.<br/>
+          <b>&#10005; Removals</b> &mdash; who was removed and exactly which admin or member did it.<br/>
           <b>&#8987; Waitlist</b> &mdash; who joined or left the waiting list.<br/>
           <b>&#10003; Teams published</b> &mdash; which day, how many teams, and which admin published them.<br/>
           <b>&#128197; Days activated</b> &mdash; when a play day was set up and by whom.<br/>
@@ -445,13 +444,6 @@
           <b>&#43; Roster changes</b> &mdash; players added or removed from the roster.
         </p>
         <div class="mock-ui" style="padding:10px 14px;">
-          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-            <div style="width:30px;height:30px;border-radius:8px;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128273;</div>
-            <div style="flex:1;">
-              <div style="display:flex;gap:6px;align-items:center;margin-bottom:3px;"><span style="font-size:12px;font-weight:700;color:#0369a1;">Signed in</span><span style="font-size:13px;font-weight:600;color:#0f172a;">Jared Friend</span></div>
-              <div style="display:flex;gap:7px;"><span style="font-size:10px;color:#cbd5e1;">2m ago</span><span style="font-size:10px;font-weight:700;color:#15803d;background:#ecfdf5;padding:1px 6px;border-radius:4px;text-transform:uppercase;">admin</span></div>
-            </div>
-          </div>
           <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
             <div style="width:30px;height:30px;border-radius:8px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128100;</div>
             <div style="flex:1;">
@@ -467,17 +459,41 @@
             </div>
           </div>
         </div>
-        <div class="info-m" style="margin-top:10px;"><strong>90-day rolling window</strong><p>Log entries older than 90 days are automatically pruned. The log shows the most recent 100 entries. Demo activity is never logged.</p></div>
+        <div class="info-m" style="margin-top:10px;"><strong>90-day rolling window</strong><p>Log entries older than 90 days are automatically pruned. Shows the most recent 100 entries. Demo activity is never logged.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">17</span> End of Week Closeout</h3>
+        <h3><span class="feature-num">17</span> Login Log</h3>
+        <p>A separate collapsible card just below the Activity Log. Shows every member and admin sign-in and every new PIN registration &mdash; name, role, and how long ago. Kept separate so logins don&rsquo;t bury meaningful activity.</p>
+        <div class="mock-ui" style="padding:10px 14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+            <div style="width:30px;height:30px;border-radius:8px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128273;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#0f172a;">Jared Friend</div>
+              <div style="font-size:11px;color:#94a3b8;">Admin login &middot; 2m ago</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#fef3c7;color:#b45309;">admin</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+            <div style="width:30px;height:30px;border-radius:8px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128242;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#0f172a;">Chris Allen</div>
+              <div style="font-size:11px;color:#94a3b8;">Registered PIN &middot; 3h ago</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#dcfce7;color:#15803d;">member</span>
+          </div>
+        </div>
+        <div class="info-m" style="margin-top:10px;"><strong>Clear Login History</strong><p>A <b>Clear Login History</b> button at the bottom of the Login Log lets you wipe all login entries if the list gets long. Type <b>DELETE</b> to confirm. Only login events are cleared &mdash; activity events, rounds, and history are completely unaffected.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">18</span> End of Week Closeout</h3>
         <p>Click <b>End Week &amp; Start Fresh</b> at the bottom of the Admin tab. Type <b>END</b> to confirm. All games save to History, attendance updates, and the board resets for next week. Upcoming Events persist &mdash; only day notes and subject line clear.</p>
         <div class="mock-ui"><div class="btn-m dark full">End Week &amp; Start Fresh</div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">18</span> Export Data</h3>
+        <h3><span class="feature-num">19</span> Export Data</h3>
         <p><b>Export History</b> &mdash; all rounds with dates, players, teams, and pot amounts.<br/><b>Export Attendance</b> &mdash; player names, rounds played, and dates.<br/><b>Export Roster</b> &mdash; full roster with name, handicap, tees, email, member number, and admin flag. Useful for auditing who has PIN access set up.</p>
       </div>
     </div>
