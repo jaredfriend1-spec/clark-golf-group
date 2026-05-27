@@ -927,7 +927,11 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
 
   // Section visibility gate — in public mode, check settings
   const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','behavior'];
-  const showSec=id=>!publicMode||(settings?.statsPlayerSections?.[id]!==false);
+  const showSec=id=>{
+    if(!publicMode)return true;
+    return settings?.statsPlayerSections?.[id]!==false;
+  };
+  const curAdminSections=settings?.statsAdminSections||SHAREABLE_SECTIONS.reduce((a,k)=>{a[k]=true;return a;},{});
 
   // Current access settings
   const curAccess=settings?.statsAccess||'none';
@@ -1268,14 +1272,26 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
           )}
           {statsUITab==='sections'&&(
             <div style={{padding:'14px 16px',background:'transparent'}}>
-              <div style={{fontSize:12,fontWeight:700,color:'#fff',marginBottom:4}}>What sections can members see?</div>
-              <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',marginBottom:12}}>Admins always see everything. Toggle off any section to hide it from members.</div>
-              {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['money','💵 Money Stats'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Behavior'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity']].map(([id,label])=>{
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginBottom:12,lineHeight:1.5}}>Toggle sections separately for members and admins.</div>
+              <div style={{fontSize:11,fontWeight:800,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8,paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.08)'}}>👤 Member View</div>
+              {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['money','💵 Money Stats'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity']].map(([id,label])=>{
                 const isOn=curSections[id]!==false;
                 return(
-                  <div key={id} onClick={()=>writeStats('statsPlayerSections/'+id,!isOn)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.05)',cursor:'pointer'}}>
-                    <div style={{width:18,height:18,borderRadius:4,border:'2px solid',borderColor:isOn?'#3b82f6':'rgba(255,255,255,0.2)',background:isOn?'#3b82f6':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      {isOn&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                  <div key={'m-'+id} onClick={()=>writeStats('statsPlayerSections/'+id,!isOn)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',cursor:'pointer'}}>
+                    <div style={{width:17,height:17,borderRadius:4,border:'2px solid',borderColor:isOn?'#3b82f6':'rgba(255,255,255,0.2)',background:isOn?'#3b82f6':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {isOn&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
+                    </div>
+                    <div style={{fontSize:12,fontWeight:500,color:'#e2e8f0'}}>{label}</div>
+                  </div>
+                );
+              })}
+              <div style={{fontSize:11,fontWeight:800,color:'#f59e0b',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:16,marginBottom:8,paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.08)'}}>🛡️ Admin View</div>
+              {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['money','💵 Money Stats'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity']].map(([id,label])=>{
+                const isOn=curAdminSections[id]!==false;
+                return(
+                  <div key={'a-'+id} onClick={()=>writeStats('statsAdminSections/'+id,!isOn)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',cursor:'pointer'}}>
+                    <div style={{width:17,height:17,borderRadius:4,border:'2px solid',borderColor:isOn?'#f59e0b':'rgba(255,255,255,0.2)',background:isOn?'#f59e0b':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {isOn&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}
                     </div>
                     <div style={{fontSize:12,fontWeight:500,color:'#e2e8f0'}}>{label}</div>
                   </div>
@@ -1536,8 +1552,8 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
         </div>
       </Sec>}
 
-      {/* ── 9. Player Behavior ── */}
-      {showSec('behavior')&&<Sec id="behavior" icon="🎯" title="Player Behavior" color="#8b5cf6" summary={'Match reqs · First/Last tee · Guest bringers'}>
+      {/* ── 9. Player Requests ── */}
+      {showSec('behavior')&&<Sec id="behavior" icon="🎯" title="Player Requests" color="#8b5cf6" summary={'Match reqs · First/Last tee · Guest bringers'}>
         <div style={{paddingTop:10}}>
           {topMatchPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Match Requests</div><SmallList items={topMatchPlayers}/>{divider}</>}
           {firstTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬆ First Group Requests</div>{firstTeePlayers.map(([name,data],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid rgba(255,255,255,0.05)'}}><span style={{fontSize:12,color:'rgba(255,255,255,0.9)',fontWeight:500}}>{name}</span><span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:800,color:'#34d399'}}>{data.first}</span></div>))}{divider}</>}
@@ -4610,7 +4626,7 @@ function App(){
   );
   const statsNavTab={id:'playerstats',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>};
   const PTABS_WITH_STATS=hasStatsAccess?[...PTABS,statsNavTab]:PTABS;
-  const TABS=role==='admin'?(isMasterAdmin?ATABS:ATABS.filter(t=>t.id!=='master')):PTABS_WITH_STATS;
+  const TABS=role==='admin'?(isMasterAdmin?ATABS:[...ATABS.filter(t=>t.id!=='master'),...(hasStatsAccess?[statsNavTab]:[])])  :PTABS_WITH_STATS;
 
   return(
     <div className="app">
