@@ -927,6 +927,255 @@ function TimePicker({onChange}){
   function emit(nh,nm,nap){onChange(nh.padStart(2,'0')+':'+nm+' '+nap);}
   return(<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}><select className="fs" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>{hrs.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>{mins.map(x=><option key={x}>{x}</option>)}</select><select className="fs" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}><option>AM</option><option>PM</option></select></div>);
 }
+
+// ── ATTENDANCE VIEW ────────────────────────────────────────────────────────
+function AttendanceView({isAdmin,currentUser,effectiveRoster,extra,write,read,del:delFn}){
+  const [attView,setAttView]=React.useState('standings');
+  const [rounds,setRounds]=React.useState([]);
+  const [selectedPlayer,setSelectedPlayer]=React.useState(null);
+  const [search,setSearch]=React.useState('');
+  const [toast,setToast]=React.useState(null);
+  const [openRound,setOpenRound]=React.useState(null);
+  const [logModal,setLogModal]=React.useState(false);
+  const [editRound,setEditRound]=React.useState(null);
+
+  React.useEffect(()=>{
+    const u=read('attendance/rounds',v=>{
+      if(v){const arr=Array.isArray(v)?v:Object.values(v);setRounds(arr.sort((a,b)=>b.date.localeCompare(a.date)));}
+      else setRounds([]);
+    });
+    return()=>{if(typeof u==='function')u();};
+  },[]);
+
+  function saveRounds(nr){
+    const sorted=[...nr].sort((a,b)=>b.date.localeCompare(a.date));
+    write('attendance/rounds',sorted);
+    setRounds(sorted);
+  }
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),3000);}
+
+  const standings=React.useMemo(()=>{
+    const p={};
+    rounds.forEach(r=>{(r.players||[]).forEach(name=>{
+      if(!p[name])p[name]={name,rounds:0,dates:[]};
+      p[name].rounds++;p[name].dates.push(r.date);
+    });});
+    return Object.values(p).sort((a,b)=>b.rounds-a.rounds);
+  },[rounds]);
+
+  const totalEntries=rounds.reduce((s,r)=>s+(r.players||[]).length,0);
+  const maxR=standings.length>0?standings[0].rounds:1;
+
+  const fullRoster=[...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)];
+
+  // ── LOG ROUND MODAL ───────────────────────────────────────────────────────
+  function LogModal({editData,onSave,onClose}){
+    const[date,setDate]=React.useState(editData?editData.date:new Date().toISOString().split('T')[0]);
+    const[selected,setSelected]=React.useState(new Set(editData?editData.players:[]));
+    const[q,setQ]=React.useState('');
+    const[guestName,setGuestName]=React.useState('');
+    const allNames=fullRoster.map(r=>r.name).sort((a,b)=>a.localeCompare(b));
+    const extraGuests=[...selected].filter(n=>!allNames.includes(n));
+    const filtered=allNames.filter(n=>n.toLowerCase().includes(q.toLowerCase()));
+    function toggle(name){const s=new Set(selected);if(s.has(name))s.delete(name);else s.add(name);setSelected(s);}
+    function addGuest(){if(!guestName.trim())return;const s=new Set(selected);s.add(guestName.trim());setSelected(s);setGuestName('');}
+    return(
+      <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+        <div className="modal">
+          <div className="modal-handle"></div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+            <div className="modal-title" style={{marginBottom:0}}>{editData?'Edit Round':'Log a Round'}</div>
+            <button onClick={onClose} style={{width:32,height:32,borderRadius:'50%',border:'1.5px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',color:'#64748b',fontSize:18,lineHeight:1}}>✕</button>
+          </div>
+          <div className="fg">
+            <label className="fl">Date</label>
+            <input className="fi" type="date" value={date} onChange={e=>setDate(e.target.value)}/>
+          </div>
+          <div className="fg">
+            <label className="fl">Players ({selected.size} selected)</label>
+            <div style={{position:'relative',marginBottom:6}}>
+              <svg style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',width:13,height:13,color:'#94a3b8',pointerEvents:'none'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input className="fi" style={{paddingLeft:30,fontSize:13}} placeholder="Search roster..." value={q} onChange={e=>setQ(e.target.value)}/>
+            </div>
+            <div style={{maxHeight:220,overflowY:'auto',border:'1px solid #e2e8f0',borderRadius:8,marginBottom:8}}>
+              {extraGuests.map(name=>(
+                <div key={name} onClick={()=>toggle(name)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 11px',borderBottom:'1px solid #f8fafc',cursor:'pointer',background:'#ecfdf5'}}>
+                  <div style={{width:16,height:16,borderRadius:4,background:'#10b981',border:'2px solid #10b981',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg></div>
+                  <span style={{fontSize:12,fontWeight:500,flex:1}}>{name}</span>
+                  <span style={{fontSize:10,color:'#94a3b8',background:'#f1f5f9',padding:'1px 6px',borderRadius:10}}>Guest</span>
+                </div>
+              ))}
+              {filtered.map(name=>{const on=selected.has(name);return(
+                <div key={name} onClick={()=>toggle(name)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 11px',borderBottom:'1px solid #f8fafc',cursor:'pointer',background:on?'#ecfdf5':'transparent'}}>
+                  <div style={{width:16,height:16,borderRadius:4,border:'2px solid',borderColor:on?'#10b981':'#cbd5e1',background:on?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{on&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>}</div>
+                  <span style={{fontSize:12,fontWeight:500}}>{name}</span>
+                </div>
+              );})}
+            </div>
+            <div style={{display:'flex',gap:6}}>
+              <input className="fi" style={{flex:1,fontSize:12}} placeholder="Add guest name..." value={guestName} onChange={e=>setGuestName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addGuest();}}/>
+              <button className="btn btn-outline btn-sm" onClick={addGuest} disabled={!guestName.trim()}>+ Guest</button>
+            </div>
+          </div>
+          <button className="btn btn-green btn-full" style={{opacity:(!date||selected.size===0)?0.4:1,marginTop:8}} disabled={!date||selected.size===0}
+            onClick={()=>{if(!date||selected.size===0)return;onSave({date,players:[...selected].sort()});onClose();}}>
+            {editData?'Save Changes':'Log Round ('+selected.size+' players)'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div>
+      {/* ── Stats card ── */}
+      <div style={{background:'#0f172a',borderRadius:12,padding:'14px',marginBottom:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
+          {[{n:standings.length,l:'Players'},{n:rounds.length,l:'Rounds'},{n:maxR,l:'Top Played'},{n:'$'+totalEntries,l:'Tourn Fund',c:'#f59e0b'}].map(({n,l,c})=>(
+            <div key={l} style={{background:'rgba(255,255,255,0.06)',borderRadius:8,padding:'9px 4px',textAlign:'center'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:c||'#10b981'}}>{n}</div>
+              <div style={{fontSize:9,fontWeight:600,letterSpacing:'0.07em',color:'rgba(255,255,255,0.35)',textTransform:'uppercase',marginTop:1}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:9,color:'rgba(255,255,255,0.25)',textAlign:'center',letterSpacing:'0.06em',textTransform:'uppercase'}}>$1 per player per round → year-end tournament</div>
+      </div>
+
+      {/* ── Toggle ── */}
+      <div className="tog" style={{marginBottom:12}}>
+        <button className={'tog-opt'+(attView==='standings'?' on':'')} onClick={()=>setAttView('standings')}>Standings</button>
+        <button className={'tog-opt'+(attView==='history'?' on':'')} onClick={()=>setAttView('history')}>History</button>
+      </div>
+
+      {/* ── STANDINGS ── */}
+      {attView==='standings'&&(
+        <div>
+          {standings.length===0?(
+            <div className="empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              <div className="empty-title">No attendance data yet</div>
+              <div className="empty-sub">Rounds are logged automatically when weeks are closed out.</div>
+            </div>
+          ):(
+            <div>
+              <div style={{position:'relative',marginBottom:10}}>
+                <svg style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#94a3b8'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input className="fi" style={{paddingLeft:32}} placeholder="Search players..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              </div>
+              <div className="card">
+                <div style={{padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid #f1f5f9'}}>
+                  <div className="slbl" style={{marginBottom:0}}>Season Standings</div>
+                  <span style={{fontSize:11,color:'#94a3b8'}}>{standings.length} players</span>
+                </div>
+                {standings.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())).map((p,i)=>(
+                  <div key={p.name} onClick={()=>setSelectedPlayer(p)} className="lb-row" style={{cursor:'pointer'}}>
+                    <div className={'lb-rank'+(i<3?' top':'')} style={{background:i===0?'#f59e0b':i===1?'#cbd5e1':i===2?'#b45309':undefined,color:i<3?'#fff':undefined}}>{i+1}</div>
+                    <div className="avi">{ini(p.name)}</div>
+                    <div className="lb-name">{p.name}</div>
+                    <div style={{width:50,height:5,background:'#f1f5f9',borderRadius:3,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:5,background:'#10b981',borderRadius:3,width:Math.round((p.rounds/maxR)*100)+'%'}}></div>
+                    </div>
+                    <div className="lb-money" style={{color:'#64748b',fontSize:13}}>{p.rounds}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── HISTORY ── */}
+      {attView==='history'&&(
+        <div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div className="slbl" style={{marginBottom:0}}>{rounds.length} round{rounds.length!==1?'s':''}</div>
+            {isAdmin&&<button className="btn btn-green btn-sm" onClick={()=>{setEditRound(null);setLogModal(true);}}>+ Log Round</button>}
+          </div>
+          {rounds.length===0?(
+            <div className="empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <div className="empty-title">No rounds logged yet</div>
+              <div className="empty-sub">Rounds are added automatically when you close out a week.</div>
+            </div>
+          ):(
+            rounds.map((r,ri)=>{
+              const players=r.players||[];const isOpen=openRound===ri;
+              return(
+                <div key={r.date+ri} className="card" style={{marginBottom:8,overflow:'hidden'}}>
+                  <div onClick={()=>setOpenRound(isOpen?null:ri)} style={{padding:'11px 13px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none'}}>
+                    <div>
+                      <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:15,fontWeight:700,color:'#0f172a'}}>{fmtDFull(r.date)}</div>
+                      <div style={{fontSize:11,color:'#94a3b8',fontWeight:500,marginTop:1}}>{players.length} player{players.length!==1?'s':''} · ${players.length} to pot</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,background:'#10b981',color:'#fff'}}>{players.length}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" style={{transform:isOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                  </div>
+                  {isOpen&&(
+                    <div style={{borderTop:'1px solid #f1f5f9'}}>
+                      <div style={{padding:'8px 13px'}}>
+                        {players.map((name,pi)=>(
+                          <div key={name} onClick={()=>{const p=standings.find(s=>s.name===name);if(p)setSelectedPlayer(p);}} style={{display:'flex',alignItems:'center',gap:7,padding:'5px 0',borderBottom:'1px solid #f8fafc',fontSize:13,fontWeight:500,color:'#0f172a',cursor:'pointer'}}>
+                            <div style={{width:18,height:18,borderRadius:'50%',background:'#f1f5f9',color:'#64748b',fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'Barlow Condensed,sans-serif'}}>{pi+1}</div>
+                            {name}
+                          </div>
+                        ))}
+                      </div>
+                      {isAdmin&&(
+                        <div style={{borderTop:'1px solid #f1f5f9',padding:'8px 13px',display:'flex',gap:6,justifyContent:'flex-end'}}>
+                          <button className="btn btn-outline btn-xs" onClick={e=>{e.stopPropagation();setEditRound({index:ri,data:r});setLogModal(true);}}>Edit</button>
+                          <button className="btn btn-red btn-xs" onClick={e=>{e.stopPropagation();if(confirm('Delete this round? This cannot be undone.')){{const u=rounds.filter((_,i)=>i!==ri);saveRounds(u);showToast('Round deleted');}}}}>Delete</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ── Player detail modal ── */}
+      {selectedPlayer&&(
+        <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setSelectedPlayer(null);}}>
+          <div className="modal">
+            <div className="modal-handle"></div>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+              <div className="avi" style={{width:40,height:40,fontSize:13}}>{ini(selectedPlayer.name)}</div>
+              <div>
+                <div className="modal-title" style={{marginBottom:0}}>{selectedPlayer.name}</div>
+                <div style={{fontSize:12,color:'#94a3b8',fontWeight:500}}>{selectedPlayer.rounds} round{selectedPlayer.rounds!==1?'s':''} · ${selectedPlayer.rounds} to pot</div>
+              </div>
+            </div>
+            <div className="slbl">Dates Played</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+              {selectedPlayer.dates.sort().map(d=>(
+                <span key={d} style={{display:'inline-block',padding:'4px 10px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:7,fontSize:12,fontWeight:500,color:'#475569'}}>{fmtDFull(d)}</span>
+              ))}
+            </div>
+            <button className="btn btn-outline btn-full" style={{marginTop:14}} onClick={()=>setSelectedPlayer(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Log/Edit modal ── */}
+      {logModal&&<LogModal
+        editData={editRound?editRound.data:null}
+        onSave={data=>{
+          if(editRound){const u=[...rounds];u[editRound.index]=data;saveRounds(u);showToast('Round updated');}
+          else{saveRounds([...rounds,data]);showToast('Round logged — '+data.players.length+' players');}
+        }}
+        onClose={()=>{setLogModal(false);setEditRound(null);}}
+      />}
+
+      {/* ── Toast ── */}
+      {toast&&<div className="toast"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3"><polyline points="20 6 9 13 4 10"/></svg>{toast}</div>}
+    </div>
+  );
+}
+
 // -- LANDING ------------------------------------------------------------------
 function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog,effectiveRoster,extra,currentUser,settings,publicMode}){
   const roster=[...(effectiveRoster||ROSTER),...safeArray(extra)].filter(p=>!p.hidden);
@@ -4718,6 +4967,7 @@ function App(){
     {id:'teams',label:'Teams',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
     {id:'scoring',label:'Score',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg>,locked:!scoringVisible},
     {id:'history',label:'History',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
+    ...(currentUser&&currentUser.role!=='guest'?[{id:'attendance',label:'Attend',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>}]:[]),
   ];
   const ATABS=[...PTABS.map(t=>({...t,locked:false})),{id:'email',label:'Email',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},{id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
   {id:'master',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}];
@@ -4747,7 +4997,7 @@ function App(){
         )}
         <div className="hdr-top"><div><div className="hdr-brand">Clark <em>Golf</em> Group</div><div className="hdr-week">{getWeekLabel(week)}</div></div><div className="hdr-right">{isAdmin&&<span className="admin-tag">Admin</span>}{isDemo&&<span className="demo-tag">Demo</span>}<button className="switch-btn" onClick={logoutUser}>Exit &#x2192;</button></div></div>
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
-        <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}<a href="attendance.html" className="hdr-pill" style={{textDecoration:'none',color:'#f59e0b',borderColor:'rgba(245,158,11,0.3)',cursor:'pointer'}} target="_blank" rel="noopener">Season Attendance →</a></div>
+        <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}</div>
       </div></div>
       <nav className="nav">{TABS.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
       <div className="content">
@@ -4775,6 +5025,15 @@ function App(){
         {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} matchPairings={matchPairings} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={currentUser?.name||null}/>}
         {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={currentUser?.name||null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
+        {tab==='attendance'&&currentUser&&currentUser.role!=='guest'&&<AttendanceView
+          isAdmin={isAdmin}
+          currentUser={currentUser}
+          effectiveRoster={effectiveRoster}
+          extra={extra}
+          write={write}
+          read={read}
+          del={del}
+        />}
         {tab==='email'&&<EmailView week={week} isAdmin={isAdmin} isDemo={isDemo}/>}
         {(tab==='playerstats'||tab==='master')&&(
         <div style={{position:'fixed',inset:0,zIndex:9999,background:'#080d16',overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
