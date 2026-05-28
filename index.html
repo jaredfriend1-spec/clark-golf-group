@@ -4864,38 +4864,6 @@ function App(){
   function editHistoryRound(key,round){del('history/'+key);const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};newWeek.complete={...(newWeek.complete||{}),[round.day]:true};newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};write('week',newWeek);setTab('scoring');}
 
 
-  function saveAdminFlag(playerId,isAdmin){
-    if(isDemo)setRosterAdmins(a=>({...a,[playerId]:isAdmin||null}));
-    else update({['rosterAdmins/'+playerId]:isAdmin||null});
-  }
-
-  function saveMemberPin(playerId,pin){
-    // Store plain for now — will hash in Session 1 when login front-end is built
-    if(!pin||!String(pin).trim()){
-      if(isDemo)setRosterPins(p=>{const n={...p};delete n[playerId];return n;});
-      else del('rosterPins/'+playerId);
-      return;
-    }
-    const val=String(pin).trim();
-    if(isDemo)setRosterPins(p=>({...p,[playerId]:val}));
-    else update({['rosterPins/'+playerId]:val});
-  }
-
-  function toggleStatsVisible(){
-    const newVal=!(settings?.statsVisible);
-    if(isDemo){setSettings(s=>({...s,statsVisible:newVal}));}
-    else{update({'settings/statsVisible':newVal});}
-  }
-  function logActivity(action,details){
-    if(isDemo)return; // never log demo activity
-    const entry={action,ts:Date.now(),...details};
-    push('activityLog',entry);
-  }
-
-  function toggleNoteOnly(day,val){
-    if(isDemo){setWeek(w=>({...w,showNoteOnly:{...(w.showNoteOnly||{}),[day]:val}}));}
-    else{update({['week/showNoteOnly/'+day]:val||null});}
-  }
   function saveAdminFlag(playerId,isAdminFlag){
     if(isDemo)setRosterAdmins(a=>({...a,[playerId]:isAdminFlag||null}));
     else update({['rosterAdmins/'+playerId]:isAdminFlag||null});
