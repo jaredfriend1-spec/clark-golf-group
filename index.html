@@ -5045,7 +5045,7 @@ function App(){
           {tab==='playerstats'&&hasStatsAccess&&!isMasterAdmin&&<MasterView
             week={week} history={history} attendance={attendance}
             rosterPins={rosterPins} rosterAdmins={rosterAdmins}
-            activityLog={activityLog} effectiveRoster={effectiveRoster}
+            activityLog={activityLog} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster}
             extra={extra} currentUser={currentUser}
             settings={settings} publicMode={true}
           />}
@@ -5056,7 +5056,7 @@ function App(){
         rosterPins={rosterPins}
         rosterAdmins={rosterAdmins}
         activityLog={activityLog}
-        effectiveRoster={effectiveRoster}
+        effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster}
         extra={extra}
         currentUser={currentUser}
         settings={settings}
