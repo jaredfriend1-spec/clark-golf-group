@@ -2990,7 +2990,8 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
         const mp=dayMatches.find(m=>m.requester===p.name||m.partner===p.name);
         const opp=mp?(mp.requester===p.name?mp.partner:mp.requester):null;
         const teePref=p.teePreference==='first'?'🕐 1st tee':p.teePreference==='last'?'🔚 Last tee':'';
-        text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+(opp?' ⚔️ vs. '+opp:'')+(teePref?' ['+teePref+']':'')+nl;
+        const guestTag=p.isGuest&&p.guestOf?'[🤝 Guest of '+p.guestOf+']':'';
+        text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+(opp?' ⚔️ vs. '+opp:'')+(teePref?' ['+teePref+']':'')+(guestTag?' '+guestTag:'')+nl;
       });
       text+=nl;
     });
@@ -3427,6 +3428,7 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
                     <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3}}>
                       {(()=>{const mp=Object.values(matchPairings||{}).find(m=>m.day===activeDay&&(m.requester===p.name||m.partner===p.name));if(!mp)return null;const opp=mp.requester===p.name?mp.partner:mp.requester;return(<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'#1d4ed8',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:5,padding:'1px 7px'}}>⚔️ vs. {opp}</span>);})()}
                       {p.teePreference&&(<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:p.teePreference==='first'?'#1d4ed8':'#d97706',background:p.teePreference==='first'?'#dbeafe':'#fef3c7',border:'1px solid '+(p.teePreference==='first'?'#bfdbfe':'#fde68a'),borderRadius:5,padding:'1px 7px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>)}
+                      {p.isGuest&&p.guestOf&&(<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'#6d28d9',background:'#f5f3ff',border:'1px solid #ddd6fe',borderRadius:5,padding:'1px 7px'}}>🤝 Guest of {p.guestOf}</span>)}
                     </div>
                     {editKey===ti+'-'+pi?(<div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>):(
                       <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
