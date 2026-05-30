@@ -2925,6 +2925,7 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
   const [activeDay,setActiveDay]=useState(null);const [editTeams,setEditTeams]=useState(null);const [drag,setDrag]=useState(null);
   const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
+  const [showBalance,setShowBalance]=useState(false);
   const [manualMode,setManualMode]=useState(false);
   const [teamSize,setTeamSize]=useState('4');
   const [manualTeams,setManualTeams]=useState(null);
@@ -3015,8 +3016,10 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
     setShowAutoOpts(false);
   }
   function moveTeam(fromIdx,toIdx){if(fromIdx===toIdx)return;const base=editTeams||manualTeams||savedTeams;const reordered=[...base];const[moved]=reordered.splice(fromIdx,1);reordered.splice(toIdx,0,moved);if(manualMode)setManualTeams(reordered);else setEditTeams(reordered);}
-  function drop(ti,pi){if(!drag||!isAdmin||published)return;const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));const p=u[drag.ti].players[drag.pi];u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);u.forEach(t=>{t.players.forEach((p,i)=>{p.slot=['A','B','C','D'][i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});if(manualMode)setManualTeams(u);else setEditTeams(u);setDrag(null);}
-  function savePlayerEdit(ti,pi){const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);u[ti].players[pi].tee=editVal.tee;u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);if(manualMode)setManualTeams(u);else if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);setEditKey(null);}
+  // Re-sort every team by handicap and reassign A/B/C/D/E slots
+  function reSlot(teams){const sl=['A','B','C','D','E'];teams.forEach(t=>{t.players.sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));t.players.forEach((p,i)=>{p.slot=sl[i]||'D';});t.totalHcp=t.players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);});return teams;}
+  function drop(ti,pi){if(!drag||!isAdmin||published)return;const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));const p=u[drag.ti].players[drag.pi];u[drag.ti].players.splice(drag.pi,1);u[ti].players.splice(pi,0,p);reSlot(u);if(manualMode)setManualTeams(u);else setEditTeams(u);setDrag(null);}
+  function savePlayerEdit(ti,pi){const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));if(editVal.hcp!=='')u[ti].players[pi].handicap=parseFloat(editVal.hcp);u[ti].players[pi].tee=editVal.tee;reSlot([u[ti]]);if(manualMode)setManualTeams(u);else if(editTeams)setEditTeams(u);else onSaveTeams(activeDay,u);setEditKey(null);}
   function publishAndLock(){const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];const final=(editTeams||manualTeams||savedTeams).map((t,i)=>({...t,name:names[i]||'Team '+(i+1)}));onPublishAndLock(activeDay,final);setEditTeams(null);setManualTeams(null);setManualMode(false);}
 
   // Manual team building
@@ -3028,17 +3031,15 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
   }
   function addPlayerToTeam(ti,signup){
     const u=manualTeams.map(t=>({...t,players:[...t.players]}));
-    const slot=['A','B','C','D'][u[ti].players.length]||'D';
-    u[ti].players.push({...signup,slot});
-    u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);
+    u[ti].players.push({...signup,slot:'?'});
+    reSlot([u[ti]]);
     setManualTeams(u);
   }
   function removePlayerFromTeam(ti,pi){
     const base=manualMode?manualTeams:(editTeams||[...savedTeams]);
     const u=base.map(t=>({...t,players:[...t.players]}));
     u[ti].players.splice(pi,1);
-    u[ti].players.forEach((p,i)=>{p.slot=['A','B','C','D','E'][i]||'D';});
-    u[ti].totalHcp=u[ti].players.reduce((s,p)=>s+parseFloat(p.handicap||0),0);
+    reSlot([u[ti]]);
     if(manualMode)setManualTeams(u);else setEditTeams(u);
   }
 
@@ -3058,7 +3059,7 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
     const u=(editTeams||manualTeams||savedTeams).map(t=>({...t,players:[...t.players]}));
     const p=u[fromTi].players.splice(fromPi,1)[0];
     u[toTi].players.push(p);
-    u.forEach(t=>{t.players.forEach((pl,i)=>{pl.slot=['A','B','C','D','E'][i]||'D';});t.totalHcp=t.players.reduce((s,pl)=>s+parseFloat(pl.handicap||0),0);});
+    reSlot(u);
     if(manualMode)setManualTeams(u);else setEditTeams(u);
     setMovingPlayer(null);
   }
@@ -3335,13 +3336,175 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
       {/* Published admin actions */}
       {isAdmin&&published&&(
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,flexWrap:'wrap',gap:6}}>
-          <div style={{display:'flex',gap:6}}>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
             <button className="btn btn-dark btn-sm" onClick={()=>onEditInPlace(activeDay)}>Edit Teams</button>
             <button className="btn btn-outline btn-sm" style={{color:'#dc2626',borderColor:'#fecaca'}} onClick={()=>{if(confirm('Clear all teams and start over? Sign-ups are preserved.')){onUnpublish(activeDay);}}}>Reset Teams</button>
+            <button className="btn btn-outline btn-sm" style={{color:'#7c3aed',borderColor:'#ddd6fe'}} onClick={()=>setShowBalance(b=>!b)}>⚖️ Balance</button>
           </div>
           <button className="btn btn-outline btn-sm" onClick={copyTeams}>{copied?'Copied!':'Copy teams'}</button>
         </div>
       )}
+
+      {/* ⚖️ BALANCE PANEL */}
+      {isAdmin&&published&&showBalance&&(()=>{
+        // Determine constrained players (guest pairs + match players — don't swap these)
+        const dayMatches=Object.values(matchPairings||{}).filter(m=>m.day===activeDay);
+        const constrained=new Set([
+          ...dayMatches.flatMap(m=>[m.requester,m.partner]),              // match pairs — both players locked
+          ...daySignups.filter(s=>s.isGuest&&s.pairWithGuest).map(s=>s.name), // guest who requested pairing
+          ...daySignups.filter(s=>s.isGuest&&s.guestOf).map(s=>s.name),   // the guest
+          ...daySignups.filter(s=>s.isGuest&&s.guestOf).map(s=>s.guestOf),// the HOST member — keep them together
+          ...daySignups.filter(s=>s.teePreference).map(s=>s.name),        // first/last tee pins — respect group order
+        ]);
+        const teams=currentDisplay;
+        if(!teams.length)return null;
+
+        // Current spread
+        const hcps=teams.map(t=>t.totalHcp||0);
+        const spread=Math.max(...hcps)-Math.min(...hcps);
+
+        // Generate all possible 2-player swaps between different teams, excluding constrained
+        const swaps=[];
+        for(let ti=0;ti<teams.length;ti++){
+          for(let tj=ti+1;tj<teams.length;tj++){
+            const tA=teams[ti];const tB=teams[tj];
+            for(let pi=0;pi<safeArray(tA.players).length;pi++){
+              for(let pj=0;pj<safeArray(tB.players).length;pj++){
+                const pA=tA.players[pi];const pB=tB.players[pj];
+                if(constrained.has(pA.name)||constrained.has(pB.name))continue;
+                // Calculate new HCPs after swap
+                const newA=tA.totalHcp-parseFloat(pA.handicap||0)+parseFloat(pB.handicap||0);
+                const newB=tB.totalHcp-parseFloat(pB.handicap||0)+parseFloat(pA.handicap||0);
+                const newHcps=hcps.map((h,i)=>i===ti?newA:i===tj?newB:h);
+                const newSpread=Math.max(...newHcps)-Math.min(...newHcps);
+                const improvement=spread-newSpread;
+                if(improvement>0)swaps.push({ti,tj,pi,pj,pA,pB,tA,tB,newSpread,improvement,newA,newB});
+              }
+            }
+          }
+        }
+        swaps.sort((a,b)=>b.improvement-a.improvement);
+        const top=swaps.slice(0,5);
+        const constrainedCount=new Set([...daySignups.map(s=>s.name)].filter(n=>constrained.has(n))).size;
+
+        function applySwap(swap){
+          const u=currentDisplay.map(t=>({...t,players:[...safeArray(t.players).map(p=>({...p}))]}));
+          const tmp=u[swap.ti].players[swap.pi];
+          u[swap.ti].players[swap.pi]=u[swap.tj].players[swap.pj];
+          u[swap.tj].players[swap.pj]=tmp;
+          reSlot(u);
+          onEditInPlace(activeDay);
+          setTimeout(()=>{
+            const base=u;
+            onSaveTeams(activeDay,base);
+          },100);
+          setShowBalance(false);
+        }
+
+        return(
+          <div style={{background:'#faf5ff',border:'1.5px solid #ddd6fe',borderRadius:12,padding:'14px 16px',marginBottom:12}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:16}}>⚖️</span>
+                <span style={{fontSize:14,fontWeight:700,color:'#4c1d95'}}>Balance Suggestions</span>
+              </div>
+              <button onClick={()=>setShowBalance(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#94a3b8',fontSize:16,lineHeight:1}}>✕</button>
+            </div>
+
+            {/* Current spread */}
+            <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap'}}>
+              <div style={{background:'#fff',border:'1px solid #ddd6fe',borderRadius:8,padding:'8px 14px',flex:1,minWidth:120}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#7c3aed',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:2}}>Current Spread</div>
+                <div style={{fontSize:20,fontWeight:700,color:spread<=5?'#15803d':spread<=10?'#d97706':'#dc2626'}}>{spread.toFixed(1)}</div>
+                <div style={{fontSize:11,color:'#94a3b8'}}>HCP pts between best & worst team</div>
+              </div>
+              {top.length>0&&<div style={{background:'#fff',border:'1px solid #ddd6fe',borderRadius:8,padding:'8px 14px',flex:1,minWidth:120}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#7c3aed',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:2}}>Best Possible</div>
+                <div style={{fontSize:20,fontWeight:700,color:'#15803d'}}>{top[0].newSpread.toFixed(1)}</div>
+                <div style={{fontSize:11,color:'#94a3b8'}}>after best swap (↓{top[0].improvement.toFixed(1)} pts)</div>
+              </div>}
+            </div>
+
+            {/* Constrained players note */}
+            {constrainedCount>0&&(
+              <div style={{fontSize:11,color:'#7c3aed',background:'#ede9fe',borderRadius:6,padding:'5px 10px',marginBottom:10}}>
+                ⚠️ {constrainedCount} player{constrainedCount!==1?'s are':' is'} locked from swaps (guest pairings, match requests, or tee preferences)
+              </div>
+            )}
+
+            <div style={{fontSize:11,background:'#ede9fe',borderRadius:6,padding:'6px 10px',marginBottom:10,color:'#4c1d95',fontWeight:500}}>
+              💡 Pick <strong>one swap only</strong> — these are alternatives, not sequential steps. Panel recalculates after each apply.
+            </div>
+            {top.length===0&&(
+              <div style={{textAlign:'center',padding:'14px 0',color:'#7c3aed',fontSize:13,fontWeight:600}}>
+                ✅ Teams are already optimally balanced — no beneficial swaps found
+              </div>
+            )}
+
+            {/* Best recommendation — highlighted */}
+            {top.length>0&&(
+              <div style={{background:'#4c1d95',borderRadius:8,padding:'10px 12px',marginBottom:10}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                      <span style={{fontSize:11,fontWeight:700,background:'#fbbf24',color:'#1e1b4b',borderRadius:4,padding:'1px 7px'}}>⭐ BEST SWAP OPTION</span>
+                      <span style={{fontSize:11,color:'#c4b5fd'}}>best improvement: <span style={{color:'#a7f3d0',fontWeight:700}}>↓{top[0].improvement.toFixed(1)} pts</span></span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',fontSize:13}}>
+                      <span style={{fontWeight:700,color:'#fff'}}>{top[0].pA.name}</span>
+                      <span style={{color:'#a78bfa',fontSize:10}}>HCP {top[0].pA.handicap} · {top[0].tA.name}</span>
+                      <span style={{color:'#fbbf24',fontWeight:700,fontSize:15}}>⇄</span>
+                      <span style={{fontWeight:700,color:'#fff'}}>{top[0].pB.name}</span>
+                      <span style={{color:'#a78bfa',fontSize:10}}>HCP {top[0].pB.handicap} · {top[0].tB.name}</span>
+                    </div>
+                    <div style={{fontSize:11,color:'#a78bfa',marginTop:4}}>
+                      {top[0].tA.name}: {top[0].tA.totalHcp.toFixed(1)} → {top[0].newA.toFixed(1)} &nbsp;|&nbsp; {top[0].tB.name}: {top[0].tB.totalHcp.toFixed(1)} → {top[0].newB.toFixed(1)}
+                    </div>
+                  </div>
+                  <button onClick={()=>applySwap(top[0])} style={{background:'#fbbf24',color:'#1e1b4b',border:'none',borderRadius:7,padding:'8px 16px',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'DM Sans,sans-serif',flexShrink:0}}>
+                    Apply ✓
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Alternatives — if you don't want to move those players */}
+            {top.length>1&&(
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#7c3aed',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6,paddingLeft:2}}>
+                  Or choose an alternative — pick only ONE:
+                </div>
+                {top.slice(1).map((sw,i)=>(
+                  <div key={i} style={{background:'#fff',border:'1px solid #ddd6fe',borderRadius:8,padding:'9px 12px',marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',opacity:0.85}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:11,color:'#7c3aed',fontWeight:600,marginBottom:3}}>
+                        Alt. {i+1} — ↓{sw.improvement.toFixed(1)} pts improvement
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',fontSize:12}}>
+                        <span style={{fontWeight:600,color:'#0f172a'}}>{sw.pA.name}</span>
+                        <span style={{color:'#94a3b8',fontSize:10}}>HCP {sw.pA.handicap} · {sw.tA.name}</span>
+                        <span style={{color:'#7c3aed',fontWeight:700}}>⇄</span>
+                        <span style={{fontWeight:600,color:'#0f172a'}}>{sw.pB.name}</span>
+                        <span style={{color:'#94a3b8',fontSize:10}}>HCP {sw.pB.handicap} · {sw.tB.name}</span>
+                      </div>
+                      <div style={{fontSize:11,color:'#94a3b8',marginTop:3}}>
+                        {sw.tA.name}: {sw.tA.totalHcp.toFixed(1)} → {sw.newA.toFixed(1)} &nbsp;|&nbsp; {sw.tB.name}: {sw.tB.totalHcp.toFixed(1)} → {sw.newB.toFixed(1)}
+                      </div>
+                    </div>
+                    <button onClick={()=>applySwap(sw)} style={{background:'#ede9fe',color:'#4c1d95',border:'1.5px solid #ddd6fe',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif',flexShrink:0}}>
+                      Apply
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{fontSize:11,color:'#94a3b8',marginTop:4,textAlign:'center'}}>
+              Snake draft was used for initial balance. Guest pairs, match requests, and first/last tee preferences are excluded from suggestions.
+            </div>
+          </div>
+        );
+      })()}
 
       {currentDisplay.length===0&&!manualMode&&(<div className="empty"><div className="empty-title">No teams yet for {activeDay}</div><div className="empty-sub">{cnt>0?'Admin will generate teams shortly.':'No sign-ups yet for this day.'}</div></div>)}
       {currentDisplay.length>0&&isAdmin&&!published&&!manualMode&&(
@@ -3581,9 +3744,38 @@ function ScoringView({week,isAdmin,onSaveScoresAndPayouts,onMoveToHistory,onReop
         {roundingSurplus>0&&<div className="pay-row" style={{borderTop:'1px solid #fde68a',paddingTop:8,marginTop:4}}><span className="pay-lbl" style={{color:'#f59e0b',fontWeight:700}}>Rounding surplus → tournament fund</span><span className="pay-amt tie">+{f$(roundingSurplus)}</span></div>}
         {parseFloat(drawAdj||0)>0&&(<div className="pay-row" style={{color:'#d97706'}}><span className="pay-lbl" style={{color:'#d97706'}}>Manual pot adjustment</span><span className="pay-amt tie">-{f$(drawAdj)}</span></div>)}
         <div className="pay-total"><span>Total collected</span><span style={{color:'#0f172a'}}>{f$(pot.gross-(parseFloat(drawAdj)||0))}</span></div>
-        <div className="pay-row" style={{paddingTop:4}}><span className="pay-lbl" style={{fontWeight:600}}>Total paid out</span><span className="pay-amt win">{f$(totalDistributed+skinsDistributed)}</span></div>
+        <div className="pay-row" style={{paddingTop:4}}><span className="pay-lbl" style={{fontWeight:600}}>Total paid out</span><span className="pay-amt win">{f$(totalDistributed)}</span></div>
         <div className="pay-row"><span className="pay-lbl" style={{fontWeight:700,color:'#f59e0b'}}>Total to tournament fund</span><span className="pay-amt" style={{fontWeight:700,color:'#f59e0b'}}>{f$(totalFund)}</span></div>
-      </div>);})()}
+      </div>);
+      // ── WINNINGS SUMMARY ──
+      const scoringSummary=(()=>{
+        const sums={};
+        dayTeams.forEach(t=>{sums[String(t.id)]={name:t.name||('Group '+(dayTeams.indexOf(t)+1)),total:0,pc:safeArray(t.players).length};});
+        allPayoutRows.forEach(({rows})=>{rows.forEach(row=>{(row.teams||[]).forEach(wt=>{if(sums[String(wt.id)])sums[String(wt.id)].total+=row.amt;});});});
+        Object.entries(sk).forEach(([tid,cnt])=>{if(cnt>0&&flooredPerSk>0&&sums[String(tid)])sums[String(tid)].total+=flooredPerSk*parseInt(cnt);});
+        return Object.values(sums).filter(t=>t.total>0).sort((a,b)=>b.total-a.total);
+      })();
+      return scoringSummary.length>0?(
+        <div style={{background:'#f0fdf4',border:'1.5px solid #bbf7d0',borderRadius:10,overflow:'hidden',marginTop:12}}>
+          <div style={{background:'#dcfce7',padding:'8px 12px',borderBottom:'1px solid #bbf7d0',display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:16}}>🏆</span>
+            <span style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.07em'}}>Winnings Summary</span>
+          </div>
+          <div style={{padding:'6px 12px 8px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:'3px 10px',fontSize:10,color:'#4ade80',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5,paddingBottom:5,borderBottom:'1px solid #bbf7d0'}}>
+              <span>Team</span><span style={{textAlign:'right'}}>Total</span><span style={{textAlign:'right'}}>Per Player</span>
+            </div>
+            {scoringSummary.map((t,i)=>(
+              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:'4px 10px',padding:'5px 0',borderBottom:i<scoringSummary.length-1?'1px solid #dcfce7':'none',alignItems:'center'}}>
+                <span style={{fontSize:13,fontWeight:600,color:'#14532d'}}>{i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':''}{t.name}</span>
+                <span style={{fontSize:13,fontWeight:700,color:'#15803d',textAlign:'right'}}>{f$(t.total)}</span>
+                <span style={{fontSize:13,fontWeight:700,color:'#15803d',textAlign:'right',background:'#bbf7d0',borderRadius:5,padding:'1px 8px'}}>{f$(Math.floor(t.total/Math.max(1,t.pc)))}/ea</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ):null;
+      })()}
       {isAdmin&&!isDemo&&(<div style={{marginTop:8,display:'flex',flexDirection:'column',gap:8}}><button className="btn btn-dark btn-full" onClick={handleSaveAndPublish}>{scoresSaved?'Update & Publish Results':'Save & Publish Results'}</button>{justSaved&&<div className="alert alert-ok" style={{marginBottom:0}}>Saved - players can see scores and payouts.</div>}{scoresSaved&&(<button className="btn btn-outline btn-full" onClick={()=>onMoveToHistory(activeDay)}>Move to History</button>)}{scoresSaved&&(<button className="btn btn-outline btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>Edit Scores</button>)}</div>)}
     </div>
   );
@@ -3726,7 +3918,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound,trash,onRe
               <div className="slbl">Payouts</div>
               {[{l:'Front 9',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,seg:'front'},{l:'Back 9',pot:r.scores.backPot,pl:r.scores.backPlaces||1,seg:'back'},{l:'Overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,seg:'overall'}].map(({l,pot,pl,seg})=>{const rows=calcHistPay(r.scores,r.teams,pot,pl,seg);if(!rows.length)return null;return(<div key={l} style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{l}</div>{rows.map((row,i)=>(<div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{row.label}{row.names?' - '+row.names:''}</span><span style={{fontWeight:700,color:row.isTie?'#f59e0b':'#15803d'}}>{f$(row.amt)}{row.isTie?' ea':''}</span></div>))}</div>);})}
               {parseFloat(r.scores.skinsPot||0)>0&&(<div style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div><div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#64748b'}}>Skins pot (gross)</span><span style={{fontWeight:600,color:'#64748b'}}>{f$(r.scores.skinsPot)}</span></div><div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#f59e0b',fontWeight:600}}>Tournament fund (-${r.scores.tournFund||0}/player)</span><span style={{fontWeight:600,color:'#f59e0b'}}>-{f$(r.scores.tournFund||0)}</span></div>{Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{const t=r.teams.find(t=>String(t.id)===String(tid));const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);const psk=total>0?Math.floor(net/total):0;return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(psk*c)}</span></div>:null;})}</div>)}
-              <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'6px 0',color:'#f59e0b',fontWeight:700}}><span>Tournament fund</span><span>{f$(r.scores.tournFund||r.playerCount||0)}</span></div>
+              {(()=>{const hs=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const ht=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);const hp=ht>0?Math.floor(hs/ht):0;const hSurplus=Math.max(0,hs-(hp*ht));return(<><div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'6px 0',color:'#f59e0b',fontWeight:700}}><span>Tournament fund</span><span>{f$(r.scores.tournFund||r.playerCount||0)}</span></div>{hSurplus>0&&<div style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',borderTop:'1px dashed #fde68a'}}><span style={{color:'#d97706',fontStyle:'italic'}}>Rounding surplus</span><span style={{fontWeight:600,color:'#d97706'}}>{f$(hSurplus)}</span></div>}</>);})()}
               <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,borderTop:'2px solid #0f172a',paddingTop:8}}><span>Total collected</span><span style={{color:'#0f172a'}}>{f$((r.playerCount||0)*25)}</span></div>
               {(()=>{
                 // Build team winnings summary
