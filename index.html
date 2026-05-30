@@ -2926,6 +2926,7 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
   const [editKey,setEditKey]=useState(null);const [editVal,setEditVal]=useState({hcp:'',tee:'Whites'});
   const [blindModal,setBlindModal]=useState(null);const [copied,setCopied]=useState(false);
   const [showBalance,setShowBalance]=useState(false);
+  const [showTeamInfo,setShowTeamInfo]=useState(false);
   const [manualMode,setManualMode]=useState(false);
   const [teamSize,setTeamSize]=useState('4');
   const [manualTeams,setManualTeams]=useState(null);
@@ -3070,6 +3071,11 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
     <div>
       {activeDays.length>1&&(<div className="tog" style={{marginBottom:12}}>{activeDays.map(d=><button key={d} className={'tog-opt'+(activeDay===d?' on':'')} onClick={()=>{setActiveDay(d);setEditTeams(null);setManualTeams(null);setManualMode(false);setEditKey(null);}}>{d.slice(0,3)}</button>)}</div>)}
       <div className="stat-row"><div className="stat-box"><div className="stat-n">{cnt}</div><div className="stat-l">Players</div></div><div className="stat-box"><div className="stat-n">{currentDisplay.length}</div><div className="stat-l">Teams</div></div><div className="stat-box"><div className="stat-n" style={{fontSize:11,paddingTop:5,color:'rgba(255,255,255,0.4)'}}>{published?'Live':'Pending'}</div><div className="stat-l">Status</div></div></div>
+      <div style={{textAlign:'center',marginBottom:10}}>
+        <button onClick={()=>setShowTeamInfo(true)} style={{background:'#f0fdf4',border:'1.5px solid #bbf7d0',borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:700,color:'#15803d',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:5,padding:'7px 14px'}}>
+          <span style={{fontSize:14}}>ℹ️</span> Tap here — how are teams made &amp; balanced?
+        </button>
+      </div>
 
       {/* Waiting list */}
       {(()=>{
@@ -3624,6 +3630,91 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
           </div>
         );
       })}
+
+      {/* ℹ️ TEAM INFO MODAL */}
+      {showTeamInfo&&(
+        <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setShowTeamInfo(false);}}>
+          <div className="modal" style={{maxWidth:520,maxHeight:'85vh',overflowY:'auto'}}>
+            <div className="modal-handle"></div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div style={{fontSize:17,fontWeight:700,color:'#0f172a'}}>How Are Teams Made?</div>
+              <button onClick={()=>setShowTeamInfo(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'#94a3b8',lineHeight:1}}>✕</button>
+            </div>
+
+            {/* Step 1 */}
+            <div style={{display:'flex',gap:12,padding:'12px 14px',borderRadius:10,border:'1.5px solid #bbf7d0',background:'#f0fdf4',marginBottom:10}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'#dcfce7',color:'#15803d',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,flexShrink:0}}>1</div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:'#14532d',marginBottom:3}}>Special requests go first 🤝</div>
+                <div style={{fontSize:12,color:'#166534',lineHeight:1.55}}>Guests with their host, match play pairings (⚔️), and first/last tee preferences are locked in before anything else. These players are placed first and never moved by the balancing system.</div>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div style={{display:'flex',gap:12,padding:'12px 14px',borderRadius:10,border:'1.5px solid #ddd6fe',background:'#f5f3ff',marginBottom:10}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'#ede9fe',color:'#6d28d9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,flexShrink:0}}>2</div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:'#3b0764',marginBottom:3}}>Everyone else sorted by handicap 📊</div>
+                <div style={{fontSize:12,color:'#4c1d95',lineHeight:1.55}}>All remaining players are lined up from lowest handicap (best golfer) to highest. This sorted list is what the draft uses.</div>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div style={{display:'flex',gap:12,padding:'12px 14px',borderRadius:10,border:'1.5px solid #bfdbfe',background:'#eff6ff',marginBottom:10}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'#dbeafe',color:'#1d4ed8',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,flexShrink:0}}>3</div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:'#1e3a8a',marginBottom:3}}>Snake draft — like fantasy football 🏈</div>
+                <div style={{fontSize:12,color:'#1e40af',lineHeight:1.55}}>Players are assigned in a back-and-forth zigzag. Round 1: Team 1→2→3→4→5→6. Round 2 reverses: 6→5→4→3→2→1. This ensures every team gets one low, one mid, and one high handicapper — the fairest possible split.</div>
+                {/* Mini visual */}
+                <div style={{background:'#0f172a',borderRadius:8,padding:'10px 12px',marginTop:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:3,marginBottom:5}}>
+                    <span style={{fontSize:9,color:'rgba(255,255,255,0.35)',width:52,flexShrink:0,fontWeight:700,textTransform:'uppercase'}}>Round 1→</span>
+                    {['T1','T2','T3','T4','T5','T6'].map(t=><span key={t} style={{background:'#15803d',color:'#fff',borderRadius:4,padding:'3px 6px',fontSize:10,fontWeight:700,minWidth:28,textAlign:'center'}}>{t}</span>)}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:3}}>
+                    <span style={{fontSize:9,color:'rgba(255,255,255,0.35)',width:52,flexShrink:0,fontWeight:700,textTransform:'uppercase'}}>Round 2←</span>
+                    {['T6','T5','T4','T3','T2','T1'].map(t=><span key={t} style={{background:'#1d4ed8',color:'#fff',borderRadius:4,padding:'3px 6px',fontSize:10,fontWeight:700,minWidth:28,textAlign:'center'}}>{t}</span>)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div style={{display:'flex',gap:12,padding:'12px 14px',borderRadius:10,border:'1.5px solid #fde68a',background:'#fffbeb',marginBottom:14}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'#fef3c7',color:'#b45309',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,flexShrink:0}}>4</div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:'#78350f',marginBottom:3}}>History check — mix it up 🔄</div>
+                <div style={{fontSize:12,color:'#92400e',lineHeight:1.55}}>With {Object.keys(history||{}).length} rounds of data logged, the app looks back at who's been on the same team before and nudges people toward partners they haven't played with recently. This may nudge the handicap balance slightly — that's the intentional trade-off for variety.</div>
+              </div>
+            </div>
+
+            {/* FAQs */}
+            <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Common questions</div>
+
+            <div style={{padding:'10px 12px',borderRadius:8,borderLeft:'3px solid #f59e0b',background:'#fffbeb',marginBottom:8}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#1e293b',marginBottom:3}}>❓ My team's handicap looks way off — is something wrong?</div>
+              <div style={{fontSize:11,color:'#475569',lineHeight:1.55}}>Almost certainly not. Check the team card — a 🤝 (guest pairing) or ⚔️ (match play) badge means those players were locked together before the draft ran, which limits what the system can do with the remaining spots.</div>
+            </div>
+
+            <div style={{padding:'10px 12px',borderRadius:8,borderLeft:'3px solid #10b981',background:'#f0fdf4',marginBottom:8}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#1e293b',marginBottom:3}}>❓ Why am I always with the same people?</div>
+              <div style={{fontSize:11,color:'#475569',lineHeight:1.55}}>You're probably not — the app actively checks history and rotates partners. If it keeps happening, you genuinely have similar handicaps to those players and the math keeps pairing you for balance.</div>
+            </div>
+
+            <div style={{padding:'10px 12px',borderRadius:8,borderLeft:'3px solid #64748b',background:'#f8fafc',marginBottom:8}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#1e293b',marginBottom:3}}>❓ What handicap does the app use for me?</div>
+              <div style={{fontSize:11,color:'#475569',lineHeight:1.55}}>Whatever you enter when signing up that week. If your number seems off in the results, update it when you sign up next time.</div>
+            </div>
+
+            <div style={{padding:'10px 12px',borderRadius:8,borderLeft:'3px solid #7c3aed',background:'#f5f3ff',marginBottom:4}}>
+              <div style={{fontSize:12,fontWeight:700,color:'#1e293b',marginBottom:3}}>⚖️ Can Clark adjust teams after they're built?</div>
+              <div style={{fontSize:11,color:'#475569',lineHeight:1.55}}>Yes — if the spread still looks off after the draft, Clark can drag players between teams manually or use a built-in Balance tool that suggests the single best swap to even things out. Any changes are visible to everyone once published. The goal is always the fairest possible teams — if something looks wrong, let Clark know.</div>
+            </div>
+
+            <button className="btn btn-dark" style={{width:'100%',marginTop:14}} onClick={()=>setShowTeamInfo(false)}>Got it 👍</button>
+          </div>
+        </div>
+      )}
 
       {blindModal&&(
         <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)setBlindModal(null);}}>
