@@ -2974,11 +2974,34 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
   const unassigned=daySignups.filter(p=>!assignedNames.has(p.name));
 
   function copyTeams(){
-    if(!display.length)return;const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
+    if(!display.length)return;
+    const teeInfo=week&&week.teeTimes&&week.teeTimes[activeDay];
     const teeStr=teeInfo?'First Tee: '+(teeInfo.lottery?'Lottery':teeInfo.time):'';
     const dateStr=week&&week.dates&&week.dates[activeDay]?fmtD(week.dates[activeDay]):'';
-    const nl=String.fromCharCode(10);let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
-    display.forEach((team,i)=>{const tName=published?team.name:'Group '+(i+1);text+=tName+nl;safeArray(team.players).forEach(p=>{text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+nl;});text+=nl;});
+    const dayNote=(week?.emailNotes&&typeof week.emailNotes==='object'&&week.emailNotes[activeDay])||'';
+    const dayMatches=Object.values(matchPairings||{}).filter(m=>m.day===activeDay);
+    const nl=String.fromCharCode(10);
+    let text=activeDay+(dateStr?' - '+dateStr:'')+(teeStr?' | '+teeStr:'')+nl+nl;
+    if(dayNote.trim()){text+='📝 Notes:'+nl+dayNote.trim()+nl+nl;}
+    display.forEach((team,i)=>{
+      const tName=published?team.name:'Group '+(i+1);
+      text+=tName+nl;
+      safeArray(team.players).forEach(p=>{
+        const mp=dayMatches.find(m=>m.requester===p.name||m.partner===p.name);
+        const opp=mp?(mp.requester===p.name?mp.partner:mp.requester):null;
+        const teePref=p.teePreference==='first'?'🕐 1st tee':p.teePreference==='last'?'🔚 Last tee':'';
+        text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+')'+(opp?' ⚔️ vs. '+opp:'')+(teePref?' ['+teePref+']':'')+nl;
+      });
+      text+=nl;
+    });
+    if(dayMatches.length>0){
+      text+='⚔️ Matches:'+nl;
+      dayMatches.forEach(m=>{
+        const team=display.find(t=>safeArray(t.players).some(p=>p.name===m.requester));
+        const teamLabel=team?(published?team.name:'Group '+(display.indexOf(team)+1)):'';
+        text+='  '+m.requester+' vs. '+m.partner+(teamLabel?' ('+teamLabel+')':'')+nl;
+      });
+    }
     navigator.clipboard.writeText(text.trim()).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}).catch(()=>{});
   }
   function gen(size){
@@ -3401,6 +3424,10 @@ function TeamsView({week,history,isAdmin,matchPairings,onSaveTeams,onPublishAndL
                   <div className="avi" style={{width:27,height:27,fontSize:10,background:myName&&p.name===myName?'#fef3c7':'#dcfce7',color:myName&&p.name===myName?'#b45309':'#15803d'}}>{ini(p.name)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}{p.fromDraw&&<span style={{fontSize:10,color:'#f59e0b',marginLeft:5,fontWeight:500}}>(added from draw)</span>}</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3}}>
+                      {(()=>{const mp=Object.values(matchPairings||{}).find(m=>m.day===activeDay&&(m.requester===p.name||m.partner===p.name));if(!mp)return null;const opp=mp.requester===p.name?mp.partner:mp.requester;return(<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'#1d4ed8',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:5,padding:'1px 7px'}}>⚔️ vs. {opp}</span>);})()}
+                      {p.teePreference&&(<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:p.teePreference==='first'?'#1d4ed8':'#d97706',background:p.teePreference==='first'?'#dbeafe':'#fef3c7',border:'1px solid '+(p.teePreference==='first'?'#bfdbfe':'#fde68a'),borderRadius:5,padding:'1px 7px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>)}
+                    </div>
                     {editKey===ti+'-'+pi?(<div className="ie"><input autoFocus type="number" value={editVal.hcp} onChange={e=>setEditVal(v=>({...v,hcp:e.target.value}))}/><select value={editVal.tee} onChange={e=>setEditVal(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select><button className="ie-save" onClick={()=>savePlayerEdit(ti,pi)}>Save</button><button className="ie-cancel" onClick={()=>setEditKey(null)}>x</button></div>):(
                       <div style={{fontSize:11,color:'#94a3b8',display:'flex',alignItems:'center',gap:4,marginTop:1}}>
                         <span className="tee-dot" style={{background:TC[p.tee]||'#ccc'}}></span>{p.tee} HCP {p.handicap}
