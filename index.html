@@ -3726,6 +3726,51 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound,trash,onRe
               {parseFloat(r.scores.skinsPot||0)>0&&(<div style={{marginBottom:9}}><div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Skins</div><div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#64748b'}}>Skins pot (gross)</span><span style={{fontWeight:600,color:'#64748b'}}>{f$(r.scores.skinsPot)}</span></div><div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#f59e0b',fontWeight:600}}>Tournament fund (-${r.scores.tournFund||0}/player)</span><span style={{fontWeight:600,color:'#f59e0b'}}>-{f$(r.scores.tournFund||0)}</span></div>{Object.entries(r.scores.skinCounts||{}).filter(([,c])=>c>0).map(([tid,c])=>{const t=r.teams.find(t=>String(t.id)===String(tid));const net=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));const total=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);const psk=total>0?Math.floor(net/total):0;return t?<div key={tid} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0',borderBottom:'1px solid #f8fafc'}}><span style={{color:'#475569'}}>{t.name} - {c} skin{c!==1?'s':''}</span><span style={{fontWeight:700,color:'#15803d'}}>{f$(psk*c)}</span></div>:null;})}</div>)}
               <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'6px 0',color:'#f59e0b',fontWeight:700}}><span>Tournament fund</span><span>{f$(r.scores.tournFund||r.playerCount||0)}</span></div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,borderTop:'2px solid #0f172a',paddingTop:8}}><span>Total collected</span><span style={{color:'#0f172a'}}>{f$((r.playerCount||0)*25)}</span></div>
+              {(()=>{
+                // Build team winnings summary
+                if(!r.scores||!r.teams)return null;
+                const teamSums={};
+                r.teams.forEach(t=>{teamSums[String(t.id)]={name:t.name,total:0,pc:safeArray(t.players).length};});
+                [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1},
+                 {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1},
+                 {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1}
+                ].forEach(({seg,pot,pl})=>{
+                  const p=parseFloat(pot||0);if(!p)return;
+                  const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+                  if(!sc.length)return;
+                  sc.sort((a,b)=>a.score-b.score);
+                  const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
+                  const first=pl===1?p:p*0.6;const sec=p*0.4;
+                  if(tied.length>1){const split=Math.floor(pl===1?first/tied.length:(first+sec)/tied.length);tied.forEach(t=>{if(teamSums[String(t.id)])teamSums[String(t.id)].total+=split;});}
+                  else{if(teamSums[String(tied[0].id)])teamSums[String(tied[0].id)].total+=Math.floor(first);if(pl===2&&second&&teamSums[String(second.id)])teamSums[String(second.id)].total+=Math.floor(sec);}
+                });
+                const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
+                const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+                const psk=tsk>0?Math.floor(snet/tsk):0;
+                Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{if(cnt>0&&teamSums[String(tid)])teamSums[String(tid)].total+=psk*parseInt(cnt);});
+                const sorted=Object.values(teamSums).filter(t=>t.total>0).sort((a,b)=>b.total-a.total);
+                if(!sorted.length)return null;
+                return(
+                  <div style={{marginTop:14,background:'#f0fdf4',border:'1.5px solid #bbf7d0',borderRadius:10,overflow:'hidden'}}>
+                    <div style={{background:'#dcfce7',padding:'8px 12px',borderBottom:'1px solid #bbf7d0',display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{fontSize:16}}>🏆</span>
+                      <span style={{fontSize:11,fontWeight:700,color:'#15803d',textTransform:'uppercase',letterSpacing:'0.07em'}}>Winnings Summary</span>
+                    </div>
+                    <div style={{padding:'6px 12px 8px'}}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:'3px 10px',fontSize:10,color:'#4ade80',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5,paddingBottom:5,borderBottom:'1px solid #bbf7d0'}}>
+                        <span>Team</span><span style={{textAlign:'right'}}>Total</span><span style={{textAlign:'right'}}>Per Player</span>
+                      </div>
+                      {sorted.map((t,i)=>(
+                        <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:'4px 10px',padding:'5px 0',borderBottom:i<sorted.length-1?'1px solid #dcfce7':'none',alignItems:'center'}}>
+                          <span style={{fontSize:13,fontWeight:600,color:'#14532d'}}>{i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':''}{t.name}</span>
+                          <span style={{fontSize:13,fontWeight:700,color:'#15803d',textAlign:'right'}}>{f$(t.total)}</span>
+                          <span style={{fontSize:13,fontWeight:700,color:'#15803d',textAlign:'right',background:'#bbf7d0',borderRadius:5,padding:'1px 8px'}}>{f$(Math.floor(t.total/Math.max(1,t.pc)))}/ea</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>)}
           </div>)}
         </div>
