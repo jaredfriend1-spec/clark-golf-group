@@ -2664,7 +2664,7 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
                     )}
                   </div>
                 ))}
-                <div className="day-actions">
+                {(cnt>0||dayLocked||dayComplete)&&<div className="day-actions">
                   {!dayLocked&&(isAdmin?(
                     <div style={{display:'flex',gap:6}}>
                       <button className="signup-btn" style={{background:'#10b981',color:'#fff',border:'none'}} onClick={()=>{
@@ -2688,7 +2688,7 @@ function WeekView({currentUser,week,isAdmin,isDemo,extraRoster,effectiveRoster,o
                     navigator.clipboard.writeText(txt).then(()=>{setCopiedDay(day);setTimeout(()=>setCopiedDay(null),2500);}).catch(()=>{});
                   }} style={{color:copiedDay===day?'#15803d':'#64748b',borderColor:copiedDay===day?'#bbf7d0':'#e2e8f0',background:copiedDay===day?'#ecfdf5':'#fff'}}>{copiedDay===day?'✓ Copied!':'Copy Players'}</button>}
                   {isAdmin&&<button className="teeadd-btn" style={{marginLeft:'auto',color:dayLocked?'#15803d':'#94a3b8',borderColor:dayLocked?'#bbf7d0':'#e2e8f0',background:dayLocked?'#ecfdf5':'#fff'}} onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock signups':'Lock signups'}</button>}
-                </div>
+                </div>}
               </div>
             )}
           </div>
