@@ -273,13 +273,85 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">8</span> Track Your Season — History &amp; Attend Tabs</h3>
-        <p>The <b>History</b> tab shows every completed round — scores, payouts, and a <b>🏆 Winnings Summary</b> box at the bottom of each round showing exactly what each team won and the per-player share.</p>
-        <p style="margin-top:10px;">The <b>Attend</b> tab (visible to members and admins, not guests) is your season attendance hub:</p>
-        <p><b>Season standings</b> &mdash; every player ranked by rounds played, searchable.<br/><b>Tap any player</b> &mdash; see every date they played.<br/><b>Round history</b> &mdash; full round-by-round list you can expand and collapse.</p>
-        <div class="mock-ui" style="padding:0;border:none;background:none;">
-          <div class="tc"><div class="lb-m"><div class="lb-rk">1</div><div class="lb-nm">Chris Allen</div><div style="font-size:11px;color:#94a3b8;margin-right:15px;">8r</div><div style="font-size:14px;font-weight:700;color:#15803d;font-family:'Barlow Condensed',sans-serif;">$145</div></div><div class="lb-m" style="border:none;"><div class="lb-rk" style="background:#f1f5f9;color:#64748b;">2</div><div class="lb-nm">Jeff Sarris</div><div style="font-size:11px;color:#94a3b8;margin-right:15px;">6r</div><div style="font-size:14px;font-weight:700;color:#15803d;font-family:'Barlow Condensed',sans-serif;">$90</div></div></div>
+        <h3><span class="feature-num">8</span> History Tab — Completed Rounds</h3>
+        <p>The <b>History</b> tab shows every completed round in reverse chronological order. Tap any round to expand it and see:</p>
+        <p><b>Teams &amp; players</b> &mdash; full lineup with slots and tees.<br/><b>Scores</b> &mdash; Front, Back, and Overall for every team.<br/><b>Payouts</b> &mdash; exactly who won what, per segment, with 1st/2nd splits.<br/><b>🏆 Winnings Summary</b> &mdash; team totals and per-player share with 🥇🥈🥉 medals.</p>
+        <div class="callout" style="margin-top:10px;"><strong>Admin Edit button</strong><p>Admins can pull any past round back into the Scoring tab to correct results. The round reappears with all teams, players, and scores intact — just update the payout splits and run End Week again to re-archive it.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">8b</span> 🏆 Standings Tab — Season Money Stats</h3>
+        <p>The <b>Standings</b> tab is the full season money leaderboard, visible to <em>everyone</em> including guests. It shows who's up, who's down, and who's been the most generous donor all season.</p>
+
+        <p style="margin-top:10px;"><b>Four summary cards at the top:</b></p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;">
+          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:10px;">
+            <div style="font-size:9px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">🏆 Top Net Winner</div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;">Chris Allen</div>
+            <div style="font-size:18px;font-weight:800;color:#15803d;font-family:'Barlow Condensed',sans-serif;">+$215</div>
+            <div style="font-size:10px;color:#64748b;">after $125 paid in</div>
+          </div>
+          <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:10px;">
+            <div style="font-size:9px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">💰 Most $ Won</div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;">Phil Murray</div>
+            <div style="font-size:18px;font-weight:800;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;">$380</div>
+            <div style="font-size:10px;color:#64748b;">across 8 rounds</div>
+          </div>
+          <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:10px;">
+            <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">😅 Top Donor</div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;">Ray Sanchez</div>
+            <div style="font-size:18px;font-weight:800;color:#dc2626;font-family:'Barlow Condensed',sans-serif;">-$135</div>
+            <div style="font-size:10px;color:#64748b;">7 rounds · $40 won</div>
+          </div>
+          <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:10px;">
+            <div style="font-size:9px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">📈 Best Return</div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;">Jeff Sarris</div>
+            <div style="font-size:18px;font-weight:800;color:#b45309;font-family:'Barlow Condensed',sans-serif;">180%</div>
+            <div style="font-size:10px;color:#64748b;">$90 won on $50 in</div>
+          </div>
         </div>
+
+        <p style="margin-top:12px;"><b>The leaderboard table shows three money columns for every player:</b></p>
+        <div style="background:#f8fafc;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin:10px 0;">
+          <div style="display:grid;grid-template-columns:36px 1fr 36px 1fr 1fr 1fr;padding:6px 12px;background:#f1f5f9;gap:4px;">
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;">#</div>
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Player</div>
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;">Rds</div>
+            <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:right;">Paid In</div>
+            <div style="font-size:9px;font-weight:700;color:#1d4ed8;text-transform:uppercase;text-align:right;">Won</div>
+            <div style="font-size:9px;font-weight:700;color:#15803d;text-transform:uppercase;text-align:right;">Net</div>
+          </div>
+          <div style="display:grid;grid-template-columns:36px 1fr 36px 1fr 1fr 1fr;padding:10px 12px;gap:4px;border-bottom:1px solid #f1f5f9;align-items:center;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;">1</div>
+            <div style="font-size:13px;font-weight:600;">Chris Allen</div>
+            <div style="font-size:11px;color:#94a3b8;text-align:center;">5</div>
+            <div style="font-size:14px;font-weight:700;color:#64748b;font-family:'Barlow Condensed',sans-serif;text-align:right;">$125</div>
+            <div style="font-size:14px;font-weight:700;color:#94a3b8;font-family:'Barlow Condensed',sans-serif;text-align:right;">$340</div>
+            <div style="font-size:14px;font-weight:800;color:#15803d;font-family:'Barlow Condensed',sans-serif;text-align:right;">+$215</div>
+          </div>
+          <div style="display:grid;grid-template-columns:36px 1fr 36px 1fr 1fr 1fr;padding:10px 12px;gap:4px;align-items:center;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#cbd5e1;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;">2</div>
+            <div style="font-size:13px;font-weight:600;">Phil Murray</div>
+            <div style="font-size:11px;color:#94a3b8;text-align:center;">8</div>
+            <div style="font-size:14px;font-weight:700;color:#64748b;font-family:'Barlow Condensed',sans-serif;text-align:right;">$200</div>
+            <div style="font-size:14px;font-weight:800;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;text-align:right;">$380</div>
+            <div style="font-size:14px;font-weight:800;color:#15803d;font-family:'Barlow Condensed',sans-serif;text-align:right;">+$180</div>
+          </div>
+        </div>
+
+        <p><b>Sort by Net $$$</b> &mdash; ranks by profit/loss (won minus paid in). Shows who's actually ahead on the season accounting for entry fees. Negative numbers show in red.<br/><b>Sort by Gross Won</b> &mdash; ranks by total dollars won, no deductions. Both columns stay visible either way — the active sort column highlights.</p>
+
+        <p style="margin-top:10px;"><b>👤 Me button</b> &mdash; if you're signed in, tap <b>Me</b> to instantly filter to your own row, highlighted in gold. Tap <b>✕ Me</b> to go back to the full list. No typing required.</p>
+
+        <p style="margin-top:10px;"><b>Tap any row</b> to expand a round-by-round breakdown showing exactly when you won, how much, and which segment it came from.</p>
+
+        <div class="callout" style="margin-top:10px;"><strong>Visible to everyone</strong><p>Standings are public — members, admins, and guests can all see the leaderboard. Everyone knows who's winning the season.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">8c</span> Attend Tab — Season Attendance</h3>
+        <p>The <b>Attend</b> tab (visible to members and admins, not guests) tracks who's played and when:</p>
+        <p><b>Season standings</b> &mdash; every player ranked by rounds played.<br/><b>Tap any player</b> &mdash; see every date they played.<br/><b>Round history</b> &mdash; full round-by-round list.</p>
       </div>
     </div>
 
@@ -532,9 +604,8 @@
 
       <div class="feature">
         <h3><span class="feature-num">17b</span> Round History &amp; Winnings Summary</h3>
-        <p>The <b>History</b> tab has two views:</p>
-        <p><b>Rounds</b> &mdash; every completed round, expandable. Each expanded round shows teams, scores, full payout breakdown, and a <b>🏆 Winnings Summary</b> box at the bottom with team totals and per-player share — with 🥇🥈🥉 medals for the top three.<br/><b>Leaderboard</b> &mdash; every player ranked by total cash won all season. Tap any player to see a round-by-round breakdown of exactly when they won and how much.</p>
-        <div class="info-m" style="margin-top:10px;"><strong>Winnings Summary applies to all past rounds</strong><p>The summary is calculated on the fly from stored data — it appears automatically on all 22+ existing rounds, not just new ones.</p></div>
+        <p>The <b>History</b> tab shows every completed round. Each expanded round shows teams, scores, full payout breakdown including 1st/2nd splits, and a <b>🏆 Winnings Summary</b> box at the bottom with team totals and per-player share — with 🥇🥈🥉 medals for the top three.</p>
+        <div class="info-m" style="margin-top:10px;"><strong>Season money stats have moved to the Standings tab</strong><p>The full money leaderboard — Paid In, Won, Net — is now its own dedicated <b>Standings</b> tab visible to everyone. See section 8b above for a full description.</p></div>
       </div>
 
       <div class="feature">
