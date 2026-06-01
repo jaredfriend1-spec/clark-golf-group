@@ -95,7 +95,19 @@ html,body{height:100%;width:100%;margin:0;padding:0;font-family:'DM Sans',sans-s
 .nb.on{color:#0f172a}
 .nb.on::after{content:'';position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#f59e0b;border-radius:2px 2px 0 0}
 .nb.locked{opacity:0.3;cursor:not-allowed}
+.nb[data-tab="leaderboard"].on svg{stroke:#10b981}
+.nb[data-tab="leaderboard"].on{color:#10b981}
+.nb[data-tab="attendance"].on svg{stroke:#8b5cf6}
+.nb[data-tab="attendance"].on{color:#8b5cf6}
+.nb[data-tab="master"].on svg{stroke:#ec4899}
+.nb[data-tab="master"].on{color:#ec4899}
+.nb[data-tab="playerstats"].on svg{stroke:#ec4899}
+.nb[data-tab="playerstats"].on{color:#ec4899}
+.nav-admin-row{background:#fffbf5;border-top:1px solid rgba(249,115,22,0.12)}
+.nav-admin-row .nb{padding:7px 2px 6px;font-size:10px}
+.nav-admin-row .nb svg{width:17px;height:17px}
 .content{flex:1;padding:18px 14px 56px;line-height:1.5}
+.content-admin{flex:1;padding:18px 14px 96px;line-height:1.5}
 
 /* CARDS */
 .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:10px}
@@ -5368,6 +5380,14 @@ function App(){
   const statsNavTab={id:'playerstats',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>};
   const PTABS_WITH_STATS=hasStatsAccess?[...PTABS,statsNavTab]:PTABS;
   const TABS=role==='admin'?(isMasterAdmin?ATABS:[...ATABS.filter(t=>t.id!=='master'),...(hasStatsAccess?[statsNavTab]:[])])  :PTABS_WITH_STATS;
+  // Two-row admin nav
+  const adminRow1=role==='admin'?PTABS.map(t=>({...t,locked:false})):null;
+  const adminRow2=role==='admin'?[
+    {id:'email',label:'Email',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
+    {id:'admin',label:'Admin',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
+    ...(isMasterAdmin?[{id:'master',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}]:[]),
+    ...(hasStatsAccess&&!isMasterAdmin?[statsNavTab]:[]),
+  ]:null;
 
   return(
     <div className="app">
@@ -5387,8 +5407,15 @@ function App(){
         <div className="hdr-stats">{activeDays.length>0?sortDays(activeDays).map(d=>{const cnt=Object.values((week&&week.signups)||{}).filter(s=>s.day===d).length;return<div key={d} className="hdr-stat"><div className="hdr-stat-n">{cnt}</div><div className="hdr-stat-l">{d.slice(0,3)}</div></div>;}):[<div key="t" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Signed Up</div></div>,<div key="d" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Days</div></div>,<div key="tm" className="hdr-stat"><div className="hdr-stat-n">0</div><div className="hdr-stat-l">Teams</div></div>]}</div>
         <div style={{marginTop:7,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>{activeDays.length>0?(<div className="hdr-pill"><span className="hdr-dot"></span>{activeDays.join(' / ')}</div>):(<div className="hdr-pill" style={{opacity:0.35}}>No games scheduled</div>)}</div>
       </div></div>
-      <nav className="nav">{TABS.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
-      <div className="content">
+      {role==='admin'?(
+        <div>
+          <nav className="nav">{adminRow1.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
+          <nav className="nav nav-admin-row">{adminRow2.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
+        </div>
+      ):(
+        <nav className="nav">{TABS.map(t=>(<button key={t.id} data-tab={t.id} className={'nb'+(tab===t.id?' on':'')+(t.locked?' locked':'')} onClick={()=>{if(!t.locked)setTab(t.id);}}>{t.icon}{t.label}</button>))}</nav>
+      )}
+      <div className={role==='admin'?'content-admin':'content'}>
         {tab==='home'&&<WeekView currentUser={currentUser} week={week} isAdmin={isAdmin} isDemo={isDemo} extraRoster={isDemo?[]:extra} effectiveRoster={isDemo?DEMO_ROSTER:effectiveRoster} onSwitchRole={r=>setRole(r)}
           onSignup={d=>{logActivity('signup',{name:d.name,day:d.day,isGuest:d.isGuest||false,guestOf:d.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});if(isDemo){const k='ds_'+Date.now();setWeek(w=>({...w,signups:{...(w.signups||{}),[k]:d}}));}else push('week/signups',d);if(d.isGuest&&d.name){const existing=safeArray(guestHistory).find(g=>g.name===d.name);if(existing){const updated=safeArray(guestHistory).map(g=>g.name===d.name?{...g,rounds:(g.rounds||1)+1,lastPlayed:Date.now()}:g);write('guests',updated);}else{write('guests',[...safeArray(guestHistory),{name:d.name,addedAt:Date.now(),rounds:1}]);}}}}
           onRemove={k=>{
