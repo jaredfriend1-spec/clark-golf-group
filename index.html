@@ -3957,7 +3957,12 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound,trash,onRe
 
   if(!rounds.length)return(<div className="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><div className="empty-title">No rounds yet</div><div className="empty-sub">Completed rounds appear here.</div></div>);
 
-  function calcHistPay(scores,teams,pot,places,seg){const p=parseFloat(pot||0);if(!p||!teams)return[];const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return[];sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);const rows=[];if(tied.length>1){const split=Math.floor(places===1?p/tied.length:(p*0.6+p*0.4)/tied.length);rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:Math.floor(places===1?p:p*0.6),isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:Math.floor(p*0.4),isTie:false});}return rows;}
+  function calcHistPay(scores,teams,pot,places,seg){const p=parseFloat(pot||0);if(!p||!teams)return[];const sc=teams.map(t=>({...t,score:parseFloat((scores.teamScores&&scores.teamScores[t.id]?scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));if(!sc.length)return[];sc.sort((a,b)=>a.score-b.score);const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
+    // Read custom override amounts (f1/f2 for front, b1/b2 for back, o1/o2 for overall)
+    const k1=seg==='front'?'f1':seg==='back'?'b1':'o1';const k2=seg==='front'?'f2':seg==='back'?'b2':'o2';
+    const custom1=scores[k1]?parseFloat(scores[k1]):0;const custom2=scores[k2]?parseFloat(scores[k2]):0;
+    const first=custom1>0?custom1:(places===1?p:p*0.6);const second2=custom2>0?custom2:p*0.4;
+    const rows=[];if(tied.length>1){const split=Math.floor(places===1?p/tied.length:(first+second2)/tied.length);rows.push({label:'1st Tie',names:tied.map(t=>t.name).join(' & '),amt:split,isTie:true});}else{rows.push({label:'1st',names:tied[0]?tied[0].name:'',amt:Math.floor(first),isTie:false});if(places===2&&second)rows.push({label:'2nd',names:second.name,amt:Math.floor(second2),isTie:false});}return rows;}
 
   return(
     <div>
@@ -4025,7 +4030,7 @@ function HistoryView({history,isAdmin,onDelete,onClearAll,onEditRound,trash,onRe
                   if(!sc.length)return;
                   sc.sort((a,b)=>a.score-b.score);
                   const best=sc[0].score;const tied=sc.filter(t=>t.score===best);const second=sc.find(t=>t.score!==best);
-                  const first=pl===1?p:p*0.6;const sec=p*0.4;
+                  const first=pl===1?p:(r.scores[pl===1?'f1':seg==='front'?'f1':seg==='back'?'b1':'o1']?parseFloat(r.scores[seg==='front'?'f1':seg==='back'?'b1':'o1']):p*0.6);const sec=r.scores[seg==='front'?'f2':seg==='back'?'b2':'o2']?parseFloat(r.scores[seg==='front'?'f2':seg==='back'?'b2':'o2']):p*0.4;
                   if(tied.length>1){const split=Math.floor(pl===1?first/tied.length:(first+sec)/tied.length);tied.forEach(t=>{if(teamSums[String(t.id)])teamSums[String(t.id)].total+=split;});}
                   else{if(teamSums[String(tied[0].id)])teamSums[String(tied[0].id)].total+=Math.floor(first);if(pl===2&&second&&teamSums[String(second.id)])teamSums[String(second.id)].total+=Math.floor(sec);}
                 });
