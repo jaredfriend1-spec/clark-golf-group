@@ -1252,6 +1252,10 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
     skins:r.scores?.skinsPot||0,front:r.scores?.frontPot||0,
     back:r.scores?.backPot||0,overall:r.scores?.overallPot||0,
     players:r.playerCount||0,
+    fp:r.scores?.frontPlaces||1,bp:r.scores?.backPlaces||1,op:r.scores?.overallPlaces||1,
+    f1:r.scores?.f1||0,f2:r.scores?.f2||0,
+    b1:r.scores?.b1||0,b2:r.scores?.b2||0,
+    o1:r.scores?.o1||0,o2:r.scores?.o2||0,
   }));
   const maxPotBar=Math.max(...potChartData.map(p=>p.skins+p.front+p.back+p.overall))||1;
 
@@ -1641,8 +1645,20 @@ function MasterView({week,history,attendance,rosterPins,rosterAdmins,activityLog
         <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Round Breakdown</div>
         <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-            <thead><tr style={{borderBottom:'1px solid rgba(255,255,255,0.08)'}}>{['Date','Players','Skins','Front','Back','Overall','Total'].map(h=>(<th key={h} style={{textAlign:'right',padding:'4px 6px',color:'rgba(255,255,255,0.35)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',fontSize:9,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
-            <tbody>{potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;return(<tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',background:i%2===0?'transparent':'rgba(255,255,255,0.03)'}}><td style={{padding:'5px 6px',color:'rgba(255,255,255,0.45)',whiteSpace:'nowrap'}}>{r.date}</td><td style={{padding:'5px 6px',textAlign:'right',color:'rgba(255,255,255,0.45)'}}>{r.players}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#10b981'}}>${r.skins}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#3b82f6'}}>${r.front}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#f97316'}}>${r.back}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#8b5cf6'}}>${r.overall}</td><td style={{padding:'5px 6px',textAlign:'right',fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif',fontSize:13}}>${total}</td></tr>);})}</tbody>
+            <thead><tr style={{borderBottom:'1px solid rgba(255,255,255,0.08)'}}>{['Date','Plyrs','Skins','Front','Back','Overall','Total'].map(h=>(<th key={h} style={{textAlign:'right',padding:'4px 6px',color:'rgba(255,255,255,0.35)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',fontSize:9,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
+            <tbody>{potChartData.map((r,i)=>{
+              const total=r.skins+r.front+r.back+r.overall;
+              const fmtSplit=(places,pot,c1,c2)=>{if(!pot)return'—';const a1=c1>0?c1:places===1?pot:Math.floor(pot*0.6);const a2=c2>0?c2:Math.floor(pot*0.4);return places===2?<span style={{fontSize:9}}><span style={{color:'#10b981'}}>${a1}</span><span style={{color:'rgba(255,255,255,0.3)'}}>/</span><span style={{color:'rgba(255,255,255,0.5)'}}>${a2}</span></span>:<span style={{color:'#10b981',fontSize:9}}>${a1}</span>;};
+              return(<tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',background:i%2===0?'transparent':'rgba(255,255,255,0.03)'}}>
+                <td style={{padding:'5px 6px',color:'rgba(255,255,255,0.45)',whiteSpace:'nowrap'}}>{r.date}</td>
+                <td style={{padding:'5px 6px',textAlign:'right',color:'rgba(255,255,255,0.45)'}}>{r.players}</td>
+                <td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#10b981'}}>${r.skins}</td>
+                <td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#3b82f6'}}>{fmtSplit(r.fp,r.front,r.f1,r.f2)}</td>
+                <td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#f97316'}}>{fmtSplit(r.bp,r.back,r.b1,r.b2)}</td>
+                <td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,color:'#8b5cf6'}}>{fmtSplit(r.op,r.overall,r.o1,r.o2)}</td>
+                <td style={{padding:'5px 6px',textAlign:'right',fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif',fontSize:13}}>${total}</td>
+              </tr>);
+            })}</tbody>
           </table>
         </div>
       </Sec>}
@@ -5217,7 +5233,7 @@ function App(){
     else del('historyTrash/'+key);
   }
 
-  function editHistoryRound(key,round){del('history/'+key);const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};if(round.scores)newWeek.scores={...(newWeek.scores||{}),[round.day]:round.scores};newWeek.complete={...(newWeek.complete||{}),[round.day]:true};newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};write('week',newWeek);setTab('scoring');}
+  function editHistoryRound(key,round){del('history/'+key);const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};if(round.scores){const sc={...round.scores};if(round.playerCount&&!sc.playerCount)sc.playerCount=round.playerCount;newWeek.scores={...(newWeek.scores||{}),[round.day]:sc};}newWeek.complete={...(newWeek.complete||{}),[round.day]:true};newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};write('week',newWeek);setTab('scoring');}
 
 
   function saveAdminFlag(playerId,isAdminFlag){
