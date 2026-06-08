@@ -2038,7 +2038,7 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
   );
 }
 
-function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,rosterPins,rosterAdmins,rosterShared,fullRoster,savePinFn}){
+function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,rosterPins,rosterAdmins,rosterShared,fullRoster,savePinFn,settings}){
   const [pin,setPin]=useState('');
   const [showPad,setShowPad]=useState(false);
   const [disambigList,setDisambigList]=useState([]);
@@ -2053,6 +2053,10 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
   const [pwErr,setPwErr]=useState(false);
   const [showRegBanner,setShowRegBanner]=useState(()=>{try{return!localStorage.getItem('cgRegistered');}catch{return true;}});
   const [pinShake,setPinShake]=useState(false);
+  const [masterStep,setMasterStep]=useState(null);
+  const [masterInput,setMasterInput]=useState('');
+  const [masterPendingId,setMasterPendingId]=useState(null);
+  const [masterAttempts,setMasterAttempts]=useState(0);
   function dismissBanner(){try{localStorage.setItem('cgRegistered','1');}catch{}setShowRegBanner(false);}
   function tryAdminPw(){if(hashPw(pw)==='8c186caf'){onAdmin();}else{setPwErr(true);setTimeout(()=>setPwErr(false),1500);}}
   function mkIni(n){return(n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
@@ -2070,11 +2074,25 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
   function completeLogin(playerId){
     const player=(fullRoster||[]).find(r=>String(r.id)===String(playerId));
     if(!player)return;
+    const isMaster=rosterAdmins&&rosterAdmins[playerId]==='master';
+    // Master admin requires a secondary password
+    if(isMaster){setMasterPendingId(playerId);setMasterStep('prompt');setMasterInput('');setShowPad(false);return;}
+    finishLogin(playerId);
+  }
+  function finishLogin(playerId){
+    const player=(fullRoster||[]).find(r=>String(r.id)===String(playerId));
+    if(!player)return;
     const isAdm=!!(rosterAdmins&&rosterAdmins[playerId]);
     const wd={name:player.name,id:String(playerId),role:isAdm?'admin':'member',ini:mkIni(player.name)};
-    setDisambigList([]);setShowPad(false);
+    setDisambigList([]);setShowPad(false);setMasterStep(null);setMasterPendingId(null);setMasterInput('');setMasterAttempts(0);
     setWelcomeData(wd);setShowWelcome(true);
     setTimeout(()=>{setShowWelcome(false);onMemberLogin(wd);},1800);
+  }
+  function handleMasterPassword(){
+    const correct=settings?.masterPassword||'';
+    if(!correct){finishLogin(masterPendingId);return;} // no password set yet — let through
+    if(masterInput===correct){finishLogin(masterPendingId);}
+    else{const a=masterAttempts+1;setMasterAttempts(a);setMasterInput('');setMasterStep(a>=3?'locked':'error');}
   }
   if(showSelfReg)return(
     <SelfRegister fullRoster={fullRoster} rosterPins={rosterPins}
@@ -2220,6 +2238,36 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
         <div style={{textAlign:'center',marginTop:14}}>
           <button onClick={()=>{setShowDemoPad(false);setDemoPin('');setDemoPinErr('');}} style={{background:'none',border:'none',color:'#94a3b8',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Back</button>
         </div>
+      </div>
+    </div>
+  );
+  if(masterStep==='prompt'||masterStep==='error'||masterStep==='locked')return(
+    <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.92)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:9999,backdropFilter:'blur(8px)',padding:'0 24px'}}>
+      <div style={{background:'#1e293b',borderRadius:20,padding:'32px 24px',width:'100%',maxWidth:360,textAlign:'center',border:'1px solid rgba(255,255,255,0.08)'}}>
+        <div style={{fontSize:40,marginBottom:16}}>🔐</div>
+        <div style={{fontSize:20,fontWeight:800,color:'#fff',marginBottom:8,fontFamily:'Barlow Condensed,sans-serif',letterSpacing:'0.03em'}}>Master Admin Verification</div>
+        <div style={{fontSize:13,color:'rgba(255,255,255,0.5)',marginBottom:24}}>PIN accepted. Enter your master password to continue.</div>
+        {masterStep==='locked'?(
+          <div style={{background:'#450a0a',border:'1px solid #dc2626',borderRadius:12,padding:'16px',marginBottom:16}}>
+            <div style={{fontSize:14,fontWeight:700,color:'#f87171',marginBottom:4}}>Account Locked</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.5)'}}>Too many incorrect attempts. Contact Jared to reset.</div>
+          </div>
+        ):(
+          <>
+            {masterStep==='error'&&<div style={{fontSize:12,color:'#f87171',marginBottom:12,background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.2)',borderRadius:8,padding:'8px 12px'}}>Incorrect password — {3-masterAttempts} attempt{3-masterAttempts!==1?'s':''} remaining</div>}
+            <input
+              type="password"
+              value={masterInput}
+              onChange={e=>setMasterInput(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&handleMasterPassword()}
+              placeholder="Master password"
+              autoFocus
+              style={{width:'100%',padding:'14px',borderRadius:12,border:'1.5px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.05)',color:'#fff',fontSize:16,fontFamily:'DM Sans,sans-serif',boxSizing:'border-box',outline:'none',marginBottom:12,textAlign:'center',letterSpacing:'0.1em'}}
+            />
+            <button onClick={handleMasterPassword} style={{width:'100%',padding:'14px',borderRadius:12,border:'none',background:'#f59e0b',color:'#1e293b',fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'DM Sans,sans-serif',boxShadow:'0 4px 14px rgba(245,158,11,0.3)'}}>Verify →</button>
+          </>
+        )}
+        <button onClick={()=>{setMasterStep(null);setMasterPendingId(null);setMasterInput('');setMasterAttempts(0);}} style={{width:'100%',padding:'10px',borderRadius:12,border:'none',background:'none',color:'rgba(255,255,255,0.3)',fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginTop:8}}>← Cancel</button>
       </div>
     </div>
   );
@@ -5362,6 +5410,7 @@ function App(){
     rosterShared={rosterShared}
     fullRoster={[...effectiveRoster,...safeArray(extra)]}
     savePinFn={saveMemberPin}
+    settings={settings}
   />;
 
   const isAdmin=role==='admin';const activeDays=safeArray(week?.activeDays);
