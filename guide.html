@@ -362,16 +362,27 @@
 
       <div class="feature">
         <h3><span class="feature-num gold">&#9733;</span> Signing In as Admin</h3>
-        <p>Admins sign in exactly like members &mdash; register your phone number using <b>&ldquo;Need to set up your login?&rdquo;</b> on the landing page, then sign in with your last 4 digits. The app recognises your admin status automatically and unlocks the <b>Admin</b> tab. No separate password needed.</p>
-        <div class="callout"><strong>Admins must register first</strong><p>Before deploying to members, make sure all admins have registered their phone numbers. Otherwise you won&rsquo;t be able to access the Admin tab after deploy.</p></div>
+        <p>Admins sign in exactly like members &mdash; register your phone number using <b>&ldquo;Need to set up your login?&rdquo;</b> on the landing page, then sign in with your last 4 digits. The app recognises your admin status automatically and unlocks additional tabs. No separate password needed.</p>
+
+        <div class="info-m" style="margin-top:12px;background:#f5f3ff;border-color:#ddd6fe;">
+          <strong style="color:#4c1d95;">Admin Roles &mdash; Three Levels</strong>
+          <p style="margin-top:8px;">
+            <b>&#11088; Master Admin (Jared)</b> &mdash; full access to everything: all app tabs, the Stats dashboard, and the Admin Portal. Cannot be changed by other admins.<br/><br/>
+            <b>&#128737;&#65039; Super Admin (Clark, etc.)</b> &mdash; sees the full Admin tab, Email tab, and all player tabs. Can manage days, teams, roster, notes, and score games. Gets access to the Admin Portal with a separate password.<br/><br/>
+            <b>&#128202; Scoring Admin</b> &mdash; sees only the player tabs (Week, Teams, History, Standings, Attend) plus the <b>Score tab</b> unlocked. Can enter scores and publish results to history. Cannot see the Admin tab, Email tab, or Stats. Designed for week-to-week scoring help &mdash; easy to turn on and off.
+          </p>
+        </div>
+
+        <div class="callout"><strong>Admins must register first</strong><p>Before deploying to members, make sure all admins have registered their phone numbers. Otherwise you won&rsquo;t be able to access admin features after deploy.</p></div>
         <div class="info-m" style="margin-top:10px;"><strong>Two sign-up buttons for admins</strong><p>On the Week tab, admins see two buttons at the bottom of each day card instead of the usual one:<br/><br/><b style="color:#10b981;">+ Sign me up</b> &mdash; green, instantly pre-fills your own name (same fast experience as a regular member).<br/><b style="color:#3b82f6;">+ Sign up someone</b> &mdash; blue, opens the full roster picker so you can sign up any player on their behalf, set their tees and HCP, add a tee preference, or create a match pairing for them.</p></div>
-        <div class="info-m" style="margin-top:10px;"><strong>Granting admin access</strong><p>Admin status is set in the Roster section. Find the member, tap Edit, and toggle the Admin flag on. They&rsquo;ll get ⭐ on the welcome screen when they next sign in.</p></div>
-        <div class="info-m" style="margin-top:10px;background:#fffbeb;border-color:#f59e0b;"><strong>🔒 Master Admin protection</strong><p>Certain admins (Jared and Clark) are flagged as Master Admins in Firebase. Their phone number and admin status are completely locked in the app UI &mdash; no other admin can change them. The only way to update a Master Admin&rsquo;s phone number is through self-registration on the landing page, which requires physical access to their phone. This prevents anyone from accidentally or intentionally locking out a core admin.</p></div>
+        <div class="info-m" style="margin-top:10px;"><strong>Managing admin roles</strong><p>Admin roles are managed from the <b>Admin Portal</b> (portal.html) &mdash; a separate tool for group management. The Master Admin can add or remove admins, and change anyone between Super Admin and Scoring Admin with a single dropdown. See the <b>Admin Portal</b> section below for details.</p></div>
+        <div class="info-m" style="margin-top:10px;background:#fffbeb;border-color:#f59e0b;"><strong>&#128274; Master Admin protection</strong><p>The Master Admin (Jared) is flagged in Firebase. Their phone number and admin status are completely locked in the app UI &mdash; no other admin can change them. The only way to update the Master Admin&rsquo;s phone number is through self-registration on the landing page, which requires physical access to their phone. This prevents anyone from accidentally or intentionally locking out the core admin.</p></div>
       </div>
 
       <div class="feature" style="background:#f8fafc;border-left:3px solid #10b981;padding-left:14px;">
         <h3 style="margin-top:0;"><span style="color:#10b981;">&#9679;</span> Quick note on navigation</h3>
         <p>The bottom tab bar uses colored icons to help you find things fast &mdash; each tab has its own color when active: <b style="color:#10b981;">Week</b> (green), <b style="color:#3b82f6;">Teams</b> (blue), <b style="color:#f59e0b;">Score</b> (amber), <b style="color:#8b5cf6;">History</b> (purple), <b style="color:#06b6d4;">Email</b> (cyan), <b style="color:#f97316;">Admin</b> (orange).</p>
+        <p style="margin-top:8px;"><b>Scoring Admins</b> see the same player tabs as members, but with the <b style="color:#f59e0b;">Score</b> tab always unlocked. They do <em>not</em> see the Email, Admin, or Stats tabs.</p>
       </div>
 
       <div class="feature">
@@ -687,6 +698,49 @@
       </div>
     </div>
 
+    <!-- ADMIN PORTAL -->
+    <div class="section">
+      <h2>Admin Portal</h2>
+      <p>A separate management tool at <b>portal.html</b> for running the group behind the scenes. Only the Master Admin and Super Admins with a portal password can access it.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num dark">1</span> What&rsquo;s in the Portal?</h3>
+        <p>The portal has its own set of tabs, separate from the main app:</p>
+        <p>
+          <b>Dashboard</b> &mdash; active days, player counts, tournament pot, system health check, Firebase inspector (Master only), activity log, and login log with clear function.<br/><br/>
+          <b>Week</b> &mdash; manage days and sign-ups, view day checklists, edit weekly notes and announcements. End Week requires typing &ldquo;END&rdquo; to confirm.<br/><br/>
+          <b>Email</b> &mdash; same email builder as the main app with formatted preview, Copy Formatted, and Copy Plain Text.<br/><br/>
+          <b>Roster</b> &mdash; segmented into Active (has PIN), Inactive (no PIN), and Hidden players. Full edit: name, email, tee, handicap, PIN status, reset PIN.<br/><br/>
+          <b>Access</b> &mdash; manage admin roles. Add admins, change between Super Admin and Scoring Admin with a dropdown, remove access. Role summary cards show counts at a glance.<br/><br/>
+          <b>History</b> &mdash; view and manage completed rounds. Delete requires typing &ldquo;DELETE&rdquo;. Deleted rounds go to trash (recoverable from main app).<br/><br/>
+          <b>Attend</b> &mdash; log rounds, edit attendance, view standings. Same data model as the main app&rsquo;s attendance.<br/><br/>
+          <b>Settings</b> &mdash; Master only. Firebase auth setup, tournament fund balance, master password, sign out.
+        </p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num dark">2</span> Managing Admin Roles</h3>
+        <p>Go to the <b>Access</b> tab in the portal. Three role summary cards show how many of each type you have.</p>
+        <p><b>To add an admin:</b> Search for a player in the &ldquo;Add Admin&rdquo; card &rarr; tap &ldquo;+ Add as Scoring Admin.&rdquo; They appear in the Current Admins list below.</p>
+        <p><b>To change a role:</b> Each admin has their own dropdown. Tap it to switch between &#128737;&#65039; Super Admin and &#128202; Scoring Admin. Only that person changes &mdash; nobody else is affected.</p>
+        <p><b>To remove:</b> Tap the &ldquo;&#10005; Remove&rdquo; button on their row. Confirm in the popup. Their PIN and roster entry are unaffected.</p>
+        <div class="info-m" style="margin-top:10px;"><strong>New admins default to Scoring Admin</strong><p>When you add someone, they start as a Scoring Admin (score entry only). You have to actively promote them to Super Admin if you want them to have full access.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num dark">3</span> Activity &amp; Login Logs</h3>
+        <p>The Dashboard shows two log cards (expanded by default):</p>
+        <p><b>Activity Log</b> &mdash; sign-ups, removals, team publishes, day setup, new weeks, roster adds, match requests. Color-coded by event type with relative timestamps.</p>
+        <p><b>Login Log</b> &mdash; member and admin logins, self-registrations. Summary cards show member vs admin login counts. Master can clear login history (type DELETE to confirm).</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num dark">4</span> Accessing the Portal</h3>
+        <p>Go to <b>clark-golf-group-two.vercel.app/portal.html</b>. Enter the master password to sign in. Super Admins will need a separate portal password (coming soon).</p>
+        <div class="callout"><strong>Portal is separate from the main app</strong><p>Changes made in the portal (roles, roster, attendance) write to the same Firebase database as the main app. Everything stays in sync &mdash; add an admin in the portal and they see their new access in the main app immediately.</p></div>
+      </div>
+    </div>
+
     <!-- ATTENDANCE -->
     <div class="section">
       <h2>Season Attendance</h2>
@@ -721,8 +775,9 @@
       </div>
     </div>
 
-    <div class="link-row">
+    <div class="link-row" style="flex-wrap:wrap;">
       <a href="index.html" style="background:#0f172a;color:#fff;">Back to the App</a>
+      <a href="portal.html" style="background:#6366f1;color:#fff;">Admin Portal</a>
       <a href="attendance.html" style="background:#f59e0b;color:#0f172a;">Attendance Tracker</a>
     </div>
 
