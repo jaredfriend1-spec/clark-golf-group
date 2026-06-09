@@ -213,6 +213,10 @@ const ROSTER=[
 
 const isMaster=r=>r==="master";
 const isSuperOrAbove=r=>["master","superadmin"].includes(r);
+const isScoring=r=>r==="scoring";
+const ROLE_LEVELS={master:3,admin:2,scoring:1};
+const ROLE_LABELS={master:"⭐ Master",admin:"🛡️ Super Admin",scoring:"📊 Scoring Admin"};
+const ROLE_COLORS={master:{bg:"rgba(245,158,11,0.15)",border:"rgba(245,158,11,0.3)",color:"#fbbf24"},admin:{bg:"rgba(59,130,246,0.15)",border:"rgba(59,130,246,0.3)",color:"#60a5fa"},scoring:{bg:"rgba(139,92,246,0.15)",border:"rgba(139,92,246,0.3)",color:"#a78bfa"}};
 
 // ── GATE ──────────────────────────────────────────────────────────────────────
 function Gate({onAuth}){
@@ -306,6 +310,33 @@ function Gate({onAuth}){
   );
 }
 
+// ── CLEAR LOGIN LOG BUTTON (typed confirm) ────────────────────────────────────
+function ClearLoginLogBtn({logEntries}){
+  const [clearing,setClearing]=useState(false);
+  const [typed,setTyped]=useState("");
+  function doClear(){
+    if(typed!=="DELETE")return;
+    logEntries.forEach(e=>{if(e.key)dl("activityLog/"+e.key);});
+    setClearing(false);setTyped("");
+  }
+  return(
+    <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+      {!clearing?(
+        <button onClick={()=>setClearing(true)} style={{fontSize:11,color:"#f87171",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontFamily:"DM Sans,sans-serif",fontWeight:600}}>🗑 Clear Login History ({logEntries.length})</button>
+      ):(
+        <div>
+          <div style={{fontSize:12,color:"#f87171",fontWeight:600,marginBottom:6}}>Type DELETE to confirm clearing {logEntries.length} login entries</div>
+          <div style={{display:"flex",gap:6}}>
+            <input className="inp" style={{flex:1,fontSize:12}} placeholder="DELETE" value={typed} onChange={e=>setTyped(e.target.value)}/>
+            <button className="btn btn-r btn-sm" disabled={typed!=="DELETE"} onClick={doClear}>Clear</button>
+            <button className="btn btn-gh btn-sm" onClick={()=>{setClearing(false);setTyped("");}}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── DASH ──────────────────────────────────────────────────────────────────────
 function DashTab({user}){
   const settings=useDB("settings");
@@ -313,9 +344,12 @@ function DashTab({user}){
   const extra=useDB("extraPlayers");
   const history=useDB("history");
   const week=useDB("week");
+  const rawActivityLog=useDB("activityLog");
   const [appOk,setAppOk]=useState(null);
   const [fbInspect,setFbInspect]=useState(null);
   const [showInspect,setShowInspect]=useState(false);
+  const [showActivityLog,setShowActivityLog]=useState(true);
+  const [showLoginLog,setShowLoginLog]=useState(true);
 
   useEffect(()=>{
     fetch("https://clark-golf-group-two.vercel.app/",{mode:"no-cors"}).then(()=>setAppOk(true)).catch(()=>setAppOk(false));
@@ -422,6 +456,96 @@ function DashTab({user}){
           )}
         </div>
       )}
+
+      {/* ACTIVITY LOG (Master + Super Admin) */}
+      {(()=>{
+        const logEntries=Object.entries(rawActivityLog||{}).map(([k,e])=>({key:k,...e})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+        const activityEntries=logEntries.filter(e=>!["login","self_register"].includes(e.action));
+        const loginEntries=logEntries.filter(e=>["login","self_register"].includes(e.action));
+        const relTime=ts=>{const d=Date.now()-ts;return d<60000?"just now":d<3600000?Math.round(d/60000)+"m ago":d<86400000?Math.round(d/3600000)+"h ago":Math.round(d/86400000)+"d ago";};
+        const ACFG={signup:{label:"Signed up",color:"#34d399",icon:"👤"},remove_signup:{label:"Removed",color:"#f87171",icon:"✕"},teams_published:{label:"Teams published",color:"#60a5fa",icon:"✓"},day_setup:{label:"Day activated",color:"#a78bfa",icon:"📅"},week_started:{label:"New week",color:"#e2e8f0",icon:"🗓"},roster_add:{label:"Added to roster",color:"#34d399",icon:"➕"},roster_remove:{label:"Removed",color:"#f87171",icon:"−"},match_request:{label:"Match request",color:"#60a5fa",icon:"⚡"},waitlist_join:{label:"Joined waitlist",color:"#fbbf24",icon:"⏳"},waitlist_remove:{label:"Left waitlist",color:"rgba(255,255,255,0.4)",icon:"↩"}};
+
+        return(<>
+          <div className="card">
+            <div className="card-hdr" style={{cursor:"pointer"}} onClick={()=>setShowActivityLog(v=>!v)}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span className="card-title">📋 Activity Log</span>
+                {activityEntries.length>0&&<span style={{fontSize:10,fontWeight:700,background:"rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.4)",padding:"2px 7px",borderRadius:20}}>{activityEntries.length}</span>}
+              </div>
+              <span style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{showActivityLog?"▲":"▼"}</span>
+            </div>
+            {showActivityLog&&(
+              <div>
+                {activityEntries.length===0&&<div style={{padding:"14px 16px",fontSize:12,color:"rgba(255,255,255,0.3)"}}>No activity recorded yet.</div>}
+                <div style={{maxHeight:400,overflowY:"auto"}}>
+                  {activityEntries.slice(0,50).map((e,i)=>{
+                    const c=ACFG[e.action]||{label:e.action?.replace(/_/g," ")||"?",color:"rgba(255,255,255,0.5)",icon:"•"};
+                    return(
+                      <div key={e.key||i} className="s-row" style={{gap:10}}>
+                        <span style={{fontSize:14,flexShrink:0,width:18,textAlign:"center"}}>{c.icon}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                            <span style={{fontSize:11,fontWeight:700,color:c.color}}>{c.label}</span>
+                            {e.name&&<span style={{fontSize:12,fontWeight:600,color:"#e2e8f0"}}>{e.name}</span>}
+                            {e.day&&<span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>— {e.day}</span>}
+                          </div>
+                          <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:1}}>
+                            {e.by&&e.by!=="admin"&&e.by!=="player"?e.by+" · ":""}{relTime(e.ts||0)}
+                            {e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:20,marginLeft:6,background:e.byRole==="admin"?"rgba(245,158,11,0.15)":"rgba(16,185,129,0.15)",color:e.byRole==="admin"?"#fbbf24":"#34d399"}}>{e.byRole}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {activityEntries.length>50&&<div style={{padding:"8px 16px",fontSize:10,color:"rgba(255,255,255,0.25)",textAlign:"center"}}>Showing 50 of {activityEntries.length}</div>}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="card-hdr" style={{cursor:"pointer"}} onClick={()=>setShowLoginLog(v=>!v)}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span className="card-title">🔑 Login Log</span>
+                {loginEntries.length>0&&<span style={{fontSize:10,fontWeight:700,background:"rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.4)",padding:"2px 7px",borderRadius:20}}>{loginEntries.length}</span>}
+              </div>
+              <span style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{showLoginLog?"▲":"▼"}</span>
+            </div>
+            {showLoginLog&&(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"14px 16px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                  <div style={{background:"rgba(99,102,241,0.12)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:800,color:"#818cf8"}}>{loginEntries.filter(e=>e.action==="login"&&e.byRole!=="admin").length}</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Member Logins</div>
+                  </div>
+                  <div style={{background:"rgba(245,158,11,0.12)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:800,color:"#fbbf24"}}>{loginEntries.filter(e=>e.action==="login"&&e.byRole==="admin").length}</div>
+                    <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Admin Logins</div>
+                  </div>
+                </div>
+                {loginEntries.length===0&&<div style={{padding:"14px 16px",fontSize:12,color:"rgba(255,255,255,0.3)"}}>No login events recorded.</div>}
+                <div style={{maxHeight:300,overflowY:"auto"}}>
+                  {loginEntries.slice(0,30).map((e,i)=>(
+                    <div key={e.key||i} className="s-row" style={{gap:10}}>
+                      <span style={{fontSize:14,flexShrink:0,width:18,textAlign:"center"}}>{e.action==="self_register"?"📱":"🔑"}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0"}}>{e.name||"Unknown"}</div>
+                        <div style={{fontSize:10,color:"rgba(255,255,255,0.25)"}}>
+                          {e.action==="self_register"?"Registered PIN":e.byRole==="admin"?"Admin login":"Member login"} · {relTime(e.ts||0)}
+                        </div>
+                      </div>
+                      {e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:20,background:e.byRole==="admin"?"rgba(245,158,11,0.15)":"rgba(16,185,129,0.15)",color:e.byRole==="admin"?"#fbbf24":"#34d399"}}>{e.byRole}</span>}
+                    </div>
+                  ))}
+                </div>
+                {isMaster(user.role)&&loginEntries.length>0&&(
+                  <ClearLoginLogBtn logEntries={loginEntries}/>
+                )}
+              </div>
+            )}
+          </div>
+        </>);
+      })()}
 
       <div className="card">
         <div className="card-hdr"><span className="card-title">Quick Links</span></div>
@@ -1172,7 +1296,7 @@ function RosterTab(){
   </div>);
 }
 
-// ── ACCESS TAB (admins + portal users only — no player section) ───────────────
+// ── ACCESS TAB (role management + portal users) ──────────────────────────────
 function AccessTab({user}){
   const extra=useDB("extraPlayers");
   const rosterEdits=useDB("rosterEdits");
@@ -1192,23 +1316,25 @@ function AccessTab({user}){
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
   },[extra,rosterEdits]);
 
-  const admins=all.filter(p=>rosterAdmins&&rosterAdmins[p.id]);
+  const admins=all.filter(p=>rosterAdmins&&rosterAdmins[p.id]).map(p=>({...p,role:rosterAdmins[p.id]})).sort((a,b)=>(ROLE_LEVELS[b.role]||0)-(ROLE_LEVELS[a.role]||0));
   const adminSearch=all.filter(p=>adminQ&&p.name.toLowerCase().includes(adminQ.toLowerCase())&&!(rosterAdmins&&rosterAdmins[p.id])).slice(0,6);
   const portalUserList=Object.entries(portalUsers||{}).map(([k,v])=>({...v,_key:k}));
 
-  function grantAdmin(id){
-    wr("rosterAdmins/"+id,"admin");
-    setAdminQ("");
-    showToast("Admin granted ✓");
+  function changeRole(id,newRole){
+    wr("rosterAdmins/"+id,newRole);
+    showToast("Role updated ✓");
   }
-
   function removeAdmin(p){
-    if(rosterAdmins&&rosterAdmins[p.id]==="master"){showToast("Can't remove master here","err");return;}
+    if(p.role==="master"){showToast("Can't remove master","err");return;}
     dl("rosterAdmins/"+p.id);
     setConfirmRemoveAdmin(null);
     showToast("Admin removed ✓");
   }
-
+  function grantAdmin(id){
+    wr("rosterAdmins/"+id,"scoring");
+    setAdminQ("");
+    showToast("Added as Scoring Admin — change role above if needed ✓");
+  }
   function addPortalUser(){
     if(!newPU.name||!newPU.password){showToast("Name and password required","err");return;}
     if(newPU.password.length<4){showToast("Password must be 4+ characters","err");return;}
@@ -1217,7 +1343,6 @@ function AccessTab({user}){
     setAddingPU(false);
     showToast("Portal user added ✓");
   }
-
   function removePortalUser(pu){
     dl("settings/portalUsers/"+pu._key);
     setConfirmRemovePU(null);
@@ -1227,49 +1352,99 @@ function AccessTab({user}){
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
     <div className="pg-title">Access Management</div>
-    <div className="pg-sub">App admin roles and portal user accounts</div>
+    <div className="pg-sub">Designate admin roles — easy on/off</div>
 
-    <div className="info-box"><strong>Player PINs are managed in the Roster tab.</strong> This page is for app admins (who manage games) and portal users (who sign into this portal).</div>
+    <div className="info-box"><strong>Player PINs are managed in the Roster tab.</strong> Use this page to control who has admin access and what level.</div>
+
+    {/* ── ROLE LEGEND ── */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+      {[
+        {role:"master",emoji:"⭐",title:"Master",desc:"Full access everywhere",count:admins.filter(a=>a.role==="master").length},
+        {role:"admin",emoji:"🛡️",title:"Super Admin",desc:"Manage days, teams, roster",count:admins.filter(a=>a.role==="admin").length},
+        {role:"scoring",emoji:"📊",title:"Scoring",desc:"Enter scores, publish results",count:admins.filter(a=>a.role==="scoring").length},
+      ].map(({role,emoji,title,desc,count})=>{
+        const c=ROLE_COLORS[role];
+        return(
+          <div key={role} style={{background:c.bg,border:"1px solid "+c.border,borderRadius:10,padding:"12px 10px",textAlign:"center"}}>
+            <div style={{fontSize:20,marginBottom:4}}>{emoji}</div>
+            <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:800,color:c.color}}>{count}</div>
+            <div style={{fontSize:11,fontWeight:700,color:c.color}}>{title}</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",marginTop:2,lineHeight:1.4}}>{desc}</div>
+          </div>
+        );
+      })}
+    </div>
 
     {isMaster(user.role)&&(
       <div className="sec-tabs">
-        {[["app","App Admins"],["portal","Portal Users"]].map(([id,label])=>(
+        {[["app","🛡️ App Admins"],["portal","🔑 Portal Users"]].map(([id,label])=>(
           <button key={id} className={`mtab${section===id?" on":""}`} style={{fontSize:12}} onClick={()=>setSection(id)}>{label}</button>
         ))}
       </div>
     )}
 
     {section==="app"&&(<div>
+      {/* ── ADD AN ADMIN ── */}
       <div className="card">
-        <div className="card-hdr"><span className="card-title">App Admins ({admins.length})</span></div>
-        {admins.length===0&&<div style={{padding:"14px 16px",fontSize:12,color:"rgba(255,255,255,0.3)"}}>No admins yet. Search below to grant.</div>}
+        <div className="card-hdr"><span className="card-title">+ Add Admin</span></div>
+        <div className="card-body">
+          <div className="lbl">Search player to add</div>
+          <input className="inp" placeholder="Type a name…" value={adminQ} onChange={e=>setAdminQ(e.target.value)}/>
+          {adminSearch.length>0&&(
+            <div style={{marginTop:8,border:"1px solid rgba(255,255,255,0.08)",borderRadius:8}}>
+              {adminSearch.map(p=>(
+                <div key={p.id} style={{display:"flex",alignItems:"center",padding:"9px 12px",gap:8,borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+                  <span style={{flex:1,fontSize:13,fontWeight:500,color:"#e2e8f0"}}>{p.name}</span>
+                  <button className="btn btn-g btn-sm" onClick={()=>grantAdmin(p.id)}>+ Add as Scoring Admin</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {adminQ&&adminSearch.length===0&&<div style={{marginTop:6,fontSize:12,color:"rgba(255,255,255,0.3)"}}>No matches (or already an admin)</div>}
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:8,lineHeight:1.6}}>New admins are added as Scoring Admin by default. Change their role to Super Admin in the list above.</div>
+        </div>
+      </div>
+
+      {/* ── CURRENT ADMINS — each with independent role dropdown ── */}
+      <div className="card" style={{marginTop:12}}>
+        <div className="card-hdr"><span className="card-title">Current Admins ({admins.length})</span></div>
+        {admins.length===0&&<div style={{padding:"14px 16px",fontSize:12,color:"rgba(255,255,255,0.3)"}}>No admins yet. Use the search above to add someone.</div>}
         {admins.map(p=>{
-          const isMasterP=rosterAdmins[p.id]==="master";
+          const isMasterP=p.role==="master";
+          const c=ROLE_COLORS[p.role]||ROLE_COLORS.scoring;
           return(
-            <div key={p.id} className="p-row">
-              <div style={{flex:1}}>
-                <div className="p-name">{p.name}</div>
-                <span className={isMasterP?"b b-a":"b b-b"}>{isMasterP?"⭐ Master Admin":"Admin"}</span>
+            <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+              {/* Name */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:600,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
               </div>
-              {!isMasterP&&<button className="btn btn-r btn-sm" onClick={()=>setConfirmRemoveAdmin(p)}>Remove</button>}
+              {/* Independent role selector per person */}
+              {isMasterP?(
+                <span style={{fontSize:11,fontWeight:700,padding:"5px 12px",borderRadius:20,background:c.bg,border:"1px solid "+c.border,color:c.color,whiteSpace:"nowrap"}}>⭐ Master</span>
+              ):(
+                <select value={p.role} onChange={e=>changeRole(p.id,e.target.value)}
+                  style={{padding:"6px 10px",borderRadius:8,border:"1.5px solid "+c.border,background:c.bg,color:c.color,fontSize:12,fontWeight:700,fontFamily:"DM Sans,sans-serif",cursor:"pointer",outline:"none",minWidth:145}}>
+                  <option value="admin">🛡️ Super Admin</option>
+                  <option value="scoring">📊 Scoring Admin</option>
+                </select>
+              )}
+              {/* Remove */}
+              {!isMasterP&&(
+                <button onClick={()=>setConfirmRemoveAdmin(p)} style={{background:"none",border:"1px solid rgba(239,68,68,0.2)",borderRadius:6,padding:"5px 9px",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans,sans-serif",flexShrink:0}}>✕ Remove</button>
+              )}
             </div>
           );
         })}
-        <div style={{padding:"11px 14px",borderTop:"1px solid rgba(255,255,255,0.04)"}}>
-          <div className="lbl">Grant Admin</div>
-          <input className="inp" placeholder="Search players to grant admin…" value={adminQ} onChange={e=>setAdminQ(e.target.value)} style={{marginBottom:adminSearch.length?8:0}}/>
-          {adminSearch.map(p=>(
-            <div key={p.id} style={{display:"flex",alignItems:"center",padding:"7px 0",gap:8}}>
-              <div className="p-name" style={{flex:1}}>{p.name}</div>
-              <button className="btn btn-a btn-sm" onClick={()=>grantAdmin(p.id)}>Grant Admin</button>
-            </div>
-          ))}
-        </div>
+      </div>
+
+      {/* Note about main app */}
+      <div style={{marginTop:12,padding:"10px 14px",background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,fontSize:11,color:"rgba(255,255,255,0.45)",lineHeight:1.7}}>
+        <strong style={{color:"#fbbf24"}}>⚠️ Note:</strong> The main app needs a small update to enforce Scoring Admin restrictions. Currently all admin roles get full admin access in the app. The portal stores the correct role — once the app is updated, Scoring Admins will only see the Score tab.
       </div>
     </div>)}
 
     {section==="portal"&&isMaster(user.role)&&(<div>
-      <div className="info-box"><strong>Portal Users</strong> can sign into this portal. Master has full access; Super Admins manage games and rosters but cannot manage other portal users or access Firebase links.</div>
+      <div className="info-box"><strong>Portal Users</strong> can sign into this portal with a password. Master has full access; Super Admins manage games and rosters.</div>
       <div className="card">
         <div className="card-hdr">
           <span className="card-title">Portal Users ({portalUserList.length})</span>
@@ -1308,8 +1483,8 @@ function AccessTab({user}){
     {confirmRemoveAdmin&&(
       <div className="overlay">
         <div className="modal">
-          <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Remove admin from {confirmRemoveAdmin.name}?</div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>They'll lose access to the Admin tab in the main app. Their PIN and roster entry are unaffected.</div>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Remove {confirmRemoveAdmin.name}?</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>They'll lose all admin access. PIN and roster entry are unaffected.</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-r" style={{flex:1}} onClick={()=>removeAdmin(confirmRemoveAdmin)}>Remove Admin</button>
             <button className="btn btn-gh" style={{flex:1}} onClick={()=>setConfirmRemoveAdmin(null)}>Cancel</button>
@@ -1322,7 +1497,7 @@ function AccessTab({user}){
       <div className="overlay">
         <div className="modal">
           <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#f87171"}}>Remove portal user {confirmRemovePU.name}?</div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>They will no longer be able to sign into the portal with their password.</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>They will no longer be able to sign into the portal.</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-r" style={{flex:1}} onClick={()=>removePortalUser(confirmRemovePU)}>Remove</button>
             <button className="btn btn-gh" style={{flex:1}} onClick={()=>setConfirmRemovePU(null)}>Cancel</button>

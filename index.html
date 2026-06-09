@@ -2082,8 +2082,10 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
   function finishLogin(playerId){
     const player=(fullRoster||[]).find(r=>String(r.id)===String(playerId));
     if(!player)return;
-    const isAdm=!!(rosterAdmins&&rosterAdmins[playerId]);
-    const wd={name:player.name,id:String(playerId),role:isAdm?'admin':'member',ini:mkIni(player.name)};
+    const adminRole=rosterAdmins&&rosterAdmins[playerId];
+    const isAdm=!!adminRole&&adminRole!=='scoring';
+    const isScoringRole=adminRole==='scoring';
+    const wd={name:player.name,id:String(playerId),role:isAdm?'admin':isScoringRole?'scoring':'member',ini:mkIni(player.name)};
     setDisambigList([]);setShowPad(false);setMasterStep(null);setMasterPendingId(null);setMasterInput('');setMasterAttempts(0);
     setWelcomeData(wd);setShowWelcome(true);
     setTimeout(()=>{setShowWelcome(false);onMemberLogin(wd);},1800);
@@ -2098,8 +2100,10 @@ function Landing({onPlayer,onAdmin,onDemoPlayer,onDemoAdmin,onMemberLogin,roster
     <SelfRegister fullRoster={fullRoster} rosterPins={rosterPins}
       onBack={()=>setShowSelfReg(false)}
       onComplete={({id,name,last4})=>{
-        const isAdm=!!(rosterAdmins&&rosterAdmins[id]);
-        const wd={name,id:String(id),role:isAdm?'admin':'member',ini:mkIni(name)};
+        const adminRole=rosterAdmins&&rosterAdmins[id];
+        const isAdm=!!adminRole&&adminRole!=='scoring';
+        const isScoringRole=adminRole==='scoring';
+        const wd={name,id:String(id),role:isAdm?'admin':isScoringRole?'scoring':'member',ini:mkIni(name)};
         savePinFn&&savePinFn(id,last4);
         dismissBanner();
         setShowSelfReg(false);
@@ -5413,9 +5417,9 @@ function App(){
     settings={settings}
   />;
 
-  const isAdmin=role==='admin';const activeDays=safeArray(week?.activeDays);
+  const isAdmin=role==='admin';const isScoring=role==='scoring';const canScore=isAdmin||isScoring;const activeDays=safeArray(week?.activeDays);
   const hasScores=isDemo||activeDays.some(d=>week&&week.scores&&week.scores[d]&&week.scores[d].savedAt);
-  const scoringVisible=isAdmin||hasScores;
+  const scoringVisible=canScore||hasScores;
 
   const PTABS=[
     {id:'home',label:'Week',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>},
@@ -5435,7 +5439,7 @@ function App(){
   );
   const statsNavTab={id:'playerstats',label:'Stats',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>};
   const PTABS_WITH_STATS=hasStatsAccess?[...PTABS,statsNavTab]:PTABS;
-  const TABS=role==='admin'?(isMasterAdmin?ATABS:[...ATABS.filter(t=>t.id!=='master'),...(hasStatsAccess?[statsNavTab]:[])])  :PTABS_WITH_STATS;
+  const TABS=role==='admin'?(isMasterAdmin?ATABS:[...ATABS.filter(t=>t.id!=='master'),...(hasStatsAccess?[statsNavTab]:[])]):isScoring?[...PTABS.map(t=>({...t,locked:t.id==='scoring'?false:t.locked}))]:PTABS_WITH_STATS;
   // Two-row admin nav
   const adminRow1=role==='admin'?PTABS.map(t=>({...t,locked:false})):null;
   const adminRow2=role==='admin'?[
@@ -5494,7 +5498,7 @@ function App(){
           matchPairings={matchPairings}
           onRemoveFromWaitlist={k=>{const ws=week?.waitlist?.[k];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});if(isDemo){setWeek(w=>{const wl={...(w.waitlist||{})};delete wl[k];return{...w,waitlist:wl};});}else del('week/waitlist/'+k);}}/>}
         {tab==='teams'&&<TeamsView week={week} history={history} isAdmin={isAdmin} matchPairings={matchPairings} onSaveTeams={saveTeams} onPublishAndLock={publishAndLockTeams} onUnpublish={unpublishTeams} onEditInPlace={editTeamsInPlace} onPromoteWaitlist={(key,day)=>{const wl=week?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(isDemo){setWeek(w=>{const nw={...w,signups:{...(w.signups||{}),['pr_'+Date.now()]:signup},waitlist:{...(w.waitlist||{})}};delete nw.waitlist[key];nw.locked={...(nw.locked||{}),[day]:false};nw.teamsPublished={...(nw.teamsPublished||{}),[day]:false};return nw;});}else{push('week/signups',signup);del('week/waitlist/'+key);update({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}} onUpdatePaid={updatePaid} onToggleLock={toggleLock} myName={currentUser?.name||null}/>}
-        {tab==='scoring'&&<ScoringView week={week} isAdmin={isAdmin} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={currentUser?.name||null}/>}
+        {tab==='scoring'&&<ScoringView week={week} isAdmin={canScore} isDemo={isDemo} onSaveScores={saveScores} onSaveScoresAndPayouts={saveScoresAndPayouts} onMoveToHistory={moveToHistory} onMarkComplete={markComplete} onReopenDay={reopenDay} onUpdatePaid={updatePaid} myName={currentUser?.name||null}/>}
         {tab==='history'&&<HistoryView history={history} isAdmin={isAdmin} onDelete={softDeleteHistory} onClearAll={()=>write('history',{})} onEditRound={editHistoryRound} trash={historyTrash} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory}/>}
         {tab==='leaderboard'&&<LeaderboardView history={history} currentUser={currentUser}/>}
         {tab==='attendance'&&currentUser&&currentUser.role!=='guest'&&<AttendanceView
