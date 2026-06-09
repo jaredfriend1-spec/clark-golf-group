@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>Clark Golf — Master Portal</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:#0f172a;color:#f1f5f9;-webkit-font-smoothing:antialiased}
+.app{max-width:680px;margin:0 auto;min-height:100vh;padding:0 0 60px}
+.hdr{background:#0f172a;padding:20px 20px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.hdr-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff}
+.hdr-title em{color:#10b981;font-style:normal}
+.hdr-badge{font-size:9px;font-weight:700;background:#f59e0b;color:#1e293b;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em}
+.tabs{display:flex;gap:4px;padding-bottom:0}
+.tab-btn{padding:9px 14px;border:none;background:none;color:rgba(255,255,255,0.4);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid transparent;transition:all 0.15s}
+.tab-btn.on{color:#10b981;border-bottom-color:#10b981}
+.content{padding:16px}
+.card{background:#1e293b;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.card-hdr{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.07em}
+.card-body{padding:12px 16px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.row:last-child{border-bottom:none}
+.row-name{flex:1;font-size:13px;font-weight:600;color:#f1f5f9}
+.row-sub{font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px}
+.badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.06em}
+.badge-green{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.2)}
+.badge-amber{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.2)}
+.badge-red{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.badge-purple{background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.2)}
+.badge-blue{background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)}
+.btn{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all 0.15s}
+.btn-green{background:#10b981;color:#fff}
+.btn-red{background:#ef4444;color:#fff}
+.btn-blue{background:#3b82f6;color:#fff}
+.btn-amber{background:#f59e0b;color:#1e293b}
+.btn-ghost{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.1)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.input{width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.input:focus{border-color:#10b981}
+.search{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:#1e293b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#10b981}
+.stat-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.07em;margin-top:2px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;font-family:'DM Sans',sans-serif}
+.section-label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.1em;padding:14px 0 8px}
+/* Gate screen */
+.gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:#0f172a}
+.gate-box{background:#1e293b;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:32px 24px;width:100%;max-width:360px;text-align:center}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo}=React;
+
+const FB_CONFIG={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
+
+// Init Firebase
+let db;
+try{
+  const app=firebase.apps.length?firebase.apps[0]:firebase.initializeApp(FB_CONFIG);
+  db=firebase.database(app);
+}catch(e){console.error('Firebase init failed',e);}
+
+const TEES=['Blends','Whites','Golds','SGA'];
+const f$=n=>'$'+Math.round(parseFloat(n||0)).toLocaleString();
+const normName=n=>{if(!n)return'';return n.trim().replace(/\s+/g,' ').split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');};
+
+function useFirebase(path){
+  const [val,setVal]=useState(null);
+  useEffect(()=>{
+    if(!db||!path)return;
+    const ref=db.ref(path);
+    ref.on('value',snap=>setVal(snap.val()));
+    return()=>ref.off();
+  },[path]);
+  return val;
+}
+
+function write(path,val){if(db)db.ref(path).set(val);}
+function del(path){if(db)db.ref(path).remove();}
+function push(path,val){if(db)db.ref(path).push(val);}
+function update(obj){if(db)db.ref().update(obj);}
+
+// ─── ROSTER data (same as main app) ───────────────────────────────────────
+const ROSTER_BASE=[
+  {id:1,name:'Orlando Meneses',tee:'Whites',hcp:11},{id:2,name:'Chris Allen',tee:'Whites',hcp:5},
+  {id:3,name:'Mark Allen',tee:'Whites',hcp:14},{id:4,name:'Kevin Allen',tee:'Whites',hcp:18},
+  {id:5,name:'Tom Barry',tee:'Whites',hcp:12},{id:6,name:'Mike Barry',tee:'Whites',hcp:14},
+  {id:7,name:'Rick Blakemore',tee:'Whites',hcp:16},{id:8,name:'Rodolfo Camacho',tee:'SGA',hcp:13},
+  {id:9,name:'Adam Caplan',tee:'Whites',hcp:14},{id:10,name:'Keith Cassidy',tee:'Whites',hcp:10},
+  {id:11,name:'Jae Chang',tee:'Whites',hcp:12},{id:12,name:'Robert Chase',tee:'Whites',hcp:15},
+  {id:13,name:'Jerry Chiodo',tee:'Whites',hcp:16},{id:14,name:'Eric Cohn',tee:'Whites',hcp:15},
+  {id:15,name:'Bill Collingwood',tee:'Whites',hcp:14},{id:16,name:'Todd Decatur',tee:'Whites',hcp:10},
+  {id:17,name:'Michael Diamond',tee:'Whites',hcp:16},{id:18,name:'George Divver',tee:'Whites',hcp:18},
+  {id:19,name:'Tom Duffy',tee:'Whites',hcp:14},{id:20,name:'Doug Ewing',tee:'Whites',hcp:22},
+  {id:21,name:'Jason Frank',tee:'Whites',hcp:14},{id:22,name:'Jared Friend',tee:'Whites',hcp:5},
+  {id:23,name:'Sanjay Garg',tee:'Whites',hcp:14},{id:24,name:'Seth Gartenhaus',tee:'Whites',hcp:14},
+  {id:25,name:'Sean Gagen',tee:'Whites',hcp:12},{id:26,name:'Glen Goldstein',tee:'Whites',hcp:18},
+  {id:27,name:'Brian Gordon',tee:'Whites',hcp:16},{id:28,name:'John Gray',tee:'Whites',hcp:18},
+  {id:29,name:'Kenny Greer',tee:'Whites',hcp:12},{id:30,name:'Andy Gross',tee:'Whites',hcp:16},
+  {id:31,name:'Steve Guest',tee:'Whites',hcp:18},{id:32,name:'Gary Hanvey',tee:'Whites',hcp:16},
+  {id:33,name:'Jim Harvey',tee:'SGA',hcp:12},{id:34,name:'Barry Herman',tee:'Whites',hcp:16},
+  {id:35,name:'Dennis Herman',tee:'Whites',hcp:18},{id:36,name:'Adam Holland',tee:'Whites',hcp:14},
+  {id:37,name:'Larry Horowitz',tee:'Whites',hcp:20},{id:38,name:'Chip Hughes',tee:'Whites',hcp:14},
+  {id:39,name:'Jack Jankowski',tee:'Whites',hcp:16},{id:40,name:'Man Kim',tee:'Whites',hcp:16},
+  {id:41,name:'Dave Kimmelman',tee:'Whites',hcp:18},{id:42,name:'Craig Klein',tee:'Whites',hcp:12},
+  {id:43,name:'Clark Kunkle',tee:'Golds',hcp:11},{id:44,name:'Bob Latos',tee:'Whites',hcp:9},
+  {id:45,name:'John Jang Lee',tee:'Whites',hcp:11},{id:46,name:'Gary Levitt',tee:'Whites',hcp:16},
+  {id:47,name:'Marc Marcus',tee:'Whites',hcp:14},{id:48,name:'John McCarthy',tee:'Whites',hcp:13},
+  {id:49,name:'Tim Marose',tee:'Whites',hcp:12},{id:50,name:'Steve McDevitt',tee:'Whites',hcp:16},
+  {id:51,name:'Doug McPherson',tee:'Whites',hcp:18},{id:52,name:'Michael Menditto',tee:'Whites',hcp:16},
+  {id:53,name:'Orlando Meneses Jr',tee:'Whites',hcp:18},{id:54,name:'Bob Michiels',tee:'Whites',hcp:14},
+  {id:55,name:'Steve Mittman',tee:'Whites',hcp:18},{id:56,name:'Jim Muir',tee:'Whites',hcp:12},
+  {id:57,name:'Phil Murray',tee:'Whites',hcp:11},{id:58,name:'Jeff Naft',tee:'Whites',hcp:14},
+  {id:59,name:'DJ Park',tee:'Whites',hcp:21},{id:60,name:'Howie Perlow',tee:'Whites',hcp:16},
+  {id:61,name:'Cory Rennie',tee:'Whites',hcp:10},{id:62,name:'Michael Roosevelt',tee:'Whites',hcp:14},
+  {id:63,name:'Duane Robbins',tee:'Whites',hcp:11},{id:64,name:'Gary Roggin',tee:'Whites',hcp:18},
+  {id:65,name:'Alan Rosenberg',tee:'Whites',hcp:16},{id:66,name:'Brian Rube',tee:'Whites',hcp:14},
+  {id:67,name:'Jon Rucker',tee:'Whites',hcp:22},{id:68,name:'Ray Sanchez',tee:'Whites',hcp:26},
+  {id:69,name:'Jeff Sarris',tee:'Whites',hcp:7},{id:70,name:'Gene Schindler',tee:'Whites',hcp:16},
+  {id:71,name:'Kevin Scudder',tee:'Whites',hcp:13},{id:72,name:'Mark Shank',tee:'SGA',hcp:13},
+  {id:73,name:'Jim Shanley',tee:'Whites',hcp:16},{id:74,name:'Bob Sodikoff',tee:'Whites',hcp:16},
+  {id:75,name:'Tom Steffes',tee:'Whites',hcp:18},{id:76,name:'Jimmy Stables',tee:'SGA',hcp:14},
+  {id:77,name:'Bob Sundell',tee:'Whites',hcp:14},{id:78,name:'Eric Tannenbaum',tee:'Whites',hcp:16},
+  {id:79,name:'Mark Taylor',tee:'Whites',hcp:14},{id:80,name:'Alan Taylor',tee:'Whites',hcp:18},
+  {id:81,name:'Joey Tominovich',tee:'Golds',hcp:13},{id:82,name:'Peter Vogel',tee:'Whites',hcp:16},
+  {id:83,name:'Jamie Wachtel',tee:'Whites',hcp:14},{id:84,name:'Bart Watson',tee:'Whites',hcp:16},
+  {id:85,name:'Tom Watson',tee:'Whites',hcp:18},{id:86,name:'Jim Weiskopf',tee:'Golds',hcp:11},
+  {id:87,name:'Greg Weyman',tee:'Whites',hcp:11},{id:88,name:'Alan Friend',tee:'Whites',hcp:18},
+  {id:89,name:'Keith Wilson',tee:'Whites',hcp:18},{id:90,name:'Todd Yerman',tee:'Whites',hcp:16},
+  {id:91,name:'Jeff Yeakle',tee:'Whites',hcp:9},{id:92,name:'Bill Wood',tee:'SGA',hcp:17},
+  {id:93,name:'Bob Young',tee:'Whites',hcp:16},{id:94,name:'Bruce Yoo',tee:'Whites',hcp:16},
+  {id:95,name:'Will Paul',tee:'Whites',hcp:14},{id:96,name:'Carl Cutright',tee:'Whites',hcp:16},
+];
+
+// ─── GATE ─────────────────────────────────────────────────────────────────
+function Gate({onUnlock}){
+  const [pw,setPw]=useState('');
+  const [err,setErr]=useState(false);
+  const settings=useFirebase('settings');
+
+  function attempt(){
+    const correct=settings?.masterPassword||'';
+    if(!correct){setErr(true);return;}
+    if(pw===correct){onUnlock();}
+    else{setErr(true);setPw('');}
+  }
+
+  return(
+    <div className="gate">
+      <div className="gate-box">
+        <div style={{fontSize:44,marginBottom:16}}>🔐</div>
+        <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:26,fontWeight:800,color:'#fff',marginBottom:6}}>Clark Golf <em style={{color:'#10b981'}}>Portal</em></div>
+        <div style={{fontSize:13,color:'rgba(255,255,255,0.4)',marginBottom:28}}>Master admin access only</div>
+        {err&&<div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#f87171',marginBottom:12}}>Incorrect password</div>}
+        <input className="input" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&attempt()} placeholder="Master password" autoFocus style={{marginBottom:12,textAlign:'center',letterSpacing:'0.1em'}}/>
+        <button className="btn btn-green" style={{width:'100%',padding:12,fontSize:14}} onClick={attempt}>Unlock →</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── ROSTER TAB ───────────────────────────────────────────────────────────
+function RosterTab(){
+  const extraPlayers=useFirebase('extraPlayers');
+  const rosterEdits=useFirebase('rosterEdits');
+  const rosterHidden=useFirebase('rosterHidden');
+  const rosterPins=useFirebase('rosterPins');
+  const rosterEmails=useFirebase('rosterEmails');
+  const rosterAdmins=useFirebase('rosterAdmins');
+  const [q,setQ]=useState('');
+  const [editing,setEditing]=useState(null); // {id, name, tee, hcp, email}
+  const [adding,setAdding]=useState(false);
+  const [newP,setNewP]=useState({name:'',tee:'Whites',hcp:''});
+  const [toast,setToast]=useState('');
+  const [showHidden,setShowHidden]=useState(false);
+  const [confirmDel,setConfirmDel]=useState(null);
+
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(''),2500);}
+
+  const allPlayers=useMemo(()=>{
+    const base=ROSTER_BASE.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name,isExtra:false}));
+    const extra=Object.values(extraPlayers||{}).map(p=>({...p,isExtra:true}));
+    return [...base,...extra].filter(p=>!p.hidden);
+  },[extraPlayers,rosterEdits]);
+
+  const hiddenPlayers=useMemo(()=>{
+    return ROSTER_BASE.filter(p=>rosterHidden&&rosterHidden[p.id]);
+  },[rosterHidden]);
+
+  const filtered=allPlayers.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
+
+  function saveEdit(){
+    if(!editing)return;
+    const {id,name,tee,hcp,email}=editing;
+    // Update name
+    const base=ROSTER_BASE.find(p=>p.id===id);
+    if(base){
+      if(name!==base.name) write('rosterEdits/'+id,name);
+    } else {
+      // Extra player
+      const extras=Object.entries(extraPlayers||{});
+      const entry=extras.find(([,p])=>String(p.id)===String(id));
+      if(entry){
+        const [k,p]=entry;
+        write('extraPlayers/'+k,{...p,name,tee,hcp:parseFloat(hcp)||0});
+      }
+    }
+    if(email!==undefined) write('rosterEmails/'+id,email||null);
+    setEditing(null);
+    showToast('Saved ✓');
+  }
+
+  function addPlayer(){
+    if(!newP.name.trim())return;
+    const id=Date.now();
+    push('extraPlayers',{id,name:normName(newP.name),tee:newP.tee,hcp:parseFloat(newP.hcp)||0});
+    setNewP({name:'',tee:'Whites',hcp:''});
+    setAdding(false);
+    showToast('Player added ✓');
+  }
+
+  function deletePlayer(id){
+    const extras=Object.entries(extraPlayers||{});
+    const entry=extras.find(([,p])=>String(p.id)===String(id));
+    if(entry){
+      del('extraPlayers/'+entry[0]);
+      del('rosterPins/'+id);
+      del('rosterEmails/'+id);
+      del('rosterAdmins/'+id);
+      showToast('Player removed ✓');
+    }
+    setConfirmDel(null);
+  }
+
+  function hidePlayer(id){
+    write('rosterHidden/'+id,true);
+    showToast('Player hidden ✓');
+  }
+
+  function unhidePlayer(id){
+    const updated={...rosterHidden};delete updated[id];
+    write('rosterHidden',updated);
+    showToast('Player restored ✓');
+  }
+
+  return(
+    <div>
+      {toast&&<div className="toast">{toast}</div>}
+
+      {/* Stats */}
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-val">{allPlayers.length}</div><div className="stat-lbl">Total</div></div>
+        <div className="stat"><div className="stat-val" style={{color:'#10b981'}}>{Object.keys(rosterPins||{}).length}</div><div className="stat-lbl">Have PIN</div></div>
+        <div className="stat"><div className="stat-val" style={{color:'#f59e0b'}}>{allPlayers.length-Object.keys(rosterPins||{}).length}</div><div className="stat-lbl">No PIN</div></div>
+      </div>
+
+      {/* Add player */}
+      <div className="card">
+        <div className="card-hdr">
+          <span className="card-title">Roster</span>
+          <button className="btn btn-green" style={{fontSize:11}} onClick={()=>setAdding(v=>!v)}>{adding?'Cancel':'+ Add Player'}</button>
+        </div>
+        {adding&&(
+          <div className="card-body" style={{background:'rgba(16,185,129,0.05)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              <input className="input" style={{flex:2,minWidth:140}} placeholder="Full name" value={newP.name} onChange={e=>setNewP(p=>({...p,name:e.target.value}))}/>
+              <select className="input" style={{flex:1,minWidth:90}} value={newP.tee} onChange={e=>setNewP(p=>({...p,tee:e.target.value}))}>
+                {TEES.map(t=><option key={t}>{t}</option>)}
+              </select>
+              <input className="input" style={{flex:1,minWidth:60}} placeholder="HCP" type="number" value={newP.hcp} onChange={e=>setNewP(p=>({...p,hcp:e.target.value}))}/>
+              <button className="btn btn-green" onClick={addPlayer}>Add</button>
+            </div>
+          </div>
+        )}
+        {/* Search */}
+        <div className="search">
+          <input className="input" placeholder="🔍 Search players..." value={q} onChange={e=>setQ(e.target.value)}/>
+        </div>
+        <div style={{maxHeight:400,overflowY:'auto'}}>
+          {filtered.map(p=>{
+            const hasPin=!!(rosterPins&&rosterPins[p.id]);
+            const email=(rosterEmails&&rosterEmails[p.id])||'';
+            const isAdmin=!!(rosterAdmins&&rosterAdmins[p.id]);
+            const isMaster=rosterAdmins&&rosterAdmins[p.id]==='master';
+            if(editing&&editing.id===p.id){
+              return(
+                <div key={p.id} style={{padding:'12px 16px',background:'rgba(255,255,255,0.03)',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:8}}>
+                    <input className="input" style={{flex:2,minWidth:120}} value={editing.name} onChange={e=>setEditing(v=>({...v,name:e.target.value}))} placeholder="Name"/>
+                    {p.isExtra&&<select className="input" style={{flex:1}} value={editing.tee} onChange={e=>setEditing(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select>}
+                    {p.isExtra&&<input className="input" style={{width:70}} type="number" value={editing.hcp} onChange={e=>setEditing(v=>({...v,hcp:e.target.value}))} placeholder="HCP"/>}
+                  </div>
+                  <div style={{display:'flex',gap:8,marginBottom:8}}>
+                    <input className="input" style={{flex:1}} value={editing.email} onChange={e=>setEditing(v=>({...v,email:e.target.value}))} placeholder="Email address"/>
+                  </div>
+                  <div style={{display:'flex',gap:6}}>
+                    <button className="btn btn-green" style={{fontSize:11}} onClick={saveEdit}>Save</button>
+                    <button className="btn btn-ghost" style={{fontSize:11}} onClick={()=>setEditing(null)}>Cancel</button>
+                  </div>
+                </div>
+              );
+            }
+            return(
+              <div key={p.id} className="row" style={{padding:'10px 16px'}}>
+                <div style={{flex:1}}>
+                  <div className="row-name">{p.name}</div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}}>
+                    <span className="badge badge-blue">{p.tee}</span>
+                    <span className="badge" style={{background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.4)',border:'1px solid rgba(255,255,255,0.08)'}}>HCP {p.hcp}</span>
+                    {hasPin&&<span className="badge badge-green">✓ PIN</span>}
+                    {!hasPin&&<span className="badge badge-red">No PIN</span>}
+                    {email&&<span className="badge badge-blue">Email ✓</span>}
+                    {isMaster&&<span className="badge badge-amber">⭐ Master</span>}
+                    {isAdmin&&!isMaster&&<span className="badge badge-amber">Admin</span>}
+                    {p.isExtra&&<span className="badge" style={{background:'rgba(139,92,246,0.15)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.2)'}}>Extra</span>}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:4,flexShrink:0}}>
+                  <button className="btn btn-ghost" style={{fontSize:11,padding:'5px 10px'}} onClick={()=>setEditing({id:p.id,name:p.name,tee:p.tee||'Whites',hcp:p.hcp||'',email})}>Edit</button>
+                  {!p.isExtra&&<button className="btn btn-ghost" style={{fontSize:11,padding:'5px 10px'}} onClick={()=>hidePlayer(p.id)}>Hide</button>}
+                  {p.isExtra&&<button className="btn btn-red" style={{fontSize:11,padding:'5px 10px'}} onClick={()=>setConfirmDel(p)}>Del</button>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Hidden players */}
+      {hiddenPlayers.length>0&&(
+        <div className="card">
+          <div className="card-hdr" onClick={()=>setShowHidden(v=>!v)} style={{cursor:'pointer'}}>
+            <span className="card-title">Hidden Players ({hiddenPlayers.length})</span>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.35)'}}>{showHidden?'▲':'▼'}</span>
+          </div>
+          {showHidden&&hiddenPlayers.map(p=>(
+            <div key={p.id} className="row" style={{padding:'10px 16px'}}>
+              <div className="row-name" style={{flex:1}}>{p.name}</div>
+              <button className="btn btn-ghost" style={{fontSize:11}} onClick={()=>unhidePlayer(p.id)}>Restore</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Confirm delete modal */}
+      {confirmDel&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:24}}>
+          <div className="card" style={{maxWidth:320,width:'100%',padding:20,textAlign:'center'}}>
+            <div style={{fontSize:14,fontWeight:700,color:'#fff',marginBottom:8}}>Delete {confirmDel.name}?</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.45)',marginBottom:16}}>This removes the player, their PIN, email, and admin flag permanently.</div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-red" style={{flex:1}} onClick={()=>deletePlayer(confirmDel.id)}>Delete</button>
+              <button className="btn btn-ghost" style={{flex:1}} onClick={()=>setConfirmDel(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PINS & ACCESS TAB ────────────────────────────────────────────────────
+function AccessTab(){
+  const extraPlayers=useFirebase('extraPlayers');
+  const rosterEdits=useFirebase('rosterEdits');
+  const rosterPins=useFirebase('rosterPins');
+  const rosterEmails=useFirebase('rosterEmails');
+  const rosterAdmins=useFirebase('rosterAdmins');
+  const [q,setQ]=useState('');
+  const [toast,setToast]=useState('');
+  const [confirmReset,setConfirmReset]=useState(null);
+
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(''),2500);}
+
+  const allPlayers=useMemo(()=>{
+    const base=ROSTER_BASE.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
+    const extra=Object.values(extraPlayers||{});
+    return [...base,...extra].sort((a,b)=>a.name.localeCompare(b.name));
+  },[extraPlayers,rosterEdits]);
+
+  const filtered=allPlayers.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
+
+  function resetPin(id){del('rosterPins/'+id);showToast('PIN cleared ✓');setConfirmReset(null);}
+
+  function toggleAdmin(id){
+    const cur=rosterAdmins&&rosterAdmins[id];
+    if(cur==='master'){showToast("Can't change master admin here");return;}
+    if(cur){del('rosterAdmins/'+id);showToast('Admin removed ✓');}
+    else{write('rosterAdmins/'+id,'admin');showToast('Admin granted ✓');}
+  }
+
+  function saveEmail(id,email){
+    if(email.trim()) write('rosterEmails/'+id,email.trim());
+    else del('rosterEmails/'+id);
+    showToast('Email saved ✓');
+  }
+
+  const noPins=filtered.filter(p=>!(rosterPins&&rosterPins[p.id]));
+  const hasPins=filtered.filter(p=>!!(rosterPins&&rosterPins[p.id]));
+  const admins=allPlayers.filter(p=>rosterAdmins&&rosterAdmins[p.id]);
+
+  return(
+    <div>
+      {toast&&<div className="toast">{toast}</div>}
+
+      {/* Admin roles summary */}
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">Admin Roles ({admins.length})</span></div>
+        {admins.map(p=>{
+          const isMaster=rosterAdmins[p.id]==='master';
+          return(
+            <div key={p.id} className="row" style={{padding:'10px 16px'}}>
+              <div style={{flex:1}}>
+                <div className="row-name">{p.name}</div>
+                <span className={isMaster?'badge badge-amber':'badge badge-blue'}>{isMaster?'⭐ Master Admin':'Admin'}</span>
+              </div>
+              {!isMaster&&<button className="btn btn-red" style={{fontSize:11,padding:'5px 10px'}} onClick={()=>toggleAdmin(p.id)}>Remove</button>}
+            </div>
+          );
+        })}
+        <div style={{padding:'10px 16px',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.3)',marginBottom:8}}>Grant admin to a player:</div>
+          <div className="search" style={{padding:0}}>
+            <input className="input" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)}/>
+          </div>
+          {q&&filtered.filter(p=>!(rosterAdmins&&rosterAdmins[p.id])).slice(0,5).map(p=>(
+            <div key={p.id} className="row" style={{padding:'8px 0'}}>
+              <div className="row-name" style={{flex:1}}>{p.name}</div>
+              <button className="btn btn-amber" style={{fontSize:11,padding:'5px 10px'}} onClick={()=>toggleAdmin(p.id)}>Grant Admin</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* No PIN players */}
+      <div className="card">
+        <div className="card-hdr">
+          <span className="card-title">No PIN Set ({noPins.length})</span>
+          <span style={{fontSize:11,color:'rgba(255,255,255,0.35)'}}>Not registered</span>
+        </div>
+        <div style={{maxHeight:260,overflowY:'auto'}}>
+          {noPins.slice(0,40).map(p=>(
+            <div key={p.id} className="row" style={{padding:'8px 16px'}}>
+              <div className="row-name" style={{flex:1,fontSize:12}}>{p.name}</div>
+              <span className="badge badge-red">No PIN</span>
+            </div>
+          ))}
+          {noPins.length>40&&<div style={{padding:'8px 16px',fontSize:12,color:'rgba(255,255,255,0.3)'}}>+{noPins.length-40} more</div>}
+        </div>
+      </div>
+
+      {/* Has PIN — can reset */}
+      <div className="card">
+        <div className="card-hdr">
+          <span className="card-title">Registered Players ({hasPins.length})</span>
+        </div>
+        <div style={{maxHeight:300,overflowY:'auto'}}>
+          {hasPins.map(p=>{
+            const email=(rosterEmails&&rosterEmails[p.id])||'';
+            return(
+              <div key={p.id} className="row" style={{padding:'10px 16px'}}>
+                <div style={{flex:1}}>
+                  <div className="row-name" style={{fontSize:12}}>{p.name}</div>
+                  {email&&<div className="row-sub">{email}</div>}
+                </div>
+                <button className="btn btn-ghost" style={{fontSize:10,padding:'4px 8px'}} onClick={()=>setConfirmReset(p)}>Reset PIN</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {confirmReset&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:24}}>
+          <div className="card" style={{maxWidth:300,width:'100%',padding:20,textAlign:'center'}}>
+            <div style={{fontSize:14,fontWeight:700,color:'#fff',marginBottom:8}}>Reset {confirmReset.name}'s PIN?</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.45)',marginBottom:16}}>They'll need to re-register on the app.</div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-red" style={{flex:1}} onClick={()=>resetPin(confirmReset.id)}>Reset</button>
+              <button className="btn btn-ghost" style={{flex:1}} onClick={()=>setConfirmReset(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SETTINGS TAB ─────────────────────────────────────────────────────────
+function SettingsTab(){
+  const settings=useFirebase('settings');
+  const [toast,setToast]=useState('');
+  const [tfBal,setTfBal]=useState('');
+  const [newPw,setNewPw]=useState('');
+  const [confirmPw,setConfirmPw]=useState('');
+  const [pwMsg,setPwMsg]=useState('');
+
+  useEffect(()=>{if(settings)setTfBal(String(settings.tournFundStartingBalance||0));},[settings?.tournFundStartingBalance]);
+
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(''),2500);}
+
+  function saveTF(){write('settings/tournFundStartingBalance',parseFloat(tfBal)||0);showToast('Tournament fund balance saved ✓');}
+
+  function savePw(){
+    if(!newPw.trim()){setPwMsg('Password cannot be empty');return;}
+    if(newPw!==confirmPw){setPwMsg('Passwords do not match');return;}
+    if(newPw.length<4){setPwMsg('Minimum 4 characters');return;}
+    write('settings/masterPassword',newPw);
+    setNewPw('');setConfirmPw('');
+    setPwMsg('');
+    showToast('Master password updated ✓');
+  }
+
+  return(
+    <div>
+      {toast&&<div className="toast">{toast}</div>}
+
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">Tournament Fund</span></div>
+        <div className="card-body">
+          <div style={{fontSize:12,color:'rgba(255,255,255,0.45)',marginBottom:10}}>Starting balance before this season's rounds were tracked in the app:</div>
+          <div style={{display:'flex',gap:8}}>
+            <input className="input" type="number" value={tfBal} onChange={e=>setTfBal(e.target.value)} placeholder="0"/>
+            <button className="btn btn-green" onClick={saveTF}>Save</button>
+          </div>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',marginTop:8}}>Current stored value: {f$(settings?.tournFundStartingBalance||0)}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">Master Password</span></div>
+        <div className="card-body">
+          <div style={{fontSize:12,color:'rgba(255,255,255,0.45)',marginBottom:12}}>Change the master admin password. This gates both this portal and the master admin step in the main app.</div>
+          {pwMsg&&<div style={{fontSize:12,color:'#f87171',marginBottom:8,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'8px 12px'}}>{pwMsg}</div>}
+          <input className="input" type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="New password" style={{marginBottom:8}}/>
+          <input className="input" type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} placeholder="Confirm new password" style={{marginBottom:12}}/>
+          <button className="btn btn-amber" style={{width:'100%',padding:10}} onClick={savePw}>Update Password</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">Firebase Info</span></div>
+        <div className="card-body">
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',lineHeight:1.8}}>
+            <div>Database: clark-group-dd15e-default-rtdb</div>
+            <div>Backup bucket: clark-group-dd15e-default-rtdb-backups</div>
+            <div>Project: clark-group-dd15e</div>
+            <a href="https://console.firebase.google.com/project/clark-group-dd15e/database" target="_blank" style={{color:'#10b981',fontSize:12,display:'block',marginTop:8}}>Open Firebase Console →</a>
+            <a href="https://console.cloud.google.com/storage/browser/clark-group-dd15e-default-rtdb-backups" target="_blank" style={{color:'#60a5fa',fontSize:12,display:'block',marginTop:4}}>Open Backup Storage →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────
+function Portal(){
+  const [unlocked,setUnlocked]=useState(()=>sessionStorage.getItem('portal_unlocked')==='1');
+  const [tab,setTab]=useState('roster');
+
+  function unlock(){sessionStorage.setItem('portal_unlocked','1');setUnlocked(true);}
+
+  if(!unlocked)return<Gate onUnlock={unlock}/>;
+
+  const TABS=[
+    {id:'roster',label:'Roster'},
+    {id:'access',label:'Pins & Access'},
+    {id:'settings',label:'Settings'},
+  ];
+
+  return(
+    <div className="app">
+      <div className="hdr">
+        <div className="hdr-top">
+          <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:800,color:'#fff'}}>Clark <em style={{color:'#10b981',fontStyle:'normal'}}>Golf</em> Portal</div>
+          <span className="hdr-badge">Master Admin</span>
+          <button className="btn btn-ghost" style={{marginLeft:'auto',fontSize:11,padding:'5px 10px'}} onClick={()=>{sessionStorage.removeItem('portal_unlocked');setUnlocked(false);}}>Lock 🔒</button>
+        </div>
+        <div className="tabs">
+          {TABS.map(t=><button key={t.id} className={'tab-btn'+(tab===t.id?' on':'')} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+        </div>
+      </div>
+      <div className="content">
+        {tab==='roster'&&<RosterTab/>}
+        {tab==='access'&&<AccessTab/>}
+        {tab==='settings'&&<SettingsTab/>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Portal/>);
+</script>
+</body>
+</html>
