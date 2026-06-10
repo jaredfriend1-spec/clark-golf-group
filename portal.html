@@ -24,10 +24,10 @@ html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0f172a;color:
 .body{display:flex;flex:1}
 .sidebar{width:200px;background:#0c1220;border-right:1px solid rgba(255,255,255,0.06);padding:12px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
 @media(max-width:680px){.sidebar{display:none}.mob-nav{display:flex!important}}
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#0c1220;border-top:1px solid rgba(255,255,255,0.07);z-index:100;padding:3px 0 env(safe-area-inset-bottom);overflow-x:auto}
-.mob-btn{flex:1;min-width:54px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:8px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.05em;transition:color 0.15s}
-.mob-btn.on{color:#10b981}
-.mob-btn svg{width:17px;height:17px}
+.mob-nav{display:none;position:sticky;top:54px;left:0;right:0;background:#0c1220;border-bottom:1px solid rgba(255,255,255,0.07);z-index:99;padding:6px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
+.mob-btn{min-width:52px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 6px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:9px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.04em;transition:color 0.15s;border-radius:6px}
+.mob-btn.on{color:#10b981;background:rgba(16,185,129,0.1)}
+.mob-btn svg{width:18px;height:18px}
 .nav-sep{font-size:9px;font-weight:700;color:rgba(255,255,255,0.18);text-transform:uppercase;letter-spacing:0.1em;padding:10px 8px 3px;margin-top:6px}
 .ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:none;background:none;color:rgba(255,255,255,0.4);font-size:12px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:100%;text-align:left;transition:all 0.12s}
 .ni:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.75)}
@@ -35,7 +35,7 @@ html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0f172a;color:
 .ni svg{width:15px;height:15px;flex-shrink:0}
 .ni-foot{margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)}
 .main{flex:1;padding:20px;overflow-y:auto;padding-bottom:72px;max-width:900px}
-@media(max-width:680px){.main{padding:14px;padding-bottom:72px}}
+@media(max-width:680px){.main{padding:14px;padding-bottom:24px}}
 .card{background:#1e293b;border:1px solid rgba(255,255,255,0.07);border-radius:12px;margin-bottom:12px;overflow:hidden}
 .card-hdr{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:space-between;gap:8px}
 .card-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em}
@@ -124,6 +124,41 @@ select.inp{cursor:pointer}
 .email-preview p{margin-bottom:8px}
 .email-preview strong{font-weight:700;color:#0f172a}
 .lbl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+/* DESKTOP: larger text for laptop/PC */
+@media(min-width:900px){
+  html{font-size:15px}
+  .main{padding:28px 36px;max-width:960px}
+  .topbar{height:60px;padding:0 28px}
+  .logo{font-size:24px}
+  .role-badge{font-size:10px;padding:4px 12px}
+  .sidebar{width:220px;padding:14px 12px}
+  .ni{font-size:14px;padding:10px 12px;gap:10px}
+  .ni svg{width:17px;height:17px}
+  .pg-title{font-size:28px}
+  .pg-sub{font-size:14px}
+  .card-hdr{padding:14px 20px}
+  .card-title{font-size:12px}
+  .card-body{padding:18px 20px}
+  .stat-v{font-size:34px}
+  .stat-l{font-size:10px}
+  .stat{padding:16px 18px}
+  .inp{font-size:15px;padding:11px 14px}
+  .btn{font-size:13px;padding:9px 16px}
+  .btn-sm{font-size:12px;padding:7px 13px}
+  .btn-full{font-size:15px;padding:13px 16px}
+  .p-row{padding:12px 20px}
+  .p-name{font-size:15px}
+  .p-sub{font-size:12px}
+  .s-row{padding:11px 20px}
+  .day-name{font-size:20px}
+  .day-hdr{padding:15px 20px}
+  .day-body{padding:16px 20px}
+  .modal{max-width:440px;padding:28px}
+  .info-box,.warn{font-size:13px;padding:14px 18px}
+  .email-preview{font-size:14px;padding:28px}
+  .chk-item{padding:10px 0}
+  .toast{font-size:14px;bottom:24px}
+}
 </style>
 </head>
 <body>
@@ -250,6 +285,7 @@ function Gate({onAuth}){
     try{
       const cred=await auth.signInWithEmailAndPassword(email.trim(),pw);
       const role=resolveRole(cred.user.email)||"superadmin";
+      ps("activityLog",{action:"portal_login",name:cred.user.email,role,method:"email",ts:Date.now()});
       onAuth({email:cred.user.email,role,method:"firebase"});
     }catch(e){
       if(e.code==="auth/configuration-not-found"||e.code==="auth/operation-not-allowed"){
@@ -263,10 +299,10 @@ function Gate({onAuth}){
 
   function signInPassword(){
     const mp=settings?.masterPassword||"";
-    if(pw===mp&&mp){onAuth({email:"master",role:"master",method:"password"});return;}
+    if(pw===mp&&mp){ps("activityLog",{action:"portal_login",name:"Master Admin",role:"master",ts:Date.now()});onAuth({email:"master",role:"master",method:"password"});return;}
     const pu=Object.values(portalUsers||{});
     const match=pu.find(u=>u.password===pw);
-    if(match){onAuth({email:match.email,name:match.name,role:match.role,method:"password"});return;}
+    if(match){ps("activityLog",{action:"portal_login",name:match.name||match.email,role:match.role,ts:Date.now()});onAuth({email:match.email,name:match.name,role:match.role,method:"password"});return;}
     // Check Super Admin portal passwords
     const ppEntries=Object.entries(portalPasswords||{});
     const ppMatch=ppEntries.find(([,v])=>v===pw);
@@ -276,6 +312,7 @@ function Gate({onAuth}){
       if(adminRole==="admin"||adminRole==="master"){
         const rosterPlayer=ROSTER.find(p=>String(p.id)===String(playerId));
         const name=(rosterEdits&&rosterEdits[playerId])||(rosterPlayer&&rosterPlayer.name)||("Admin #"+playerId);
+        ps("activityLog",{action:"portal_login",name,role:"superadmin",ts:Date.now()});
         onAuth({email:name,name,role:"superadmin",method:"password",playerId});
         return;
       }
@@ -476,10 +513,10 @@ function DashTab({user}){
       {/* ACTIVITY LOG (Master + Super Admin) */}
       {(()=>{
         const logEntries=Object.entries(rawActivityLog||{}).map(([k,e])=>({key:k,...e})).sort((a,b)=>(b.ts||0)-(a.ts||0));
-        const activityEntries=logEntries.filter(e=>!["login","self_register"].includes(e.action));
-        const loginEntries=logEntries.filter(e=>["login","self_register"].includes(e.action));
+        const activityEntries=logEntries.filter(e=>!["login","self_register","portal_login"].includes(e.action));
+        const loginEntries=logEntries.filter(e=>["login","self_register","portal_login"].includes(e.action));
         const relTime=ts=>{const d=Date.now()-ts;return d<60000?"just now":d<3600000?Math.round(d/60000)+"m ago":d<86400000?Math.round(d/3600000)+"h ago":Math.round(d/86400000)+"d ago";};
-        const ACFG={signup:{label:"Signed up",color:"#34d399",icon:"👤"},remove_signup:{label:"Removed",color:"#f87171",icon:"✕"},teams_published:{label:"Teams published",color:"#60a5fa",icon:"✓"},day_setup:{label:"Day activated",color:"#a78bfa",icon:"📅"},week_started:{label:"New week",color:"#e2e8f0",icon:"🗓"},roster_add:{label:"Added to roster",color:"#34d399",icon:"➕"},roster_remove:{label:"Removed",color:"#f87171",icon:"−"},match_request:{label:"Match request",color:"#60a5fa",icon:"⚡"},waitlist_join:{label:"Joined waitlist",color:"#fbbf24",icon:"⏳"},waitlist_remove:{label:"Left waitlist",color:"rgba(255,255,255,0.4)",icon:"↩"}};
+        const ACFG={signup:{label:"Signed up",color:"#34d399",icon:"👤"},remove_signup:{label:"Removed",color:"#f87171",icon:"✕"},teams_published:{label:"Teams published",color:"#60a5fa",icon:"✓"},day_setup:{label:"Day activated",color:"#a78bfa",icon:"📅"},week_started:{label:"New week",color:"#e2e8f0",icon:"🗓"},roster_add:{label:"Added to roster",color:"#34d399",icon:"➕"},roster_remove:{label:"Removed",color:"#f87171",icon:"−"},match_request:{label:"Match request",color:"#60a5fa",icon:"⚡"},waitlist_join:{label:"Joined waitlist",color:"#fbbf24",icon:"⏳"},waitlist_remove:{label:"Left waitlist",color:"rgba(255,255,255,0.4)",icon:"↩"},portal_login:{label:"Portal login",color:"#818cf8",icon:"🛡️"}};
 
         return(<>
           <div className="card">
@@ -543,14 +580,14 @@ function DashTab({user}){
                 <div style={{maxHeight:300,overflowY:"auto"}}>
                   {loginEntries.slice(0,30).map((e,i)=>(
                     <div key={e.key||i} className="s-row" style={{gap:10}}>
-                      <span style={{fontSize:14,flexShrink:0,width:18,textAlign:"center"}}>{e.action==="self_register"?"📱":"🔑"}</span>
+                      <span style={{fontSize:14,flexShrink:0,width:18,textAlign:"center"}}>{e.action==="portal_login"?"🛡️":e.action==="self_register"?"📱":"🔑"}</span>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:12,fontWeight:600,color:"#e2e8f0"}}>{e.name||"Unknown"}</div>
                         <div style={{fontSize:10,color:"rgba(255,255,255,0.25)"}}>
-                          {e.action==="self_register"?"Registered PIN":e.byRole==="admin"?"Admin login":"Member login"} · {relTime(e.ts||0)}
+                          {e.action==="portal_login"?"Portal login":e.action==="self_register"?"Registered PIN":e.byRole==="admin"?"Admin login":"Member login"} · {relTime(e.ts||0)}
                         </div>
                       </div>
-                      {e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:20,background:e.byRole==="admin"?"rgba(245,158,11,0.15)":"rgba(16,185,129,0.15)",color:e.byRole==="admin"?"#fbbf24":"#34d399"}}>{e.byRole}</span>}
+                      {e.action==="portal_login"?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:20,background:"rgba(129,140,248,0.15)",color:"#818cf8"}}>portal</span>:e.byRole&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:20,background:e.byRole==="admin"?"rgba(245,158,11,0.15)":"rgba(16,185,129,0.15)",color:e.byRole==="admin"?"#fbbf24":"#34d399"}}>{e.byRole}</span>}
                     </div>
                   ))}
                 </div>
@@ -900,6 +937,18 @@ function EmailTab(){
   const [localNotes,setLocalNotes]=useState({});
   const [localEvents,setLocalEvents]=useState("");
   const debounce=useRef({});
+  const eventsRef=useRef(null);
+
+  function applyFormat(tag){
+    const ta=eventsRef.current;if(!ta)return;
+    const start=ta.selectionStart;const end=ta.selectionEnd;
+    const sel=localEvents.substring(start,end);
+    if(!sel)return;
+    const wrap=tag==="b"?"**":tag==="i"?"*":"__";
+    const nv=localEvents.substring(0,start)+wrap+sel+wrap+localEvents.substring(end);
+    setLocalEvents(nv);saveEvents(nv);
+    setTimeout(()=>{ta.focus();ta.selectionStart=start;ta.selectionEnd=end+wrap.length*2;},10);
+  }
 
   const activeDays=useMemo(()=>{const ad=safeArr(week?.activeDays);return DAYS.filter(d=>ad.includes(d));},[week?.activeDays]);
 
@@ -1008,8 +1057,15 @@ function EmailTab(){
       <div className="card">
         <div className="card-hdr"><span className="card-title">Upcoming Events & Announcements</span></div>
         <div className="card-body">
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:8}}>Use **bold** for emphasis. This section appears at the bottom of the email.</div>
-          <textarea className="inp" rows={eventsRows} value={localEvents} onChange={e=>saveEvents(e.target.value)} placeholder="MGA items, club events, tournament announcements, season updates…" style={{minHeight:160,fontSize:13}}/>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:8}}>Select text then tap a button to format. This section appears at the bottom of the email.</div>
+          <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:8}}>
+            <button onClick={()=>applyFormat("b")} style={{width:30,height:30,border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,background:"rgba(255,255,255,0.06)",cursor:"pointer",fontWeight:800,fontSize:14,fontFamily:"serif",color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}>B</button>
+            <button onClick={()=>applyFormat("i")} style={{width:30,height:30,border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,background:"rgba(255,255,255,0.06)",cursor:"pointer",fontStyle:"italic",fontSize:14,fontFamily:"serif",color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}>I</button>
+            <button onClick={()=>applyFormat("u")} style={{width:30,height:30,border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,background:"rgba(255,255,255,0.06)",cursor:"pointer",textDecoration:"underline",fontSize:14,fontFamily:"serif",color:"#e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}>U</button>
+            <span style={{flex:1}}></span>
+            <span style={{fontSize:10,color:"rgba(255,255,255,0.2)"}}>**bold** · *italic* · __underline__</span>
+          </div>
+          <textarea ref={eventsRef} className="inp" rows={eventsRows} value={localEvents} onChange={e=>saveEvents(e.target.value)} placeholder="MGA items, club events, tournament announcements, season updates…" style={{minHeight:160,fontSize:13}}/>
         </div>
       </div>
 
