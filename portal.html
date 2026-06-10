@@ -228,6 +228,9 @@ function Gate({onAuth}){
   const [dbOk,setDbOk]=useState(null);
   const settings=useDB("settings");
   const portalUsers=useDB("settings/portalUsers");
+  const portalPasswords=useDB("settings/portalPasswords");
+  const rosterAdmins=useDB("rosterAdmins");
+  const rosterEdits=useDB("rosterEdits");
 
   useEffect(()=>{
     fetch("https://clark-group-dd15e-default-rtdb.firebaseio.com/settings/tournFundStartingBalance.json")
@@ -264,6 +267,19 @@ function Gate({onAuth}){
     const pu=Object.values(portalUsers||{});
     const match=pu.find(u=>u.password===pw);
     if(match){onAuth({email:match.email,name:match.name,role:match.role,method:"password"});return;}
+    // Check Super Admin portal passwords
+    const ppEntries=Object.entries(portalPasswords||{});
+    const ppMatch=ppEntries.find(([,v])=>v===pw);
+    if(ppMatch){
+      const playerId=ppMatch[0];
+      const adminRole=rosterAdmins&&rosterAdmins[playerId];
+      if(adminRole==="admin"||adminRole==="master"){
+        const rosterPlayer=ROSTER.find(p=>String(p.id)===String(playerId));
+        const name=(rosterEdits&&rosterEdits[playerId])||(rosterPlayer&&rosterPlayer.name)||("Admin #"+playerId);
+        onAuth({email:name,name,role:"superadmin",method:"password",playerId});
+        return;
+      }
+    }
     setErr("Incorrect password.");setPw("");
   }
 
@@ -1302,12 +1318,15 @@ function AccessTab({user}){
   const rosterEdits=useDB("rosterEdits");
   const rosterAdmins=useDB("rosterAdmins");
   const portalUsers=useDB("settings/portalUsers");
+  const portalPasswords=useDB("settings/portalPasswords");
   const [adminQ,setAdminQ]=useState("");
   const [section,setSection]=useState("app");
   const [newPU,setNewPU]=useState({name:"",email:"",role:"superadmin",password:""});
   const [addingPU,setAddingPU]=useState(false);
   const [confirmRemoveAdmin,setConfirmRemoveAdmin]=useState(null);
   const [confirmRemovePU,setConfirmRemovePU]=useState(null);
+  const [editPwId,setEditPwId]=useState(null);
+  const [editPwVal,setEditPwVal]=useState("");
   const [toast,showToast]=useToast();
 
   const all=useMemo(()=>{
@@ -1322,13 +1341,26 @@ function AccessTab({user}){
 
   function changeRole(id,newRole){
     wr("rosterAdmins/"+id,newRole);
+    // If downgrading from admin to scoring, remove portal password
+    if(newRole==="scoring"){dl("settings/portalPasswords/"+id);}
     showToast("Role updated ✓");
   }
   function removeAdmin(p){
     if(p.role==="master"){showToast("Can't remove master","err");return;}
     dl("rosterAdmins/"+p.id);
+    dl("settings/portalPasswords/"+p.id);
     setConfirmRemoveAdmin(null);
     showToast("Admin removed ✓");
+  }
+  function savePortalPw(id){
+    if(editPwVal.length<6){showToast("Password must be 6+ characters","err");return;}
+    wr("settings/portalPasswords/"+id,editPwVal);
+    setEditPwId(null);setEditPwVal("");
+    showToast("Portal password set ✓");
+  }
+  function clearPortalPw(id){
+    dl("settings/portalPasswords/"+id);
+    showToast("Portal password removed ✓");
   }
   function grantAdmin(id){
     wr("rosterAdmins/"+id,"scoring");
@@ -1411,35 +1443,62 @@ function AccessTab({user}){
         {admins.length===0&&<div style={{padding:"14px 16px",fontSize:12,color:"rgba(255,255,255,0.3)"}}>No admins yet. Use the search above to add someone.</div>}
         {admins.map(p=>{
           const isMasterP=p.role==="master";
+          const isSuperAdmin=p.role==="admin";
           const c=ROLE_COLORS[p.role]||ROLE_COLORS.scoring;
+          const hasPw=!!(portalPasswords&&portalPasswords[p.id]);
+          const isEditingPw=editPwId===p.id;
           return(
-            <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-              {/* Name */}
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:14,fontWeight:600,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+            <div key={p.id} style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px"}}>
+                {/* Name */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:14,fontWeight:600,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                </div>
+                {/* Independent role selector per person */}
+                {isMasterP?(
+                  <span style={{fontSize:11,fontWeight:700,padding:"5px 12px",borderRadius:20,background:c.bg,border:"1px solid "+c.border,color:c.color,whiteSpace:"nowrap"}}>⭐ Master</span>
+                ):(
+                  <select value={p.role} onChange={e=>changeRole(p.id,e.target.value)}
+                    style={{padding:"6px 10px",borderRadius:8,border:"1.5px solid "+c.border,background:c.bg,color:c.color,fontSize:12,fontWeight:700,fontFamily:"DM Sans,sans-serif",cursor:"pointer",outline:"none",minWidth:145}}>
+                    <option value="admin">🛡️ Super Admin</option>
+                    <option value="scoring">📊 Scoring Admin</option>
+                  </select>
+                )}
+                {/* Remove */}
+                {!isMasterP&&(
+                  <button onClick={()=>setConfirmRemoveAdmin(p)} style={{background:"none",border:"1px solid rgba(239,68,68,0.2)",borderRadius:6,padding:"5px 9px",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans,sans-serif",flexShrink:0}}>✕ Remove</button>
+                )}
               </div>
-              {/* Independent role selector per person */}
-              {isMasterP?(
-                <span style={{fontSize:11,fontWeight:700,padding:"5px 12px",borderRadius:20,background:c.bg,border:"1px solid "+c.border,color:c.color,whiteSpace:"nowrap"}}>⭐ Master</span>
-              ):(
-                <select value={p.role} onChange={e=>changeRole(p.id,e.target.value)}
-                  style={{padding:"6px 10px",borderRadius:8,border:"1.5px solid "+c.border,background:c.bg,color:c.color,fontSize:12,fontWeight:700,fontFamily:"DM Sans,sans-serif",cursor:"pointer",outline:"none",minWidth:145}}>
-                  <option value="admin">🛡️ Super Admin</option>
-                  <option value="scoring">📊 Scoring Admin</option>
-                </select>
-              )}
-              {/* Remove */}
-              {!isMasterP&&(
-                <button onClick={()=>setConfirmRemoveAdmin(p)} style={{background:"none",border:"1px solid rgba(239,68,68,0.2)",borderRadius:6,padding:"5px 9px",color:"#f87171",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans,sans-serif",flexShrink:0}}>✕ Remove</button>
+              {/* Portal password — Super Admins only */}
+              {isSuperAdmin&&(
+                <div style={{padding:"0 16px 12px"}}>
+                  {isEditingPw?(
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <input className="inp" type="password" placeholder="6+ characters" value={editPwVal} onChange={e=>setEditPwVal(e.target.value)} onKeyDown={e=>e.key==="Enter"&&savePortalPw(p.id)} style={{flex:1,fontSize:12,padding:"7px 10px"}} autoFocus/>
+                      <button className="btn btn-g btn-sm" onClick={()=>savePortalPw(p.id)} disabled={editPwVal.length<6} style={{opacity:editPwVal.length<6?0.4:1}}>Save</button>
+                      <button className="btn btn-gh btn-sm" onClick={()=>{setEditPwId(null);setEditPwVal("");}}>Cancel</button>
+                    </div>
+                  ):(
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      {hasPw?(
+                        <>
+                          <span style={{fontSize:11,fontWeight:600,color:"#34d399",display:"flex",alignItems:"center",gap:4}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:"#34d399",display:"inline-block"}}></span>
+                            Portal password set
+                          </span>
+                          <button onClick={()=>{setEditPwId(p.id);setEditPwVal("");}} style={{fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.4)",background:"none",border:"none",cursor:"pointer",fontFamily:"DM Sans,sans-serif"}}>Change</button>
+                          <button onClick={()=>clearPortalPw(p.id)} style={{fontSize:10,fontWeight:600,color:"#f87171",background:"none",border:"none",cursor:"pointer",fontFamily:"DM Sans,sans-serif"}}>Remove</button>
+                        </>
+                      ):(
+                        <button onClick={()=>{setEditPwId(p.id);setEditPwVal("");}} style={{fontSize:11,fontWeight:600,color:"#60a5fa",background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontFamily:"DM Sans,sans-serif"}}>🔑 Set portal password</button>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      {/* Note about main app */}
-      <div style={{marginTop:12,padding:"10px 14px",background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,fontSize:11,color:"rgba(255,255,255,0.45)",lineHeight:1.7}}>
-        <strong style={{color:"#fbbf24"}}>⚠️ Note:</strong> The main app needs a small update to enforce Scoring Admin restrictions. Currently all admin roles get full admin access in the app. The portal stores the correct role — once the app is updated, Scoring Admins will only see the Score tab.
       </div>
     </div>)}
 
@@ -1946,10 +2005,10 @@ function SettingsTab({user,onSignOut}){
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 const ALL_NAV_ITEMS=[
   {id:"dash",label:"Dashboard",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>},
+  {id:"access",label:"Access",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>},
   {id:"week",label:"Week",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
   {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
-  {id:"access",label:"Access",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>},
   {id:"history",label:"History",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   {id:"attend",label:"Attend",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>},
   {id:"season",label:"Season",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg>},
