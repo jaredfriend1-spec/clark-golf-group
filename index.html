@@ -2677,9 +2677,9 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
         )}
 
         {/* ── APPROVAL CARDS (only when no teams yet) ── */}
-        {!editTeams && !manualTeams && currentDisplay.length === 0 && (
+        {isAdmin && !editTeams && !manualTeams && currentDisplay.length === 0 && (
           <>
-            {/* Tee requests */}
+            {/* Tee requests — admin only */}
             {teeRequests.length > 0 && (
               <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:10,padding:'12px 14px',marginBottom:10}}>
                 <div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
