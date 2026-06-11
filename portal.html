@@ -161,38 +161,87 @@ select.inp{cursor:pointer}
 /* ── Desktop ── */
 @media(min-width:900px){
   html{font-size:15px}
-  .main{padding:28px 36px;max-width:960px;background:#0c1a15}
-  .topbar{height:62px;padding:0 30px}
-  .logo{font-size:26px}
+
+  /* Topbar */
+  .topbar{height:66px;padding:0 36px;gap:16px}
+  .logo{font-size:28px}
+  .logo-sub{font-size:11px;margin-top:3px}
   .role-badge{font-size:10px;padding:4px 12px}
-  .sidebar{width:224px;padding:16px 12px}
-  .ni{font-size:13px;padding:10px 12px;gap:10px}
-  .ni svg{width:16px;height:16px}
-  .pg-title{font-size:30px}
-  .pg-sub{font-size:13px}
-  .card-hdr{padding:14px 20px}
-  .card-title{font-size:12px}
-  .card-body{padding:18px 20px}
-  .stat-v{font-size:36px}
-  .stat-l{font-size:10px}
-  .stat{padding:16px 18px}
-  .inp{font-size:14px;padding:11px 14px}
-  .btn{font-size:13px;padding:9px 16px}
-  .btn-sm{font-size:12px;padding:7px 13px}
-  .btn-full{font-size:14px;padding:13px 16px}
-  .p-row{padding:12px 20px}
-  .p-name{font-size:14px}
+
+  /* Sidebar — wider, more readable */
+  .sidebar{width:240px;padding:20px 14px;gap:3px}
+  .ni{font-size:13px;padding:11px 13px;gap:11px;border-radius:9px}
+  .ni svg{width:17px;height:17px}
+  .nav-sep{font-size:10px;padding:14px 10px 5px}
+
+  /* Main content — full desktop width */
+  .main{padding:36px 48px;max-width:none;background:#0c1a15}
+
+  /* Page headers */
+  .pg-eyebrow{font-size:11px;margin-bottom:5px}
+  .pg-title{font-family:"Barlow Condensed",sans-serif;font-size:38px;margin-bottom:4px}
+  .pg-sub{font-size:14px;margin-bottom:24px}
+
+  /* Cards */
+  .card{border-radius:16px;margin-bottom:18px}
+  .card-hdr{padding:16px 24px}
+  .card-title{font-size:12px;letter-spacing:0.1em}
+  .card-body{padding:22px 24px}
+
+  /* Stat cards */
+  .stat{padding:20px 22px;border-radius:14px}
+  .stat-v{font-size:40px}
+  .stat-l{font-size:10px;margin-top:6px}
+  .sg-3{gap:14px}
+  .sg-4{gap:14px}
+
+  /* Day cards */
+  .day-card{border-radius:14px;margin-bottom:14px}
+  .day-hdr{padding:18px 24px}
+  .day-name{font-size:22px}
+  .day-date{font-size:12px}
+  .day-body{padding:18px 24px}
+
+  /* Rows */
+  .p-row{padding:14px 24px}
+  .p-name{font-size:15px}
   .p-sub{font-size:12px}
-  .s-row{padding:11px 20px}
-  .day-name{font-size:21px}
-  .day-hdr{padding:15px 20px}
-  .day-body{padding:16px 20px}
-  .modal{max-width:440px;padding:28px}
-  .info-box,.warn{font-size:13px;padding:14px 18px}
-  .email-preview{font-size:14px;padding:28px}
-  .chk-item{padding:10px 0}
-  .toast{font-size:14px}
-  .pg-eyebrow{font-size:11px}
+  .s-row{padding:13px 24px}
+
+  /* Buttons */
+  .btn{font-size:13px;padding:10px 18px;border-radius:9px}
+  .btn-sm{font-size:12px;padding:8px 14px}
+  .btn-xs{padding:5px 10px;font-size:11px}
+  .btn-full{font-size:14px;padding:13px 18px}
+
+  /* Inputs */
+  .inp{font-size:14px;padding:12px 16px;border-radius:10px}
+  textarea.inp{min-height:100px}
+
+  /* Info/warn */
+  .info-box,.warn{font-size:13px;padding:16px 20px;border-radius:12px}
+
+  /* Misc */
+  .chk-item{padding:11px 0}
+  .chk-box{width:20px;height:20px}
+  .toast{font-size:14px;padding:12px 24px}
+  .modal{max-width:500px;padding:32px;border-radius:20px}
+  .email-preview{font-size:14px;padding:32px;border-radius:14px}
+  .srch{padding:14px 20px}
+  .sec-tabs{margin-bottom:20px}
+  .mtab{font-size:12px;padding:9px}
+  .lbl{font-size:11px;margin-bottom:6px}
+}
+
+/* Extra wide — use more space */
+@media(min-width:1200px){
+  .sidebar{width:260px}
+  .main{padding:40px 60px}
+  .pg-title{font-size:42px}
+  .stat-v{font-size:44px}
+}
+@media(min-width:1600px){
+  .main{padding:48px 80px;max-width:1400px}
 }
 
 </style>
