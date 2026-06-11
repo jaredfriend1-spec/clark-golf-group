@@ -13,152 +13,188 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0f172a;color:#e2e8f0;-webkit-font-smoothing:antialiased}
+html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0A1614;color:#e2e8f0;-webkit-font-smoothing:antialiased}
 .shell{display:flex;min-height:100vh;flex-direction:column}
-.topbar{background:#0c1220;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 20px;height:54px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:sticky;top:0;z-index:100}
-.logo{font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:800;color:#fff}
+
+/* ── Topbar ── */
+.topbar{background:#0A1614;background-image:radial-gradient(ellipse at 0% 0%,rgba(16,185,129,0.18) 0%,transparent 60%);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
+.logo{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.01em}
 .logo em{color:#10b981;font-style:normal}
-.role-badge{font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em}
+.logo-sub{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);letter-spacing:0.1em;text-transform:uppercase;margin-left:2px;margin-top:2px}
+.role-badge{font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0}
 .rb-master{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1e293b}
-.rb-superadmin{background:rgba(59,130,246,0.2);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)}
-.body{display:flex;flex:1}
-.sidebar{width:200px;background:#0c1220;border-right:1px solid rgba(255,255,255,0.06);padding:12px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.rb-superadmin{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.25)}
+
+/* ── Body / Sidebar / Main ── */
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:210px;background:#0d1c18;border-right:1px solid rgba(255,255,255,0.06);padding:14px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
 @media(max-width:680px){.sidebar{display:none}.mob-nav{display:flex!important}}
-.mob-nav{display:none;position:sticky;top:54px;left:0;right:0;background:#0c1220;border-bottom:1px solid rgba(255,255,255,0.07);z-index:99;padding:6px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
-.mob-btn{min-width:52px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 6px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:9px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.04em;transition:color 0.15s;border-radius:6px}
-.mob-btn.on{color:#10b981;background:rgba(16,185,129,0.1)}
+.mob-nav{display:none;position:sticky;top:56px;left:0;right:0;background:#0d1c18;border-bottom:1px solid rgba(255,255,255,0.08);z-index:99;padding:5px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
+.mob-btn{min-width:50px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 5px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:9px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.04em;transition:all 0.15s;border-radius:7px}
+.mob-btn.on{color:#10b981;background:rgba(16,185,129,0.12)}
 .mob-btn svg{width:18px;height:18px}
-.nav-sep{font-size:9px;font-weight:700;color:rgba(255,255,255,0.18);text-transform:uppercase;letter-spacing:0.1em;padding:10px 8px 3px;margin-top:6px}
-.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:none;background:none;color:rgba(255,255,255,0.4);font-size:12px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:100%;text-align:left;transition:all 0.12s}
+.nav-sep{font-size:9px;font-weight:700;color:rgba(255,255,255,0.15);text-transform:uppercase;letter-spacing:0.1em;padding:12px 8px 4px;margin-top:4px}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;border:none;background:none;color:rgba(255,255,255,0.38);font-size:12px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:100%;text-align:left;transition:all 0.12s}
 .ni:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.75)}
 .ni.on{background:rgba(16,185,129,0.12);color:#10b981}
 .ni svg{width:15px;height:15px;flex-shrink:0}
 .ni-foot{margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)}
-.main{flex:1;padding:20px;overflow-y:auto;padding-bottom:72px;max-width:900px}
-@media(max-width:680px){.main{padding:14px;padding-bottom:24px}}
-.card{background:#1e293b;border:1px solid rgba(255,255,255,0.07);border-radius:12px;margin-bottom:12px;overflow:hidden}
-.card-hdr{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.card-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em}
+.main{flex:1;padding:22px 24px;overflow-y:auto;padding-bottom:80px;max-width:880px;background:#0c1a15}
+@media(max-width:680px){.main{padding:14px 12px;padding-bottom:32px}}
+
+/* ── Cards ── */
+.card{background:#132318;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.card-hdr{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.09em}
 .card-body{padding:14px 16px}
+
+/* ── Stat grid ── */
 .stat-grid{display:grid;gap:10px;margin-bottom:14px}
 .sg-3{grid-template-columns:repeat(3,1fr)}
 .sg-4{grid-template-columns:repeat(4,1fr)}
 .sg-2{grid-template-columns:repeat(2,1fr)}
 @media(max-width:500px){.sg-3,.sg-4{grid-template-columns:1fr 1fr}}
-.stat{background:#1e293b;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px}
-.stat-v{font-family:"Barlow Condensed",sans-serif;font-size:28px;font-weight:800;line-height:1}
-.stat-l{font-size:9px;font-weight:700;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px}
-.day-card{background:#1e293b;border:1px solid rgba(255,255,255,0.07);border-radius:12px;margin-bottom:10px;overflow:hidden}
-.day-hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;transition:background 0.12s}
-.day-hdr:hover{background:rgba(255,255,255,0.02)}
-.day-name{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:800;color:#fff}
+.stat{background:#132318;border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:14px 16px}
+.stat-v{font-family:"Barlow Condensed",sans-serif;font-size:30px;font-weight:800;line-height:1}
+.stat-l{font-size:9px;font-weight:700;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:0.07em;margin-top:4px}
+
+/* ── Day cards ── */
+.day-card{background:#132318;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.day-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;transition:background 0.12s}
+.day-hdr:hover{background:rgba(255,255,255,0.04)}
+.day-name{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:800;color:#fff}
 .day-date{font-size:11px;color:rgba(255,255,255,0.3);margin-top:1px}
-.day-body{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.1)}
+.day-body{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.07);background:#0e1d19}
+
+/* ── Status dots ── */
 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.dot-g{background:#10b981;box-shadow:0 0 5px rgba(16,185,129,0.5)}
-.dot-a{background:#f59e0b;box-shadow:0 0 5px rgba(245,158,11,0.4)}
-.dot-r{background:#ef4444;box-shadow:0 0 5px rgba(239,68,68,0.4)}
+.dot-g{background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.5)}
+.dot-a{background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,0.4)}
+.dot-r{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.4)}
 .dot-gray{background:rgba(255,255,255,0.2)}
-.s-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04)}
+
+/* ── Rows ── */
+.s-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.07)}
 .s-row:last-child{border-bottom:none}
-.b{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.03em;margin:2px 2px 2px 0}
-.b-g{background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.15)}
-.b-r{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.12)}
-.b-b{background:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.12)}
-.b-a{background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.12)}
-.b-p{background:rgba(139,92,246,0.1);color:#a78bfa;border:1px solid rgba(139,92,246,0.12)}
-.b-gray{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.08)}
-.btn{padding:7px 13px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;border:none;transition:all 0.12s;white-space:nowrap}
+.p-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.p-row:last-child{border-bottom:none}
+.p-name{font-size:13px;font-weight:600;color:#e2e8f0;flex:1}
+.p-sub{font-size:11px;color:rgba(255,255,255,0.3);margin-top:1px}
+
+/* ── Badges ── */
+.b{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:0.03em;margin:2px 2px 2px 0}
+.b-g{background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.18)}
+.b-r{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.14)}
+.b-b{background:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.14)}
+.b-a{background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.14)}
+.b-p{background:rgba(139,92,246,0.1);color:#a78bfa;border:1px solid rgba(139,92,246,0.14)}
+.b-gray{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.1)}
+
+/* ── Buttons ── */
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;border:none;transition:all 0.12s;white-space:nowrap}
 .btn:active{transform:scale(0.97)}
 .btn:disabled{opacity:0.4;cursor:not-allowed}
 .btn-g{background:#10b981;color:#fff}.btn-g:hover{background:#059669}
 .btn-r{background:#ef4444;color:#fff}.btn-r:hover{background:#dc2626}
 .btn-b{background:#3b82f6;color:#fff}
 .btn-a{background:#f59e0b;color:#1e293b}
-.btn-gh{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.1)}.btn-gh:hover{background:rgba(255,255,255,0.1)}
+.btn-gh{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.1)}.btn-gh:hover{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8)}
 .btn-sm{padding:5px 10px;font-size:11px}
 .btn-xs{padding:3px 8px;font-size:10px}
 .btn-full{width:100%;padding:11px 14px;font-size:13px}
-.inp{width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#e2e8f0;font-size:13px;font-family:"DM Sans",sans-serif;outline:none;transition:border-color 0.15s}
+
+/* ── Inputs ── */
+.inp{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.08);color:#e2e8f0;font-size:13px;font-family:"DM Sans",sans-serif;outline:none;transition:border-color 0.15s}
 .inp:focus{border-color:#10b981}
 .inp::placeholder{color:rgba(255,255,255,0.2)}
 textarea.inp{resize:vertical;min-height:80px;line-height:1.6}
 select.inp{cursor:pointer}
-.p-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04)}
-.p-row:last-child{border-bottom:none}
-.p-name{font-size:13px;font-weight:600;color:#e2e8f0;flex:1}
-.p-sub{font-size:11px;color:rgba(255,255,255,0.3);margin-top:1px}
-.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:9px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;font-family:"DM Sans",sans-serif;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;font-family:"DM Sans",sans-serif;white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,0.5)}
 .toast-ok{background:#10b981;color:#fff}
 .toast-err{background:#ef4444;color:#fff}
 .toast-info{background:#3b82f6;color:#fff}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;backdrop-filter:blur(4px)}
-.modal{background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:14px;width:100%;max-width:380px;padding:22px;max-height:90vh;overflow-y:auto}
-.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0c1220}
-.gate-box{width:100%;max-width:380px}
-.gate-logo{font-family:"Barlow Condensed",sans-serif;font-size:38px;font-weight:800;color:#fff;text-align:center;margin-bottom:4px}
+
+/* ── Modal / Overlay ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;backdrop-filter:blur(6px)}
+.modal{background:#173020;border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:100%;max-width:380px;padding:24px;max-height:90vh;overflow-y:auto}
+
+/* ── Gate ── */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0A1614;background-image:radial-gradient(ellipse at 20% 0%,rgba(16,185,129,0.18) 0%,transparent 55%)}
+.gate-box{width:100%;max-width:390px}
+.gate-logo{font-family:"Barlow Condensed",sans-serif;font-size:42px;font-weight:800;color:#fff;text-align:center;margin-bottom:4px;letter-spacing:-0.01em}
 .gate-logo em{color:#10b981;font-style:normal}
-.gate-sub{text-align:center;font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:28px;letter-spacing:0.05em;text-transform:uppercase}
-.gate-card{background:#1e293b;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px}
+.gate-sub{text-align:center;font-size:11px;color:rgba(255,255,255,0.28);margin-bottom:28px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600}
+.gate-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:26px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .gate-lbl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+
+/* ── Section tabs (within tabs) ── */
 .mtab{flex:1;padding:7px;text-align:center;border:none;background:none;color:rgba(255,255,255,0.35);font-size:11px;font-weight:700;cursor:pointer;border-radius:7px;font-family:"DM Sans",sans-serif;transition:all 0.12s}
-.mtab.on{background:#1e293b;color:#e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
-/* Section tabs - stack on mobile */
-.sec-tabs{display:flex;gap:4px;background:rgba(255,255,255,0.03);border-radius:10px;padding:3px;margin-bottom:16px}
+.mtab.on{background:rgba(16,185,129,0.12);color:#10b981}
+.sec-tabs{display:flex;gap:4px;background:rgba(255,255,255,0.06);border-radius:10px;padding:3px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.09)}
 @media(max-width:540px){.sec-tabs{flex-direction:column}.sec-tabs .mtab{text-align:left;padding:9px 12px}}
-.srch{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05)}
-.pg-title{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
-.pg-sub{font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:16px}
-.chk-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.srch{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06)}
+
+/* ── Page headers ── */
+.pg-eyebrow{font-size:10px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.pg-title{font-family:"Barlow Condensed",sans-serif;font-size:26px;font-weight:800;color:#fff;margin-bottom:2px}
+.pg-sub{font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:18px}
+
+/* ── Misc ── */
+.chk-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
 .chk-item:last-child{border-bottom:none}
 .chk-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
 .chk-box.checked{background:#10b981;border-color:#10b981}
-.warn{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:10px;padding:11px 14px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.7;margin-bottom:12px}
+.warn{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:12px}
 .warn strong{color:#fca5a5}
-.info-box{background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.12);border-radius:10px;padding:11px 14px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.7;margin-bottom:12px}
+.info-box{background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:12px}
 .info-box strong{color:#93c5fd}
-.email-preview{background:#fff;border-radius:10px;padding:24px;color:#0f172a;font-family:"DM Sans",sans-serif;font-size:13px;line-height:1.8;max-height:480px;overflow-y:auto}
+.email-preview{background:#fff;border-radius:12px;padding:24px;color:#0f172a;font-family:"DM Sans",sans-serif;font-size:13px;line-height:1.8;max-height:480px;overflow-y:auto}
 .email-preview h2{font-size:16px;font-weight:700;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;margin-top:14px}
 .email-preview h2:first-child{margin-top:0}
 .email-preview h3{font-size:13px;font-weight:700;margin:12px 0 4px;color:#0f172a}
 .email-preview p{margin-bottom:8px}
 .email-preview strong{font-weight:700;color:#0f172a}
 .lbl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
-/* DESKTOP: larger text for laptop/PC */
+
+/* ── Desktop ── */
 @media(min-width:900px){
   html{font-size:15px}
-  .main{padding:28px 36px;max-width:960px}
-  .topbar{height:60px;padding:0 28px}
-  .logo{font-size:24px}
+  .main{padding:28px 36px;max-width:960px;background:#0c1a15}
+  .topbar{height:62px;padding:0 30px}
+  .logo{font-size:26px}
   .role-badge{font-size:10px;padding:4px 12px}
-  .sidebar{width:220px;padding:14px 12px}
-  .ni{font-size:14px;padding:10px 12px;gap:10px}
-  .ni svg{width:17px;height:17px}
-  .pg-title{font-size:28px}
-  .pg-sub{font-size:14px}
+  .sidebar{width:224px;padding:16px 12px}
+  .ni{font-size:13px;padding:10px 12px;gap:10px}
+  .ni svg{width:16px;height:16px}
+  .pg-title{font-size:30px}
+  .pg-sub{font-size:13px}
   .card-hdr{padding:14px 20px}
   .card-title{font-size:12px}
   .card-body{padding:18px 20px}
-  .stat-v{font-size:34px}
+  .stat-v{font-size:36px}
   .stat-l{font-size:10px}
   .stat{padding:16px 18px}
-  .inp{font-size:15px;padding:11px 14px}
+  .inp{font-size:14px;padding:11px 14px}
   .btn{font-size:13px;padding:9px 16px}
   .btn-sm{font-size:12px;padding:7px 13px}
-  .btn-full{font-size:15px;padding:13px 16px}
+  .btn-full{font-size:14px;padding:13px 16px}
   .p-row{padding:12px 20px}
-  .p-name{font-size:15px}
+  .p-name{font-size:14px}
   .p-sub{font-size:12px}
   .s-row{padding:11px 20px}
-  .day-name{font-size:20px}
+  .day-name{font-size:21px}
   .day-hdr{padding:15px 20px}
   .day-body{padding:16px 20px}
   .modal{max-width:440px;padding:28px}
   .info-box,.warn{font-size:13px;padding:14px 18px}
   .email-preview{font-size:14px;padding:28px}
   .chk-item{padding:10px 0}
-  .toast{font-size:14px;bottom:24px}
+  .toast{font-size:14px}
+  .pg-eyebrow{font-size:11px}
 }
+
 </style>
 </head>
 <body>
@@ -355,9 +391,10 @@ function Gate({onAuth}){
             </div>
           )}
         </div>
-        <div style={{textAlign:"center",marginTop:14}}>
-          <a href="https://clark-golf-group-two.vercel.app/" target="_blank" style={{fontSize:11,color:"rgba(255,255,255,0.2)",textDecoration:"none"}}>← Back to Clark Golf App</a>
+        <div style={{textAlign:"center",marginTop:16}}>
+          <a href="index.html" style={{display:"inline-block",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.22)",letterSpacing:"0.04em",textDecoration:"none",padding:"6px 14px",borderRadius:20,border:"1px solid rgba(255,255,255,0.1)"}}>← Back to App</a>
         </div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:10,color:"rgba(255,255,255,0.15)",letterSpacing:"0.03em"}}>App by <strong style={{color:"rgba(255,255,255,0.25)"}}>Jared Friend</strong></div>
       </div>
     </div>
   );
@@ -726,6 +763,7 @@ function WeekTab({user}){
   return(
     <div>
       <Toast msg={toast.msg} type={toast.type}/>
+      <div className="pg-eyebrow">Week</div>
       <div className="pg-title">Week Management</div>
       <div className="pg-sub">Manage days, sign-ups, tee times, and notes</div>
 
@@ -784,7 +822,7 @@ function WeekTab({user}){
                   {/* READ-ONLY Checklist */}
                   <div style={{marginBottom:14}}>
                     <div className="lbl">Checklist (read-only — updated by actions)</div>
-                    <div style={{background:"rgba(0,0,0,0.15)",borderRadius:8,padding:"8px 14px"}}>
+                    <div style={{background:"#0e1d19",borderRadius:8,padding:"8px 14px"}}>
                       {checks.map(c=>(
                         <div key={c.key} className="chk-item">
                           <div className={`chk-box${c.done?" checked":""}`}>
@@ -809,7 +847,7 @@ function WeekTab({user}){
                       </div>
                     </div>
                     {addSignupDay===day&&(
-                      <div style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:10,marginBottom:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                      <div style={{background:"rgba(255,255,255,0.05)",borderRadius:8,padding:10,marginBottom:8,display:"flex",gap:6,flexWrap:"wrap"}}>
                         <input className="inp" style={{flex:2,minWidth:120}} placeholder="Player name" value={addQ} onChange={e=>setAddQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addSignup(day)}/>
                         <input className="inp" style={{width:64}} type="number" placeholder="HCP" value={addHcp} onChange={e=>setAddHcp(e.target.value)}/>
                         <select className="inp" style={{width:"auto"}} value={addTee} onChange={e=>setAddTee(e.target.value)}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
@@ -817,7 +855,7 @@ function WeekTab({user}){
                         <button className="btn btn-gh btn-xs" onClick={()=>setAddSignupDay(null)}>✕</button>
                       </div>
                     )}
-                    <div style={{maxHeight:240,overflowY:"auto",background:"rgba(0,0,0,0.1)",borderRadius:8}}>
+                    <div style={{background:"#0e1d19",borderRadius:8}}>
                       {sups.length===0&&<div style={{padding:"10px 12px",fontSize:12,color:"rgba(255,255,255,0.25)",textAlign:"center"}}>No sign-ups yet</div>}
                       {sups.map(([key,s],i)=>(
                         <div key={key} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",borderBottom:i<sups.length-1?"1px solid rgba(255,255,255,0.04)":"none"}}>
@@ -1030,6 +1068,7 @@ function EmailTab(){
       <Toast msg={toast.msg} type={toast.type}/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:8}}>
         <div>
+          <div className="pg-eyebrow">Communications</div>
           <div className="pg-title">Email & Announcements</div>
           <div className="pg-sub">Draft notes, compose the group email</div>
         </div>
@@ -1187,7 +1226,8 @@ function RosterTab(){
     <Toast msg={toast.msg} type={toast.type}/>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:8}}>
       <div>
-        <div className="pg-title">Roster</div>
+        <div className="pg-eyebrow">Members</div>
+    <div className="pg-title">Roster</div>
         <div className="pg-sub">{activeList.length} active · {inactiveList.length} inactive · {hiddenList.length} hidden</div>
       </div>
       <button className="btn btn-g btn-sm" onClick={()=>setAdding(v=>!v)}>{adding?"Cancel":"+ Add Player"}</button>
@@ -1220,7 +1260,7 @@ function RosterTab(){
 
       <div className="srch"><input className="inp" placeholder="🔍 Search…" value={q} onChange={e=>setQ(e.target.value)}/></div>
 
-      <div style={{maxHeight:520,overflowY:"auto"}}>
+      <div>
         {filtered.length===0&&<div style={{padding:"20px 16px",fontSize:12,color:"rgba(255,255,255,0.3)",textAlign:"center"}}>No players in this segment{q?" matching your search":""}.</div>}
 
         {filtered.map(p=>{
@@ -1254,7 +1294,7 @@ function RosterTab(){
                 <input className="inp" value={editing.email||""} onChange={e=>setEditing(v=>({...v,email:e.target.value}))} placeholder="player@email.com" style={{marginBottom:14}}/>
 
                 {/* PIN MANAGEMENT */}
-                <div style={{background:"rgba(0,0,0,0.15)",borderRadius:8,padding:"12px 14px",marginBottom:14}}>
+                <div style={{background:"#0e1d19",borderRadius:8,padding:"12px 14px",marginBottom:14}}>
                   <div className="lbl" style={{marginBottom:8}}>PIN Status</div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                     {hasPin?(
@@ -1439,6 +1479,7 @@ function AccessTab({user}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Admin</div>
     <div className="pg-title">Access Management</div>
     <div className="pg-sub">Designate admin roles — easy on/off</div>
 
@@ -1643,6 +1684,7 @@ function HistoryTab({user}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Archive</div>
     <div className="pg-title">Round History</div>
     <div className="pg-sub">{rounds.length} rounds on record</div>
     {isMaster(user.role)&&<div className="warn"><strong>Caution:</strong> Deleting a round moves it to trash — recoverable from the main app History tab. Every delete requires typing "DELETE" to confirm.</div>}
@@ -1825,6 +1867,8 @@ function AttendTab({user}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Tracking</div>
+    <div className="pg-eyebrow">Tracking</div>
     <div className="pg-title">Attendance</div>
     <div className="pg-sub">{rounds.length} round{rounds.length!==1?"s":""} · {standings.length} unique players · ${totalEntries} to tournament fund</div>
 
@@ -1961,6 +2005,7 @@ function SeasonTab(){
   ];
 
   return(<div>
+    <div className="pg-eyebrow">Master Only</div>
     <div className="pg-title">Season Management</div>
     <div className="pg-sub">Planned features for end-of-season and multi-season tools</div>
     <div className="info-box">
@@ -2006,6 +2051,7 @@ function SettingsTab({user,onSignOut}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Master Only</div>
     <div className="pg-title">Settings</div>
     <div className="pg-sub">Master-only system configuration</div>
 
@@ -2013,7 +2059,7 @@ function SettingsTab({user,onSignOut}){
       <div className="card-hdr"><span className="card-title">🔐 Set Up Firebase Email Login</span></div>
       <div className="card-body">
         <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:12,lineHeight:1.8}}>Replace the password fallback with proper Firebase email authentication. No effect on the main app.</div>
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px",fontSize:12,color:"rgba(255,255,255,0.45)",lineHeight:2}}>
+        <div style={{background:"#0e1d19",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"12px 14px",fontSize:12,color:"rgba(255,255,255,0.45)",lineHeight:2}}>
           <div><strong style={{color:"#60a5fa"}}>1.</strong> <a href="https://console.firebase.google.com/project/clark-group-dd15e/authentication" target="_blank" style={{color:"#10b981"}}>Firebase Console → Authentication</a></div>
           <div><strong style={{color:"#60a5fa"}}>2.</strong> Sign-in method → Enable <strong style={{color:"#e2e8f0"}}>Email/Password</strong></div>
           <div><strong style={{color:"#60a5fa"}}>3.</strong> Users tab → Add user (your email + password)</div>
@@ -2101,20 +2147,38 @@ function Portal(){
   return(
     <div className="shell">
       <div className="topbar">
-        <div className="logo">Clark <em>Golf</em></div>
+        <div style={{display:"flex",alignItems:"baseline",gap:6}}><div className="logo">Clark <em>Golf</em> Group</div><div className="logo-sub">Portal</div></div>
         <span className={`role-badge ${isMaster(user.role)?"rb-master":"rb-superadmin"}`}>{isMaster(user.role)?"Master Admin":"Super Admin"}</span>
-        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:7,padding:"4px 11px 4px 7px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:20}}>
-            <div style={{width:22,height:22,borderRadius:"50%",background:"#10b981",color:"#fff",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed,sans-serif"}}>{ini}</div>
-            <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.6)"}}>{user.name||user.email||"Admin"}</span>
+        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px 5px 7px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:24}}>
+            <div style={{width:26,height:26,borderRadius:"50%",background:"#10b981",color:"#fff",fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>{ini}</div>
+            <span style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.65)",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name||user.email||"Admin"}</span>
           </div>
+          <a href="index.html" style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.2)",textDecoration:"none",padding:"5px 12px",borderRadius:20,border:"1px solid rgba(255,255,255,0.08)",transition:"all 0.2s",whiteSpace:"nowrap"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(255,255,255,0.5)";e.currentTarget.style.borderColor="rgba(255,255,255,0.18)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(255,255,255,0.2)";e.currentTarget.style.borderColor="rgba(255,255,255,0.08)";}}>← App</a>
         </div>
+      </div>
+      <div className="mob-nav">
+        {NAV_ITEMS.map(n=>(
+          <button key={n.id} className={`mob-btn${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}<span>{n.label}</span></button>
+        ))}
+        <button className="mob-btn" onClick={signOut} style={{marginLeft:4,borderLeft:"1px solid rgba(255,255,255,0.08)",paddingLeft:8}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:18,height:18}}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Sign Out</span>
+        </button>
       </div>
       <div className="body">
         <div className="sidebar">
-          {NAV_ITEMS.map(n=>(
+          {NAV_ITEMS.filter(n=>!n.master).map(n=>(
             <button key={n.id} className={`ni${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}{n.label}</button>
           ))}
+          {isMaster(user.role)&&NAV_ITEMS.some(n=>n.master)&&(
+            <>
+              <div className="nav-sep">Master Only</div>
+              {NAV_ITEMS.filter(n=>n.master).map(n=>(
+                <button key={n.id} className={`ni${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}{n.label}</button>
+              ))}
+            </>
+          )}
           <div className="ni-foot">
             <button className="ni" onClick={signOut} style={{color:"rgba(255,255,255,0.25)"}}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:15,height:15}}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign Out
@@ -2132,11 +2196,6 @@ function Portal(){
           {tab==="season"&&isMaster(user.role)&&<SeasonTab/>}
           {tab==="settings"&&isMaster(user.role)&&<SettingsTab user={user} onSignOut={signOut}/>}
         </div>
-      </div>
-      <div className="mob-nav">
-        {NAV_ITEMS.map(n=>(
-          <button key={n.id} className={`mob-btn${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}<span>{n.label}</span></button>
-        ))}
       </div>
     </div>
   );
