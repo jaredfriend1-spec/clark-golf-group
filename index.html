@@ -5109,9 +5109,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const [expandedTee,setExpandedTee]=useState(null);
   const [showAllPlayers,setShowAllPlayers]=useState(false);
   const [showStatsControl,setShowStatsControl]=useState(false);
-  const [moneySort,setMoneySort]=useState('net');
-  const [expandedMoneyPlayer,setExpandedMoneyPlayer]=useState(null);
-  const [showMoneyMe,setShowMoneyMe]=useState(false);
   const toggle=k=>setOpen(o=>({...o,[k]:!o[k]}));
 
   const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','logins','behavior'];
@@ -5204,50 +5201,8 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const signupByPlayer={};activeLog.filter(e=>e.action==='signup'&&e.name&&!e.isGuest).forEach(e=>{const player=e.by&&e.by!=='player'&&e.by!=='admin'?e.by:e.name;signupByPlayer[player]=(signupByPlayer[player]||0)+1;});
   const topSignupPlayers=Object.entries(signupByPlayer).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-  // Money stats
-  const COST=25;const playerMoney={};
-  activeHist.forEach(r=>{
-    const sc=r.scores;if(!sc||!sc.payoutsCalculated)return;
-    const teams=Object.values(r.teams||{});if(!teams.length)return;
-    const ts=sc.teamScores||[];
-    const paySeg=(pot,places,seg)=>{const p=parseFloat(pot||0);if(!p)return;const scored=teams.map(t=>({t,score:ts[t.id]?parseFloat(ts[t.id][seg]):NaN})).filter(x=>!isNaN(x.score));if(!scored.length)return;scored.sort((a,b)=>a.score-b.score);const best=scored[0].score;const tied=scored.filter(x=>x.score===best);const second=scored.find(x=>x.score!==best);const payTeam=(team,amt)=>{const pl=safeArray(team.players).filter(p=>p.name);const pp=pl.length>0?Math.floor(amt/pl.length):0;pl.forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].won+=pp;});};if(tied.length>1){const split=Math.floor(places===1?p/tied.length:(p*0.6+p*0.4)/tied.length);tied.forEach(x=>payTeam(x.t,split));}else{payTeam(tied[0].t,Math.floor(places===1?p:p*0.6));if(places>=2&&second)payTeam(second.t,Math.floor(p*0.4));}};
-    paySeg(sc.frontPot,sc.frontPlaces||1,'front');paySeg(sc.backPot,sc.backPlaces||1,'back');paySeg(sc.overallPot,sc.overallPlaces||1,'overall');
-    const totalSkins=safeArray(sc.skinCounts).reduce((s,x)=>s+(x||0),0);const netSkins=Math.max(0,(sc.skinsPot||0)-(sc.tournFund||0));const skinVal=totalSkins>0?Math.floor(netSkins/totalSkins):0;
-    safeArray(sc.skinCounts).forEach((cnt,idx)=>{if(!cnt)return;const t=teams.find(t=>String(t.id)===String(idx));if(t){const pl=safeArray(t.players).filter(p=>p.name);const pp=pl.length>0?Math.floor(cnt*skinVal/pl.length):0;pl.forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].won+=pp;});}});
-    teams.forEach(team=>safeArray(team.players).filter(p=>p.name).forEach(p=>{if(!playerMoney[p.name])playerMoney[p.name]={won:0,paid:0,rounds:0};playerMoney[p.name].paid+=COST;playerMoney[p.name].rounds++;}));
-  });
-  const moneyList=Object.entries(playerMoney).map(([name,d])=>({name,won:d.won,paid:d.paid,net:d.won-d.paid,rounds:d.rounds})).sort((a,b)=>b.net-a.net);
-  const winners=moneyList.filter(p=>p.net>0);const donors=moneyList.filter(p=>p.net<0).sort((a,b)=>a.net-b.net);
 
-  // Per-player round breakdowns (same as Standings)
-  const moneyBreakdowns=useMemo(()=>{
-    const data={};
-    [...activeHist].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(r=>{
-      const sc=r.scores;if(!sc||!sc.payoutsCalculated)return;
-      const teams=Object.values(r.teams||{});if(!teams.length)return;
-      const snet=Math.max(0,(sc.skinsPot||0)-(sc.tournFund||0));
-      const tsk=Object.values(sc.skinCounts||{}).reduce((s,x)=>s+(x||0),0);
-      const psk=tsk>0?Math.floor(snet/tsk):0;
-      teams.forEach(team=>{
-        const pc=safeArray(team.players).length;if(!pc)return;
-        const wins=[];
-        [{seg:'front',pot:sc.frontPot,pl:sc.frontPlaces||1,k1:'f1',k2:'f2',label:'Front'},{seg:'back',pot:sc.backPot,pl:sc.backPlaces||1,k1:'b1',k2:'b2',label:'Back'},{seg:'overall',pot:sc.overallPot,pl:sc.overallPlaces||1,k1:'o1',k2:'o2',label:'Overall'}].forEach(({seg,pot:sp,pl,k1,k2,label})=>{
-          const p=parseFloat(sp||0);if(!p)return;
-          const scored=teams.map(t=>({...t,score:sc.teamScores?.[t.id]?parseFloat(sc.teamScores[t.id][seg]):NaN})).filter(t=>!isNaN(t.score));
-          if(!scored.length)return;scored.sort((a,b)=>a.score-b.score);
-          const best=scored[0].score;const tied=scored.filter(t=>t.score===best);const second=scored.find(t=>t.score!==best);
-          const c1=sc[k1]?parseFloat(sc[k1]):0;const c2=sc[k2]?parseFloat(sc[k2]):0;
-          const first=c1>0?c1:(pl===1?p:p*0.6);const sec=c2>0?c2:p*0.4;
-          if(tied.some(t=>String(t.id)===String(team.id))){const split=tied.length>1?Math.floor(pl===1?p/tied.length:(first+sec)/tied.length):Math.floor(first);wins.push({label,amt:Math.floor(split/pc)});}
-          else if(pl===2&&second&&String(second.id)===String(team.id)){wins.push({label:label+' 2nd',amt:Math.floor(sec/pc)});}
-        });
-        const skinCnt=sc.skinCounts?.[team.id]||0;
-        if(skinCnt>0&&psk>0)wins.push({label:'Skins ('+skinCnt+')',amt:Math.floor(psk*skinCnt/pc)});
-        if(wins.length){safeArray(team.players).forEach(p=>{const pbn=normName(p.name);if(!data[pbn])data[pbn]=[];data[pbn].push({date:r.date,day:r.day,teamName:team.name,wins,total:wins.reduce((s,w)=>s+w.amt,0)});});}
-      });
-    });
-    return data;
-  },[activeHist.length]);
+
   const periodLabel=filterPeriod==='all'?'All Time':getMonthLabel(filterPeriod);
 
   // v2 UI helpers — use v2 CSS vars
@@ -5368,7 +5323,7 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
                     {[['var(--info)','👤 Member View',id=>curSections[id]!==false,(id,val)=>writeStats('statsPlayerSections/'+id,val)],['var(--highlight)','🛡️ Admin View',id=>curAdminSections[id]!==false,(id,val)=>writeStats('statsAdminSections/'+id,val)]].map(([color,heading,isOn,onToggle])=>(
                       <div key={heading} style={{marginBottom:16}}>
                         <div style={{fontSize:11,fontWeight:700,color:color,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8,paddingBottom:4,borderBottom:'1px solid var(--hairline)'}}>{heading}</div>
-                        {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['money','💵 Money Stats'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
+                        {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
                           const on=isOn(id);
                           return(
                             <div key={id} onClick={()=>onToggle(id,!on)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer'}}>
@@ -5409,9 +5364,8 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
             {BN(uniquePlayerCount,'Players','var(--brand)')}
           </div>
           {divider}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr',gap:8}}>
             {statCard('$'+totalPot.toLocaleString(),'Total Paid Out','var(--money-pos)')}
-            {statCard('$'+totalFund,'Tournament Fund','var(--warn-ink)')}
           </div>
         </S>}
 
@@ -5492,80 +5446,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
                 </tr>);
               })}</tbody>
             </table>
-          </div>
-        </S>}
-
-        {/* ── 5. Money Stats ── */}
-        {showSec('money')&&<S id="money" icon="💵" title="Money Stats" color="var(--money-pos)" borderColor="var(--money-pos)" summary={(winners.length)+' in profit · '+(donors.length)+' donors · top: '+(moneyList[0]?.name||'—')}>
-          <div style={{paddingTop:6}}>
-            {(()=>{const topNet=moneyList[0];const topAbs=[...moneyList].sort((a,b)=>b.won-a.won)[0];const topPct=[...moneyList].filter(p=>p.paid>0).sort((a,b)=>(b.won/b.paid)-(a.won/a.paid))[0];const topDonor=donors[0];return(
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-                <div style={{background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Top Net Winner</div><div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topNet?.name||'—'}</div><div style={{fontSize:24,fontWeight:800,color:'var(--money-pos)',fontVariantNumeric:'tabular-nums'}}>+${topNet?.net||0}</div></div>
-                <div style={{background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Most $ Won</div><div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topAbs?.name||'—'}</div><div style={{fontSize:24,fontWeight:800,color:'var(--info)',fontVariantNumeric:'tabular-nums'}}>${topAbs?.won||0}</div></div>
-                <div style={{background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:700,color:'var(--warn-ink)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Best Return %</div><div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topPct?.name||'—'}</div><div style={{fontSize:24,fontWeight:800,color:'var(--warn-ink)',fontVariantNumeric:'tabular-nums'}}>{topPct&&topPct.paid>0?Math.round(topPct.won/topPct.paid*100)+'%':'—'}</div></div>
-                <div style={{background:'var(--money-neg-soft)',border:'1px solid #fecaca',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:700,color:'var(--money-neg)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Top Donor 😅</div><div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{topDonor?.name||'—'}</div><div style={{fontSize:24,fontWeight:800,color:'var(--money-neg)',fontVariantNumeric:'tabular-nums'}}>-${Math.abs(topDonor?.net||0)}</div></div>
-              </div>
-            );})()}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
-              {statCard(winners.length,'In Profit','var(--money-pos)')}
-              {statCard(donors.length,'Donated','var(--money-neg)')}
-              {statCard('$'+moneyList.reduce((s,p)=>s+p.won,0),'Gross Out','var(--ink)')}
-            </div>
-            {divider}
-            {/* Sort toggle + Me button */}
-            <div style={{display:'flex',gap:6,marginBottom:10}}>
-              <button onClick={()=>setMoneySort('net')} style={{flex:1,padding:'7px 0',borderRadius:8,border:'1.5px solid',borderColor:moneySort==='net'?'var(--brand)':'var(--hairline)',background:moneySort==='net'?'var(--brand-soft)':'var(--surface)',color:moneySort==='net'?'var(--brand)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Net $$$</button>
-              <button onClick={()=>setMoneySort('gross')} style={{flex:1,padding:'7px 0',borderRadius:8,border:'1.5px solid',borderColor:moneySort==='gross'?'var(--info)':'var(--hairline)',background:moneySort==='gross'?'var(--info-soft)':'var(--surface)',color:moneySort==='gross'?'var(--info)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Gross Won</button>
-              {meName&&<button onClick={()=>setShowMoneyMe(v=>!v)} style={{padding:'7px 12px',borderRadius:8,border:'1.5px solid',borderColor:showMoneyMe?'var(--highlight-border)':'var(--hairline)',background:showMoneyMe?'var(--highlight-soft)':'var(--surface)',color:showMoneyMe?'var(--highlight)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>{showMoneyMe?'✕ Me':'👤 Me'}</button>}
-            </div>
-            {/* Column headers */}
-            <div style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',padding:'6px 12px',background:'var(--surface-sunken)',borderTop:'1px solid var(--hairline)',borderBottom:'1px solid var(--hairline)',gap:4}}>
-              {['#','Player','Rds','Paid In','Won','Net'].map((h,i)=>(
-                <div key={h} style={{fontSize:9,fontWeight:700,color:i===4&&moneySort==='gross'?'var(--info)':i===5&&moneySort==='net'?'var(--brand)':'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:i>2?'right':'left'}}>{h}</div>
-              ))}
-            </div>
-            {/* Player rows */}
-            {(()=>{
-              const mSorted=moneySort==='net'?[...moneyList].sort((a,b)=>b.net-a.net):[...moneyList].sort((a,b)=>b.won-a.won);
-              const mDisplay=showMoneyMe&&meName?mSorted.filter(p=>p.name===meName):mSorted;
-              return mDisplay.map((p)=>{
-              const rank=mSorted.findIndex(x=>x.name===p.name)+1;
-              const isExpanded=expandedMoneyPlayer===p.name;
-              const isMe=meName&&p.name===meName;
-              const breakdown=moneyBreakdowns[p.name]||[];
-              return(
-                <div key={p.name} style={{borderBottom:'1px solid var(--hairline-soft)',background:isMe?'rgba(184,101,31,0.04)':'transparent'}}>
-                  <div style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',alignItems:'center',padding:'10px 12px',gap:4,cursor:breakdown.length?'pointer':'default'}}
-                    onClick={()=>breakdown.length&&setExpandedMoneyPlayer(isExpanded?null:p.name)}>
-                    <div style={{width:22,height:22,borderRadius:'50%',background:rank===1?'#f59e0b':rank===2?'#94a3b8':rank===3?'#b45309':'var(--surface-sunken)',color:rank<=3?'#fff':'var(--ink-40)',fontSize:10,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{rank}</div>
-                    <div style={{fontSize:13,fontWeight:isMe?700:500,color:isMe?'var(--highlight)':'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:4}}>
-                      {p.name}
-                      {isMe&&<span style={{fontSize:9,fontWeight:700,color:'var(--highlight)',background:'var(--highlight-soft)',padding:'1px 5px',borderRadius:20,flexShrink:0}}>you</span>}
-                      {breakdown.length>0&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--ink-20)" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,transform:isExpanded?'rotate(180deg)':'none',transition:'transform 0.15s'}}><polyline points="6 9 12 15 18 9"/></svg>}
-                    </div>
-                    <div style={{fontSize:11,color:'var(--ink-40)',textAlign:'right'}}>{p.rounds}</div>
-                    <div style={{fontSize:13,fontWeight:600,color:'var(--ink-50)',textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{f$(p.paid)}</div>
-                    <div style={{fontSize:13,fontWeight:600,color:moneySort==='gross'?'var(--info)':'var(--ink-50)',textAlign:'right',fontVariantNumeric:'tabular-nums',transition:'color 0.15s'}}>{f$(p.won)}</div>
-                    <div style={{fontSize:14,fontWeight:800,color:p.net>=0?'var(--money-pos)':'var(--money-neg)',textAlign:'right',fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{p.net>=0?'+':''}{f$(Math.abs(p.net))}</div>
-                  </div>
-                  {isExpanded&&breakdown.length>0&&(
-                    <div style={{background:'var(--surface-sunken)',borderTop:'1px solid var(--hairline)',padding:'10px 0 12px'}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round Breakdown</div>
-                      {breakdown.map((rd,ri)=>(
-                        <div key={ri} style={{marginBottom:ri<breakdown.length-1?10:0,paddingBottom:ri<breakdown.length-1?10:0,borderBottom:ri<breakdown.length-1?'1px solid var(--hairline)':'none'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
-                            <div><span style={{fontSize:12,fontWeight:700,color:'var(--ink)'}}>{fmtD(rd.date)}</span><span style={{fontSize:11,color:'var(--ink-50)',marginLeft:6}}>{rd.day} · {rd.teamName}</span></div>
-                            <span style={{fontSize:13,fontWeight:800,color:'var(--money-pos)',fontVariantNumeric:'tabular-nums'}}>{f$(rd.total)}</span>
-                          </div>
-                          {rd.wins.map((w,wi)=>(<div key={wi} style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--ink-50)',padding:'2px 0 2px 10px'}}><span>{w.label}</span><span style={{fontWeight:600,color:'var(--money-pos)'}}>{f$(w.amt)}</span></div>))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            });
-            })()}
           </div>
         </S>}
 
