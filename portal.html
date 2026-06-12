@@ -17,7 +17,7 @@ html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0A1614;color:
 .shell{display:flex;min-height:100vh;flex-direction:column}
 
 /* ── Topbar ── */
-.topbar{background:#0A1614;background-image:radial-gradient(ellipse at 0% 0%,rgba(16,185,129,0.18) 0%,transparent 60%);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
+.topbar{background:#0A1614;background-image:radial-gradient(ellipse at 0% 0%,rgba(16,185,129,0.18) 0%,transparent 60%);border-bottom:1px solid rgba(255,255,255,0.07);padding:env(safe-area-inset-top) 20px 0;min-height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
 .logo{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.01em}
 .logo em{color:#10b981;font-style:normal}
 .logo-sub{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);letter-spacing:0.1em;text-transform:uppercase;margin-left:2px;margin-top:2px}
@@ -150,7 +150,7 @@ select.inp{cursor:pointer}
 .warn strong{color:#fca5a5}
 .info-box{background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:12px}
 .info-box strong{color:#93c5fd}
-.email-preview{background:#fff;border-radius:12px;padding:24px;color:#0f172a;font-family:"DM Sans",sans-serif;font-size:13px;line-height:1.8;max-height:480px;overflow-y:auto}
+.email-preview{background:#fff;border-radius:12px;padding:24px;color:#0f172a;font-family:"DM Sans",sans-serif;font-size:13px;line-height:1.8}
 .email-preview h2{font-size:16px;font-weight:700;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;margin-top:14px}
 .email-preview h2:first-child{margin-top:0}
 .email-preview h3{font-size:13px;font-weight:700;margin:12px 0 4px;color:#0f172a}
@@ -729,7 +729,7 @@ function WeekTab({user}){
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
     const ex=Object.values(extra||{});
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
-  },[extra,rosterEdits]);
+  },[extra,rosterEdits,rosterHcp,rosterTee]);
 
   const signupsForDay=d=>Object.entries(week?.signups||{}).filter(([,s])=>s.day===d).sort((a,b)=>(a[1].signedUpAt||0)-(b[1].signedUpAt||0));
   const getWeekDates=()=>{const now=new Date();const day=now.getDay();const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));const dates={};DAYS.forEach((d,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);dates[d]=dt.toISOString().split("T")[0];});return dates;};
@@ -1160,7 +1160,7 @@ function EmailTab(){
       {/* FORMATTED EMAIL PREVIEW (with close button) */}
       {preview&&(
         <div className="overlay" onClick={()=>setPreview(false)}>
-          <div className="modal" style={{maxWidth:680,padding:0}} onClick={e=>e.stopPropagation()}>
+          <div className="modal" style={{maxWidth:"min(960px,92vw)",width:"100%",maxHeight:"90vh",display:"flex",flexDirection:"column",padding:0}} onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
               <div style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>📧 Email Preview</div>
               <div style={{display:"flex",gap:6}}>
@@ -1169,7 +1169,7 @@ function EmailTab(){
                 <button className="btn btn-gh btn-xs" onClick={()=>setPreview(false)}>✕ Close</button>
               </div>
             </div>
-            <div style={{padding:18}}>
+            <div style={{padding:24,overflowY:"auto",flex:1}}>
               <div className="email-preview" dangerouslySetInnerHTML={{__html:buildHtml()}}/>
             </div>
           </div>
@@ -1187,6 +1187,8 @@ function RosterTab(){
   const rosterPins=useDB("rosterPins");
   const rosterEmails=useDB("rosterEmails");
   const rosterAdmins=useDB("rosterAdmins");
+  const rosterHcp=useDB("rosterHcp");
+  const rosterTee=useDB("rosterTee");
   const [seg,setSeg]=useState("active"); // active | inactive | hidden
   const [q,setQ]=useState("");
   const [editing,setEditing]=useState(null);
@@ -1200,10 +1202,10 @@ function RosterTab(){
   const [toast,showToast]=useToast();
 
   const all=useMemo(()=>{
-    const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name,isExtra:false}));
+    const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name,handicap:(rosterHcp&&rosterHcp[p.id]!=null)?rosterHcp[p.id]:p.hcp,hcp:(rosterHcp&&rosterHcp[p.id]!=null)?rosterHcp[p.id]:p.hcp,tee:(rosterTee&&rosterTee[p.id])||p.tee||"Whites",isExtra:false}));
     const ex=Object.values(extra||{}).map(p=>({...p,isExtra:true}));
     return[...base,...ex];
-  },[extra,rosterEdits]);
+  },[extra,rosterEdits,rosterHcp,rosterTee]);
 
   const visible=all.filter(p=>!rosterHidden||!rosterHidden[p.id]);
   const hiddenList=all.filter(p=>rosterHidden&&rosterHidden[p.id]);
@@ -1219,6 +1221,8 @@ function RosterTab(){
     const base=ROSTER.find(p=>p.id===id);
     if(base){
       if(name!==base.name)wr("rosterEdits/"+id,name);
+      if(hcp!==''&&hcp!=null)wr("rosterHcp/"+id,parseFloat(hcp)||0);
+      if(tee)wr("rosterTee/"+id,tee);
     }else{
       const entry=Object.entries(extra||{}).find(([,p])=>String(p.id)===String(id));
       if(entry){const[k,p]=entry;wr("extraPlayers/"+k,{...p,name,tee,hcp:parseFloat(hcp)||0});}
@@ -1325,20 +1329,16 @@ function RosterTab(){
               <div key={p.id} style={{padding:"14px 14px",background:"rgba(16,185,129,0.04)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
                 <div className="lbl">Name</div>
                 <input className="inp" value={editing.name} onChange={e=>setEditing(v=>({...v,name:e.target.value}))} placeholder="Name" style={{marginBottom:10}}/>
-                {p.isExtra&&(
-                  <>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-                      <div>
-                        <div className="lbl">Tee</div>
-                        <select className="inp" value={editing.tee} onChange={e=>setEditing(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
-                      </div>
-                      <div>
-                        <div className="lbl">HCP</div>
-                        <input className="inp" type="number" value={editing.hcp} onChange={e=>setEditing(v=>({...v,hcp:e.target.value}))} placeholder="HCP"/>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                  <div>
+                    <div className="lbl">Tee</div>
+                    <select className="inp" value={editing.tee||"Whites"} onChange={e=>setEditing(v=>({...v,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
+                  </div>
+                  <div>
+                    <div className="lbl">HCP</div>
+                    <input className="inp" type="number" step="0.1" value={editing.hcp||""} onChange={e=>setEditing(v=>({...v,hcp:e.target.value}))} placeholder="e.g. 14.2"/>
+                  </div>
+                </div>
                 <div className="lbl">Email (optional)</div>
                 <input className="inp" value={editing.email||""} onChange={e=>setEditing(v=>({...v,email:e.target.value}))} placeholder="player@email.com" style={{marginBottom:14}}/>
 
@@ -1478,7 +1478,7 @@ function AccessTab({user}){
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
     const ex=Object.values(extra||{});
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
-  },[extra,rosterEdits]);
+  },[extra,rosterEdits,rosterHcp,rosterTee]);
 
   const admins=all.filter(p=>rosterAdmins&&rosterAdmins[p.id]).map(p=>({...p,role:rosterAdmins[p.id]})).sort((a,b)=>(ROLE_LEVELS[b.role]||0)-(ROLE_LEVELS[a.role]||0));
   const adminSearch=all.filter(p=>adminQ&&p.name.toLowerCase().includes(adminQ.toLowerCase())&&!(rosterAdmins&&rosterAdmins[p.id])).slice(0,6);
@@ -1828,7 +1828,7 @@ function AttendTab({user}){
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
     const ex=Object.values(extra||{});
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
-  },[extra,rosterEdits]);
+  },[extra,rosterEdits,rosterHcp,rosterTee]);
 
   // Standings data
   const standings=useMemo(()=>{
