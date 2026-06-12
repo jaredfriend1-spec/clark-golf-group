@@ -729,7 +729,7 @@ function WeekTab({user}){
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
     const ex=Object.values(extra||{});
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
-  },[extra,rosterEdits,rosterHcp,rosterTee]);
+  },[extra,rosterEdits]);
 
   const signupsForDay=d=>Object.entries(week?.signups||{}).filter(([,s])=>s.day===d).sort((a,b)=>(a[1].signedUpAt||0)-(b[1].signedUpAt||0));
   const getWeekDates=()=>{const now=new Date();const day=now.getDay();const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));const dates={};DAYS.forEach((d,i)=>{const dt=new Date(mon);dt.setDate(mon.getDate()+i);dates[d]=dt.toISOString().split("T")[0];});return dates;};
@@ -1478,7 +1478,7 @@ function AccessTab({user}){
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
     const ex=Object.values(extra||{});
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
-  },[extra,rosterEdits,rosterHcp,rosterTee]);
+  },[extra,rosterEdits]);
 
   const admins=all.filter(p=>rosterAdmins&&rosterAdmins[p.id]).map(p=>({...p,role:rosterAdmins[p.id]})).sort((a,b)=>(ROLE_LEVELS[b.role]||0)-(ROLE_LEVELS[a.role]||0));
   const adminSearch=all.filter(p=>adminQ&&p.name.toLowerCase().includes(adminQ.toLowerCase())&&!(rosterAdmins&&rosterAdmins[p.id])).slice(0,6);
@@ -1828,7 +1828,7 @@ function AttendTab({user}){
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
     const ex=Object.values(extra||{});
     return[...base,...ex].sort((a,b)=>a.name.localeCompare(b.name));
-  },[extra,rosterEdits,rosterHcp,rosterTee]);
+  },[extra,rosterEdits]);
 
   // Standings data
   const standings=useMemo(()=>{
