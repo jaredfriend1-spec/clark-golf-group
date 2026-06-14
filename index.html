@@ -5045,6 +5045,25 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
 }
 
 // Simple setup wizard for v2
+function TimePicker({onChange}){
+  const [h,setH]=useState('7');const [m,setM]=useState('00');const [ap,setAp]=useState('AM');
+  const hrs=Array.from({length:12},(_,i)=>String(i+1));const mins=['00','15','30','45'];
+  function emit(nh,nm,nap){onChange(nh.padStart(2,'0')+':'+nm+' '+nap);}
+  return(
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+      <select className="form-input" value={h} onChange={e=>{setH(e.target.value);emit(e.target.value,m,ap);}}>
+        {hrs.map(x=><option key={x}>{x}</option>)}
+      </select>
+      <select className="form-input" value={m} onChange={e=>{setM(e.target.value);emit(h,e.target.value,ap);}}>
+        {mins.map(x=><option key={x}>{x}</option>)}
+      </select>
+      <select className="form-input" value={ap} onChange={e=>{setAp(e.target.value);emit(h,m,e.target.value);}}>
+        <option>AM</option><option>PM</option>
+      </select>
+    </div>
+  );
+}
+
 function SetupWizardV2({ day, week, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
   const [step, setStep] = useState(1);
   const [newTime, setNewTime] = useState('');
