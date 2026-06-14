@@ -4938,11 +4938,13 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                               {e.name&&<span style={{fontSize:13,color:'var(--ink)',fontWeight:600}}>{e.name}</span>}
                               {e.day&&<span style={{fontSize:12,color:'var(--ink-50)'}}>— {e.day}</span>}
                               {e.teamCount&&<span style={{fontSize:12,color:'var(--ink-50)'}}>({e.teamCount} teams)</span>}
-                              {e.isGuest&&<span style={{fontSize:10,color:'var(--ink-50)',background:'var(--surface-sunken)',padding:'1px 6px',borderRadius:20}}>Guest</span>}
+                              {e.isGuest&&<span style={{fontSize:10,color:'var(--ink-50)',background:'var(--surface-sunken)',padding:'1px 6px',borderRadius:20,fontWeight:600}}>Guest</span>}
+                              {e.guestOf&&<span style={{fontSize:11,color:'var(--ink-50)'}}>of <strong style={{color:'var(--ink)'}}>{e.guestOf}</strong></span>}
                             </div>
-                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                               <span style={{fontSize:10,color:'var(--ink-40)'}}>{ageStr}</span>
-                              {e.by&&<span style={{fontSize:10,fontWeight:700,color:e.by==='admin'?'var(--warn-ink)':'var(--ink-50)',background:e.by==='admin'?'var(--warn-soft)':'var(--surface-sunken)',padding:'1px 6px',borderRadius:20}}>{e.by}</span>}
+                              {e.by&&e.by!==e.name&&<span style={{fontSize:10,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',padding:'2px 7px',borderRadius:20}}>by {e.by}</span>}
+                              {e.byRole&&e.byRole==='admin'&&!(e.by&&e.by!==e.name)&&<span style={{fontSize:10,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',padding:'2px 7px',borderRadius:20}}>Admin</span>}
                             </div>
                           </div>
                         </div>
