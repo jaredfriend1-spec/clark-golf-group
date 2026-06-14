@@ -398,6 +398,19 @@ function getWeekDates(){
   return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(nxtMon)};
 }
 function getWeekLabel(week){const wd=getWeekDates();const fri=(week?.dates?.Friday)||wd.Friday;const mon=(week?.dates?.Monday)||wd.Monday;return'Week of '+fmtD(fri)+' - '+fmtD(mon);}
+function getNextWeekDates(){
+  const now=new Date();
+  const day=now.getDay();
+  const daysMap={0:5,1:4,2:3,3:2,4:1,5:7,6:6};
+  const daysUntilFri=daysMap[day];
+  const fri=new Date(now);fri.setDate(now.getDate()+daysUntilFri);
+  const sat=new Date(fri);sat.setDate(fri.getDate()+1);
+  const sun=new Date(fri);sun.setDate(fri.getDate()+2);
+  const mon=new Date(fri);mon.setDate(fri.getDate()+3);
+  const fmt=d=>d.toISOString().split('T')[0];
+  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(mon)};
+}
+function getNextWeekLabel(){const wd=getNextWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
 
 // ═══════════════ buildTeams ALGORITHM — PRESERVE VERBATIM ═══════════════
 function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs){
