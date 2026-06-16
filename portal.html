@@ -1184,6 +1184,8 @@ function EmailTab(){
 // ── ROSTER TAB (segmented + full PIN management) ──────────────────────────────
 function RosterTab(){
   const extra=useDB("extraPlayers");
+  const portalUser=useDB("_portalSession"); // not real — use localStorage
+  const isMasterUser=()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch{return false;}};
   const rosterEdits=useDB("rosterEdits");
   const rosterHidden=useDB("rosterHidden");
   const rosterPins=useDB("rosterPins");
@@ -1195,6 +1197,7 @@ function RosterTab(){
   const [q,setQ]=useState("");
   const [editing,setEditing]=useState(null);
   const [adding,setAdding]=useState(false);
+  const [revealPin,setRevealPin]=useState(null); // player id whose PIN is shown
   const [newP,setNewP]=useState({name:"",tee:"Whites",hcp:""});
   const [confirmDel,setConfirmDel]=useState(null);
   const [confirmHide,setConfirmHide]=useState(null);
@@ -1358,6 +1361,14 @@ function RosterTab(){
                     {hasPin&&<button className="btn btn-r btn-xs" onClick={()=>setConfirmResetPin(p)}>🔄 Reset PIN</button>}
                     <button className="btn btn-a btn-xs" onClick={()=>{setConfirmSetPin(p);setNewPinVal("");}}>🔑 {hasPin?"Change":"Set"} PIN</button>
                   </div>
+                  {isMasterUser()&&hasPin&&(
+                    <div style={{marginTop:10,padding:"8px 12px",background:"rgba(0,0,0,0.3)",borderRadius:6,fontFamily:"monospace"}}>
+                      {revealPin===p.id
+                        ?<><span style={{fontSize:16,fontWeight:700,color:"#10b981",letterSpacing:"0.2em"}}>{String(pinValue)}</span><button onClick={()=>setRevealPin(null)} style={{marginLeft:10,fontSize:11,color:"rgba(255,255,255,0.4)",background:"none",border:"none",cursor:"pointer"}}>hide</button></>
+                        :<button onClick={()=>setRevealPin(p.id)} style={{fontSize:12,color:"rgba(255,255,255,0.5)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>👁 Reveal PIN (master only)</button>
+                      }
+                    </div>
+                  )}
                   <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:8,lineHeight:1.6}}>Reset → player re-registers via app. Set → manually set their PIN.</div>
                 </div>
 
