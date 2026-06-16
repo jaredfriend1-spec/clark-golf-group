@@ -2287,6 +2287,206 @@ function ClarkEmailTab(){
   );
 }
 
+
+function LoginCardsTab(){
+  const rosterPins=useDB("rosterPins");
+  const rosterEdits=useDB("rosterEdits");
+  const extra=useDB("extraPlayers");
+
+  const allPlayers=React.useMemo(()=>{
+    if(!rosterPins) return [];
+    // Only show players who have registered (have a PIN)
+    const base=ROSTER
+      .filter(p=>rosterPins[p.id])
+      .map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name,isExtra:false}));
+    // Include extra players who have PINs
+    const extras=Object.values(extra||{})
+      .filter(p=>rosterPins[p.id])
+      .map(p=>({...p,isExtra:true}));
+    return [...base,...extras].sort((a,b)=>a.name.localeCompare(b.name));
+  },[rosterPins,rosterEdits,extra]);
+
+  const [cards,setCards]=React.useState({});
+  const [q,setQ]=React.useState('');
+  const [editing,setEditing]=React.useState(null); // player obj
+  const [editMsg,setEditMsg]=React.useState('');
+  const [editLogo,setEditLogo]=React.useState(''); // base64 data url
+  const [editTheme,setEditTheme]=React.useState('default');
+  const [uploading,setUploading]=React.useState(false);
+  const [toast,setToast]=React.useState(null);
+  const fileRef=React.useRef();
+
+  // Load all player cards from Firebase
+  React.useEffect(()=>{
+    if(typeof firebase==='undefined')return;
+    const ref=firebase.database().ref('settings/playerCards');
+    ref.on('value',snap=>{setCards(snap.val()||{});});
+    return()=>ref.off();
+  },[]);
+
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2500);}
+
+  function openEdit(p){
+    const card=cards[p.id]||{};
+    setEditing(p);
+    setEditMsg(card.message||'');
+    setEditLogo(card.logo||'');
+    setEditTheme(card.theme||'default');
+  }
+
+  function handleImageUpload(e){
+    const file=e.target.files?.[0];
+    if(!file)return;
+    setUploading(true);
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      // Use canvas to normalize: center crop → 128×128 JPEG
+      const img=new window.Image();
+      img.onload=()=>{
+        const size=Math.min(img.width,img.height);
+        const sx=(img.width-size)/2;
+        const sy=(img.height-size)/2;
+        const canvas=document.createElement('canvas');
+        canvas.width=128;canvas.height=128;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,sx,sy,size,size,0,0,128,128);
+        const dataUrl=canvas.toDataURL('image/jpeg',0.85);
+        setEditLogo(dataUrl);
+        setUploading(false);
+      };
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function saveCard(){
+    if(!editing)return;
+    const card={};
+    if(editMsg.trim()) card.message=editMsg.trim();
+    if(editLogo) card.logo=editLogo;
+    if(editTheme&&editTheme!=='default') card.theme=editTheme;
+    firebase.database().ref('settings/playerCards/'+editing.id).set(Object.keys(card).length>0?card:null);
+    setEditing(null);
+    showToast('Saved!');
+  }
+
+  function clearCard(){
+    if(!editing)return;
+    firebase.database().ref('settings/playerCards/'+editing.id).remove();
+    setEditing(null);
+    showToast('Card cleared');
+  }
+
+  const filtered=allPlayers.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
+  const THEMES=[
+    {id:'default',label:'Default',bg:'rgba(15,23,42,0.85)'},
+    {id:'gold',label:'Gold',bg:'rgba(10,14,26,0.92)'},
+    {id:'green',label:'Green',bg:'rgba(0,20,10,0.92)'},
+    {id:'purple',label:'Purple',bg:'rgba(15,10,30,0.92)'},
+  ];
+
+  return(
+    <div className="main">
+      <div className="pg-eyebrow">Master Admin</div>
+      <div className="pg-title">Login Cards</div>
+      <div className="pg-sub">Set a custom logo and welcome message for each player. Shows on their flash card at login. Leave blank to use default initials.</div>
+
+      <input className="inp" placeholder="Search players..." value={q} onChange={e=>setQ(e.target.value)} style={{marginBottom:16,width:'100%',boxSizing:'border-box'}}/>
+
+      <div className="card">
+        {filtered.map((p,i)=>{
+          const card=cards[p.id]||{};
+          const hasCard=card.message||card.logo;
+          return(
+            <div key={p.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
+              {/* Avatar preview */}
+              <div style={{width:36,height:36,borderRadius:'50%',overflow:'hidden',flexShrink:0,background:'rgba(16,185,129,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#10b981'}}>
+                {card.logo
+                  ? <img src={card.logo} style={{width:36,height:36,objectFit:'cover'}}/>
+                  : p.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
+                }
+              </div>
+              {/* Name + status */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{p.name}</div>
+                {card.message&&<div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>"{card.message}"</div>}
+              </div>
+              {hasCard&&<span style={{fontSize:10,color:'#10b981',fontWeight:700,padding:'2px 6px',borderRadius:10,background:'rgba(16,185,129,0.1)',flexShrink:0}}>✓ Custom</span>}
+              <button className="btn btn-gh btn-sm" onClick={()=>openEdit(p)} style={{flexShrink:0}}>Edit</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Edit modal */}
+      {editing&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setEditing(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
+          <div className="modal" style={{width:'100%',maxWidth:480,maxHeight:'90vh',display:'flex',flexDirection:'column'}}>
+            {/* Header */}
+            <div style={{padding:'18px 20px 14px',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>Login Card — {editing.name}</div>
+              <button onClick={()=>setEditing(null)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.4)',fontSize:20,cursor:'pointer',lineHeight:1}}>✕</button>
+            </div>
+            <div style={{overflowY:'auto',flex:1,padding:'18px 20px'}}>
+              {/* Preview */}
+              <div style={{marginBottom:18,padding:'20px',borderRadius:14,background:THEMES.find(t=>t.id===editTheme)?.bg||'rgba(15,23,42,0.85)',border:'1px solid rgba(255,255,255,0.08)',textAlign:'center'}}>
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginBottom:10,textTransform:'uppercase'}}>Preview</div>
+                <div style={{display:'flex',justifyContent:'center',marginBottom:10}}>
+                  {editLogo
+                    ? <img src={editLogo} style={{width:64,height:64,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(16,185,129,0.5)'}}/>
+                    : <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(16,185,129,0.15)',color:'#10b981',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:800}}>{editing.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+                  }
+                </div>
+                <div style={{fontSize:22,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{editing.name}</div>
+                {editMsg&&<div style={{fontSize:12,color:'rgba(255,255,255,0.5)',marginTop:6,fontStyle:'italic'}}>"{editMsg}"</div>}
+              </div>
+
+              {/* Logo upload */}
+              <div className="lbl" style={{marginBottom:6}}>Player Logo / Photo</div>
+              <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:14}}>
+                {editLogo&&<img src={editLogo} style={{width:44,height:44,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(16,185,129,0.4)'}}/>}
+                <button className="btn btn-gh btn-sm" onClick={()=>fileRef.current?.click()} disabled={uploading}>
+                  {uploading?'Processing...':editLogo?'Change photo':'Upload photo'}
+                </button>
+                {editLogo&&<button className="btn btn-sm" style={{color:'#ef4444',borderColor:'rgba(239,68,68,0.3)',background:'none'}} onClick={()=>setEditLogo('')}>Remove</button>}
+                <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload}/>
+              </div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Any format. Auto-cropped to circle, 128×128px.</div>
+
+              {/* Message */}
+              <div className="lbl" style={{marginBottom:6}}>Welcome Message</div>
+              <input className="inp" placeholder='e.g. "Welcome back Cory! 🔥"' value={editMsg} onChange={e=>setEditMsg(e.target.value)} style={{marginBottom:6}}/>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Shows below their name every time they log in. Leave blank for no message.</div>
+
+              {/* Theme */}
+              <div className="lbl" style={{marginBottom:8}}>Card Theme</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:20}}>
+                {THEMES.map(t=>(
+                  <button key={t.id} onClick={()=>setEditTheme(t.id)}
+                    style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid',borderColor:editTheme===t.id?'#10b981':'rgba(255,255,255,0.1)',background:t.bg,color:'#fff',fontSize:12,fontWeight:editTheme===t.id?700:400,cursor:'pointer',fontFamily:'inherit'}}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'14px 20px',borderTop:'1px solid rgba(255,255,255,0.08)',display:'flex',gap:8,flexShrink:0}}>
+              <button className="btn btn-g" style={{flex:1}} onClick={saveCard}>Save</button>
+              {(cards[editing.id]?.message||cards[editing.id]?.logo)&&(
+                <button className="btn" style={{color:'#ef4444',borderColor:'rgba(239,68,68,0.3)',background:'none'}} onClick={clearCard}>Clear</button>
+              )}
+              <button className="btn btn-gh" onClick={()=>setEditing(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast&&<div className="toast toast-ok">{toast}</div>}
+    </div>
+  );
+}
+
 function SeasonTab(){
   const FEATURES=[
     {icon:"📅",title:"Season End Date",desc:"Set and display the official end date of the current season. Automatically highlights when the season is approaching its end. All players and admins can see the countdown in the main app."},
@@ -2407,6 +2607,7 @@ const ALL_NAV_ITEMS=[
   {id:"clarkemail",label:"Clark Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>},
   {id:"attend",label:"Attend",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>},
   {id:"season",label:"Season",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg>},
+  {id:"logincards",label:"Login Cards",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="3"/><line x1="15" y1="10" x2="19" y2="10"/><line x1="15" y1="14" x2="17" y2="14"/></svg>},
   {id:"settings",label:"Settings",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
 ];
 
@@ -2487,6 +2688,7 @@ function Portal(){
           {tab==="history"&&<HistoryTab user={user}/>}
           {tab==="clarkemail"&&<ClarkEmailTab/>}
           {tab==="attend"&&<AttendTab user={user}/>}
+          {tab==="logincards"&&isMaster(user.role)&&<LoginCardsTab/>}
           {tab==="season"&&isMaster(user.role)&&<SeasonTab/>}
           {tab==="settings"&&isMaster(user.role)&&<SettingsTab user={user} onSignOut={signOut}/>}
         </div>
