@@ -783,35 +783,35 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
     return(
       <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:9998,backdropFilter:'blur(16px)',background:themeBg}}>
         {isMasterAdm?(
-          <div style={{position:'relative',width:300,textAlign:'center'}}>
+          <div style={{position:'relative',width:340,textAlign:'center'}}>
             <div style={{position:'absolute',inset:-40,borderRadius:'50%',background:'radial-gradient(circle,rgba(245,158,11,0.15) 0%,transparent 70%)',pointerEvents:'none'}}></div>
             <div style={{position:'relative',background:'linear-gradient(145deg,#0f172a,#1e1b4b)',borderRadius:28,padding:'32px 36px 28px',boxShadow:'0 0 0 1px rgba(245,158,11,0.3), 0 0 60px rgba(245,158,11,0.12), 0 30px 80px rgba(0,0,0,0.5)'}}>
               <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
                 {cardLogo
-                  ? <img src={cardLogo} alt={ini} style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',border:'3px solid rgba(245,158,11,0.5)',boxShadow:'0 0 30px rgba(245,158,11,0.2)'}}/>
-                  : <div style={{width:80,height:80,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
+                  ? <img src={cardLogo} alt={ini} style={{width:110,height:110,borderRadius:'50%',objectFit:'cover',border:'3px solid rgba(245,158,11,0.5)',boxShadow:'0 0 30px rgba(245,158,11,0.2)'}}/>
+                  : <div style={{width:110,height:110,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
                 }
               </div>
-              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:38,fontWeight:800,letterSpacing:'0.02em',marginBottom:4,background:'linear-gradient(135deg,#fff 0%,#fbbf24 50%,#a78bfa 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>{welcomeData.name}</div>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:52,fontWeight:800,letterSpacing:'0.02em',marginBottom:8,background:'linear-gradient(135deg,#fff 0%,#fbbf24 50%,#a78bfa 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>{welcomeData.name}</div>
               <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 14px',borderRadius:20,background:'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(99,102,241,0.15))',border:'1px solid rgba(245,158,11,0.3)',marginBottom:cardMsg?8:16}}>
                 <span style={{fontSize:11,fontWeight:700,color:'#fbbf24',letterSpacing:'0.12em',textTransform:'uppercase'}}>Master Admin</span>
               </div>
-              {cardMsg&&<div style={{fontSize:13,color:'rgba(255,255,255,0.6)',marginBottom:12,fontStyle:'italic'}}>"{cardMsg}"</div>}
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',letterSpacing:'0.08em',textTransform:'uppercase'}}>Clark Golf Group</div>
+              {cardMsg&&<div style={{fontSize:16,color:'rgba(255,255,255,0.75)',marginBottom:14,fontStyle:'italic',lineHeight:1.5}}>"{cardMsg}"</div>}
+              <div style={{fontSize:13,color:'rgba(255,255,255,0.4)',letterSpacing:'0.08em',textTransform:'uppercase'}}>Clark Golf Group</div>
             </div>
           </div>
         ):(
-          <div style={{background:'#fff',borderRadius:24,padding:'36px 44px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)',minWidth:260}}>
+          <div style={{background:'#fff',borderRadius:28,padding:'48px 64px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)',minWidth:320}}>
             <div style={{display:'flex',justifyContent:'center',marginBottom:14}}>
               {cardLogo
-                ? <img src={cardLogo} style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',border:'3px solid #e2e8f0'}}/>
-                : <div style={{width:72,height:72,borderRadius:'50%',background:welcomeData.role==='admin'?'linear-gradient(135deg,#f59e0b,#d97706)':'linear-gradient(135deg,#10b981,#059669)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
+                ? <img src={cardLogo} style={{width:120,height:120,borderRadius:'50%',objectFit:'cover',border:'3px solid #e2e8f0'}}/>
+                : <div style={{width:120,height:120,borderRadius:'50%',background:welcomeData.role==='admin'?'linear-gradient(135deg,#f59e0b,#d97706)':'linear-gradient(135deg,#10b981,#059669)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:44,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
               }
             </div>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:34,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:56,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
             {cardMsg
-              ? <div style={{fontSize:13,color:'#64748b',marginTop:8,fontStyle:'italic',lineHeight:1.5}}>"{cardMsg}"</div>
-              : <div style={{fontSize:13,color:'#94a3b8',marginTop:5,fontWeight:600}}>{welcomeData.role==='admin'?'Admin Access':'Welcome back! ⛳'}</div>
+              ? <div style={{fontSize:19,color:'#475569',marginTop:12,fontStyle:'italic',lineHeight:1.5}}>"{cardMsg}"</div>
+              : <div style={{fontSize:17,color:'#94a3b8',marginTop:10,fontWeight:600}}>{welcomeData.role==='admin'?'Admin Access':'Welcome back! ⛳'}</div>
             }
           </div>
         )}
