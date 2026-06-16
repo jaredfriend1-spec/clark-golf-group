@@ -1198,7 +1198,7 @@ function RosterTab(){
   const [editing,setEditing]=useState(null);
   const [adding,setAdding]=useState(false);
   const [revealPin,setRevealPin]=useState(null); // player id whose PIN is shown
-  const [newP,setNewP]=useState({name:"",tee:"Whites",hcp:""});
+  const [newP,setNewP]=useState({name:"",tee:"Whites",hcp:"",phone:""});
   const [confirmDel,setConfirmDel]=useState(null);
   const [confirmHide,setConfirmHide]=useState(null);
   const [confirmResetPin,setConfirmResetPin]=useState(null);
@@ -1238,9 +1238,19 @@ function RosterTab(){
 
   function addPlayer(){
     if(!newP.name.trim()){showToast("Name required","err");return;}
-    ps("extraPlayers",{id:Date.now(),name:normName(newP.name),tee:newP.tee,hcp:parseFloat(newP.hcp)||0});
-    setNewP({name:"",tee:"Whites",hcp:""});setAdding(false);
-    showToast("Player added ✓");
+    const newId=Date.now();
+    ps("extraPlayers",{id:newId,name:normName(newP.name),tee:newP.tee,hcp:parseFloat(newP.hcp)||0});
+    // Save phone as email for reference, and last 4 digits as PIN
+    if(newP.phone.trim()){
+      const digits=newP.phone.replace(/\D/g,"");
+      if(digits.length>=4){
+        const pin=digits.slice(-4);
+        wr("rosterPins/"+newId,pin);
+      }
+      wr("rosterEmails/"+newId,newP.phone.trim()); // store full phone in email field for reference
+    }
+    setNewP({name:"",tee:"Whites",hcp:"",phone:""});setAdding(false);
+    showToast(newP.phone.trim()?"Player added with PIN ✓":"Player added ✓");
   }
 
   function deletePlayer(id){
@@ -1306,13 +1316,31 @@ function RosterTab(){
 
     <div className="card">
       {adding&&(
-        <div style={{padding:"12px 14px",background:"rgba(16,185,129,0.04)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:8}}>
-            <input className="inp" placeholder="Full name" value={newP.name} onChange={e=>setNewP(p=>({...p,name:e.target.value}))} autoFocus/>
-            <select className="inp" style={{width:"auto"}} value={newP.tee} onChange={e=>setNewP(p=>({...p,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
-            <input className="inp" style={{width:68}} placeholder="HCP" type="number" value={newP.hcp} onChange={e=>setNewP(p=>({...p,hcp:e.target.value}))}/>
-            <button className="btn btn-g btn-sm" onClick={addPlayer}>Add</button>
+        <div style={{padding:"14px",background:"rgba(16,185,129,0.04)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+            <div>
+              <div className="lbl" style={{marginBottom:4}}>Full Name *</div>
+              <input className="inp" placeholder="First Last" value={newP.name} onChange={e=>setNewP(p=>({...p,name:e.target.value}))} autoFocus onKeyDown={e=>e.key==='Enter'&&addPlayer()}/>
+            </div>
+            <div>
+              <div className="lbl" style={{marginBottom:4}}>Phone # <span style={{color:"rgba(255,255,255,0.3)",fontWeight:400}}>(sets their PIN)</span></div>
+              <input className="inp" placeholder="e.g. 301-555-1234" value={newP.phone} onChange={e=>setNewP(p=>({...p,phone:e.target.value}))} type="tel"/>
+            </div>
           </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
+            <div>
+              <div className="lbl" style={{marginBottom:4}}>Tee</div>
+              <select className="inp" value={newP.tee} onChange={e=>setNewP(p=>({...p,tee:e.target.value}))}>{TEES.map(t=><option key={t}>{t}</option>)}</select>
+            </div>
+            <div>
+              <div className="lbl" style={{marginBottom:4}}>HCP</div>
+              <input className="inp" placeholder="e.g. 14.2" type="number" step="0.1" value={newP.hcp} onChange={e=>setNewP(p=>({...p,hcp:e.target.value}))}/>
+            </div>
+            <button className="btn btn-g btn-sm" style={{alignSelf:"flex-end"}} onClick={addPlayer}>Add</button>
+          </div>
+          {newP.phone.trim()&&newP.phone.replace(/\D/g,"").length>=4&&(
+            <div style={{fontSize:11,color:"#10b981",marginTop:6}}>✓ PIN will be set to last 4 digits: <strong>{newP.phone.replace(/\D/g,"").slice(-4)}</strong></div>
+          )}
         </div>
       )}
 
