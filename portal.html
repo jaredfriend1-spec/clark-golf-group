@@ -2486,15 +2486,27 @@ function LoginCardsTab(){
 
               {/* Logo upload */}
               <div className="lbl" style={{marginBottom:6}}>Player Logo / Photo</div>
-              <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:14}}>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:14}}>
                 {editLogo&&<img src={editLogo} style={{width:44,height:44,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(16,185,129,0.4)'}}/>}
                 <button className="btn btn-gh btn-sm" onClick={()=>fileRef.current?.click()} disabled={uploading}>
                   {uploading?'Processing...':editLogo?'Change photo':'Upload photo'}
                 </button>
+                {editLogo&&<button className="btn btn-gh btn-sm" onClick={()=>{
+                  const img=new window.Image();
+                  img.onload=()=>{
+                    setCropImgEl(img);
+                    setCropImg(editLogo);
+                    const scale=Math.max(CROP_SIZE/img.width,CROP_SIZE/img.height);
+                    setCropScale(scale);
+                    setCropOffset({x:(CROP_SIZE-img.width*scale)/2,y:(CROP_SIZE-img.height*scale)/2});
+                    setCropModal(true);
+                  };
+                  img.src=editLogo;
+                }}>✂️ Adjust crop</button>}
                 {editLogo&&<button className="btn btn-sm" style={{color:'#ef4444',borderColor:'rgba(239,68,68,0.3)',background:'none'}} onClick={()=>setEditLogo('')}>Remove</button>}
                 <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload}/>
               </div>
-              <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Any format. Auto-cropped to circle, 128×128px.</div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Any format. Drag to reposition after upload.</div>
 
               {/* Message */}
               <div className="lbl" style={{marginBottom:6}}>Welcome Message</div>
