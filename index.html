@@ -1243,7 +1243,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
   const [teeModal, setTeeModal] = useState(null); // day object
@@ -1300,10 +1300,12 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
       await write('week/signups/' + signupKey, {...entry});
     } else {
       await push('week/signups', entry);
+      if(onLogSignup) onLogSignup(entry);
     }
     // Save guest signup
     if(guestEntry){
       await push('week/signups', guestEntry);
+      if(onLogSignup) onLogSignup(guestEntry);
     }
     // Handle match pairing — delete old one first if editing
     if(existingMatchKey){
@@ -4930,17 +4932,17 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
             <SectionHeader
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>}
               title="Activity Log"
-              count={activityLog.filter(e=>!['login','self_register'].includes(e.action)).length}
+              count={activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).length}
               open={showLog}
               onToggle={()=>setShowLog(s=>!s)}
             />
             {showLog&&(
               <div style={{borderTop:'1px solid var(--hairline)',padding:0}}>
-                {activityLog.filter(e=>!['login','self_register'].includes(e.action)).length===0?(
+                {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).length===0?(
                   <div style={{padding:'20px',textAlign:'center',fontSize:13,color:'var(--ink-40)'}}>No activity recorded yet</div>
                 ):(
                   <div>
-                    {activityLog.filter(e=>!['login','self_register'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
+                    {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
                       const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match request',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'}};
                       const cfg=ACFG[e.action]||{label:e.action?.replace(/_/g,' ')||'',color:'var(--ink-50)',icon:'•'};
                       const age=Date.now()-(e.ts||0);
@@ -4966,8 +4968,8 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                         </div>
                       );
                     })}
-                    {activityLog.filter(e=>!['login','self_register'].includes(e.action)).length>100&&(
-                      <div style={{padding:'10px 14px',textAlign:'center',fontSize:11,color:'var(--ink-40)'}}>Showing 100 of {activityLog.filter(e=>!['login','self_register'].includes(e.action)).length} entries</div>
+                    {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).length>100&&(
+                      <div style={{padding:'10px 14px',textAlign:'center',fontSize:11,color:'var(--ink-40)'}}>Showing 100 of {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).length} entries</div>
                     )}
                   </div>
                 )}
@@ -6016,7 +6018,7 @@ function App(){
       </nav>
       )}
 
-      {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
+      {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}

@@ -400,7 +400,6 @@ function Gate({onAuth}){
       if(adminRole==="admin"||adminRole==="master"){
         const rosterPlayer=ROSTER.find(p=>String(p.id)===String(playerId));
         const name=(rosterEdits&&rosterEdits[playerId])||(rosterPlayer&&rosterPlayer.name)||("Admin #"+playerId);
-        ps("activityLog",{action:"portal_login",name,role:"superadmin",ts:Date.now()});
         onAuth({email:name,name,role:"superadmin",method:"password",playerId});
         return;
       }
