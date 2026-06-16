@@ -2047,6 +2047,195 @@ function AttendTab({user}){
 }
 
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
+
+function ClarkEmailTab(){
+  const db_ref = useDB;
+  const [entries, setEntries] = React.useState([]);
+  const [loaded, setLoaded] = React.useState(false);
+  const [pasteModal, setPasteModal] = React.useState(false);
+  const [pasteText, setPasteText] = React.useState('');
+  const [addModal, setAddModal] = React.useState(false);
+  const [addName, setAddName] = React.useState('');
+  const [addEmail, setAddEmail] = React.useState('');
+  const [search, setSearch] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
+  const [toast, setToast] = React.useState(null);
+  const [selected, setSelected] = React.useState(new Set());
+  const fbRef = React.useRef(null);
+
+  // Load from Firebase
+  React.useEffect(()=>{
+    if(typeof firebase==='undefined')return;
+    const ref = firebase.database().ref('clarkEmailList');
+    fbRef.current = ref;
+    ref.on('value', snap=>{
+      const val = snap.val();
+      if(val){
+        const arr = Object.entries(val).map(([k,v])=>({...v,_key:k})).sort((a,b)=>a.name.localeCompare(b.name));
+        setEntries(arr);
+        setSelected(new Set(arr.map(e=>e._key)));
+      } else {
+        setEntries([]);
+        setSelected(new Set());
+      }
+      setLoaded(true);
+    });
+    return()=>ref.off();
+  },[]);
+
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2500);}
+
+  function toggleSelect(key){
+    setSelected(prev=>{
+      const n=new Set(prev);
+      n.has(key)?n.delete(key):n.add(key);
+      return n;
+    });
+  }
+  function selectAll(){setSelected(new Set(entries.map(e=>e._key)));}
+  function deselectAll(){setSelected(new Set());}
+
+  function copySelected(){
+    const sel = entries.filter(e=>selected.has(e._key));
+    const text = sel.map(e=>`${e.name} <${e.email}>`).join(', ');
+    navigator.clipboard.writeText(text).then(()=>{
+      setCopied(true);
+      showToast(`✓ Copied ${sel.length} recipients to clipboard`);
+      setTimeout(()=>setCopied(false),2000);
+    });
+  }
+
+  function removeEntry(key){
+    if(!confirm('Remove this person from the Clark email list?'))return;
+    firebase.database().ref('clarkEmailList/'+key).remove();
+    showToast('Removed');
+  }
+
+  function addEntry(){
+    if(!addName.trim()||!addEmail.trim()){return;}
+    firebase.database().ref('clarkEmailList').push({name:addName.trim(),email:addEmail.trim().toLowerCase()});
+    setAddName('');setAddEmail('');setAddModal(false);
+    showToast('Added');
+  }
+
+  // Parse pasted text — supports multiple formats:
+  // "Name <email>" or "email" or "Name, email" lines
+  function parsePaste(){
+    const lines = pasteText.split(/[,\n\r]+/).map(l=>l.trim()).filter(Boolean);
+    let added = 0;
+    const ref = firebase.database().ref('clarkEmailList');
+    lines.forEach(line=>{
+      // Format: "Name <email@x.com>"
+      const match1 = line.match(/^(.+?)\s*<([^>]+)>/);
+      if(match1){ref.push({name:match1[1].trim(),email:match1[2].trim().toLowerCase()});added++;return;}
+      // Format: just email
+      const match2 = line.match(/^[\w.+-]+@[\w.-]+\.\w+$/);
+      if(match2){ref.push({name:line.split('@')[0],email:line.trim().toLowerCase()});added++;return;}
+    });
+    setPasteText('');setPasteModal(false);
+    showToast(`Imported ${added} contacts`);
+  }
+
+  const filtered = entries.filter(e=>
+    !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.email.toLowerCase().includes(search.toLowerCase())
+  );
+  const selCount = entries.filter(e=>selected.has(e._key)).length;
+
+  return(
+    <div className="main">
+      <div className="pg-eyebrow">Communications</div>
+      <div className="pg-title">Clark Email List</div>
+      <div className="pg-sub">Manage recipients for Clark's group emails. Check who to include, then copy all in Gmail format.</div>
+
+      {/* Action bar */}
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16,alignItems:'center'}}>
+        <button className="btn btn-g" onClick={copySelected} disabled={selCount===0}>
+          {copied?'✓ Copied!':`📋 Copy ${selCount} to Gmail`}
+        </button>
+        <button className="btn btn-gh btn-sm" onClick={()=>setPasteModal(true)}>⬆️ Import list</button>
+        <button className="btn btn-gh btn-sm" onClick={()=>setAddModal(true)}>+ Add person</button>
+        <div style={{marginLeft:'auto',display:'flex',gap:6}}>
+          <button className="btn btn-gh btn-sm" onClick={selectAll}>Select all</button>
+          <button className="btn btn-gh btn-sm" onClick={deselectAll}>Deselect all</button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{fontSize:12,color:'var(--color-text-secondary,rgba(255,255,255,0.4))',marginBottom:12}}>
+        {entries.length} people · {selCount} selected
+      </div>
+
+      {/* Search */}
+      <div className="srch" style={{marginBottom:12,padding:0}}>
+        <input className="inp" placeholder="Search name or email..." value={search} onChange={e=>setSearch(e.target.value)}/>
+      </div>
+
+      {/* List */}
+      <div className="card">
+        {!loaded&&<div style={{padding:'20px 16px',color:'rgba(255,255,255,0.3)',fontSize:13}}>Loading...</div>}
+        {loaded&&filtered.length===0&&<div style={{padding:'20px 16px',color:'rgba(255,255,255,0.3)',fontSize:13,textAlign:'center'}}>No contacts yet. Import a list or add people manually.</div>}
+        {filtered.map((e,i)=>(
+          <div key={e._key} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.07)':'none',background:selected.has(e._key)?'rgba(16,185,129,0.06)':'transparent',transition:'background 0.1s'}}>
+            {/* Checkbox */}
+            <div onClick={()=>toggleSelect(e._key)} style={{width:18,height:18,borderRadius:4,border:'1.5px solid',borderColor:selected.has(e._key)?'#10b981':'rgba(255,255,255,0.2)',background:selected.has(e._key)?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer'}}>
+              {selected.has(e._key)&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+            </div>
+            {/* Initials */}
+            <div style={{width:32,height:32,borderRadius:'50%',background:'rgba(16,185,129,0.15)',color:'#10b981',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'Barlow Condensed,sans-serif'}}>
+              {e.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+            </div>
+            {/* Name + email */}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.name}</div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.email}</div>
+            </div>
+            {/* Remove */}
+            <button onClick={()=>removeEntry(e._key)} style={{background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.2)',fontSize:16,padding:'4px',lineHeight:1,flexShrink:0}} title="Remove">✕</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Paste import modal */}
+      {pasteModal&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setPasteModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:20}}>
+          <div className="modal" style={{width:'100%',maxWidth:520}}>
+            <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:6}}>Import Email List</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12,lineHeight:1.6}}>
+              Paste a list of contacts. Supports Gmail format:<br/>
+              <code style={{fontSize:11,color:'rgba(255,255,255,0.6)'}}>Name &lt;email@x.com&gt;, Name2 &lt;email2@x.com&gt;</code>
+            </div>
+            <textarea className="inp" rows={8} placeholder="Paste contacts here..." value={pasteText} onChange={e=>setPasteText(e.target.value)} style={{marginBottom:12,fontFamily:'monospace',fontSize:12}}/>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-g btn-full" onClick={parsePaste} disabled={!pasteText.trim()}>Import</button>
+              <button className="btn btn-gh" onClick={()=>{setPasteModal(false);setPasteText('');}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add person modal */}
+      {addModal&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setAddModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:20}}>
+          <div className="modal" style={{width:'100%',maxWidth:400}}>
+            <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:16}}>Add Person</div>
+            <div className="lbl" style={{marginBottom:4}}>Name</div>
+            <input className="inp" placeholder="Full name" value={addName} onChange={e=>setAddName(e.target.value)} style={{marginBottom:10}}/>
+            <div className="lbl" style={{marginBottom:4}}>Email</div>
+            <input className="inp" type="email" placeholder="email@example.com" value={addEmail} onChange={e=>setAddEmail(e.target.value)} style={{marginBottom:16}}
+              onKeyDown={e=>{if(e.key==='Enter')addEntry();}}/>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-g btn-full" onClick={addEntry} disabled={!addName.trim()||!addEmail.trim()}>Add</button>
+              <button className="btn btn-gh" onClick={()=>setAddModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast&&<div className="toast toast-ok">{toast}</div>}
+    </div>
+  );
+}
+
 function SeasonTab(){
   const FEATURES=[
     {icon:"📅",title:"Season End Date",desc:"Set and display the official end date of the current season. Automatically highlights when the season is approaching its end. All players and admins can see the countdown in the main app."},
@@ -2164,6 +2353,7 @@ const ALL_NAV_ITEMS=[
   {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   {id:"history",label:"History",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
+  {id:"clarkemail",label:"Clark Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>},
   {id:"attend",label:"Attend",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>},
   {id:"season",label:"Season",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg>},
   {id:"settings",label:"Settings",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
@@ -2244,6 +2434,7 @@ function Portal(){
           {tab==="roster"&&<RosterTab/>}
           {tab==="access"&&<AccessTab user={user}/>}
           {tab==="history"&&<HistoryTab user={user}/>}
+          {tab==="clarkemail"&&<ClarkEmailTab/>}
           {tab==="attend"&&<AttendTab user={user}/>}
           {tab==="season"&&isMaster(user.role)&&<SeasonTab/>}
           {tab==="settings"&&isMaster(user.role)&&<SettingsTab user={user} onSignOut={signOut}/>}
