@@ -166,14 +166,14 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 .modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:440px;max-height:90vh;display:flex;flex-direction:column;animation:slideUp 0.22s ease-out;overflow:hidden;box-shadow:0 -8px 32px rgba(0,0,0,0.18)}
 @media(min-width:600px){.modal{border-radius:16px;max-height:80vh}}
 @keyframes slideUp{from{transform:translateY(24px);opacity:0.4}to{transform:translateY(0);opacity:1}}
-.modal-head{padding:18px 20px 14px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--hairline-soft)}
+.modal-head{padding:18px 20px 14px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--hairline-soft);flex-shrink:0;background:var(--surface);position:sticky;top:0;z-index:2}
 .modal-title{font-weight:700;font-size:17px;color:var(--ink);letter-spacing:-0.015em}
 .modal-sub{font-size:13px;color:var(--ink-50);margin-top:3px;line-height:1.45}
 .modal-close{background:none;border:none;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--ink-50);border-radius:50%;flex-shrink:0;margin:-4px -4px 0 8px}
 .modal-close:hover{background:var(--hairline-soft);color:var(--ink)}
 .modal-close svg{width:18px;height:18px;stroke-width:2;fill:none;stroke:currentColor}
 .modal-body{padding:16px 20px;overflow-y:auto;flex:1}
-.modal-foot{padding:14px 20px;border-top:1px solid var(--hairline-soft);background:var(--surface-sunken);display:flex;gap:8px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--hairline-soft);background:var(--surface-sunken);display:flex;gap:8px;flex-shrink:0}
 .modal-foot .btn{flex:1;padding:11px 14px;font-size:13px}
 
 /* ═══════════════ TEMP LOGIN ═══════════════ */
@@ -949,9 +949,12 @@ function TabStub({ tabName, sessionNumber }){
 }
 
 // ═══════════════ SIGNUP MODAL ═══════════════
-function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatchKey, fullRoster, matchPairings, onClose, onSave, isAdminAdd }){
+function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatchKey, existingGuests, fullRoster, matchPairings, onClose, onSave, isAdminAdd }){
+  const existingGuest1 = existingGuests?.[0] || null;
+  const existingGuest2 = existingGuests?.[1] || null;
   const isEdit = !!existingSignup && !isAdminAdd;
   const isGuestUser = !isAdminAdd && currentUser?.role === 'guest';
+  const isEditingGuest = isEdit && !!(existingSignup?.isGuest); // editing a guest entry directly
   const signerName = isAdminAdd ? '' : (isGuestUser ? '' : (currentUser?.name || ''));
 
   // Find existing match pairing for this player+day if editing
@@ -962,16 +965,23 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
   const existingMatchKey2 = existingMatch ? existingMatch[0] : null;
 
   const [playerName, setPlayerName] = useState(isEdit ? existingSignup.name : signerName);
+  const [editGuestName, setEditGuestName] = useState(isEdit && existingSignup?.isGuest ? existingSignup.name : '');
   const [guestOf, setGuestOf] = useState(isEdit ? (existingSignup.guestOf||'') : '');
   const [tee, setTee] = useState((isEdit ? existingSignup.tee : null) || 'Whites');
   const [hcp, setHcp] = useState(isEdit ? String(existingSignup.handicap ?? '') : '');
   const [pref, setPref] = useState(isEdit ? (existingSignup.teePreference || 'none') : 'none');
 
-  // Guest section (member bringing a guest)
-  const [bringGuest, setBringGuest] = useState(isEdit ? !!(existingSignup.pairWithGuest) : false);
-  const [guestName, setGuestName] = useState('');
-  const [guestTee, setGuestTee] = useState('Whites');
-  const [guestHcp, setGuestHcp] = useState('');
+  // Guest section (member bringing guests — up to 2)
+  const [bringGuest, setBringGuest] = useState(isEdit ? !!(existingGuest1) : false);
+  const [pairGuest1, setPairGuest1] = useState(isEdit && existingGuest1 ? !!(existingGuest1.pairWithGuest) : true);
+  const [pairGuest2, setPairGuest2] = useState(isEdit && existingGuest2 ? !!(existingGuest2.pairWithGuest) : true);
+  const [guestName, setGuestName] = useState(existingGuest1?.name || '');
+  const [guestTee, setGuestTee] = useState(existingGuest1?.tee || 'Whites');
+  const [guestHcp, setGuestHcp] = useState(existingGuest1 ? String(existingGuest1.handicap ?? '') : '');
+  const [bringGuest2, setBringGuest2] = useState(isEdit ? !!(existingGuest2) : false);
+  const [guestName2, setGuestName2] = useState(existingGuest2?.name || '');
+  const [guestTee2, setGuestTee2] = useState(existingGuest2?.tee || 'Whites');
+  const [guestHcp2, setGuestHcp2] = useState(existingGuest2 ? String(existingGuest2.handicap ?? '') : '');
 
   // Match request section
   const [hasMatch, setHasMatch] = useState(!!existingMatchPartner);
@@ -997,6 +1007,11 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
       const gh = parseFloat(guestHcp);
       if(guestHcp === '' || isNaN(gh) || gh < 0 || gh > 54){ setErr('Enter guest handicap'); return; }
     }
+    if(bringGuest2){
+      if(!guestName2.trim()){ setErr('Enter second guest name'); return; }
+      const gh2 = parseFloat(guestHcp2);
+      if(guestHcp2 === '' || isNaN(gh2) || gh2 < 0 || gh2 > 54){ setErr('Enter second guest handicap'); return; }
+    }
     if(hasMatch){
       if(!matchPartner){ setErr('Select a match partner'); return; }
       const mh = parseFloat(matchPartnerHcp);
@@ -1007,8 +1022,17 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
     setSaving(true);
     setErr('');
 
-    const name = isGuestUser ? normName(playerName.trim()) : (isAdminAdd ? playerName : signerName);
-    const entry = isGuestUser ? {
+    const name = isEditingGuest ? normName(editGuestName.trim()||existingSignup.name) : isGuestUser ? normName(playerName.trim()) : (isAdminAdd ? playerName : signerName);
+    const entry = isEditingGuest ? {
+      day: day.day,
+      name,
+      tee,
+      handicap: hcpNum,
+      isGuest: true,
+      guestOf: existingSignup.guestOf,
+      pairWithGuest: pairGuest1 ? true : null,
+      addedAt: existingSignup.addedAt || Date.now(),
+    } : isGuestUser ? {
       day: day.day,
       name,
       tee,
@@ -1023,7 +1047,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
       tee,
       handicap: hcpNum,
       teePreference: pref === 'none' ? null : pref,
-      pairWithGuest: bringGuest ? true : null,
+      // pairWithGuest moved to guest entries
       addedAt: Date.now(),
     };
 
@@ -1035,7 +1059,20 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
       handicap: parseFloat(guestHcp),
       isGuest: true,
       guestOf: name,
+      pairWithGuest: pairGuest1 ? true : null,
       addedAt: Date.now() + 1,
+    } : null;
+
+    // Second guest entry
+    const guestEntry2 = (bringGuest && bringGuest2) ? {
+      day: day.day,
+      name: normName(guestName2.trim()),
+      tee: guestTee2,
+      handicap: parseFloat(guestHcp2),
+      isGuest: true,
+      guestOf: name,
+      pairWithGuest: pairGuest2 ? true : null,
+      addedAt: Date.now() + 2,
     } : null;
 
     // Match pairing entry
@@ -1056,7 +1093,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
       addedAt: Date.now() + 2,
     } : null;
 
-    await onSave({ entry, signupKey, guestEntry, matchEntry, existingMatchKey: existingMatchKey2, partnerEntry });
+    await onSave({ entry, signupKey, guestEntry, guestEntry2, guestKey1: existingGuest1?.key, guestKey2: existingGuest2?.key, matchEntry, existingMatchKey: existingMatchKey2, partnerEntry });
     onClose();
   }
 
@@ -1066,6 +1103,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
         <div className="modal-head">
           <div>
             <div className="modal-title">{isEdit ? 'Edit sign-up' : isAdminAdd ? 'Add player' : 'Sign up'} — {day.day}</div>
+            {!isAdminAdd && !isEdit && signerName && <div style={{fontSize:13,color:'var(--ink-50)',marginTop:2}}>Signing up as <strong style={{color:'var(--ink)'}}>{signerName}</strong></div>}
             <div className="modal-sub">{day.month} {day.date}{day.tee.time ? ' · Tee ' + day.tee.time : ' · Tee time TBD'}</div>
           </div>
           <button className="modal-close" onClick={onClose}>
@@ -1080,6 +1118,14 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
                 <option value="">— Select player —</option>
                 {sortedRoster.map(p=>(<option key={p.id} value={p.name}>{p.name}</option>))}
               </select>
+            </div>
+          )}
+          {/* Guest name field when editing a guest entry directly */}
+          {isEditingGuest && (
+            <div className="form-group">
+              <label className="form-label">Guest name</label>
+              <input className="form-input" type="text" placeholder="Full name" value={editGuestName} onChange={e=>setEditGuestName(e.target.value)} autoFocus/>
+              <div style={{fontSize:11,color:'var(--ink-50)',marginTop:4}}>Guest of <strong>{existingSignup.guestOf}</strong></div>
             </div>
           )}
           {isGuestUser && (
@@ -1109,24 +1155,37 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
             <label className="form-label">Handicap</label>
             <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
           </div>
-          <div className="form-group">
+          {/* Tee preference — only for members, not guests */}
+          {!isEditingGuest && <div className="form-group">
             <label className="form-label">Tee preference</label>
             <div className="pref-opts">
               {[['none','No preference'],['first','First tee'],['last','Last tee']].map(([v,l])=>(
                 <button key={v} className={'pref-opt'+(pref===v?' on':'')} onClick={()=>setPref(v)}>{l}</button>
               ))}
             </div>
-          </div>
+          </div>}
+
+          {/* Pair with host — only when editing a guest entry */}
+          {isEditingGuest && (
+            <div className="form-group">
+              <label className="form-label">Pair with {existingSignup.guestOf} on a team?</label>
+              <div className="pref-opts">
+                <button className={'pref-opt'+(pairGuest1?' on':'')} onClick={()=>setPairGuest1(true)}>Yes — same team</button>
+                <button className={'pref-opt'+(!pairGuest1?' on':'')} onClick={()=>setPairGuest1(false)}>No preference</button>
+              </div>
+            </div>
+          )}
 
           {/* Guest section — only for members */}
-          {!isGuestUser && <div className="form-group">
+          {!isGuestUser && !isEditingGuest && <div className="form-group">
             <label className="form-label">Bringing a guest?</label>
             <div className="pref-opts">
-              <button className={'pref-opt' + (!bringGuest ? ' on' : '')} onClick={()=>setBringGuest(false)}>No</button>
+              <button className={'pref-opt' + (!bringGuest ? ' on' : '')} onClick={()=>{setBringGuest(false);setBringGuest2(false);}}>No</button>
               <button className={'pref-opt' + (bringGuest ? ' on' : '')} onClick={()=>setBringGuest(true)}>Yes</button>
             </div>
             {bringGuest && (
               <div style={{marginTop:12,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'14px 14px 4px'}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Guest 1</div>
                 <div className="form-group">
                   <label className="form-label">Guest name</label>
                   <input className="form-input" type="text" placeholder="Full name" value={guestName} onChange={e=>{setGuestName(e.target.value);setErr('');}}/>
@@ -1143,12 +1202,56 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
                   <label className="form-label">Guest handicap</label>
                   <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestHcp} onChange={e=>{setGuestHcp(e.target.value);setErr('');}}/>
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Pair with me on a team?</label>
+                  <div className="pref-opts">
+                    <button className={'pref-opt'+(pairGuest1?' on':'')} onClick={()=>setPairGuest1(true)}>Yes — same team</button>
+                    <button className={'pref-opt'+(!pairGuest1?' on':'')} onClick={()=>setPairGuest1(false)}>No preference</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {bringGuest && !bringGuest2 && (
+              <button type="button" onClick={()=>setBringGuest2(true)}
+                style={{marginTop:8,fontSize:12,color:'var(--brand)',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:'inherit',textAlign:'left',fontWeight:600}}>
+                + Bring a second guest
+              </button>
+            )}
+            {bringGuest && bringGuest2 && (
+              <div style={{marginTop:8,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'14px 14px 4px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Guest 2</span>
+                  <button type="button" onClick={()=>{setBringGuest2(false);setGuestName2('');setGuestHcp2('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontSize:16,lineHeight:1,padding:0}}>✕</button>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Guest name</label>
+                  <input className="form-input" type="text" placeholder="Full name" value={guestName2} onChange={e=>{setGuestName2(e.target.value);setErr('');}}/>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Guest tees</label>
+                  <div className="tee-opts">
+                    {['Blends','Whites','Golds','SGA'].map(t=>(
+                      <button key={t} className={'tee-opt'+(guestTee2===t?' on':'')} onClick={()=>setGuestTee2(t)}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Guest handicap</label>
+                  <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestHcp2} onChange={e=>{setGuestHcp2(e.target.value);setErr('');}}/>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Pair with me on a team?</label>
+                  <div className="pref-opts">
+                    <button className={'pref-opt'+(pairGuest2?' on':'')} onClick={()=>setPairGuest2(true)}>Yes — same team</button>
+                    <button className={'pref-opt'+(!pairGuest2?' on':'')} onClick={()=>setPairGuest2(false)}>No preference</button>
+                  </div>
+                </div>
               </div>
             )}
           </div>}
 
           {/* Match request section — only for members */}
-          {!isGuestUser && <div className="form-group">
+          {!isGuestUser && !isEditingGuest && <div className="form-group">
             <label className="form-label">Have a match?</label>
             <div className="pref-opts">
               <button className={'pref-opt' + (!hasMatch ? ' on' : '')} onClick={()=>setHasMatch(false)}>No</button>
@@ -1294,7 +1397,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
     }
   },[activeDays.join(',')]);
 
-  async function handleSignupSave({ entry, signupKey, guestEntry, matchEntry, existingMatchKey, partnerEntry }){
+  async function handleSignupSave({ entry, signupKey, guestEntry, guestEntry2, guestKey1, guestKey2, matchEntry, existingMatchKey, partnerEntry }){
     // Save or update main signup
     if(signupKey){
       await write('week/signups/' + signupKey, {...entry});
@@ -1304,8 +1407,20 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
     }
     // Save guest signup
     if(guestEntry){
-      await push('week/signups', guestEntry);
-      if(onLogSignup) onLogSignup(guestEntry);
+      if(guestKey1){
+        await write('week/signups/' + guestKey1, guestEntry);
+      } else {
+        await push('week/signups', guestEntry);
+        if(onLogSignup) onLogSignup(guestEntry);
+      }
+    }
+    if(guestEntry2){
+      if(guestKey2){
+        await write('week/signups/' + guestKey2, guestEntry2);
+      } else {
+        await push('week/signups', guestEntry2);
+        if(onLogSignup) onLogSignup(guestEntry2);
+      }
     }
     // Handle match pairing — delete old one first if editing
     if(existingMatchKey){
@@ -1363,8 +1478,12 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
           matchPairings={matchPairings}
           expanded={!!expanded[day.day]}
           onToggle={() => setExpanded(p => ({...p, [day.day]: !p[day.day]}))}
-          onSignup={() => setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:false })}
-          onEditSignup={(existingSignup, signupKey) => setSignupModal({ day, existingSignup, signupKey, isAdminAdd:false })}
+          onSignup={() => { window.scrollTo({top:0,behavior:'smooth'}); setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:false }); }}
+          onEditSignup={(existingSignup, signupKey) => {
+            // Find existing guest entries for this member
+            const existingGuests = day.signups.filter(s => s.isGuest && s.guestOf === existingSignup.name);
+            setSignupModal({ day, existingSignup, signupKey, isAdminAdd:false, existingGuests });
+          }}
           onRemoveSignup={handleRemoveSignup}
           onAdminAdd={() => setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:true })}
           onSetTeeTime={() => setTeeModal(day)}
@@ -1418,6 +1537,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
           currentUser={currentUser}
           existingSignup={signupModal.existingSignup}
           signupKey={signupModal.signupKey}
+          existingGuests={signupModal.existingGuests||[]}
           fullRoster={fullRoster}
           matchPairings={matchPairings}
           isAdminAdd={signupModal.isAdminAdd}
@@ -1502,7 +1622,8 @@ function DayCardV2({ day, currentUser, isAdmin, matchPairings, expanded, onToggl
               m.day === day.day && (m.requester === p.name || m.partner === p.name)
             );
             const matchPartner = matchPair ? (matchPair.requester === p.name ? matchPair.partner : matchPair.requester) : null;
-            const isHost = day.signups.find(g => g.isGuest && g.guestOf === p.name);
+            const hostedGuests = day.signups.filter(g => g.isGuest && g.guestOf === p.name);
+            const isHost = hostedGuests.length > 0;
             const hasExtraLine = matchPartner || isHost;
             const canEdit = isMe || isAdmin || (p.isGuest && p.guestOf === currentUser?.name);
             return (
@@ -1533,7 +1654,7 @@ function DayCardV2({ day, currentUser, isAdmin, matchPairings, expanded, onToggl
                       {isHost && (
                         <span className="extra-pair">
                           <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-                          Host of {isHost.name}
+                          Host of {hostedGuests.map(g=>g.name).join(' & ')}
                         </span>
                       )}
                     </div>
