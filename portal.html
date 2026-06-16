@@ -2049,7 +2049,6 @@ function AttendTab({user}){
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
 
 function ClarkEmailTab(){
-  const db_ref = useDB;
   const [entries, setEntries] = React.useState([]);
   const [loaded, setLoaded] = React.useState(false);
   const [pasteModal, setPasteModal] = React.useState(false);
@@ -2057,23 +2056,30 @@ function ClarkEmailTab(){
   const [addModal, setAddModal] = React.useState(false);
   const [addName, setAddName] = React.useState('');
   const [addEmail, setAddEmail] = React.useState('');
+  const [editEntry, setEditEntry] = React.useState(null); // {_key, name, email}
+  const [editName, setEditName] = React.useState('');
+  const [editEmail, setEditEmail] = React.useState('');
+  const [removeEntry, setRemoveEntry] = React.useState(null); // {_key, name}
   const [search, setSearch] = React.useState('');
   const [copied, setCopied] = React.useState(false);
   const [toast, setToast] = React.useState(null);
   const [selected, setSelected] = React.useState(new Set());
-  const fbRef = React.useRef(null);
 
-  // Load from Firebase
   React.useEffect(()=>{
     if(typeof firebase==='undefined')return;
     const ref = firebase.database().ref('clarkEmailList');
-    fbRef.current = ref;
     ref.on('value', snap=>{
       const val = snap.val();
       if(val){
         const arr = Object.entries(val).map(([k,v])=>({...v,_key:k})).sort((a,b)=>a.name.localeCompare(b.name));
         setEntries(arr);
-        setSelected(new Set(arr.map(e=>e._key)));
+        setSelected(prev=>{
+          // Keep existing selections, auto-select new entries
+          const newKeys = new Set(arr.map(e=>e._key));
+          const merged = new Set([...prev].filter(k=>newKeys.has(k)));
+          arr.forEach(e=>{ if(!prev.size) merged.add(e._key); });
+          return merged.size===0 ? new Set(arr.map(e=>e._key)) : merged;
+        });
       } else {
         setEntries([]);
         setSelected(new Set());
@@ -2086,11 +2092,7 @@ function ClarkEmailTab(){
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2500);}
 
   function toggleSelect(key){
-    setSelected(prev=>{
-      const n=new Set(prev);
-      n.has(key)?n.delete(key):n.add(key);
-      return n;
-    });
+    setSelected(prev=>{const n=new Set(prev);n.has(key)?n.delete(key):n.add(key);return n;});
   }
   function selectAll(){setSelected(new Set(entries.map(e=>e._key)));}
   function deselectAll(){setSelected(new Set());}
@@ -2105,39 +2107,49 @@ function ClarkEmailTab(){
     });
   }
 
-  function removeEntry(key){
-    if(!confirm('Remove this person from the Clark email list?'))return;
-    firebase.database().ref('clarkEmailList/'+key).remove();
-    showToast('Removed');
+  function confirmRemove(){
+    if(!removeEntry)return;
+    firebase.database().ref('clarkEmailList/'+removeEntry._key).remove();
+    setRemoveEntry(null);
+    showToast('Removed from list');
+  }
+
+  function openEdit(e){
+    setEditEntry(e);
+    setEditName(e.name);
+    setEditEmail(e.email);
+  }
+
+  function saveEdit(){
+    if(!editName.trim()||!editEmail.trim())return;
+    firebase.database().ref('clarkEmailList/'+editEntry._key).update({name:editName.trim(),email:editEmail.trim().toLowerCase()});
+    setEditEntry(null);
+    showToast('Updated');
   }
 
   function addEntry(){
-    if(!addName.trim()||!addEmail.trim()){return;}
+    if(!addName.trim()||!addEmail.trim())return;
     firebase.database().ref('clarkEmailList').push({name:addName.trim(),email:addEmail.trim().toLowerCase()});
     setAddName('');setAddEmail('');setAddModal(false);
     showToast('Added');
   }
 
-  // Parse pasted text — supports multiple formats:
-  // "Name <email>" or "email" or "Name, email" lines
   function parsePaste(){
     const lines = pasteText.split(/[,\n\r]+/).map(l=>l.trim()).filter(Boolean);
     let added = 0;
     const ref = firebase.database().ref('clarkEmailList');
     lines.forEach(line=>{
-      // Format: "Name <email@x.com>"
-      const match1 = line.match(/^(.+?)\s*<([^>]+)>/);
-      if(match1){ref.push({name:match1[1].trim(),email:match1[2].trim().toLowerCase()});added++;return;}
-      // Format: just email
-      const match2 = line.match(/^[\w.+-]+@[\w.-]+\.\w+$/);
-      if(match2){ref.push({name:line.split('@')[0],email:line.trim().toLowerCase()});added++;return;}
+      const m1 = line.match(/^(.+?)\s*<([^>]+)>/);
+      if(m1){ref.push({name:m1[1].trim(),email:m1[2].trim().toLowerCase()});added++;return;}
+      const m2 = line.match(/^[\w.+\-]+@[\w.\-]+\.\w+$/i);
+      if(m2){ref.push({name:line.split('@')[0],email:line.trim().toLowerCase()});added++;return;}
     });
     setPasteText('');setPasteModal(false);
     showToast(`Imported ${added} contacts`);
   }
 
   const filtered = entries.filter(e=>
-    !search || e.name.toLowerCase().includes(search.toLowerCase()) || e.email.toLowerCase().includes(search.toLowerCase())
+    !search||e.name.toLowerCase().includes(search.toLowerCase())||e.email.toLowerCase().includes(search.toLowerCase())
   );
   const selCount = entries.filter(e=>selected.has(e._key)).length;
 
@@ -2147,75 +2159,87 @@ function ClarkEmailTab(){
       <div className="pg-title">Clark Email List</div>
       <div className="pg-sub">Manage recipients for Clark's group emails. Check who to include, then copy all in Gmail format.</div>
 
-      {/* Action bar */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16,alignItems:'center'}}>
         <button className="btn btn-g" onClick={copySelected} disabled={selCount===0}>
           {copied?'✓ Copied!':`📋 Copy ${selCount} to Gmail`}
         </button>
-        <button className="btn btn-gh btn-sm" onClick={()=>setPasteModal(true)}>⬆️ Import list</button>
-        <button className="btn btn-gh btn-sm" onClick={()=>setAddModal(true)}>+ Add person</button>
+        <button className="btn btn-gh btn-sm" onClick={()=>setPasteModal(true)}>⬆️ Import</button>
+        <button className="btn btn-gh btn-sm" onClick={()=>setAddModal(true)}>+ Add</button>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
-          <button className="btn btn-gh btn-sm" onClick={selectAll}>Select all</button>
-          <button className="btn btn-gh btn-sm" onClick={deselectAll}>Deselect all</button>
+          <button className="btn btn-gh btn-sm" onClick={selectAll}>All</button>
+          <button className="btn btn-gh btn-sm" onClick={deselectAll}>None</button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{fontSize:12,color:'var(--color-text-secondary,rgba(255,255,255,0.4))',marginBottom:12}}>
+      <div style={{fontSize:12,color:'rgba(255,255,255,0.35)',marginBottom:10}}>
         {entries.length} people · {selCount} selected
       </div>
 
-      {/* Search */}
-      <div className="srch" style={{marginBottom:12,padding:0}}>
-        <input className="inp" placeholder="Search name or email..." value={search} onChange={e=>setSearch(e.target.value)}/>
-      </div>
+      <input className="inp" placeholder="Search name or email..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12,width:'100%',boxSizing:'border-box'}}/>
 
-      {/* List */}
       <div className="card">
         {!loaded&&<div style={{padding:'20px 16px',color:'rgba(255,255,255,0.3)',fontSize:13}}>Loading...</div>}
-        {loaded&&filtered.length===0&&<div style={{padding:'20px 16px',color:'rgba(255,255,255,0.3)',fontSize:13,textAlign:'center'}}>No contacts yet. Import a list or add people manually.</div>}
+        {loaded&&filtered.length===0&&<div style={{padding:'20px 16px',color:'rgba(255,255,255,0.3)',fontSize:13,textAlign:'center'}}>No contacts yet.</div>}
         {filtered.map((e,i)=>(
-          <div key={e._key} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.07)':'none',background:selected.has(e._key)?'rgba(16,185,129,0.06)':'transparent',transition:'background 0.1s'}}>
+          <div key={e._key} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.06)':'none',background:selected.has(e._key)?'rgba(16,185,129,0.05)':'transparent'}}>
             {/* Checkbox */}
-            <div onClick={()=>toggleSelect(e._key)} style={{width:18,height:18,borderRadius:4,border:'1.5px solid',borderColor:selected.has(e._key)?'#10b981':'rgba(255,255,255,0.2)',background:selected.has(e._key)?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer'}}>
-              {selected.has(e._key)&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+            <div onClick={()=>toggleSelect(e._key)} style={{width:17,height:17,borderRadius:3,border:'1.5px solid',borderColor:selected.has(e._key)?'#10b981':'rgba(255,255,255,0.2)',background:selected.has(e._key)?'#10b981':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer'}}>
+              {selected.has(e._key)&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
             {/* Initials */}
-            <div style={{width:32,height:32,borderRadius:'50%',background:'rgba(16,185,129,0.15)',color:'#10b981',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'Barlow Condensed,sans-serif'}}>
+            <div style={{width:30,height:30,borderRadius:'50%',background:'rgba(16,185,129,0.12)',color:'#10b981',fontSize:10,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
               {e.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
             </div>
-            {/* Name + email */}
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.name}</div>
-              <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.email}</div>
+            {/* Name · email on one line */}
+            <div style={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',gap:8,overflow:'hidden'}}>
+              <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0',whiteSpace:'nowrap',flexShrink:0}}>{e.name}</span>
+              <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>· {e.email}</span>
             </div>
+            {/* Edit */}
+            <button onClick={()=>openEdit(e)} style={{background:'none',border:'1px solid rgba(255,255,255,0.15)',borderRadius:5,cursor:'pointer',color:'rgba(255,255,255,0.5)',fontSize:11,padding:'3px 8px',flexShrink:0,fontFamily:'inherit'}}>Edit</button>
             {/* Remove */}
-            <button onClick={()=>removeEntry(e._key)} style={{background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.2)',fontSize:16,padding:'4px',lineHeight:1,flexShrink:0}} title="Remove">✕</button>
+            <button onClick={()=>setRemoveEntry(e)} style={{background:'none',border:'1px solid rgba(239,68,68,0.3)',borderRadius:5,cursor:'pointer',color:'rgba(239,68,68,0.6)',fontSize:11,padding:'3px 8px',flexShrink:0,fontFamily:'inherit'}}>Remove</button>
           </div>
         ))}
       </div>
 
-      {/* Paste import modal */}
-      {pasteModal&&(
-        <div onClick={e=>{if(e.target===e.currentTarget)setPasteModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:20}}>
-          <div className="modal" style={{width:'100%',maxWidth:520}}>
-            <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:6}}>Import Email List</div>
-            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12,lineHeight:1.6}}>
-              Paste a list of contacts. Supports Gmail format:<br/>
-              <code style={{fontSize:11,color:'rgba(255,255,255,0.6)'}}>Name &lt;email@x.com&gt;, Name2 &lt;email2@x.com&gt;</code>
+      {/* Remove confirmation modal */}
+      {removeEntry&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setRemoveEntry(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
+          <div className="modal" style={{width:'100%',maxWidth:380}}>
+            <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:8}}>Remove from list?</div>
+            <div style={{fontSize:13,color:'rgba(255,255,255,0.5)',marginBottom:20,lineHeight:1.5}}>
+              <strong style={{color:'#e2e8f0'}}>{removeEntry.name}</strong> will be removed from the Clark email list. This does not affect their app account.
             </div>
-            <textarea className="inp" rows={8} placeholder="Paste contacts here..." value={pasteText} onChange={e=>setPasteText(e.target.value)} style={{marginBottom:12,fontFamily:'monospace',fontSize:12}}/>
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-g btn-full" onClick={parsePaste} disabled={!pasteText.trim()}>Import</button>
-              <button className="btn btn-gh" onClick={()=>{setPasteModal(false);setPasteText('');}}>Cancel</button>
+              <button className="btn btn-full" style={{background:'#ef4444',color:'#fff',border:'none'}} onClick={confirmRemove}>Yes, Remove</button>
+              <button className="btn btn-gh" onClick={()=>setRemoveEntry(null)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add person modal */}
+      {/* Edit modal */}
+      {editEntry&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setEditEntry(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
+          <div className="modal" style={{width:'100%',maxWidth:420}}>
+            <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:16}}>Edit Contact</div>
+            <div className="lbl" style={{marginBottom:4}}>Name</div>
+            <input className="inp" value={editName} onChange={e=>setEditName(e.target.value)} style={{marginBottom:12}}/>
+            <div className="lbl" style={{marginBottom:4}}>Email</div>
+            <input className="inp" type="email" value={editEmail} onChange={e=>setEditEmail(e.target.value)} style={{marginBottom:20}}
+              onKeyDown={e=>{if(e.key==='Enter')saveEdit();}}/>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-g btn-full" onClick={saveEdit} disabled={!editName.trim()||!editEmail.trim()}>Save Changes</button>
+              <button className="btn btn-gh" onClick={()=>setEditEntry(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add modal */}
       {addModal&&(
-        <div onClick={e=>{if(e.target===e.currentTarget)setAddModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999,padding:20}}>
+        <div onClick={e=>{if(e.target===e.currentTarget)setAddModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
           <div className="modal" style={{width:'100%',maxWidth:400}}>
             <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:16}}>Add Person</div>
             <div className="lbl" style={{marginBottom:4}}>Name</div>
@@ -2226,6 +2250,23 @@ function ClarkEmailTab(){
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-g btn-full" onClick={addEntry} disabled={!addName.trim()||!addEmail.trim()}>Add</button>
               <button className="btn btn-gh" onClick={()=>setAddModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import modal */}
+      {pasteModal&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setPasteModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
+          <div className="modal" style={{width:'100%',maxWidth:520}}>
+            <div style={{fontSize:16,fontWeight:700,color:'#fff',marginBottom:6}}>Import Email List</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12,lineHeight:1.6}}>
+              Paste contacts in Gmail format: <code style={{color:'rgba(255,255,255,0.55)'}}>Name &lt;email@x.com&gt;</code>
+            </div>
+            <textarea className="inp" rows={8} placeholder="Paste contacts here..." value={pasteText} onChange={e=>setPasteText(e.target.value)} style={{marginBottom:12,fontFamily:'monospace',fontSize:12}}/>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-g btn-full" onClick={parsePaste} disabled={!pasteText.trim()}>Import</button>
+              <button className="btn btn-gh" onClick={()=>{setPasteModal(false);setPasteText('');}}>Cancel</button>
             </div>
           </div>
         </div>
