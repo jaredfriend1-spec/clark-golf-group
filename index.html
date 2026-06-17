@@ -2806,8 +2806,9 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
 
         {/* ── TEAM INFO MODAL ── */}
         {showTeamInfo && (
-          <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowTeamInfo(false);}}>
-            <div className="modal" style={{maxHeight:'85vh'}}>
+          <div onClick={e=>{if(e.target===e.currentTarget)setShowTeamInfo(false);}}
+            style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(15,15,15,0.6)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px',paddingTop:130,backdropFilter:'blur(4px)'}}>
+            <div className="modal" style={{maxHeight:'calc(100vh - 150px)',maxWidth:'min(520px,94vw)',width:'100%',borderRadius:16,display:'flex',flexDirection:'column'}}>
               <div className="modal-head">
                 <div>
                   <div className="modal-title">How teams are built</div>
