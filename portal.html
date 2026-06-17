@@ -32,7 +32,7 @@ html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0A1614;color:
 .body{display:flex;flex:1;overflow:hidden}
 .sidebar{width:210px;background:#0d1c18;border-right:1px solid rgba(255,255,255,0.06);padding:14px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
 @media(max-width:680px){.sidebar{display:none}.mob-nav{display:flex!important}}
-.mob-nav{display:none;position:sticky;top:56px;left:0;right:0;background:#0d1c18;border-bottom:1px solid rgba(255,255,255,0.08);z-index:99;padding:5px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
+.mob-nav{display:none;position:sticky;top:calc(env(safe-area-inset-top) + 56px);left:0;right:0;background:#0d1c18;border-bottom:1px solid rgba(255,255,255,0.08);z-index:99;padding:5px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
 .mob-btn{min-width:50px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 5px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:9px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.04em;transition:all 0.15s;border-radius:7px}
 .mob-btn.on{color:#10b981;background:rgba(16,185,129,0.12)}
 .mob-btn svg{width:18px;height:18px}
