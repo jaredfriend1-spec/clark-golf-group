@@ -1,0 +1,13 @@
+{
+  "name": "clark-golf-group",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "@babel/core": "^7.23.10",
+    "@babel/preset-env": "^7.23.10",
+    "@babel/preset-react": "^7.23.3"
+  }
+}
