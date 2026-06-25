@@ -1041,8 +1041,21 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
   // For guest-user signups: which member are they a guest of
   const [guestOf, setGuestOf] = useState(isEdit ? (existingSignup.guestOf || '') : '');
 
-  const [tee, setTee] = useState((isEdit ? existingSignup.tee : null) || currentUser?.tee || 'Whites');
-  const [hcp, setHcp] = useState(isEdit ? String(existingSignup.handicap ?? '') : (currentUser?.handicap != null ? String(currentUser.handicap) : ''));
+  // ── Read latest defaults from fullRoster (which reflects rosterHcp/rosterTee in real time).
+  // This is more reliable than currentUser.handicap/tee which may be stale at the moment the modal opens.
+  const myRosterEntry = (!isAdminAdd && !isGuestUser && currentUser?.id)
+    ? fullRoster.find(p => String(p.id) === String(currentUser.id))
+    : null;
+  const defaultTee = myRosterEntry?.tee || currentUser?.tee || 'Whites';
+  const defaultHcp = myRosterEntry?.handicap != null
+    ? myRosterEntry.handicap
+    : (currentUser?.handicap != null ? currentUser.handicap : null);
+
+  const [tee, setTee] = useState((isEdit ? existingSignup.tee : null) || defaultTee);
+  const [hcp, setHcp] = useState(
+    isEdit ? String(existingSignup.handicap ?? '')
+           : (defaultHcp != null ? String(defaultHcp) : '')
+  );
   const [pref, setPref] = useState(isEdit ? (existingSignup.teePreference || 'none') : 'none');
 
   // ── Guests state ──
