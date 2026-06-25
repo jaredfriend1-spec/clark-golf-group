@@ -5897,6 +5897,409 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
 
 
 // ═══════════════ MAIN APP ═══════════════
+// ═══════════════ PROFILE MODAL ═══════════════
+function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, rosterEmails, playerCards, write, update, onClose, onLoadDeferred }){
+  const playerId = currentUser?.id;
+  const isMaster = String(playerId)==='22';
+
+  // Trigger lazy load of rosterEmails if not yet loaded
+  useEffect(()=>{ if(onLoadDeferred) onLoadDeferred('rosterEmails'); },[]);
+
+  // Current values (with defaults)
+  const currentTee = (rosterTee && rosterTee[playerId]) || 'Whites';
+  const currentHcp = rosterHcp && rosterHcp[playerId] != null ? String(rosterHcp[playerId]) : '';
+  const currentPin = (rosterPins && rosterPins[playerId]) || '';
+  const currentEmail = (rosterEmails && rosterEmails[playerId]) || '';
+  const currentCard = (playerCards && playerCards[playerId]) || {};
+  const hardcodedJF = String(playerId)==='22' ? JF_LOGO : null;
+  const currentLogo = currentCard.logo || hardcodedJF || '';
+  const currentMsg = currentCard.message || '';
+  const currentTheme = currentCard.theme || 'default';
+
+  // Form state
+  const [tee, setTee] = useState(currentTee);
+  const [hcp, setHcp] = useState(currentHcp);
+  const [phone, setPhone] = useState('');
+  const [phoneConfirm, setPhoneConfirm] = useState('');
+  const [email, setEmail] = useState(currentEmail);
+  const [msg, setMsg] = useState(currentMsg);
+  const [theme, setTheme] = useState(currentTheme);
+  const [logo, setLogo] = useState(currentLogo);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  const [toast, setToast] = useState('');
+  const [showPinReveal, setShowPinReveal] = useState(false);
+
+  // Crop editor state
+  const fileRef = useRef();
+  const cropCanvasRef = useRef();
+  const [cropModal, setCropModal] = useState(false);
+  const [cropImgEl, setCropImgEl] = useState(null);
+  const [cropOffset, setCropOffset] = useState({x:0,y:0});
+  const [cropScale, setCropScale] = useState(1);
+  const [cropDragging, setCropDragging] = useState(false);
+  const [cropDragStart, setCropDragStart] = useState({x:0,y:0});
+  const CROP_SIZE = 240;
+
+  function fmtPhone(val){const d=val.replace(/[^0-9]/g,'').slice(0,10);if(d.length<=3)return d;if(d.length<=6)return d.slice(0,3)+'-'+d.slice(3);return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);}
+  function rawDigits(val){return val.replace(/[^0-9]/g,'');}
+  const phoneRaw = rawDigits(phone);
+  const confirmRaw = rawDigits(phoneConfirm);
+  const phonesMatch = phoneRaw.length===10 && confirmRaw.length===10 && phoneRaw===confirmRaw;
+  const phoneMismatch = confirmRaw.length===10 && phoneRaw!==confirmRaw;
+  const phoneIncomplete = phone.length > 0 && phoneRaw.length < 10;
+  const newPin = phoneRaw.slice(-4);
+  const changingPhone = phoneRaw.length > 0;
+
+  function handleImageUpload(e){
+    const file = e.target.files?.[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new window.Image();
+      img.onload = () => {
+        setCropImgEl(img);
+        const scale = Math.max(CROP_SIZE/img.width, CROP_SIZE/img.height);
+        setCropScale(scale);
+        setCropOffset({x:(CROP_SIZE-img.width*scale)/2, y:(CROP_SIZE-img.height*scale)/2});
+        setCropModal(true);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  function drawCrop(){
+    const canvas = cropCanvasRef.current;
+    if(!canvas || !cropImgEl) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,CROP_SIZE,CROP_SIZE);
+    ctx.drawImage(cropImgEl, cropOffset.x, cropOffset.y, cropImgEl.width*cropScale, cropImgEl.height*cropScale);
+  }
+  useEffect(()=>{ if(cropModal) drawCrop(); },[cropModal, cropOffset, cropScale, cropImgEl]);
+
+  function confirmCrop(){
+    const canvas = cropCanvasRef.current;
+    if(!canvas || !cropImgEl) return;
+    const out = document.createElement('canvas');
+    out.width = 128; out.height = 128;
+    const ctx = out.getContext('2d');
+    const ratio = 128/CROP_SIZE;
+    ctx.drawImage(cropImgEl,
+      cropOffset.x*ratio, cropOffset.y*ratio,
+      cropImgEl.width*cropScale*ratio, cropImgEl.height*cropScale*ratio
+    );
+    setLogo(out.toDataURL('image/jpeg',0.85));
+    setCropModal(false);
+  }
+
+  function onCropStart(e){
+    setCropDragging(true);
+    const cx = e.clientX || e.touches?.[0]?.clientX || 0;
+    const cy = e.clientY || e.touches?.[0]?.clientY || 0;
+    setCropDragStart({x: cx - cropOffset.x, y: cy - cropOffset.y});
+  }
+  function onCropMove(e){
+    if(!cropDragging) return;
+    e.preventDefault();
+    const cx = e.clientX || e.touches?.[0]?.clientX || 0;
+    const cy = e.clientY || e.touches?.[0]?.clientY || 0;
+    setCropOffset({x: cx - cropDragStart.x, y: cy - cropDragStart.y});
+  }
+  function onCropEnd(){ setCropDragging(false); }
+
+  function onCropWheel(e){
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1.05 : 0.95;
+    setCropScale(s => Math.max(0.1, Math.min(5, s*delta)));
+  }
+
+  // Stats for header summary
+  const myStats = React.useMemo(()=>{
+    if(!currentUser?.name || !history) return null;
+    let rounds = 0, paid = 0, won = 0;
+    Object.values(history||{}).forEach(r=>{
+      if(!r.teams || !r.scores) return;
+      r.teams.forEach(team=>{
+        const players = safeArray(team.players);
+        const inThisTeam = players.some(p => normName(p.name) === normName(currentUser.name));
+        if(!inThisTeam) return;
+        rounds++; paid += 25;
+        const pc = players.length || 1;
+        // Front/Back/Overall
+        [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,k1:'f1',k2:'f2'},
+         {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1,k1:'b1',k2:'b2'},
+         {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,k1:'o1',k2:'o2'}
+        ].forEach(({seg,pot:segPot,pl,k1,k2})=>{
+          const p = parseFloat(segPot||0); if(!p) return;
+          const sc = r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+          if(!sc.length) return;
+          sc.sort((a,b)=>a.score-b.score);
+          const best = sc[0].score;
+          const tied1st = sc.filter(t=>t.score===best);
+          const secondScore = sc.find(t=>t.score!==best)?.score;
+          const tied2nd = secondScore!==undefined ? sc.filter(t=>t.score===secondScore) : [];
+          const c1 = r.scores[k1] ? parseFloat(r.scores[k1]) : 0;
+          const c2 = r.scores[k2] ? parseFloat(r.scores[k2]) : 0;
+          const first = c1>0 ? c1 : (pl===1 ? p : p*0.6);
+          const sec = c2>0 ? c2 : p*0.4;
+          if(tied1st.some(t=>String(t.id)===String(team.id))){
+            const split = tied1st.length>1 ? Math.floor(pl===1 ? p/tied1st.length : (first+sec)/tied1st.length) : Math.floor(first);
+            won += split/pc;
+          } else if(pl===2 && tied2nd.some(t=>String(t.id)===String(team.id))){
+            const split2 = Math.floor(sec/tied2nd.length);
+            won += split2/pc;
+          }
+        });
+        // Skins
+        const snet = Math.max(0, parseFloat(r.scores.skinsPot||0) - (r.scores.tournFund||0));
+        const tsk = Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+        if(tsk > 0){
+          const psk = Math.floor(snet/tsk);
+          const skinCnt = r.scores.skinCounts?.[team.id] || 0;
+          if(skinCnt > 0) won += (psk*skinCnt)/pc;
+        }
+      });
+    });
+    return {rounds, paid, won: Math.round(won), net: Math.round(won-paid)};
+  },[history, currentUser?.name]);
+
+  async function handleSave(){
+    if(saving) return;
+    // Validation
+    if(hcp !== '' && (isNaN(parseFloat(hcp)) || parseFloat(hcp) < 0 || parseFloat(hcp) > 54)){
+      setErr('Handicap must be 0–54'); return;
+    }
+    if(changingPhone && !phonesMatch){
+      setErr(phoneMismatch ? 'Phone numbers don\'t match' : 'Enter and confirm a full 10-digit phone number');
+      return;
+    }
+    if(msg.length > 80){
+      setErr('Welcome message too long (max 80 characters)'); return;
+    }
+
+    setSaving(true);
+    setErr('');
+
+    try {
+      const updates = {};
+      // Default tee
+      updates['rosterTee/'+playerId] = tee || 'Whites';
+      // Default handicap
+      if(hcp === '') updates['rosterHcp/'+playerId] = null;
+      else updates['rosterHcp/'+playerId] = parseFloat(hcp);
+      // Phone (last 4 = PIN)
+      if(changingPhone){
+        updates['rosterPins/'+playerId] = newPin;
+      }
+      // Email
+      updates['rosterEmails/'+playerId] = email.trim() || null;
+      // Login card (logo + message + theme)
+      const cardData = {};
+      // Don't save hardcoded JF logo back to Firebase for master admin
+      if(logo && logo !== hardcodedJF) cardData.logo = logo;
+      else if(logo === hardcodedJF) {} // skip — uses the fallback
+      if(msg.trim()) cardData.message = msg.trim();
+      if(theme && theme !== 'default') cardData.theme = theme;
+      updates['settings/playerCards/'+playerId] = Object.keys(cardData).length > 0 ? cardData : null;
+
+      await update(updates);
+
+      setToast('Saved ✓');
+      setTimeout(()=>{ setToast(''); onClose(); }, 1100);
+    } catch(e) {
+      setErr('Save failed — try again');
+      setSaving(false);
+    }
+  }
+
+  const THEMES = [
+    {id:'default',label:'Default',bg:'rgba(15,23,42,0.85)',swatch:'#1e293b'},
+    {id:'gold',label:'Gold',bg:'rgba(10,14,26,0.92)',swatch:'#f59e0b'},
+    {id:'green',label:'Green',bg:'rgba(0,20,10,0.92)',swatch:'#10b981'},
+    {id:'purple',label:'Purple',bg:'rgba(15,10,30,0.92)',swatch:'#a78bfa'},
+  ];
+
+  const initials = (currentUser?.name||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  return (
+    <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal" style={{maxWidth:480}}>
+        <div className="modal-head">
+          <div>
+            <div className="modal-title">My Profile</div>
+            <div className="modal-sub">{currentUser?.name}{isMaster?' · Master Admin':''}</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>
+            <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="modal-body">
+
+          {/* Stats summary */}
+          {myStats && myStats.rounds > 0 && (
+            <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',marginBottom:16,display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,textAlign:'center'}}>
+              <div>
+                <div style={{fontSize:20,fontWeight:800,color:'var(--brand)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{myStats.rounds}</div>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>Rounds</div>
+              </div>
+              <div>
+                <div style={{fontSize:20,fontWeight:800,color:'var(--info)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>${myStats.won}</div>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>Won</div>
+              </div>
+              <div>
+                <div style={{fontSize:20,fontWeight:800,color:myStats.net>=0?'var(--money-pos)':'var(--money-neg)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{myStats.net>=0?'+':''}${Math.abs(myStats.net)}</div>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:3}}>Net</div>
+              </div>
+            </div>
+          )}
+
+          {/* Photo section */}
+          <div className="form-group">
+            <label className="form-label">Photo</label>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
+              {logo
+                ? <img src={logo} alt={initials} style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',border:'2px solid var(--brand-border)',flexShrink:0}}/>
+                : <div style={{width:72,height:72,borderRadius:'50%',background:'var(--brand-soft)',color:'var(--brand)',fontSize:24,fontWeight:800,fontFamily:'Barlow Condensed,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:'2px solid var(--brand-border)'}}>{initials}</div>
+              }
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload}/>
+                <button className="btn btn-ghost btn-sm" onClick={()=>fileRef.current?.click()}>
+                  {logo ? 'Change photo' : 'Upload photo'}
+                </button>
+                {logo && logo !== hardcodedJF && (
+                  <button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>setLogo('')}>Remove</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Welcome message */}
+          <div className="form-group">
+            <label className="form-label">Welcome message (shown on login)</label>
+            <input className="form-input" type="text" placeholder="e.g. Let's play golf!" value={msg} onChange={e=>{setMsg(e.target.value);setErr('');}} maxLength={80}/>
+            <div style={{fontSize:10,color:'var(--ink-40)',marginTop:4,textAlign:'right'}}>{msg.length}/80</div>
+          </div>
+
+          {/* Theme picker */}
+          <div className="form-group">
+            <label className="form-label">Login card theme</label>
+            <div style={{display:'flex',gap:6}}>
+              {THEMES.map(t=>(
+                <button key={t.id} onClick={()=>setTheme(t.id)}
+                  style={{flex:1,padding:'8px 4px',borderRadius:8,border:'1.5px solid',borderColor:theme===t.id?'var(--brand)':'var(--hairline)',background:theme===t.id?'var(--brand-soft)':'var(--surface)',color:theme===t.id?'var(--brand)':'var(--ink-70)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                  <span style={{display:'inline-block',width:14,height:14,borderRadius:'50%',background:t.swatch,border:'1px solid rgba(0,0,0,0.1)'}}></span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{height:1,background:'var(--hairline)',margin:'18px 0'}}/>
+
+          {/* Default tee */}
+          <div className="form-group">
+            <label className="form-label">Default tees (pre-fills future sign-ups)</label>
+            <div className="tee-opts">
+              {['Blends','Whites','Golds','SGA'].map(t=>(
+                <button key={t} className={'tee-opt'+(tee===t?' on':'')} onClick={()=>setTee(t)}>{t}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Default handicap */}
+          <div className="form-group">
+            <label className="form-label">Default handicap</label>
+            <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
+            <div style={{fontSize:11,color:'var(--ink-50)',marginTop:4}}>You can override per-round when signing up. Past sign-ups are not affected.</div>
+          </div>
+
+          {/* Email */}
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input className="form-input" type="email" placeholder="email@example.com" value={email} onChange={e=>{setEmail(e.target.value);setErr('');}}/>
+          </div>
+
+          {/* PIN / phone */}
+          <div className="form-group">
+            <label className="form-label">Sign-in PIN</label>
+            <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',marginBottom:8}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>Current PIN</div>
+                  <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:24,fontWeight:700,color:'var(--ink)',letterSpacing:6}}>
+                    {showPinReveal ? (currentPin || '----') : '••••'}
+                  </div>
+                </div>
+                {currentPin && (
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowPinReveal(s=>!s)}>
+                    {showPinReveal ? 'Hide' : '👁 Show'}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:8}}>To change your PIN, enter a new phone number below. Last 4 digits become your PIN.</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <input className="form-input" type="tel" inputMode="numeric" placeholder="New phone (optional)" value={phone} onChange={e=>{setPhone(fmtPhone(e.target.value));setErr('');}} maxLength={12}/>
+              <input className="form-input" type="tel" inputMode="numeric" placeholder="Confirm phone" value={phoneConfirm} onChange={e=>{setPhoneConfirm(fmtPhone(e.target.value));setErr('');}} maxLength={12} disabled={!changingPhone}
+                style={{borderColor:phoneMismatch?'var(--money-neg)':phonesMatch?'var(--brand)':'var(--hairline)'}}/>
+            </div>
+            {phonesMatch && (
+              <div style={{marginTop:8,padding:'8px 10px',background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:8,textAlign:'center'}}>
+                <span style={{fontSize:11,fontWeight:700,color:'var(--brand)'}}>New PIN will be </span>
+                <span style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,color:'var(--brand)',letterSpacing:6}}>{newPin}</span>
+              </div>
+            )}
+            {phoneMismatch && <div style={{fontSize:11,color:'var(--money-neg)',marginTop:4,fontWeight:600}}>Phone numbers don't match</div>}
+            {phoneIncomplete && !phoneMismatch && <div style={{fontSize:11,color:'var(--warn-ink)',marginTop:4}}>Enter a full 10-digit number</div>}
+          </div>
+
+          {err && <div className="form-err">{err}</div>}
+
+          {/* Read-only note */}
+          <div style={{marginTop:16,padding:'10px 12px',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,fontSize:11,color:'var(--ink-50)',lineHeight:1.5}}>
+            <strong style={{color:'var(--ink-70)'}}>Need to change your name?</strong> Ask Clark — name changes are admin-only to protect historical records.
+          </div>
+
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? (toast || 'Saving…') : 'Save changes'}
+          </button>
+        </div>
+      </div>
+
+      {/* Crop modal — appears on top */}
+      {cropModal && (
+        <div onClick={e=>{if(e.target===e.currentTarget)setCropModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1100,padding:20}}>
+          <div style={{background:'var(--surface)',borderRadius:16,padding:20,width:'100%',maxWidth:340,display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{fontSize:16,fontWeight:700,color:'var(--ink)',textAlign:'center'}}>Crop your photo</div>
+            <div style={{fontSize:11,color:'var(--ink-50)',textAlign:'center'}}>Drag to position · scroll to zoom</div>
+            <div style={{position:'relative',width:CROP_SIZE,height:CROP_SIZE,margin:'0 auto',borderRadius:'50%',overflow:'hidden',background:'#000',cursor:cropDragging?'grabbing':'grab',touchAction:'none'}}
+              onMouseDown={onCropStart} onMouseMove={onCropMove} onMouseUp={onCropEnd} onMouseLeave={onCropEnd}
+              onTouchStart={onCropStart} onTouchMove={onCropMove} onTouchEnd={onCropEnd}
+              onWheel={onCropWheel}>
+              <canvas ref={cropCanvasRef} width={CROP_SIZE} height={CROP_SIZE} style={{display:'block',width:CROP_SIZE,height:CROP_SIZE}}/>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center'}}>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setCropScale(s=>Math.max(0.1,s*0.85))}>−</button>
+              <span style={{fontSize:11,color:'var(--ink-50)',minWidth:40,textAlign:'center'}}>Zoom</span>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setCropScale(s=>Math.min(5,s*1.15))}>+</button>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-cancel" style={{flex:1}} onClick={()=>setCropModal(false)}>Cancel</button>
+              <button className="btn btn-primary" style={{flex:1}} onClick={confirmCrop}>Use photo</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function App(){
   const [currentUser, setCurrentUser] = useState(()=>{try{const u=localStorage.getItem('cgCurrentUser');return u?JSON.parse(u):null;}catch{return null;}});
   const [tab, setTab] = useState('home');
@@ -5918,6 +6321,7 @@ function App(){
   const [settings, setSettings] = useState({});
   const [playerCards, setPlayerCards] = useState({});
   const [doNotPair, setDoNotPair] = useState({});
+  const [showProfile, setShowProfile] = useState(false);
   const { ready, read, write, push, del, update } = useDB();
 
   // Hide splash once app renders
@@ -6188,9 +6592,17 @@ function App(){
             {(()=>{
               const HCL=JF_LOGO;
               const cardLogo=(playerCards&&currentUser?.id)?playerCards[currentUser.id]?.logo||(String(currentUser.id)==='22'?HCL:null):null;
-              return cardLogo
+              const isGuestUser = currentUser?.role === 'guest';
+              const avatarEl = cardLogo
                 ? <img src={cardLogo} alt={currentUser.ini} style={{width:46,height:46,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
                 : <div className={'user-avatar ' + (isAdmin ? 'admin' : 'member')}>{currentUser.ini}</div>;
+              if(isGuestUser) return avatarEl;
+              return (
+                <button onClick={()=>{loadDeferred('rosterEmails');loadDeferred('history');setShowProfile(true);}} title="My profile"
+                  style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',borderRadius:'50%'}}>
+                  {avatarEl}
+                </button>
+              );
             })()}
             <span className="user-name">{currentUser.name}</span>
             {isAdmin && <span className="user-role admin">{String(currentUser.id)==='22'?'Master':'Admin'}</span>}
@@ -6297,6 +6709,22 @@ function App(){
         onStartNextWeek={startNextWeek}
         onGoTo={setTab} onLogout={()=>{setCurrentUser(null);try{localStorage.removeItem('cgCurrentUser');}catch{}}}
       />}
+
+      {showProfile && currentUser && currentUser.role !== 'guest' && (
+        <ProfileModal
+          currentUser={currentUser}
+          history={history}
+          rosterTee={rosterTee}
+          rosterHcp={rosterHcp}
+          rosterPins={rosterPins}
+          rosterEmails={rosterEmails}
+          playerCards={playerCards}
+          write={write}
+          update={update}
+          onClose={()=>setShowProfile(false)}
+          onLoadDeferred={loadDeferred}
+        />
+      )}
     </div>
   );
 }
