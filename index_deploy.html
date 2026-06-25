@@ -4676,7 +4676,7 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
   const [editRosterVal, setEditRosterVal] = useState('');
   const [editRosterEmailVal, setEditRosterEmailVal] = useState('');
   const [editRosterPinVal, setEditRosterPinVal] = useState('');
-  const [editRosterIsAdmin, setEditRosterIsAdmin] = useState(false);
+  const [editRosterRole, setEditRosterRole] = useState('none'); // 'none' | 'scoring' | 'admin' | 'master'
   const [editRosterHcp, setEditRosterHcp] = useState('');
   const [editRosterTee, setEditRosterTee] = useState('Whites');
   const [localNotes, setLocalNotes] = useState({});
@@ -5045,18 +5045,47 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                             <label className="form-label">Phone # (PIN)</label>
                             <input className="form-input" placeholder="Full number — last 4 stored as PIN" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/>
                           </div>
-                          <div onClick={()=>setEditRosterIsAdmin(v=>!v)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',marginBottom:8,borderRadius:8,border:'1.5px solid',borderColor:editRosterIsAdmin?'var(--warn-border)':'var(--hairline)',background:editRosterIsAdmin?'var(--warn-soft)':'var(--surface-sunken)',cursor:'pointer'}}>
-                            <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:editRosterIsAdmin?'var(--warn-border)':'var(--hairline)',background:editRosterIsAdmin?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                              {editRosterIsAdmin&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                          {editRosterRole==='master' ? (
+                            <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',marginBottom:8,borderRadius:8,border:'1.5px solid #fbbf24',background:'rgba(245,158,11,0.08)'}}>
+                              <span style={{fontSize:14}}>⭐</span>
+                              <div style={{flex:1}}>
+                                <div style={{fontSize:12,fontWeight:700,color:'#92400e'}}>Master Admin</div>
+                                <div style={{fontSize:10,color:'#92400e',opacity:0.7,marginTop:1}}>Master role is managed in the Portal</div>
+                              </div>
                             </div>
-                            <span style={{fontSize:12,fontWeight:600,color:editRosterIsAdmin?'var(--warn-ink)':'var(--ink-50)'}}>Admin access</span>
-                          </div>
+                          ) : (
+                            <div style={{marginBottom:8}}>
+                              <label className="form-label">Access role</label>
+                              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+                                {[
+                                  {v:'none',label:'Member',color:'var(--ink-50)',bg:'var(--surface-sunken)',border:'var(--hairline)'},
+                                  {v:'scoring',label:'📊 Scoring',color:'#8b5cf6',bg:'rgba(139,92,246,0.08)',border:'rgba(139,92,246,0.3)'},
+                                  {v:'admin',label:'🛡️ Admin',color:'var(--warn-ink)',bg:'var(--warn-soft)',border:'var(--warn-border)'},
+                                ].map(opt=>{
+                                  const on=editRosterRole===opt.v;
+                                  return(
+                                    <button key={opt.v} onClick={()=>setEditRosterRole(opt.v)}
+                                      style={{padding:'8px 4px',borderRadius:8,border:'1.5px solid',borderColor:on?opt.border:'var(--hairline)',background:on?opt.bg:'var(--surface)',color:on?opt.color:'var(--ink-50)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                                      {opt.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {editRosterRole==='scoring'&&<div style={{fontSize:10,color:'var(--ink-50)',marginTop:4,lineHeight:1.4}}>Can enter scores and publish results. No other admin access.</div>}
+                              {editRosterRole==='admin'&&<div style={{fontSize:10,color:'var(--ink-50)',marginTop:4,lineHeight:1.4}}>Full admin access — manage signups, roster, settings.</div>}
+                            </div>
+                          )}
                           <div style={{display:'flex',gap:6}}>
                             <button className="btn btn-primary btn-sm" onClick={()=>{
                               if(editRosterVal.trim())onEditRosterName(p.id,editRosterVal.trim());
                               onEditRosterEmail(p.id,editRosterEmailVal.trim());
                               if(editRosterPinVal.trim())onSaveMemberPin(p.id,editRosterPinVal.trim());
-                              onSaveAdminFlag(p.id,editRosterIsAdmin?true:null);
+                              // Save role — preserve 'master' as-is, map other values:
+                              //   'none' → null (remove admin), 'scoring' → 'scoring', 'admin' → true, 'master' → 'master'
+                              if(editRosterRole!=='master'){
+                                const roleVal = editRosterRole==='admin'?true:editRosterRole==='scoring'?'scoring':null;
+                                onSaveAdminFlag(p.id, roleVal);
+                              }
                               if(editRosterHcp!==''){const hcpVal=parseFloat(editRosterHcp);if(!isNaN(hcpVal)){const re={...(rosterEdits||{}),[p.id]:rosterEdits?.[p.id]||p.name};write('rosterHcp/'+p.id,hcpVal);}}
                               write('rosterTee/'+p.id,editRosterTee||'Whites');
                               setEditRosterId(null);
@@ -5070,7 +5099,9 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                             <div style={{fontSize:13,fontWeight:600,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                               {p.name}
                               {p.id>96&&<span style={{fontSize:9,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'var(--brand-soft)',color:'var(--brand)'}}>New</span>}
-                              {isAdminMember&&<span style={{fontSize:9,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'var(--warn-soft)',color:'var(--warn-ink)'}}>Admin</span>}
+                              {(rosterAdmins&&rosterAdmins[p.id]==='master')&&<span style={{fontSize:9,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'rgba(245,158,11,0.15)',color:'#92400e'}}>⭐ Master</span>}
+                              {(rosterAdmins&&rosterAdmins[p.id]==='scoring')&&<span style={{fontSize:9,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'rgba(139,92,246,0.12)',color:'#7c3aed'}}>📊 Scoring</span>}
+                              {(rosterAdmins&&rosterAdmins[p.id]===true)&&<span style={{fontSize:9,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'var(--warn-soft)',color:'var(--warn-ink)'}}>🛡️ Admin</span>}
                             </div>
                             <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>
                               {p.handicap?'HCP '+p.handicap:'No HCP'} · {p.tee||'Whites'}{email?' · '+email:''}
@@ -5078,7 +5109,16 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                             </div>
                           </div>
                           <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0}}>
-                            <button className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={()=>{setEditRosterId(p.id);setEditRosterVal(p.name);setEditRosterEmailVal(email);setEditRosterPinVal('');setEditRosterIsAdmin(isAdminMember);setEditRosterHcp(p.handicap!=null?String(p.handicap):'');setEditRosterTee(p.tee||'Whites');}}>Edit</button>
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={()=>{
+                              setEditRosterId(p.id);
+                              setEditRosterVal(p.name);
+                              setEditRosterEmailVal(email);
+                              setEditRosterPinVal('');
+                              const cur = rosterAdmins && rosterAdmins[p.id];
+                              setEditRosterRole(cur==='master'?'master':cur==='scoring'?'scoring':cur?'admin':'none');
+                              setEditRosterHcp(p.handicap!=null?String(p.handicap):'');
+                              setEditRosterTee(p.tee||'Whites');
+                            }}>Edit</button>
                             <button onClick={()=>{if(window.confirm('Remove '+p.name+' from roster?')){if(p.id>96)onRemovePlayer(p.id);else onHidePlayer(p.id);}}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',padding:4}}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                             </button>
@@ -6526,6 +6566,23 @@ function App(){
     setCurrentUser(null);
     try{ localStorage.removeItem('cgCurrentUser'); } catch{}
   }
+
+  // Live-sync the logged-in user's role when their rosterAdmins value changes
+  // Fixes: admin/scoring role promotions/demotions used to require sign-out + sign-in
+  useEffect(()=>{
+    if(!currentUser || currentUser.role === 'guest' || !ready) return;
+    const fbRole = rosterAdmins && rosterAdmins[currentUser.id];
+    // Map Firebase value → role string used in UI
+    const expectedRole = fbRole === 'master' ? 'admin'  // master still uses 'admin' role UI tabs
+      : fbRole === 'scoring' ? 'scoring'
+      : fbRole ? 'admin'
+      : 'member';
+    if(currentUser.role !== expectedRole){
+      const updated = {...currentUser, role: expectedRole};
+      setCurrentUser(updated);
+      try { localStorage.setItem('cgCurrentUser', JSON.stringify(updated)); } catch {}
+    }
+  }, [rosterAdmins, currentUser?.id, currentUser?.role, ready]);
 
 
   // Show landing if not signed in
