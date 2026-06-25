@@ -3304,8 +3304,20 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
             u[swap.ti].players[swap.pi]=u[swap.tj].players[swap.pj];
             u[swap.tj].players[swap.pj]=tmp;
             reSlot(u);
-            saveTeams(activeDay,u);
-            editInPlace(activeDay);
+            // Update state so the swapped teams are visible immediately.
+            // - In manual mode: just update manualTeams
+            // - In draft (editTeams) mode: update editTeams
+            // - When teams are already published: save to Firebase, unpublish, and put the new u into editTeams
+            //   (use `u` directly — savedTeams from the closure is stale at this point)
+            if(manualMode){
+              setManualTeams(u);
+            } else if(editTeams){
+              setEditTeams(u);
+            } else {
+              saveTeams(activeDay,u);
+              del('week/teamsPublished/'+activeDay);
+              setEditTeams(u);
+            }
             setShowBalance(false);
             showToast('Swap applied — review and re-publish');
           }
