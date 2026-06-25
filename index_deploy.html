@@ -84,7 +84,7 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 }
 .user-strip{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.06);max-width:760px;margin:0 auto}
 .user-strip-left{display:flex;align-items:center;gap:10px;min-width:0}
-.user-avatar{width:30px;height:30px;border-radius:50%;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:0.02em}
+.user-avatar{width:38px;height:38px;border-radius:50%;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:0.02em}
 .user-avatar.admin{background:rgba(184,101,31,0.2);color:#E8C9A6;border:1px solid rgba(184,101,31,0.35)}
 .user-avatar.member{background:rgba(31,107,71,0.25);color:#A8D5BE;border:1px solid rgba(31,107,71,0.4)}
 .user-name{font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -237,7 +237,7 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   html,body{font-size:16px}
   .dark-zone{box-shadow:0 2px 20px rgba(0,0,0,0.22)}
   .user-strip{max-width:1200px;padding:0 40px;height:60px;border-bottom:none}
-  .user-avatar{width:36px;height:36px;font-size:13px}
+  .user-avatar{width:46px;height:46px;font-size:15px}
   .user-name{font-size:14px}
   .user-role{font-size:10px;padding:3px 9px}
   .user-signout{font-size:13px}
@@ -683,7 +683,7 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
                 const hasPin=!!(rosterPins&&rosterPins[p.id]);
                 return(
                   <div key={p.id} onClick={()=>{setSelId(p.id);setSelName(p.name);setStep(2);setPhone('');setPhoneConfirm('');}} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 13px',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
-                    <div style={{width:34,height:34,borderRadius:'50%',background:'#dcfce7',color:'#15803d',fontFamily:'Barlow Condensed,sans-serif',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+                    <div style={{width:46,height:46,borderRadius:'50%',background:'#dcfce7',color:'#15803d',fontFamily:'Barlow Condensed,sans-serif',fontSize:17,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
                     <div style={{flex:1,fontSize:15,fontWeight:600,color:'#0f172a'}}>{p.name}</div>
                     {hasPin&&<span style={{fontSize:11,fontWeight:700,color:'#f59e0b',background:'#fffbeb',padding:'2px 8px',borderRadius:20}}>Update</span>}
                   </div>
@@ -700,8 +700,8 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
             </div>
             <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 13px',background:'#ecfdf5',border:'1.5px solid #10b981',borderRadius:10,marginBottom:16}}>
               {String(selId)==='22'
-                ? <img src={JF_LOGO} alt="JF" style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
-                : <div style={{width:34,height:34,borderRadius:'50%',background:'#1a4d2e',color:'#fff',fontFamily:'Barlow Condensed,sans-serif',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{selName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+                ? <img src={JF_LOGO} alt="JF" style={{width:46,height:46,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
+                : <div style={{width:46,height:46,borderRadius:'50%',background:'#1a4d2e',color:'#fff',fontFamily:'Barlow Condensed,sans-serif',fontSize:17,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{selName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
               }
               <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:'#0f172a'}}>{selName}</div><div style={{fontSize:12,color:'#15803d',fontWeight:600}}>✓ That&apos;s me</div></div>
               <button onClick={()=>{setStep(1);setQ('');}} style={{background:'none',border:'1.5px solid #e2e8f0',borderRadius:7,padding:'4px 10px',fontSize:12,fontWeight:600,color:'#64748b',cursor:'pointer',fontFamily:'DM Sans,sans-serif',flexShrink:0}}>Change</button>
@@ -860,8 +860,8 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
         {disambigList.map(m=>(
           <button key={m.id} className="land-btn" style={{background:'rgba(255,255,255,0.08)',color:'#fff',border:'1.5px solid rgba(255,255,255,0.15)',marginBottom:10}} onClick={()=>completeLogin(m.id)}>
             {String(m.id)==='22'
-              ? <img src={JF_LOGO} alt="JF" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
-              : <div style={{width:40,height:40,borderRadius:'50%',background:'#1a4d2e',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Barlow Condensed,sans-serif',fontSize:16,fontWeight:700,flexShrink:0}}>{mkIni(m.name)}</div>
+              ? <img src={JF_LOGO} alt="JF" style={{width:56,height:56,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
+              : <div style={{width:56,height:56,borderRadius:'50%',background:'#1a4d2e',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Barlow Condensed,sans-serif',fontSize:20,fontWeight:700,flexShrink:0}}>{mkIni(m.name)}</div>
             }
             <div className="land-btn-text"><span className="land-btn-main">{m.name}</span></div>
             <span className="land-arrow">›</span>
@@ -1361,12 +1361,14 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
 
 // ═══════════════ TEE TIME MODAL ═══════════════
 function TeeTimeModal({ day, onClose, onSave }){
-  const [time, setTime] = useState(day.tee.time || '');
+  // Initialize from existing time, defaulting to 8:00 AM if none set
+  const initialTime = day.tee.time && day.tee.time !== 'LOTTERY' ? day.tee.time : '08:00 AM';
+  const [time, setTime] = useState(initialTime);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
   async function handleSave(){
-    if(!time.trim()){ setErr('Enter a tee time'); return; }
+    if(!time.trim()){ setErr('Pick a tee time'); return; }
     setSaving(true);
     await onSave(day.day, time.trim());
     onClose();
@@ -1386,8 +1388,8 @@ function TeeTimeModal({ day, onClose, onSave }){
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label className="form-label">Tee time (e.g. 8:00 AM)</label>
-            <input className="form-input" type="text" placeholder="8:00 AM" value={time} onChange={e=>{ setTime(e.target.value); setErr(''); }}/>
+            <label className="form-label">Tee time</label>
+            <TimePicker initialValue={initialTime} onChange={v=>{setTime(v);setErr('');}}/>
           </div>
           {err && <div className="form-err">{err}</div>}
         </div>
@@ -5235,8 +5237,16 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
 }
 
 // Simple setup wizard for v2
-function TimePicker({onChange}){
-  const [h,setH]=useState('7');const [m,setM]=useState('00');const [ap,setAp]=useState('AM');
+function TimePicker({onChange, initialValue}){
+  // Parse "HH:MM AM/PM" if provided
+  function parse(v){
+    if(!v||typeof v!=='string')return null;
+    const m=v.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if(!m)return null;
+    return {h:String(parseInt(m[1])),m:m[2],ap:m[3].toUpperCase()};
+  }
+  const init=parse(initialValue);
+  const [h,setH]=useState(init?init.h:'7');const [m,setM]=useState(init?init.m:'00');const [ap,setAp]=useState(init?init.ap:'AM');
   const hrs=Array.from({length:12},(_,i)=>String(i+1));const mins=['00','15','30','45'];
   function emit(nh,nm,nap){onChange(nh.padStart(2,'0')+':'+nm+' '+nap);}
   return(
@@ -6179,7 +6189,7 @@ function App(){
               const HCL=JF_LOGO;
               const cardLogo=(playerCards&&currentUser?.id)?playerCards[currentUser.id]?.logo||(String(currentUser.id)==='22'?HCL:null):null;
               return cardLogo
-                ? <img src={cardLogo} alt={currentUser.ini} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
+                ? <img src={cardLogo} alt={currentUser.ini} style={{width:46,height:46,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
                 : <div className={'user-avatar ' + (isAdmin ? 'admin' : 'member')}>{currentUser.ini}</div>;
             })()}
             <span className="user-name">{currentUser.name}</span>
