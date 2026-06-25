@@ -2757,7 +2757,9 @@ function AnnounceTab({user}){
 
           {/* Body */}
           <div className="lbl">Message (optional)</div>
-          <textarea className="inp" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr("");}} rows={3} maxLength={BODY_MAX+20} style={{marginBottom:4,minHeight:70}}/>
+          <textarea className="inp" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr("");}} maxLength={BODY_MAX+20}
+            ref={el=>{if(el){el.style.height="auto";el.style.height=Math.max(90, Math.min(320, el.scrollHeight))+"px";}}}
+            style={{marginBottom:4,minHeight:90,resize:"none",overflow:"hidden",lineHeight:1.5}}/>
           <div style={{fontSize:10,color:body.length>BODY_MAX?"#ef4444":"rgba(255,255,255,0.3)",textAlign:"right",marginBottom:14}}>{body.length}/{BODY_MAX}</div>
 
           {/* Display style */}

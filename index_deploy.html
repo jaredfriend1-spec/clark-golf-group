@@ -5413,7 +5413,7 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                 ):(
                   <div>
                     {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
-                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match request',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'}};
+                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match request',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
                       const cfg=ACFG[e.action]||{label:e.action?.replace(/_/g,' ')||'',color:'var(--ink-50)',icon:'•'};
                       const age=Date.now()-(e.ts||0);
                       const ageStr=age<3600000?Math.round(age/60000)+'m ago':age<86400000?Math.round(age/3600000)+'h ago':Math.round(age/86400000)+'d ago';
@@ -5429,6 +5429,11 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                               {e.isGuest&&<span style={{fontSize:10,color:'var(--ink-50)',background:'var(--surface-sunken)',padding:'1px 6px',borderRadius:20,fontWeight:600}}>Guest</span>}
                               {e.guestOf&&<span style={{fontSize:11,color:'var(--ink-50)'}}>of <strong style={{color:'var(--ink)'}}>{e.guestOf}</strong></span>}
                             </div>
+                            {e.action==='profile_edit'&&Array.isArray(e.changes)&&e.changes.length>0&&(
+                              <div style={{fontSize:11,color:'var(--ink-50)',marginTop:3,lineHeight:1.5}}>
+                                {e.changes.join(' · ')}
+                              </div>
+                            )}
                             <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                               <span style={{fontSize:10,color:'var(--ink-40)'}}>{ageStr}</span>
                               {e.by&&e.by!==e.name&&<span style={{fontSize:10,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',padding:'2px 7px',borderRadius:20}}>by {e.by}</span>}
@@ -6211,33 +6216,37 @@ function AnnouncementBanner({ announcement, onDismiss }){
   if(!announcement) return null;
   const cat = getAnnCategory(announcement.category);
   const [expanded, setExpanded] = useState(false);
-  const hasLongBody = (announcement.body || '').length > 60;
+  const hasLongBody = (announcement.body || '').length > 100;
   return (
     <div style={{
       background: cat.soft, borderBottom:'1px solid '+cat.border,
-      padding:'10px 14px', display:'flex', alignItems:'flex-start', gap:10,
+      padding:'14px 16px', display:'flex', alignItems:'flex-start', gap:12,
       animation:'fadeIn 0.25s ease-out',
     }}>
-      <div style={{fontSize:18,lineHeight:1,flexShrink:0,marginTop:1}}>{cat.icon}</div>
+      <div style={{fontSize:24,lineHeight:1,flexShrink:0,marginTop:1}}>{cat.icon}</div>
       <div style={{flex:1, minWidth:0, cursor: hasLongBody ? 'pointer' : 'default'}} onClick={()=>hasLongBody && setExpanded(e=>!e)}>
-        <div style={{fontSize:13, fontWeight:700, color:cat.color, lineHeight:1.3}}>
+        <div style={{fontSize:16, fontWeight:700, color:cat.color, lineHeight:1.3}}>
           {announcement.title}
         </div>
         {announcement.body && (
           <div style={{
-            fontSize:12, color:'var(--ink-70)', marginTop:2, lineHeight:1.4,
+            fontSize:14, color:'var(--ink-70)', marginTop:4, lineHeight:1.5,
             overflow: expanded ? 'visible' : 'hidden',
             display: expanded ? 'block' : '-webkit-box',
-            WebkitLineClamp: expanded ? 'none' : 2,
-            WebkitBoxOrient: 'vertical'
+            WebkitLineClamp: expanded ? 'none' : 3,
+            WebkitBoxOrient: 'vertical',
+            whiteSpace: expanded ? 'pre-wrap' : 'normal'
           }}>
             {announcement.body}
           </div>
         )}
+        {hasLongBody && !expanded && (
+          <div style={{fontSize:11, fontWeight:700, color:cat.color, opacity:0.8, marginTop:6}}>Tap to read more →</div>
+        )}
       </div>
       <button onClick={onDismiss} title="Dismiss"
-        style={{background:'none',border:'none',cursor:'pointer',color:cat.color,opacity:0.7,padding:4,flexShrink:0,display:'flex',alignItems:'center'}}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        style={{background:'none',border:'none',cursor:'pointer',color:cat.color,opacity:0.7,padding:6,flexShrink:0,display:'flex',alignItems:'center'}}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
   );
@@ -6248,13 +6257,13 @@ function AnnouncementModal({ announcement, onDismiss }){
   const cat = getAnnCategory(announcement.category);
   return (
     <div style={{position:'fixed',inset:0,zIndex:9050,background:'rgba(15,15,15,0.55)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,animation:'fadeIn 0.2s ease-out'}}>
-      <div style={{background:'var(--surface)',borderRadius:18,maxWidth:420,width:'100%',padding:'30px 24px 22px',textAlign:'center',animation:'slideUp 0.25s ease-out',boxShadow:'0 12px 48px rgba(0,0,0,0.25)',borderTop:'4px solid '+cat.color}}>
-        <div style={{fontSize:56, lineHeight:1, marginBottom:14}}>{cat.icon}</div>
-        <div style={{fontSize:11,fontWeight:700,color:cat.color,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{cat.label}</div>
-        <div style={{fontSize:20,fontWeight:800,color:'var(--ink)',lineHeight:1.25,marginBottom:12}}>{announcement.title}</div>
-        {announcement.body && <div style={{fontSize:14,color:'var(--ink-70)',lineHeight:1.5,marginBottom:22,whiteSpace:'pre-wrap'}}>{announcement.body}</div>}
+      <div style={{background:'var(--surface)',borderRadius:18,maxWidth:480,width:'100%',padding:'34px 28px 26px',textAlign:'center',animation:'slideUp 0.25s ease-out',boxShadow:'0 12px 48px rgba(0,0,0,0.25)',borderTop:'4px solid '+cat.color,maxHeight:'88vh',overflowY:'auto'}}>
+        <div style={{fontSize:64, lineHeight:1, marginBottom:16}}>{cat.icon}</div>
+        <div style={{fontSize:13,fontWeight:700,color:cat.color,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{cat.label}</div>
+        <div style={{fontSize:24,fontWeight:800,color:'var(--ink)',lineHeight:1.25,marginBottom:14}}>{announcement.title}</div>
+        {announcement.body && <div style={{fontSize:16,color:'var(--ink-70)',lineHeight:1.55,marginBottom:26,whiteSpace:'pre-wrap',textAlign:'left'}}>{announcement.body}</div>}
         <button onClick={onDismiss}
-          style={{background:cat.color,color:'#fff',border:'none',borderRadius:10,padding:'12px 32px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',minWidth:140}}>
+          style={{background:cat.color,color:'#fff',border:'none',borderRadius:12,padding:'14px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit',minWidth:160}}>
           Got it
         </button>
       </div>
@@ -6352,7 +6361,9 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
           {/* BODY */}
           <div className="form-group">
             <label className="form-label">Message (optional)</label>
-            <textarea className="form-input" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr('');}} rows={3} maxLength={BODY_MAX+20} style={{resize:'vertical',minHeight:60,fontFamily:'inherit'}}/>
+            <textarea className="form-input" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr('');}} maxLength={BODY_MAX+20}
+              ref={el=>{if(el){el.style.height='auto';el.style.height=Math.max(80, Math.min(300, el.scrollHeight))+'px';}}}
+              style={{resize:'none',minHeight:80,fontFamily:'inherit',overflow:'hidden',lineHeight:1.5}}/>
             <div style={{fontSize:10,color:body.length>BODY_MAX?'var(--money-neg)':'var(--ink-40)',marginTop:3,textAlign:'right'}}>{body.length}/{BODY_MAX}</div>
           </div>
 
@@ -6452,7 +6463,7 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
 }
 
 // ═══════════════ PROFILE MODAL ═══════════════
-function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, rosterEmails, playerCards, write, update, onClose, onLoadDeferred }){
+function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, rosterEmails, playerCards, write, update, onClose, onLoadDeferred, onLogProfileEdit }){
   const playerId = currentUser?.id;
   const isMaster = String(playerId)==='22';
 
@@ -6638,27 +6649,56 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
 
     try {
       const updates = {};
+      // Track which fields changed for activity log
+      const changes = [];
       // Default tee
-      updates['rosterTee/'+playerId] = tee || 'Whites';
+      const newTee = tee || 'Whites';
+      if(newTee !== currentTee){ changes.push('tee: ' + currentTee + ' → ' + newTee); }
+      updates['rosterTee/'+playerId] = newTee;
       // Default handicap
+      const newHcpVal = hcp === '' ? null : parseFloat(hcp);
+      const oldHcpVal = currentHcp === '' ? null : parseFloat(currentHcp);
+      if(newHcpVal !== oldHcpVal){
+        changes.push('handicap: ' + (oldHcpVal == null ? '—' : oldHcpVal) + ' → ' + (newHcpVal == null ? '—' : newHcpVal));
+      }
       if(hcp === '') updates['rosterHcp/'+playerId] = null;
       else updates['rosterHcp/'+playerId] = parseFloat(hcp);
       // Phone (last 4 = PIN)
       if(changingPhone){
         updates['rosterPins/'+playerId] = newPin;
+        changes.push('PIN updated');
       }
       // Email
-      updates['rosterEmails/'+playerId] = email.trim() || null;
+      const newEmail = email.trim();
+      if(newEmail !== (currentEmail || '')){
+        changes.push('email: ' + (currentEmail || '—') + ' → ' + (newEmail || '—'));
+      }
+      updates['rosterEmails/'+playerId] = newEmail || null;
       // Login card (logo + message + theme)
       const cardData = {};
-      // Don't save hardcoded JF logo back to Firebase for master admin
       if(logo && logo !== hardcodedJF) cardData.logo = logo;
-      else if(logo === hardcodedJF) {} // skip — uses the fallback
+      else if(logo === hardcodedJF) {}
       if(msg.trim()) cardData.message = msg.trim();
       if(theme && theme !== 'default') cardData.theme = theme;
+      // Detect card changes
+      const hadLogo = !!(currentCard.logo);
+      const hasLogo = !!cardData.logo;
+      if(hadLogo !== hasLogo) changes.push(hasLogo ? 'photo added' : 'photo removed');
+      else if(hadLogo && hasLogo && currentCard.logo !== cardData.logo) changes.push('photo changed');
+      if((currentMsg || '') !== (cardData.message || '')){
+        changes.push('welcome message ' + (cardData.message ? 'updated' : 'cleared'));
+      }
+      if((currentTheme || 'default') !== (theme || 'default')){
+        changes.push('theme: ' + (currentTheme || 'default') + ' → ' + (theme || 'default'));
+      }
       updates['settings/playerCards/'+playerId] = Object.keys(cardData).length > 0 ? cardData : null;
 
       await update(updates);
+
+      // Log profile edit to activity log (only if something actually changed)
+      if(changes.length > 0 && onLogProfileEdit){
+        onLogProfileEdit({ name: currentUser?.name || 'Player', changes, by: currentUser?.name || 'Player', byRole: currentUser?.role || 'member' });
+      }
 
       setToast('Saved ✓');
       setTimeout(()=>{ setToast(''); onClose(); }, 1100);
@@ -7347,6 +7387,7 @@ function App(){
           update={update}
           onClose={()=>setShowProfile(false)}
           onLoadDeferred={loadDeferred}
+          onLogProfileEdit={(payload)=>logActivity('profile_edit', payload)}
         />
       )}
 
