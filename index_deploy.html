@@ -6374,9 +6374,23 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
           {/* BODY */}
           <div className="form-group">
             <label className="form-label">Message (optional)</label>
-            <textarea className="form-input" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr('');}} maxLength={BODY_MAX+20}
-              ref={el=>{if(el){el.style.height='auto';el.style.height=Math.max(80, Math.min(300, el.scrollHeight))+'px';}}}
-              style={{resize:'none',minHeight:80,fontFamily:'inherit',overflow:'hidden',lineHeight:1.5}}/>
+            <textarea className="form-input" placeholder="Add details..." value={body} maxLength={BODY_MAX+20}
+              onChange={e=>{
+                setBody(e.target.value);
+                setErr('');
+                e.target.style.height='auto';
+                e.target.style.height=Math.max(120, Math.min(400, e.target.scrollHeight))+'px';
+              }}
+              ref={el=>{
+                if(el){
+                  // Set initial height on mount (and when body changes via prop)
+                  requestAnimationFrame(()=>{
+                    el.style.height='auto';
+                    el.style.height=Math.max(120, Math.min(400, el.scrollHeight))+'px';
+                  });
+                }
+              }}
+              style={{resize:'none',minHeight:120,fontFamily:'inherit',overflow:'hidden',lineHeight:1.5,fontSize:15}}/>
             <div style={{fontSize:10,color:body.length>BODY_MAX?'var(--money-neg)':'var(--ink-40)',marginTop:3,textAlign:'right'}}>{body.length}/{BODY_MAX}</div>
           </div>
 
