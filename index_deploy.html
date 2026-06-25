@@ -1414,7 +1414,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:700,color:'var(--warn-ink)',marginBottom:3}}>For formal match play only</div>
                 <div style={{fontSize:11,color:'var(--warn-ink)',lineHeight:1.5}}>
-                  This is for an actual head-to-head match (competition). <strong>Not</strong> for requesting to play with a friend or be on the same team — Clark builds teams to balance handicaps.
+                  This is for an actual head-to-head match (competition). <strong>Not</strong> for requesting to play with a friend or be on the same team — the app builds teams to balance handicaps.
                 </div>
               </div>
             </div>
@@ -3135,7 +3135,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
                   {icon:'🎲', title:'Blind draws for short teams', body:'If the player count doesn\'t divide evenly, some teams will be one player short. The app suggests a blind draw — a player from another team who also plays for the short team. The suggested draw is whoever best balances the HCP spread.'},
                   {icon:'ℹ️', title:'Transparency popup', body:'Right after auto-generate, a card appears at the top of the teams view showing the final HCP spread, how many auto-balance swaps were applied, and every request that was honored. Tap ✕ to dismiss.'},
                   {icon:'🔧', title:'Manual Balance tool', body:'For further tuning, the ⚖️ Balance button finds the top single-swap suggestions you can apply one at a time. Useful when constraints prevent the auto-pass from getting it perfect.'},
-                  {icon:'✏️', title:'Clark can always adjust', body:'Drag players between teams, use the Move button on mobile, or apply Balance suggestions. Any changes are visible to everyone once re-published.'},
+                  {icon:'✏️', title:'Admins can always adjust', body:'Drag players between teams, use the Move button on mobile, or apply Balance suggestions. Any changes are visible to everyone once re-published.'},
                 ].map(({icon,title,body})=>(
                   <div key={title} style={{padding:'10px 12px',borderRadius:8,borderLeft:'3px solid var(--brand-border)',background:'var(--surface-sunken)',marginBottom:8}}>
                     <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',marginBottom:3}}>{icon} {title}</div>
@@ -7078,7 +7078,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
 
           {/* Read-only note */}
           <div style={{marginTop:16,padding:'10px 12px',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,fontSize:11,color:'var(--ink-50)',lineHeight:1.5}}>
-            <strong style={{color:'var(--ink-70)'}}>Need to change your name?</strong> Ask Clark — name changes are admin-only to protect historical records.
+            <strong style={{color:'var(--ink-70)'}}>Need to change your name?</strong> Ask an admin — name changes are admin-only to protect historical records.
           </div>
 
         </div>
