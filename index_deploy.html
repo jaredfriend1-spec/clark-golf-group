@@ -444,6 +444,8 @@ function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs,noPairs){
   const pinnedNames=new Set((pinned||[]).map(p=>p.name));
   const guestPairNames=new Set((guestPairs||[]).flatMap(g=>[g.guest,g.member]));
   const unpinned=players.filter(p=>!pinnedNames.has(p.name)&&!guestPairNames.has(p.name));
+
+  // 1. Place constrained groups first (matches + guest+host pairs)
   (guestPairs||[]).forEach(pair=>{
     const guestPlayer=players.find(p=>p.name===pair.guest);
     const memberPlayer=players.find(p=>p.name===pair.member);
@@ -452,6 +454,7 @@ function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs,noPairs){
     const target=(eligible.length>0?eligible:teams).reduce((best,t)=>t.totalHcp<best.totalHcp?t:best);
     [memberPlayer,guestPlayer].forEach(p=>{target.players.push({...p});target.totalHcp+=parseFloat(p.handicap)||0;});
   });
+  // 2. Place pinned tee requests (first/last group)
   pinnedFirst.forEach(pin=>{
     const player=players.find(p=>p.name===pin.name);if(!player)return;
     const target=teams[0].players.length<teams[0]._target?0:(numTeams>1?1:0);
@@ -465,75 +468,82 @@ function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs,noPairs){
     teams[target].players.push({...player});
     teams[target].totalHcp+=parseFloat(player.handicap)||0;
   });
-  const sorted=[...unpinned].sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
-  let round=0;let pi=0;
-  while(pi<sorted.length){
-    const indices=Array.from({length:numTeams},(_,i)=>i);
-    const order=round%2===0?indices:[...indices].reverse();
-    const eligible=order.filter(i=>teams[i].players.length<teams[i]._target);
+
+  // 3. GREEDY balance placement for remaining unconstrained players.
+  // Process highest HCP first (more impact on balance), then for each player
+  // assign to the team with the lowest current total HCP (subject to noPair + capacity).
+  const sortedDesc=[...unpinned].sort((a,b)=>parseFloat(b.handicap)-parseFloat(a.handicap));
+  for(const player of sortedDesc){
+    const eligible=teams.filter(t=>t.players.length<t._target);
     if(!eligible.length)break;
-    if(pairingCounts&&Object.keys(pairingCounts).length>0){
-      const roundPlayers=[];
-      for(let j=0;j<eligible.length&&pi+j<sorted.length;j++){roundPlayers.push(sorted[pi+j]);}
-      if(roundPlayers.length<=eligible.length){
-        const used=new Set();
-        for(const ti of eligible){
-          if(pi>=sorted.length)break;
-          let bestIdx=-1;let bestScore=Infinity;
-          for(let j=0;j<roundPlayers.length;j++){
-            if(used.has(j))continue;
-            const score=teams[ti].players.reduce((sum,tp)=>{
-              const key=[roundPlayers[j].name,tp.name].sort().join('|');
-              const noPairPenalty=noPairSet.has(key)?10000:0;
-              return sum+(pairingCounts[key]||0)+noPairPenalty;
-            },0);
-            if(score<bestScore||(score===bestScore&&bestIdx===-1)){bestScore=score;bestIdx=j;}
-          }
-          if(bestIdx>=0){
-            used.add(bestIdx);
-            teams[ti].players.push({...roundPlayers[bestIdx]});
-            teams[ti].totalHcp+=parseFloat(roundPlayers[bestIdx].handicap)||0;
-            pi++;
-          }
-        }
-      } else {
-        for(const ti of eligible){
-          if(pi>=sorted.length)break;
-          let safeTi=ti;
-          if(noPairSet.size>0){
-            const candidate=sorted[pi];
-            const hasConflict=teams[ti].players.some(tp=>noPairSet.has([candidate.name,tp.name].sort().join('|')));
-            if(hasConflict){
-              const alt=eligible.find(t=>t!==ti&&teams[t].players.length<teams[t]._target&&!teams[t].players.some(tp=>noPairSet.has([candidate.name,tp.name].sort().join('|'))));
-              if(alt!==undefined)safeTi=alt;
-            }
-          }
-          teams[safeTi].players.push({...sorted[pi]});
-          teams[safeTi].totalHcp+=parseFloat(sorted[pi].handicap)||0;
-          pi++;
-        }
-      }
-    } else {
-      for(const ti of eligible){
-        if(pi>=sorted.length)break;
-        // Check noPair: skip this team if it would create a conflict
-        let safeTi=ti;
-        if(noPairSet.size>0){
-          const candidate=sorted[pi];
-          const hasConflict=teams[ti].players.some(tp=>noPairSet.has([candidate.name,tp.name].sort().join('|')));
-          if(hasConflict){
-            // Find an alternative eligible team without conflict
-            const alt=eligible.find(t=>t!==ti&&teams[t].players.length<teams[t]._target&&!teams[t].players.some(tp=>noPairSet.has([candidate.name,tp.name].sort().join('|'))));
-            if(alt!==undefined)safeTi=alt;
-          }
-        }
-        teams[safeTi].players.push({...sorted[pi]});
-        teams[safeTi].totalHcp+=parseFloat(sorted[pi].handicap)||0;
-        pi++;
+    // Try teams without noPair conflicts first; fall back to any eligible team
+    const safe=eligible.filter(t=>!t.players.some(tp=>noPairSet.has([player.name,tp.name].sort().join('|'))));
+    const pool=safe.length>0?safe:eligible;
+    // Among the pool, also break ties using pairingCounts (avoid repeat partners)
+    let target=pool[0];
+    let bestKey=[target.totalHcp, pairCountFor(player,target,pairingCounts)];
+    for(let i=1;i<pool.length;i++){
+      const t=pool[i];
+      const key=[t.totalHcp, pairCountFor(player,t,pairingCounts)];
+      if(key[0]<bestKey[0]||(key[0]===bestKey[0]&&key[1]<bestKey[1])){
+        target=t;bestKey=key;
       }
     }
-    round++;
+    target.players.push({...player});
+    target.totalHcp+=parseFloat(player.handicap)||0;
   }
+
+  // Capture spread BEFORE balance pass (for transparency popup)
+  function computeSpread(ts){
+    const hcps=ts.map(t=>t.totalHcp);
+    return hcps.length?Math.max(...hcps)-Math.min(...hcps):0;
+  }
+  const initialSpread=computeSpread(teams);
+
+  // 4. AUTO-BALANCE PASS — iteratively try every legal swap, apply best if improvement > 2.
+  // Constrained players (matches, guest+host pairs, pinned) are NOT swapped.
+  const constrainedNames=new Set([...pinnedNames,...guestPairNames]);
+  const SWAP_THRESHOLD=2;
+  const MAX_SWAPS=20;
+  let swapsApplied=0;
+  let improved=true;
+  while(improved&&swapsApplied<MAX_SWAPS){
+    improved=false;
+    let best=null;let bestImp=SWAP_THRESHOLD;
+    const currentSpread=computeSpread(teams);
+    for(let i=0;i<teams.length;i++){
+      for(let j=i+1;j<teams.length;j++){
+        for(let pi=0;pi<teams[i].players.length;pi++){
+          for(let pj=0;pj<teams[j].players.length;pj++){
+            const pA=teams[i].players[pi];const pB=teams[j].players[pj];
+            if(constrainedNames.has(pA.name)||constrainedNames.has(pB.name))continue;
+            // Would the swap create a noPair conflict?
+            const conflictA=teams[j].players.some(tp=>tp.name!==pB.name&&noPairSet.has([pA.name,tp.name].sort().join('|')));
+            const conflictB=teams[i].players.some(tp=>tp.name!==pA.name&&noPairSet.has([pB.name,tp.name].sort().join('|')));
+            if(conflictA||conflictB)continue;
+            const hA=parseFloat(pA.handicap)||0;
+            const hB=parseFloat(pB.handicap)||0;
+            const newTotals=teams.map((t,idx)=>idx===i?t.totalHcp-hA+hB:idx===j?t.totalHcp-hB+hA:t.totalHcp);
+            const newSpread=Math.max(...newTotals)-Math.min(...newTotals);
+            const imp=currentSpread-newSpread;
+            if(imp>bestImp){bestImp=imp;best={i,j,pi,pj,pA,pB,hA,hB};}
+          }
+        }
+      }
+    }
+    if(best){
+      const {i,j,pi,pj,pA,pB,hA,hB}=best;
+      teams[i].players[pi]={...pB};
+      teams[j].players[pj]={...pA};
+      teams[i].totalHcp=teams[i].totalHcp-hA+hB;
+      teams[j].totalHcp=teams[j].totalHcp-hB+hA;
+      swapsApplied++;
+      improved=true;
+    }
+  }
+  const finalSpread=computeSpread(teams);
+
+  // 5. Sort each team's players by HCP, assign slots, set blind draw for short teams.
   teams.forEach(t=>{
     t.players.sort((a,b)=>parseFloat(a.handicap)-parseFloat(b.handicap));
     t.players.forEach((p,i)=>{p.slot=slots[i]||'D';});
@@ -559,7 +569,30 @@ function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs,noPairs){
     team.blindDraw={name:best.name,handicap:best.handicap,tee:best.tee||'Whites',fromDraw:true,suggested:true};
   });
   teams.forEach(t=>{delete t._target;});
+
+  // Attach build metadata for the transparency popup
+  teams._buildInfo={
+    initialSpread:Math.round(initialSpread*10)/10,
+    finalSpread:Math.round(finalSpread*10)/10,
+    swapsApplied,
+    spreadReduction:Math.round((initialSpread-finalSpread)*10)/10,
+    pinnedFirst:pinnedFirst.map(p=>p.name),
+    pinnedLast:pinnedLast.map(p=>p.name),
+    guestPairs:(guestPairs||[]).map(g=>({member:g.member,guest:g.guest})),
+    noPairCount:(noPairs||[]).length,
+  };
   return teams;
+}
+
+// Helper: count of prior pairings between this player and players on a team
+function pairCountFor(player,team,pairingCounts){
+  if(!pairingCounts)return 0;
+  let n=0;
+  for(const tp of team.players){
+    const key=[player.name,tp.name].sort().join('|');
+    n+=pairingCounts[key]||0;
+  }
+  return n;
 }
 
 function calcPot(playerCount){const fund=playerCount;const skinsGross=playerCount*10;const skins=skinsGross;const side=playerCount*5;return{skins,skinsGross,front:side,back:side,overall:side,total:skins-fund+side*3,fund,gross:playerCount*25};}
@@ -2791,6 +2824,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
   const [pickQ, setPickQ] = useState('');
   const [blindModal, setBlindModal] = useState(null);
   const [showBalance, setShowBalance] = useState(false);
+  const [buildInfo, setBuildInfo] = useState(null);  // {teams meta + match pairs, day}, set by gen()
   const [showTeamInfo, setShowTeamInfo] = useState(false);
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState(null);
@@ -2891,7 +2925,20 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
       .filter(r=>r&&r.active)
       .map(r=>({a:r.playerA_name,b:r.playerB_name}))
       .filter(p=>!matchPairSet.has([p.a,p.b].sort().join('|')));
-    setEditTeams(buildTeams(daySignups,s,pinned,pairingCounts,allPairs,noPairs));
+    const newTeams=buildTeams(daySignups,s,pinned,pairingCounts,allPairs,noPairs);
+    setEditTeams(newTeams);
+    // Capture transparency metadata for the popup (combines what buildTeams knows + what gen() knows)
+    if(newTeams&&newTeams._buildInfo){
+      setBuildInfo({
+        day:activeDay,
+        ...newTeams._buildInfo,
+        // gen() knows match-vs-guest distinction (buildTeams treats both as "guest pairs" internally)
+        matchPairs:matchPairs.slice(),
+        guestPairsOnly:guestPairs.slice(),  // override buildTeams' combined list
+      });
+    } else {
+      setBuildInfo(null);
+    }
     setShowAutoOpts(false);
   }
 
@@ -2900,6 +2947,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     const final=(editTeams||manualTeams||savedTeams).map((t,i)=>({...t,name:names[i]||'Team '+(i+1)}));
     publishTeams(activeDay, final);
     setEditTeams(null); setManualTeams(null); setManualMode(false);
+    setBuildInfo(null);
     showToast('Teams published!');
   }
 
@@ -2908,6 +2956,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     const numTeams=Math.ceil(cnt/size);
     const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0}));
     setManualTeams(teams); setManualMode(true); setEditTeams(null); setPickingTeam(null);
+    setBuildInfo(null);
   }
 
   function addPlayerToTeam(ti, signup){
@@ -3010,7 +3059,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
       {activeDays.length > 1 && (
         <div style={{padding:'0 12px 12px',display:'flex',gap:6}}>
           {activeDays.map(d=>(
-            <button key={d} onClick={()=>{setActiveDay(d);setEditTeams(null);setManualTeams(null);setManualMode(false);setEditKey(null);setShowBalance(false);}}
+            <button key={d} onClick={()=>{setActiveDay(d);setEditTeams(null);setManualTeams(null);setManualMode(false);setEditKey(null);setShowBalance(false);setBuildInfo(null);}}
               style={{flex:1,padding:'8px 4px',borderRadius:8,border:'1.5px solid',
                 borderColor:activeDay===d?'var(--brand)':'var(--hairline)',
                 background:activeDay===d?'var(--brand-soft)':'var(--surface)',
@@ -3067,13 +3116,14 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
               </div>
               <div className="modal-body" style={{fontSize:13,color:'var(--ink-70)',lineHeight:1.6}}>
                 {[
-                  {icon:'🐍', title:'Snake draft by handicap', body:'Players are sorted lowest to highest handicap and distributed in a snake pattern — the best player goes to Team 1, next best to Team 2, and so on. On the next round it reverses. This gives every team one low, one mid, and one high handicapper.'},
-                  {icon:'📌', title:'Pinned players respected', body:'If a player requested first or last tee and the admin approved it, they\'re placed in the first or last group before the draft runs. Guests with approved pairing requests are also placed on the same team as their host.'},
-                  {icon:'⚡', title:'Match pairings', body:'Approved match requests (player vs player) place both players on the same team before the draft fills in the rest.'},
-                  {icon:'📊', title:'History-aware mixing', body:'When past round data exists, the algorithm checks how many times each pair of players has been on the same team before. It tries to minimize repeat pairings so the field stays fresh week to week.'},
+                  {icon:'⚡', title:'Requests honored first', body:'Before any team is built, the app places constrained players: approved match requests (player vs player on the same team), approved guest+host pairings, and approved tee time requests (first/last group). These are locked in before anyone else gets placed.'},
+                  {icon:'⚖️', title:'Balance-aware placement', body:'Remaining players are placed by handicap, but each one goes to the team with the lowest total HCP at that moment. This is smarter than a strict snake draft — it adapts to whatever imbalance the constraints created and keeps team totals close.'},
+                  {icon:'🔄', title:'Auto-balance pass', body:'After all players are placed, the app tries every possible swap between any two teams. If swapping two players reduces the spread by 2+ strokes, it does it automatically — then keeps trying. Constrained players (matches, guests, tee pins) are never swapped. Result: teams arrive nearly optimal out of the gate.'},
+                  {icon:'📊', title:'History-aware mixing', body:'When past round data exists, the algorithm tracks how many times each pair has been on the same team and uses that to break ties — so the field stays fresh week to week.'},
                   {icon:'🎲', title:'Blind draws for short teams', body:'If the player count doesn\'t divide evenly, some teams will be one player short. The app suggests a blind draw — a player from another team who also plays for the short team. The suggested draw is whoever best balances the HCP spread.'},
-                  {icon:'⚖️', title:'Balance tool', body:'Once teams are published, the ⚖️ Balance button finds the single best player swap between any two teams to reduce the HCP spread. It skips constrained players (match pairs, guests, tee pins) and shows the top suggestions with the improvement each swap would make.'},
-                  {icon:'✏️', title:'Clark can always adjust', body:'If something looks off after the draft, Clark can drag players between teams, use the Move button on mobile, or apply a Balance suggestion. Any changes are visible to everyone once re-published.'},
+                  {icon:'ℹ️', title:'Transparency popup', body:'Right after auto-generate, a card appears at the top of the teams view showing the final HCP spread, how many auto-balance swaps were applied, and every request that was honored. Tap ✕ to dismiss.'},
+                  {icon:'🔧', title:'Manual Balance tool', body:'For further tuning, the ⚖️ Balance button finds the top single-swap suggestions you can apply one at a time. Useful when constraints prevent the auto-pass from getting it perfect.'},
+                  {icon:'✏️', title:'Clark can always adjust', body:'Drag players between teams, use the Move button on mobile, or apply Balance suggestions. Any changes are visible to everyone once re-published.'},
                 ].map(({icon,title,body})=>(
                   <div key={title} style={{padding:'10px 12px',borderRadius:8,borderLeft:'3px solid var(--brand-border)',background:'var(--surface-sunken)',marginBottom:8}}>
                     <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',marginBottom:3}}>{icon} {title}</div>
@@ -3269,6 +3319,78 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
             <button className="btn btn-ghost btn-sm" onClick={copyTeams}>{copied?'✓ Copied':'Copy teams'}</button>
           </div>
         )}
+
+        {/* ── BUILD INFO POPUP (transparency for auto-generated teams) ── */}
+        {isAdmin && buildInfo && buildInfo.day === activeDay && editTeams && (()=>{
+          const totalConstraints = (buildInfo.pinnedFirst?.length||0) + (buildInfo.pinnedLast?.length||0) + (buildInfo.guestPairsOnly?.length||0) + (buildInfo.matchPairs?.length||0);
+          const spreadStatus = buildInfo.finalSpread <= 3 ? 'excellent' : buildInfo.finalSpread <= 6 ? 'good' : buildInfo.finalSpread <= 10 ? 'okay' : 'high';
+          const statusColor = spreadStatus === 'excellent' ? 'var(--brand)' : spreadStatus === 'good' ? 'var(--brand)' : spreadStatus === 'okay' ? 'var(--highlight)' : 'var(--money-neg)';
+          const statusLabel = spreadStatus === 'excellent' ? '✓ Well balanced' : spreadStatus === 'good' ? '✓ Balanced' : spreadStatus === 'okay' ? '⚠ Some imbalance' : '⚠ High spread';
+          return (
+            <div style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:'14px 16px',marginBottom:12}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{fontSize:18}}>ℹ️</span>
+                  <span style={{fontSize:14,fontWeight:700,color:'var(--brand)'}}>How these teams were built</span>
+                </div>
+                <button onClick={()=>setBuildInfo(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontSize:18,padding:'2px 6px'}} title="Dismiss">✕</button>
+              </div>
+
+              {/* Spread summary */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',background:'var(--surface)',borderRadius:8,marginBottom:10,border:'1px solid var(--hairline)'}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:2}}>HCP spread between teams</div>
+                  <div style={{fontSize:18,fontWeight:800,color:statusColor,fontVariantNumeric:'tabular-nums'}}>
+                    {buildInfo.finalSpread} <span style={{fontSize:12,fontWeight:600,color:'var(--ink-50)'}}>strokes</span>
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:11,fontWeight:700,color:statusColor}}>{statusLabel}</div>
+                  {buildInfo.swapsApplied > 0 && (
+                    <div style={{fontSize:10,color:'var(--ink-50)',marginTop:2}}>
+                      Auto-balanced {buildInfo.swapsApplied} swap{buildInfo.swapsApplied!==1?'s':''} <span style={{color:'var(--money-pos)'}}>(−{buildInfo.spreadReduction})</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Constraints honored */}
+              {totalConstraints > 0 && (
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Requests honored</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    {(buildInfo.matchPairs||[]).map((m,i)=>(
+                      <div key={'m'+i} style={{fontSize:12,color:'var(--ink-70)',padding:'4px 8px',background:'var(--surface)',borderRadius:6,borderLeft:'3px solid var(--info)'}}>
+                        <strong>{m.requester}</strong> vs <strong>{m.partner}</strong> <span style={{color:'var(--ink-40)'}}>(match — grouped together)</span>
+                      </div>
+                    ))}
+                    {(buildInfo.guestPairsOnly||[]).map((g,i)=>(
+                      <div key={'g'+i} style={{fontSize:12,color:'var(--ink-70)',padding:'4px 8px',background:'var(--surface)',borderRadius:6,borderLeft:'3px solid var(--brand)'}}>
+                        <strong>{g.member}</strong> + <strong>{g.guest}</strong> <span style={{color:'var(--ink-40)'}}>(guest pair)</span>
+                      </div>
+                    ))}
+                    {(buildInfo.pinnedFirst||[]).map((n,i)=>(
+                      <div key={'pf'+i} style={{fontSize:12,color:'var(--ink-70)',padding:'4px 8px',background:'var(--surface)',borderRadius:6,borderLeft:'3px solid var(--highlight)'}}>
+                        <strong>{n}</strong> <span style={{color:'var(--ink-40)'}}>(first tee request)</span>
+                      </div>
+                    ))}
+                    {(buildInfo.pinnedLast||[]).map((n,i)=>(
+                      <div key={'pl'+i} style={{fontSize:12,color:'var(--ink-70)',padding:'4px 8px',background:'var(--surface)',borderRadius:6,borderLeft:'3px solid var(--highlight)'}}>
+                        <strong>{n}</strong> <span style={{color:'var(--ink-40)'}}>(last tee request)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {spreadStatus === 'high' && (
+                <div style={{fontSize:11,color:'var(--ink-50)',marginTop:8,padding:'8px 10px',background:'var(--warn-soft)',borderRadius:6,borderLeft:'3px solid var(--warn-border)',lineHeight:1.5}}>
+                  Spread is higher than ideal. The constraints above prevented closer balance. Try <strong>Regenerate</strong> for a different mix or <strong>⚖️ Balance</strong> for manual swap suggestions.
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── BALANCE PANEL ── */}
         {isAdmin && showBalance && currentDisplay.length > 0 && (()=>{
@@ -4868,7 +4990,7 @@ function EmailViewV2({ week, isAdmin }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5098,12 +5220,16 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                     {active.map(a => {
                       const cat = getAnnCategory(a.category);
                       const expiresIn = a.autoExpireAt ? Math.ceil((a.autoExpireAt - now) / (24*60*60*1000)) : null;
+                      const dismissedByMe = !!(myDismissals && myDismissals[a.key]);
                       return (
                         <div key={a.key} style={{background:cat.soft,border:'1px solid '+cat.border,borderRadius:10,padding:'10px 12px',marginBottom:8}}>
                           <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
                             <span style={{fontSize:16,lineHeight:1,marginTop:1}}>{cat.icon}</span>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:700,color:cat.color,lineHeight:1.3}}>{a.title}</div>
+                              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                                <div style={{fontSize:13,fontWeight:700,color:cat.color,lineHeight:1.3}}>{a.title}</div>
+                                {dismissedByMe && <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:20,background:'var(--ink-soft)',color:'var(--ink-50)'}}>DISMISSED BY YOU</span>}
+                              </div>
                               {a.body && <div style={{fontSize:11,color:'var(--ink-70)',marginTop:2,lineHeight:1.4}}>{a.body.length>80?a.body.slice(0,80)+'…':a.body}</div>}
                             </div>
                           </div>
@@ -5113,9 +5239,12 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                             <span>{a.dismissal === 'auto' ? `Expires in ${expiresIn}d` : a.dismissal === 'session' ? 'Per session' : 'Once dismissed'}</span>
                             {a.createdAt && <><span>·</span><span>{new Date(a.createdAt).toLocaleDateString()}</span></>}
                           </div>
-                          <div style={{display:'flex',gap:6}}>
-                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1}} onClick={()=>onToggleAnnouncementActive(a.key, false)}>Pause</button>
-                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1}} onClick={()=>onEditAnnouncement(a)}>Edit</button>
+                          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                            {dismissedByMe && onClearOwnDismissal && (
+                              <button className="btn btn-ghost btn-sm" style={{fontSize:11,color:'var(--brand)',borderColor:'var(--brand-border)'}} onClick={()=>onClearOwnDismissal(a.key)}>👁 Show for me again</button>
+                            )}
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1,minWidth:60}} onClick={()=>onToggleAnnouncementActive(a.key, false)}>Pause</button>
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1,minWidth:60}} onClick={()=>onEditAnnouncement(a)}>Edit</button>
                             <button onClick={()=>{if(window.confirm('Delete this announcement?'))onDeleteAnnouncement(a.key);}} title="Delete" style={{background:'none',border:'1px solid var(--hairline)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--money-neg)',display:'flex',alignItems:'center'}}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                             </button>
@@ -7458,9 +7587,11 @@ function App(){
         rosterAdmins={rosterAdmins} activityLog={activityLog}
         matchPairings={matchPairings}
         announcements={announcements}
+        myDismissals={myDismissals}
         onEditAnnouncement={(a)=>setEditingAnn(a||true)}
         onToggleAnnouncementActive={(key,active)=>safeWrite('announcements/'+key+'/active',active)}
         onDeleteAnnouncement={(key)=>{safeDel('announcements/'+key);safeDel('announcementDismissals/'+key);}}
+        onClearOwnDismissal={(key)=>{if(currentUser)safeDel('announcementDismissals/'+currentUser.id+'/'+key);}}
         write={safeWrite} push={safePush} del={safeDel} update={safeUpdate} read={read}
         onCreateWeek={(data)=>{const prevDays=safeArray(week?.activeDays||[]);const newDays=safeArray(data.activeDays||[]);newDays.filter(d=>!prevDays.includes(d)).forEach(d=>logActivity('day_setup',{day:d,by:currentUser?currentUser.name:'admin'}));createWeek(data);}} onDeactivateDay={deactivateDay}
         onToggleLock={toggleLock} onUpdateTeeTime={updateTeeTime}
