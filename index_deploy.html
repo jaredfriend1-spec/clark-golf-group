@@ -6276,7 +6276,7 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
 
   const cat = getAnnCategory(category);
   const TITLE_MAX = 60;
-  const BODY_MAX = 240;
+  const BODY_MAX = 400;
 
   async function publish(){
     if(!title.trim()){ setErr('Add a title'); return; }
