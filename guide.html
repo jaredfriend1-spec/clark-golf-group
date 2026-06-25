@@ -169,6 +169,46 @@
       </div>
     </div>
 
+    <!-- PROFILE -->
+    <div class="section">
+      <h2>Your Profile</h2>
+      <p>Tap your <b>photo or initials in the top-right</b> of any screen to open your profile. Everything here is yours to manage — no admin needed.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num">1</span> Photo &amp; Login Card</h3>
+        <p>Upload a photo (drag to position, scroll or buttons to zoom, then "Use photo"). Set a short <b>welcome message</b> that shows on your login flash card. Pick a card theme (Default, Gold, Green, or Purple) — the color shows when you sign in.</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">2</span> Default Tees &amp; Handicap</h3>
+        <p>Set the tees and handicap you usually play. These pre-fill your sign-up form automatically, so your next sign-up is just one tap if nothing's changed.</p>
+        <p style="margin-top:8px;">You can still override either one per-round if your handicap changes or you want to play different tees for a specific day. Past sign-ups are never affected — history stays exactly as it was.</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">3</span> Email &amp; PIN</h3>
+        <p>Update your email address. Change your sign-in PIN by entering a new phone number twice — the last 4 digits become your PIN. The current PIN is hidden behind a "👁 Show" button so prying eyes don't spot it.</p>
+        <div class="info-m"><strong>Stats summary</strong><p>The top of your profile shows your rounds played, total money won, and net (+/−) for the season. Read-only — just a quick personal snapshot.</p></div>
+      </div>
+
+      <div class="callout"><strong>Name changes</strong><p>Names are admin-only because they're tied to your historical records (sign-ups, teams, wins, attendance). Ask Clark if you need a name fix.</p></div>
+    </div>
+
+    <!-- ANNOUNCEMENTS -->
+    <div class="section">
+      <h2>Announcements</h2>
+      <p>Admins can post announcements that appear at the top of the app for everyone — tournament alerts, schedule changes, new features, etc.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num">1</span> What You'll See</h3>
+        <p>When a new announcement is posted, you'll see one of two styles next time you open the app (or instantly if you're already in it):</p>
+        <p><b>Banner</b> — a colored strip at the top with the icon, title, and message. Tap the ✕ to dismiss. Tap the message to expand if it's long.</p>
+        <p><b>Modal</b> — a centered popup for important messages. Tap <b>Got it</b> to dismiss.</p>
+        <p style="margin-top:8px;">Categories: 🏆 Tournament · 🎉 New Feature · 📅 Schedule · ⚠️ Important · 💬 General. Each has its own color so you know at a glance what kind of message it is.</p>
+        <div class="info-m"><strong>Dismissed forever</strong><p>Most announcements only show once — dismiss and you'll never see them again. A few may reset each session or auto-expire after a set number of days. Either way, you can always dismiss to clear it from your view.</p></div>
+      </div>
+    </div>
+
     <!-- NAVIGATION -->
     <div class="section">
       <h2>Getting Around</h2>
@@ -201,31 +241,32 @@
 
       <div class="feature">
         <h3><span class="feature-num">1</span> Sign Up for a Day</h3>
-        <p>On the <b>Week tab</b>, tap <b>Sign up</b> on any active day. The modal opens with your name pre-filled. Pick your tees and enter your handicap, then confirm. That's it.</p>
-        <div class="mock-ui"><div class="btn-m green full">Sign up as Jared Friend</div></div>
+        <p>On the <b>Week tab</b>, tap <b>Sign up</b> on any active day. The modal opens with your name pre-filled, plus your default tees and handicap from your <b>Profile</b> (see Profile section below). Adjust if needed and tap <b>Sign me up</b> — done.</p>
+        <p style="margin-top:8px;">Going alone with no match request? That's it — one screen, one tap.</p>
+        <div class="mock-ui"><div class="btn-m green full">Sign me up</div></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">2</span> Bringing a Guest?</h3>
-        <p>During sign-up, under <b>Bringing a guest?</b> tap <b>Yes</b>. Fill in the guest's name, tees, and handicap. You'll also see <b>"Pair with me on a team?"</b> — tap Yes to request placement on the same team (requires admin approval before teams are built).</p>
-        <p style="margin-top:8px;">Need to bring <b>two guests</b>? After filling in Guest 1, tap <b>+ Bring a second guest</b>. A second set of fields appears with its own name, tees, HCP, and pair preference. Each guest's pairing is independent.</p>
-        <div class="info-m"><strong>Guests show in the list</strong><p>Guests appear with a "Guest of [Member]" badge. A green "Pair req" badge shows if pairing was requested. The member's row shows "Host of [Guest Name]" — or "Host of Guest1 & Guest2" if two guests were brought.</p></div>
+        <h3><span class="feature-num">2</span> Bringing Guests?</h3>
+        <p>In the sign-up modal you'll see two buttons at the bottom: <b>+ Bring a guest</b> and <b>+ Request match</b>. Tap <b>Bring a guest</b> to open a focused screen for the guest's name, tees, handicap, and whether you want to be paired on the same team.</p>
+        <p style="margin-top:8px;">After adding a guest, you'll see them as a clean card on the main screen. Tap <b>+ Another guest</b> to add more — up to <b>3 guests total</b>, so one person can sign up a full 4-person team in a single flow.</p>
+        <div class="info-m"><strong>Pair requests</strong><p>Each guest has its own "Pair with me on a team?" toggle. A green "Pair req" badge shows on the guest's row if pairing was requested. The host shows "Host of [Guest Name]" — or "Host of Guest1, Guest2 & Guest3" if multiple.</p></div>
 
-        <h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink);">Editing guest info</h4>
-        <p>Two ways to edit a guest after sign-up:</p>
-        <p><b>Via your own row</b> — tap Edit next to your name. The guest fields appear pre-filled below your info. Change name, tees, HCP, or pair preference and tap Save changes. Both your entry and the guest entry update together.</p>
-        <p><b>Via the guest's row</b> — tap Edit directly next to the guest's name. A focused modal shows only: guest name, tees, HCP, and pair preference. No bringing-a-guest or match fields — just what's relevant.</p>
+        <h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink);">Editing or removing guests</h4>
+        <p>Tap <b>Edit</b> next to your own row — you'll see a card view of your sign-up with each guest as their own card. Tap a guest's <b>Edit</b> button to update their info, or the trash icon to remove them. You can also add another guest from this view.</p>
+        <p style="margin-top:8px;">All changes save together when you tap <b>Save changes</b>. Cancel to discard.</p>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">3</span> Match Play Request</h3>
-        <p>Have a scheduled match? Tap the blue <b>"Do you have a match?"</b> button in the sign-up modal. Pick your opponent — they're auto-added to the day if not already signed up, with a "Match" badge so the admin can approve the pairing before building teams.</p>
+        <p>Have a scheduled match? Tap <b>+ Request match</b> at the bottom of the sign-up modal. Pick your opponent from the dropdown — if they're not signed up yet, you'll be asked for their tees and handicap so they can be auto-added when you save.</p>
+        <p style="margin-top:8px;">The match shows up as a card with "vs [Partner]" and a "Pending admin approval" note. Admins can review and approve before teams are built.</p>
         <div class="callout"><strong>Admin approval required</strong><p>Match pairings are reviewed before teams are built. For formal matches only.</p></div>
       </div>
 
       <div class="feature">
         <h3><span class="feature-num">4</span> Tee Time Preference</h3>
-        <p>Need the first or last group? Tap <b>"Do you need to play in the first or last group?"</b> in the sign-up modal and pick First or Last. The admin reviews and approves before building teams.</p>
+        <p>Need the first or last group? In the sign-up modal, use the <b>Tee time preference</b> picker to choose First tee, Last tee, or No preference. The admin reviews and approves before building teams.</p>
       </div>
 
       <div class="feature">
@@ -300,6 +341,17 @@
         <h3><span class="feature-num">1</span> Set Up Your Days — Admin Tab</h3>
         <p>The Admin tab opens to <b>Manage Days</b>. Tap <b>Set up [Day]</b> to activate it — the wizard walks through tee time, locking sign-ups, and team building. An inline checklist shows progress per day (⚡ 2/4 or ✓ 4/4).</p>
         <div class="mock-ui"><div class="btn-m green full">Set up Saturday</div></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">★</span> Posting Announcements</h3>
+        <p>Below Manage Days in the Admin tab is the <b>Announcements</b> section. Tap <b>+ New announcement</b> to compose a message visible to all members.</p>
+        <p style="margin-top:8px;"><b>Pick a category</b> (Tournament, New Feature, Schedule, Important, General), enter a title (60 chars) and message (400 chars), and choose how it displays:</p>
+        <p><b>Banner</b> — colored strip at the top, dismissable.<br/><b>Modal</b> — full popup with "Got it" button, forces attention.</p>
+        <p style="margin-top:8px;"><b>Dismissal options:</b></p>
+        <p>• <em>Stays until each user dismisses it</em> — they tap ✕ once, it's gone forever for them.<br/>• <em>Resets every time the app opens</em> — comes back next session even if dismissed.<br/>• <em>Auto-removes for everyone after X days</em> — admin sets a cutoff date, users can still dismiss early.</p>
+        <div class="info-m"><strong>Pause, edit, or delete</strong><p>Active announcements show in the admin list with Pause / Edit / Delete buttons. When editing, check <b>"Re-notify everyone"</b> to reset all dismissals — useful when you've made a meaningful update and want everyone to see it again.</p></div>
+        <p style="margin-top:8px;">The same Announcements tab is also available in the <b>Portal</b> — admins can post from either place. All posts are real-time: members see them within a second of publishing.</p>
       </div>
 
       <div class="feature">
