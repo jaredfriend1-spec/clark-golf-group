@@ -1006,352 +1006,545 @@ function TabStub({ tabName, sessionNumber }){
 }
 
 // ═══════════════ SIGNUP MODAL ═══════════════
-function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatchKey, existingGuests, fullRoster, matchPairings, onClose, onSave, isAdminAdd }){
-  const existingGuest1 = existingGuests?.[0] || null;
-  const existingGuest2 = existingGuests?.[1] || null;
+function SignupModal({ day, currentUser, existingSignup, signupKey, existingGuests, fullRoster, matchPairings, settings, onClose, onSave, isAdminAdd }){
+  // ── Configuration ──
+  const MAX_GUESTS = Math.max(0, Math.min(3, settings?.maxGuests ?? 3));
   const isEdit = !!existingSignup && !isAdminAdd;
   const isGuestUser = !isAdminAdd && currentUser?.role === 'guest';
-  const isEditingGuest = isEdit && !!(existingSignup?.isGuest); // editing a guest entry directly
-  const signerName = isAdminAdd ? '' : (isGuestUser ? '' : (currentUser?.name || ''));
+  const isEditingGuest = isEdit && !!(existingSignup?.isGuest);
 
-  // Find existing match pairing for this player+day if editing
+  // ── Find existing match pairing for this day ──
   const existingMatch = isEdit ? Object.entries(matchPairings||{}).find(([,m])=>
     m.day === day.day && (m.requester === existingSignup.name || m.partner === existingSignup.name)
   ) : null;
   const existingMatchPartner = existingMatch ? (existingMatch[1].requester === existingSignup?.name ? existingMatch[1].partner : existingMatch[1].requester) : null;
-  const existingMatchKey2 = existingMatch ? existingMatch[0] : null;
+  const existingMatchKey = existingMatch ? existingMatch[0] : null;
 
-  const [playerName, setPlayerName] = useState(isEdit ? existingSignup.name : signerName);
-  const [editGuestName, setEditGuestName] = useState(isEdit && existingSignup?.isGuest ? existingSignup.name : '');
-  const [guestOf, setGuestOf] = useState(isEdit ? (existingSignup.guestOf||'') : '');
-  const [tee, setTee] = useState((isEdit ? existingSignup.tee : null) || 'Whites');
-  const [hcp, setHcp] = useState(isEdit ? String(existingSignup.handicap ?? '') : '');
+  // ── Wizard step state ──
+  // 'pick-player' — admin-only first step
+  // 'main' — main editor screen (YOU + GUESTS + MATCH cards)
+  // 'guest' — sub-wizard: guest details form
+  // 'match' — sub-wizard: match details form
+  const initialStep = isAdminAdd ? 'pick-player' : 'main';
+  const [step, setStep] = useState(initialStep);
+
+  // ── Player state (the "YOU" — or in admin-add, the player being signed up) ──
+  const [playerName, setPlayerName] = useState(
+    isEditingGuest ? existingSignup.name :
+    isEdit ? existingSignup.name :
+    isGuestUser ? '' :
+    isAdminAdd ? '' :
+    (currentUser?.name || '')
+  );
+  // For admin-add: tracks the selected roster player (so we can pre-fill from their defaults)
+  const [pickedPlayer, setPickedPlayer] = useState(null);
+  // For guest-user signups: which member are they a guest of
+  const [guestOf, setGuestOf] = useState(isEdit ? (existingSignup.guestOf || '') : '');
+
+  const [tee, setTee] = useState((isEdit ? existingSignup.tee : null) || currentUser?.tee || 'Whites');
+  const [hcp, setHcp] = useState(isEdit ? String(existingSignup.handicap ?? '') : (currentUser?.handicap != null ? String(currentUser.handicap) : ''));
   const [pref, setPref] = useState(isEdit ? (existingSignup.teePreference || 'none') : 'none');
 
-  // Guest section (member bringing guests — up to 2)
-  const [bringGuest, setBringGuest] = useState(isEdit ? !!(existingGuest1) : false);
-  const [pairGuest1, setPairGuest1] = useState(isEdit && existingGuest1 ? !!(existingGuest1.pairWithGuest) : true);
-  const [pairGuest2, setPairGuest2] = useState(isEdit && existingGuest2 ? !!(existingGuest2.pairWithGuest) : true);
-  const [guestName, setGuestName] = useState(existingGuest1?.name || '');
-  const [guestTee, setGuestTee] = useState(existingGuest1?.tee || 'Whites');
-  const [guestHcp, setGuestHcp] = useState(existingGuest1 ? String(existingGuest1.handicap ?? '') : '');
-  const [bringGuest2, setBringGuest2] = useState(isEdit ? !!(existingGuest2) : false);
-  const [guestName2, setGuestName2] = useState(existingGuest2?.name || '');
-  const [guestTee2, setGuestTee2] = useState(existingGuest2?.tee || 'Whites');
-  const [guestHcp2, setGuestHcp2] = useState(existingGuest2 ? String(existingGuest2.handicap ?? '') : '');
+  // ── Guests state ──
+  // Array of: { name, tee, hcp, pair, key?, addedAt? }
+  // key is set only if loaded from existing data
+  const initialGuests = (existingGuests || []).map(g => ({
+    name: g.name || '',
+    tee: g.tee || 'Whites',
+    hcp: g.handicap != null ? String(g.handicap) : '',
+    pair: !!g.pairWithGuest,
+    key: g.key || null,
+    addedAt: g.addedAt || null
+  }));
+  const [guests, setGuests] = useState(initialGuests);
+  // Track original guest keys so we know which were removed (need delete from Firebase)
+  const originalGuestKeys = React.useMemo(()=>initialGuests.map(g=>g.key).filter(Boolean),[]);
 
-  // Match request section
+  // Editing a specific guest (index into guests array); -1 means adding a new one
+  const [guestIdx, setGuestIdx] = useState(-1);
+  // Draft guest being edited
+  const [guestDraft, setGuestDraft] = useState({ name:'', tee:'Whites', hcp:'', pair:true });
+
+  // ── Match state ──
   const [hasMatch, setHasMatch] = useState(!!existingMatchPartner);
   const [matchPartner, setMatchPartner] = useState(existingMatchPartner || '');
   const [matchPartnerTee, setMatchPartnerTee] = useState('Whites');
   const [matchPartnerHcp, setMatchPartnerHcp] = useState('');
+  // Match draft (used in match sub-wizard before committing back to main)
+  const [matchDraft, setMatchDraft] = useState({ partner:'', tee:'Whites', hcp:'' });
 
+  // ── UI state ──
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [playerSearch, setPlayerSearch] = useState('');
 
-  const sortedRoster = [...fullRoster].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  const myName = isAdminAdd ? playerName : (isGuestUser ? playerName : signerName);
-  const daySignedUp = day.signups.map(s=>s.name).filter(n=>n !== myName);
+  const sortedRoster = React.useMemo(()=>[...fullRoster].sort((a,b)=>(a.name||'').localeCompare(b.name||'')),[fullRoster]);
+  const daySignedUp = day.signups.map(s=>s.name).filter(n => n !== playerName);
 
+  // ─────────────────────────────────────────────────────────────
+  // ADMIN PICK PLAYER
+  // ─────────────────────────────────────────────────────────────
+  function selectPlayer(p){
+    setPickedPlayer(p);
+    setPlayerName(p.name);
+    setTee(p.tee || 'Whites');
+    setHcp(p.handicap != null ? String(p.handicap) : '');
+    setStep('main');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // GUEST SUB-WIZARD
+  // ─────────────────────────────────────────────────────────────
+  function startAddGuest(){
+    setGuestIdx(-1);
+    setGuestDraft({ name:'', tee:'Whites', hcp:'', pair:true });
+    setErr('');
+    setStep('guest');
+  }
+  function startEditGuest(idx){
+    const g = guests[idx];
+    setGuestIdx(idx);
+    setGuestDraft({ name:g.name, tee:g.tee, hcp:g.hcp, pair:g.pair });
+    setErr('');
+    setStep('guest');
+  }
+  function saveGuest(){
+    if(!guestDraft.name.trim()){ setErr('Enter guest name'); return; }
+    const ghcp = parseFloat(guestDraft.hcp);
+    if(guestDraft.hcp === '' || isNaN(ghcp) || ghcp < 0 || ghcp > 54){ setErr('Enter guest handicap (0–54)'); return; }
+    if(guestIdx === -1){
+      setGuests([...guests, { ...guestDraft, name: guestDraft.name.trim(), key:null, addedAt: Date.now() + guests.length }]);
+    } else {
+      setGuests(guests.map((g,i)=> i===guestIdx ? { ...g, ...guestDraft, name: guestDraft.name.trim() } : g));
+    }
+    setErr('');
+    setStep('main');
+  }
+  function removeGuest(idx){
+    setGuests(guests.filter((_,i) => i !== idx));
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // MATCH SUB-WIZARD
+  // ─────────────────────────────────────────────────────────────
+  function startEditMatch(){
+    setMatchDraft({
+      partner: matchPartner || '',
+      tee: matchPartnerTee || 'Whites',
+      hcp: matchPartnerHcp || ''
+    });
+    setErr('');
+    setStep('match');
+  }
+  function saveMatch(){
+    if(!matchDraft.partner){ setErr('Select a match partner'); return; }
+    const alreadySignedUp = daySignedUp.includes(matchDraft.partner);
+    if(!alreadySignedUp){
+      const mh = parseFloat(matchDraft.hcp);
+      if(matchDraft.hcp === '' || isNaN(mh) || mh < 0 || mh > 54){
+        setErr('Enter partner handicap so we can add them too'); return;
+      }
+    }
+    setHasMatch(true);
+    setMatchPartner(matchDraft.partner);
+    setMatchPartnerTee(matchDraft.tee);
+    setMatchPartnerHcp(matchDraft.hcp);
+    setErr('');
+    setStep('main');
+  }
+  function removeMatch(){
+    setHasMatch(false);
+    setMatchPartner('');
+    setMatchPartnerHcp('');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // SAVE FINAL
+  // ─────────────────────────────────────────────────────────────
   async function handleSave(){
+    // Validate main signer
     if(isAdminAdd && !playerName){ setErr('Select a player'); return; }
     if(isGuestUser && !playerName.trim()){ setErr('Enter your name'); return; }
     if(isGuestUser && !guestOf){ setErr('Select who you are a guest of'); return; }
     const hcpNum = parseFloat(hcp);
     if(hcp === '' || isNaN(hcpNum) || hcpNum < 0 || hcpNum > 54){ setErr('Enter a valid handicap (0–54)'); return; }
-    if(bringGuest){
-      if(!guestName.trim()){ setErr('Enter guest name'); return; }
-      const gh = parseFloat(guestHcp);
-      if(guestHcp === '' || isNaN(gh) || gh < 0 || gh > 54){ setErr('Enter guest handicap'); return; }
-    }
-    if(bringGuest2){
-      if(!guestName2.trim()){ setErr('Enter second guest name'); return; }
-      const gh2 = parseFloat(guestHcp2);
-      if(guestHcp2 === '' || isNaN(gh2) || gh2 < 0 || gh2 > 54){ setErr('Enter second guest handicap'); return; }
-    }
-    if(hasMatch){
-      if(!matchPartner){ setErr('Select a match partner'); return; }
-      const mh = parseFloat(matchPartnerHcp);
-      if(!daySignedUp.includes(matchPartner) && (matchPartnerHcp === '' || isNaN(mh) || mh < 0 || mh > 54)){
-        setErr('Enter match partner handicap'); return;
-      }
-    }
+
     setSaving(true);
     setErr('');
 
-    const name = isEditingGuest ? normName(editGuestName.trim()||existingSignup.name) : isGuestUser ? normName(playerName.trim()) : (isAdminAdd ? playerName : signerName);
+    const finalName = normName(playerName.trim());
+
+    // Build self entry
     const entry = isEditingGuest ? {
-      day: day.day,
-      name,
-      tee,
-      handicap: hcpNum,
-      isGuest: true,
-      guestOf: existingSignup.guestOf,
-      pairWithGuest: pairGuest1 ? true : null,
+      day: day.day, name: finalName, tee, handicap: hcpNum,
+      isGuest: true, guestOf: existingSignup.guestOf,
+      pairWithGuest: existingSignup.pairWithGuest || null,
       addedAt: existingSignup.addedAt || Date.now(),
     } : isGuestUser ? {
-      day: day.day,
-      name,
-      tee,
-      handicap: hcpNum,
-      isGuest: true,
-      guestOf,
+      day: day.day, name: finalName, tee, handicap: hcpNum,
+      isGuest: true, guestOf,
       teePreference: pref === 'none' ? null : pref,
       addedAt: Date.now(),
     } : {
-      day: day.day,
-      name,
-      tee,
-      handicap: hcpNum,
+      day: day.day, name: finalName, tee, handicap: hcpNum,
       teePreference: pref === 'none' ? null : pref,
-      // pairWithGuest moved to guest entries
-      addedAt: Date.now(),
+      addedAt: existingSignup?.addedAt || Date.now(),
     };
 
-    // Guest entry
-    const guestEntry = bringGuest ? {
-      day: day.day,
-      name: normName(guestName.trim()),
-      tee: guestTee,
-      handicap: parseFloat(guestHcp),
-      isGuest: true,
-      guestOf: name,
-      pairWithGuest: pairGuest1 ? true : null,
-      addedAt: Date.now() + 1,
-    } : null;
+    // Build guest entries
+    const guestEntries = guests.map((g, i) => ({
+      key: g.key || null,
+      entry: {
+        day: day.day,
+        name: normName(g.name.trim()),
+        tee: g.tee,
+        handicap: parseFloat(g.hcp),
+        isGuest: true,
+        guestOf: finalName,
+        pairWithGuest: g.pair ? true : null,
+        addedAt: g.addedAt || (Date.now() + i + 1),
+      }
+    }));
 
-    // Second guest entry
-    const guestEntry2 = (bringGuest && bringGuest2) ? {
-      day: day.day,
-      name: normName(guestName2.trim()),
-      tee: guestTee2,
-      handicap: parseFloat(guestHcp2),
-      isGuest: true,
-      guestOf: name,
-      pairWithGuest: pairGuest2 ? true : null,
-      addedAt: Date.now() + 2,
-    } : null;
+    // Find guest keys that were removed (originally existed but no longer in guests)
+    const currentGuestKeys = guests.map(g => g.key).filter(Boolean);
+    const removedGuestKeys = originalGuestKeys.filter(k => !currentGuestKeys.includes(k));
 
-    // Match pairing entry
+    // Build match entry
     const matchEntry = hasMatch ? {
       day: day.day,
-      requester: name,
+      requester: finalName,
       partner: matchPartner,
       addedAt: Date.now(),
     } : null;
 
-    // Partner auto-add entry (if partner not already signed up)
+    // Auto-add partner if not signed up
     const partnerAlreadyIn = daySignedUp.includes(matchPartner);
     const partnerEntry = (hasMatch && !partnerAlreadyIn && matchPartnerHcp !== '') ? {
       day: day.day,
       name: matchPartner,
       tee: matchPartnerTee,
       handicap: parseFloat(matchPartnerHcp),
-      addedAt: Date.now() + 2,
+      addedAt: Date.now() + 100,
     } : null;
 
-    await onSave({ entry, signupKey, guestEntry, guestEntry2, guestKey1: existingGuest1?.key, guestKey2: existingGuest2?.key, matchEntry, existingMatchKey: existingMatchKey2, partnerEntry });
+    await onSave({
+      entry, signupKey,
+      guestEntries, removedGuestKeys,
+      matchEntry, existingMatchKey,
+      partnerEntry
+    });
     onClose();
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // RENDER HELPERS
+  // ─────────────────────────────────────────────────────────────
+  const playerSummary = playerName ? (
+    <span>{playerName}<span style={{color:'var(--ink-40)'}}> · {tee} · HCP {hcp || '—'}</span>{pref !== 'none' && <span style={{color:'var(--ink-40)'}}> · {pref==='first'?'First tee':'Last tee'}</span>}</span>
+  ) : null;
+
+  const canAddGuest = !isGuestUser && !isEditingGuest && guests.length < MAX_GUESTS;
+  const canAddMatch = !isGuestUser && !isEditingGuest && !hasMatch;
+
+  // ═════════════════════════════════════════════════════════════
+  // SCREEN: PICK PLAYER (admin-add only)
+  // ═════════════════════════════════════════════════════════════
+  if(step === 'pick-player'){
+    const filtered = sortedRoster.filter(p => !playerSearch || p.name.toLowerCase().includes(playerSearch.toLowerCase()));
+    return (
+      <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
+        <div className="modal">
+          <div className="modal-head">
+            <div>
+              <div className="modal-title">Add player — {day.day}</div>
+              <div className="modal-sub">Pick who you're signing up</div>
+            </div>
+            <button className="modal-close" onClick={onClose}>
+              <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div className="modal-body">
+            <input className="form-input" placeholder="Search roster..." value={playerSearch} onChange={e=>setPlayerSearch(e.target.value)} autoFocus style={{marginBottom:10}}/>
+            <div style={{maxHeight:'40vh',overflowY:'auto',border:'1px solid var(--hairline)',borderRadius:8}}>
+              {filtered.length === 0 ? (
+                <div style={{padding:14,fontSize:12,color:'var(--ink-50)',textAlign:'center'}}>No players match</div>
+              ) : filtered.map((p,i)=>(
+                <button key={p.id} onClick={()=>selectPlayer(p)}
+                  style={{width:'100%',textAlign:'left',padding:'10px 12px',background:'none',border:'none',borderBottom:i<filtered.length-1?'1px solid var(--hairline-soft)':'none',cursor:'pointer',fontFamily:'inherit',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>{p.name}</span>
+                  <span style={{fontSize:11,color:'var(--ink-40)'}}>{p.tee||'Whites'} · HCP {p.handicap ?? '—'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="modal-foot">
+            <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // SCREEN: GUEST SUB-WIZARD
+  // ═════════════════════════════════════════════════════════════
+  if(step === 'guest'){
+    const isNew = guestIdx === -1;
+    const guestNum = isNew ? guests.length + 1 : guestIdx + 1;
+    return (
+      <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
+        <div className="modal">
+          <div className="modal-head">
+            <div>
+              <div className="modal-title">{isNew ? `Add guest ${guestNum}` : `Edit guest ${guestNum}`}</div>
+              <div className="modal-sub">{day.day} · {day.month} {day.date}</div>
+            </div>
+            <button className="modal-close" onClick={()=>{setStep('main');setErr('');}} title="Back">
+              <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="form-group">
+              <label className="form-label">Guest name</label>
+              <input className="form-input" type="text" placeholder="Full name" value={guestDraft.name} onChange={e=>{setGuestDraft({...guestDraft, name:e.target.value});setErr('');}} autoFocus/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tees</label>
+              <div className="tee-opts">
+                {['Blends','Whites','Golds','SGA'].map(t=>(
+                  <button key={t} className={'tee-opt'+(guestDraft.tee===t?' on':'')} onClick={()=>setGuestDraft({...guestDraft, tee:t})}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Handicap</label>
+              <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestDraft.hcp} onChange={e=>{setGuestDraft({...guestDraft, hcp:e.target.value});setErr('');}}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Pair with {isAdminAdd ? playerName : 'host'} on a team?</label>
+              <div className="pref-opts">
+                <button className={'pref-opt'+(guestDraft.pair?' on':'')} onClick={()=>setGuestDraft({...guestDraft, pair:true})}>Yes — same team</button>
+                <button className={'pref-opt'+(!guestDraft.pair?' on':'')} onClick={()=>setGuestDraft({...guestDraft, pair:false})}>No preference</button>
+              </div>
+            </div>
+            {err && <div className="form-err">{err}</div>}
+          </div>
+          <div className="modal-foot">
+            <button className="btn btn-cancel" onClick={()=>{setStep('main');setErr('');}}>← Back</button>
+            <button className="btn btn-primary" onClick={saveGuest}>{isNew ? 'Add guest' : 'Save'}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // SCREEN: MATCH SUB-WIZARD
+  // ═════════════════════════════════════════════════════════════
+  if(step === 'match'){
+    const partnerAlreadyIn = daySignedUp.includes(matchDraft.partner);
+    const availablePartners = sortedRoster.filter(p =>
+      p.name !== playerName &&
+      !guests.some(g => g.name === p.name)
+    );
+    return (
+      <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
+        <div className="modal">
+          <div className="modal-head">
+            <div>
+              <div className="modal-title">{hasMatch ? 'Edit match request' : 'Request a match'}</div>
+              <div className="modal-sub">{day.day} · {day.month} {day.date}</div>
+            </div>
+            <button className="modal-close" onClick={()=>{setStep('main');setErr('');}} title="Back">
+              <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="form-group">
+              <label className="form-label">Who do you want to play?</label>
+              <select className="form-input" value={matchDraft.partner} onChange={e=>{setMatchDraft({...matchDraft, partner:e.target.value});setErr('');}}>
+                <option value="">Select partner...</option>
+                {availablePartners.map(p=>(
+                  <option key={p.id} value={p.name}>{p.name}{daySignedUp.includes(p.name)?' (signed up)':''}</option>
+                ))}
+              </select>
+            </div>
+            {matchDraft.partner && !partnerAlreadyIn && (
+              <>
+                <div style={{padding:'8px 12px',background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:8,marginBottom:10,fontSize:11,color:'var(--brand)',lineHeight:1.4}}>
+                  <strong>{matchDraft.partner}</strong> isn't signed up yet — they'll be signed up automatically when you save.
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{matchDraft.partner}'s tees</label>
+                  <div className="tee-opts">
+                    {['Blends','Whites','Golds','SGA'].map(t=>(
+                      <button key={t} className={'tee-opt'+(matchDraft.tee===t?' on':'')} onClick={()=>setMatchDraft({...matchDraft, tee:t})}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{matchDraft.partner}'s handicap</label>
+                  <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={matchDraft.hcp} onChange={e=>{setMatchDraft({...matchDraft, hcp:e.target.value});setErr('');}}/>
+                </div>
+              </>
+            )}
+            <div style={{padding:'10px 12px',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,fontSize:11,color:'var(--ink-50)',lineHeight:1.4}}>
+              ℹ️ Admin will review and approve match requests before teams are built.
+            </div>
+            {err && <div className="form-err" style={{marginTop:8}}>{err}</div>}
+          </div>
+          <div className="modal-foot">
+            <button className="btn btn-cancel" onClick={()=>{setStep('main');setErr('');}}>← Back</button>
+            <button className="btn btn-primary" onClick={saveMatch}>{hasMatch ? 'Update match' : 'Add match'}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // SCREEN: MAIN (the default / review screen)
+  // ═════════════════════════════════════════════════════════════
   return (
-    <div className="modal-bg" onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+    <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
       <div className="modal">
         <div className="modal-head">
           <div>
-            <div className="modal-title">{isEdit ? 'Edit sign-up' : isAdminAdd ? 'Add player' : 'Sign up'} — {day.day}</div>
-            {!isAdminAdd && !isEdit && signerName && <div style={{fontSize:13,color:'var(--ink-50)',marginTop:2}}>Signing up as <strong style={{color:'var(--ink)'}}>{signerName}</strong></div>}
-            <div className="modal-sub">{day.month} {day.date}{day.tee.time ? ' · Tee ' + day.tee.time : ' · Tee time TBD'}</div>
+            <div className="modal-title">
+              {isEdit ? 'Edit sign-up' : isAdminAdd ? `Signing up ${playerName || '...'}` : 'Sign up'} — {day.day}
+            </div>
+            <div className="modal-sub">
+              {day.month} {day.date}
+              {day.tee?.time && <span> · Tee {day.tee.time}</span>}
+            </div>
           </div>
           <button className="modal-close" onClick={onClose}>
             <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div className="modal-body">
-          {isAdminAdd && (
-            <div className="form-group">
-              <label className="form-label">Player</label>
-              <select className="form-select" value={playerName} onChange={e=>setPlayerName(e.target.value)}>
-                <option value="">— Select player —</option>
-                {sortedRoster.map(p=>(<option key={p.id} value={p.name}>{p.name}</option>))}
-              </select>
-            </div>
-          )}
-          {/* Guest name field when editing a guest entry directly */}
-          {isEditingGuest && (
-            <div className="form-group">
-              <label className="form-label">Guest name</label>
-              <input className="form-input" type="text" placeholder="Full name" value={editGuestName} onChange={e=>setEditGuestName(e.target.value)} autoFocus/>
-              <div style={{fontSize:11,color:'var(--ink-50)',marginTop:4}}>Guest of <strong>{existingSignup.guestOf}</strong></div>
-            </div>
-          )}
+
+          {/* ── Guest user: name + guestOf picker ── */}
           {isGuestUser && (
             <>
               <div className="form-group">
                 <label className="form-label">Your name</label>
-                <input className="form-input" type="text" placeholder="First and last name" value={playerName} onChange={e=>setPlayerName(e.target.value)} autoFocus/>
+                <input className="form-input" type="text" placeholder="Full name" value={playerName} onChange={e=>{setPlayerName(e.target.value);setErr('');}} autoFocus/>
               </div>
               <div className="form-group">
-                <label className="form-label">Guest of</label>
-                <select className="form-select" value={guestOf} onChange={e=>setGuestOf(e.target.value)}>
-                  <option value="">— Select member —</option>
-                  {sortedRoster.map(p=>(<option key={p.id} value={p.name}>{p.name}</option>))}
+                <label className="form-label">You are a guest of</label>
+                <select className="form-input" value={guestOf} onChange={e=>{setGuestOf(e.target.value);setErr('');}}>
+                  <option value="">Select host...</option>
+                  {sortedRoster.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                 </select>
               </div>
             </>
           )}
-          <div className="form-group">
-            <label className="form-label">Tees</label>
-            <div className="tee-opts">
-              {['Blends','Whites','Golds','SGA'].map(t=>(
-                <button key={t} className={'tee-opt'+(tee===t?' on':'')} onClick={()=>setTee(t)}>{t}</button>
-              ))}
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Handicap</label>
-            <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>setHcp(e.target.value)}/>
-          </div>
-          {/* Tee preference — only for members, not guests */}
-          {!isEditingGuest && <div className="form-group">
-            <label className="form-label">Tee preference</label>
-            <div className="pref-opts">
-              {[['none','No preference'],['first','First tee'],['last','Last tee']].map(([v,l])=>(
-                <button key={v} className={'pref-opt'+(pref===v?' on':'')} onClick={()=>setPref(v)}>{l}</button>
-              ))}
-            </div>
-          </div>}
 
-          {/* Pair with host — only when editing a guest entry */}
-          {isEditingGuest && (
-            <div className="form-group">
-              <label className="form-label">Pair with {existingSignup.guestOf} on a team?</label>
-              <div className="pref-opts">
-                <button className={'pref-opt'+(pairGuest1?' on':'')} onClick={()=>setPairGuest1(true)}>Yes — same team</button>
-                <button className={'pref-opt'+(!pairGuest1?' on':'')} onClick={()=>setPairGuest1(false)}>No preference</button>
+          {/* ── YOU section (always inline, always editable) ── */}
+          {!isGuestUser && (
+            <>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>
+                {isAdminAdd ? `${playerName}` : 'You'}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tees</label>
+                <div className="tee-opts">
+                  {['Blends','Whites','Golds','SGA'].map(t=>(
+                    <button key={t} className={'tee-opt'+(tee===t?' on':'')} onClick={()=>setTee(t)}>{t}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Handicap</label>
+                <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
+              </div>
+              {!isEditingGuest && (
+                <div className="form-group">
+                  <label className="form-label">Tee time preference</label>
+                  <div className="pref-opts">
+                    <button className={'pref-opt'+(pref==='none'?' on':'')} onClick={()=>setPref('none')}>No preference</button>
+                    <button className={'pref-opt'+(pref==='first'?' on':'')} onClick={()=>setPref('first')}>First tee</button>
+                    <button className={'pref-opt'+(pref==='last'?' on':'')} onClick={()=>setPref('last')}>Last tee</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Guest list (cards) ── */}
+          {!isGuestUser && !isEditingGuest && guests.length > 0 && (
+            <div style={{marginTop:18}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>
+                Guests ({guests.length}{MAX_GUESTS<3 ? `/${MAX_GUESTS}` : ''})
+              </div>
+              {guests.map((g, i) => (
+                <div key={i} style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{g.name || <em style={{color:'var(--ink-40)'}}>Unnamed guest</em>}</div>
+                    <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>
+                      {g.tee} · HCP {g.hcp || '—'}{g.pair ? <span style={{color:'var(--brand)'}}> · Paired with {isAdminAdd ? playerName.split(' ')[0] : 'you'}</span> : ''}
+                    </div>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={()=>startEditGuest(i)}>Edit</button>
+                  <button onClick={()=>removeGuest(i)} title="Remove" style={{background:'none',border:'none',cursor:'pointer',color:'var(--money-neg)',padding:4,display:'flex',alignItems:'center'}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Match card ── */}
+          {!isGuestUser && !isEditingGuest && hasMatch && (
+            <div style={{marginTop:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Match request</div>
+              <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',display:'flex',alignItems:'center',gap:8}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>vs {matchPartner}</div>
+                  <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>Pending admin approval</div>
+                </div>
+                <button className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={startEditMatch}>Edit</button>
+                <button onClick={removeMatch} title="Remove" style={{background:'none',border:'none',cursor:'pointer',color:'var(--money-neg)',padding:4,display:'flex',alignItems:'center'}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Guest section — only for members */}
-          {!isGuestUser && !isEditingGuest && <div className="form-group">
-            <label className="form-label">Bringing a guest?</label>
-            <div className="pref-opts">
-              <button className={'pref-opt' + (!bringGuest ? ' on' : '')} onClick={()=>{setBringGuest(false);setBringGuest2(false);}}>No</button>
-              <button className={'pref-opt' + (bringGuest ? ' on' : '')} onClick={()=>setBringGuest(true)}>Yes</button>
-            </div>
-            {bringGuest && (
-              <div style={{marginTop:12,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'14px 14px 4px'}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Guest 1</div>
-                <div className="form-group">
-                  <label className="form-label">Guest name</label>
-                  <input className="form-input" type="text" placeholder="Full name" value={guestName} onChange={e=>{setGuestName(e.target.value);setErr('');}}/>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Guest tees</label>
-                  <div className="tee-opts">
-                    {['Blends','Whites','Golds','SGA'].map(t=>(
-                      <button key={t} className={'tee-opt'+(guestTee===t?' on':'')} onClick={()=>setGuestTee(t)}>{t}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Guest handicap</label>
-                  <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestHcp} onChange={e=>{setGuestHcp(e.target.value);setErr('');}}/>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Pair with me on a team?</label>
-                  <div className="pref-opts">
-                    <button className={'pref-opt'+(pairGuest1?' on':'')} onClick={()=>setPairGuest1(true)}>Yes — same team</button>
-                    <button className={'pref-opt'+(!pairGuest1?' on':'')} onClick={()=>setPairGuest1(false)}>No preference</button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {bringGuest && !bringGuest2 && (
-              <button type="button" onClick={()=>setBringGuest2(true)}
-                style={{marginTop:8,fontSize:12,color:'var(--brand)',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:'inherit',textAlign:'left',fontWeight:600}}>
-                + Bring a second guest
-              </button>
-            )}
-            {bringGuest && bringGuest2 && (
-              <div style={{marginTop:8,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'14px 14px 4px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Guest 2</span>
-                  <button type="button" onClick={()=>{setBringGuest2(false);setGuestName2('');setGuestHcp2('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontSize:16,lineHeight:1,padding:0}}>✕</button>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Guest name</label>
-                  <input className="form-input" type="text" placeholder="Full name" value={guestName2} onChange={e=>{setGuestName2(e.target.value);setErr('');}}/>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Guest tees</label>
-                  <div className="tee-opts">
-                    {['Blends','Whites','Golds','SGA'].map(t=>(
-                      <button key={t} className={'tee-opt'+(guestTee2===t?' on':'')} onClick={()=>setGuestTee2(t)}>{t}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Guest handicap</label>
-                  <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestHcp2} onChange={e=>{setGuestHcp2(e.target.value);setErr('');}}/>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Pair with me on a team?</label>
-                  <div className="pref-opts">
-                    <button className={'pref-opt'+(pairGuest2?' on':'')} onClick={()=>setPairGuest2(true)}>Yes — same team</button>
-                    <button className={'pref-opt'+(!pairGuest2?' on':'')} onClick={()=>setPairGuest2(false)}>No preference</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>}
-
-          {/* Match request section — only for members */}
-          {!isGuestUser && !isEditingGuest && <div className="form-group">
-            <label className="form-label">Have a match?</label>
-            <div className="pref-opts">
-              <button className={'pref-opt' + (!hasMatch ? ' on' : '')} onClick={()=>setHasMatch(false)}>No</button>
-              <button className={'pref-opt' + (hasMatch ? ' on' : '')} onClick={()=>setHasMatch(true)}>Yes</button>
-            </div>
-            {hasMatch && (
-              <div style={{background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:10,padding:'14px 14px 4px'}}>
-                <div style={{fontSize:11,color:'var(--info)',fontWeight:600,marginBottom:10}}>Admin approval required. Partner will be added automatically if not signed up.</div>
-                <div className="form-group">
-                  <label className="form-label">Match partner</label>
-                  <select className="form-select" value={matchPartner} onChange={e=>{setMatchPartner(e.target.value);setErr('');}}>
-                    <option value="">— Select partner —</option>
-                    {sortedRoster.filter(p=>p.name !== myName).map(p=>(
-                      <option key={p.id} value={p.name}>{p.name}{daySignedUp.includes(p.name) ? ' ✓' : ''}</option>
-                    ))}
-                  </select>
-                </div>
-                {matchPartner && !daySignedUp.includes(matchPartner) && (
-                  <>
-                    <div className="form-group">
-                      <label className="form-label">Partner tees</label>
-                      <div className="tee-opts">
-                        {['Blends','Whites','Golds','SGA'].map(t=>(
-                          <button key={t} className={'tee-opt'+(matchPartnerTee===t?' on':'')} onClick={()=>setMatchPartnerTee(t)}>{t}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Partner handicap</label>
-                      <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 10" value={matchPartnerHcp} onChange={e=>{setMatchPartnerHcp(e.target.value);setErr('');}}/>
-                    </div>
-                  </>
+          {/* ── Add buttons section ── */}
+          {!isGuestUser && !isEditingGuest && (canAddGuest || canAddMatch) && (
+            <div style={{marginTop:16}}>
+              {(guests.length === 0 && !hasMatch) && (
+                <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Anything else?</div>
+              )}
+              <div style={{display:'grid',gridTemplateColumns: (canAddGuest && canAddMatch) ? '1fr 1fr' : '1fr',gap:8}}>
+                {canAddGuest && (
+                  <button onClick={startAddGuest}
+                    style={{padding:'12px 10px',borderRadius:10,border:'1.5px dashed var(--brand-border)',background:'var(--brand-soft)',color:'var(--brand)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    {guests.length === 0 ? 'Bring a guest' : 'Another guest'}
+                  </button>
+                )}
+                {canAddMatch && (
+                  <button onClick={startEditMatch}
+                    style={{padding:'12px 10px',borderRadius:10,border:'1.5px dashed var(--brand-border)',background:'var(--brand-soft)',color:'var(--brand)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                    Request match
+                  </button>
                 )}
               </div>
-            )}
-          </div>}
+            </div>
+          )}
 
-          {err && <div className="form-err">{err}</div>}
+          {err && <div className="form-err" style={{marginTop:10}}>{err}</div>}
+
         </div>
         <div className="modal-foot">
-          <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="btn btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Sign up'}
+            {saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Sign me up')}
           </button>
         </div>
       </div>
@@ -1359,53 +1552,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingMatc
   );
 }
 
-// ═══════════════ TEE TIME MODAL ═══════════════
-function TeeTimeModal({ day, onClose, onSave }){
-  // Initialize from existing time, defaulting to 8:00 AM if none set
-  const initialTime = day.tee.time && day.tee.time !== 'LOTTERY' ? day.tee.time : '08:00 AM';
-  const [time, setTime] = useState(initialTime);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
-
-  async function handleSave(){
-    if(!time.trim()){ setErr('Pick a tee time'); return; }
-    setSaving(true);
-    await onSave(day.day, time.trim());
-    onClose();
-  }
-
-  return (
-    <div className="modal-bg" onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
-      <div className="modal">
-        <div className="modal-head">
-          <div>
-            <div className="modal-title">Set tee time — {day.day}</div>
-            <div className="modal-sub">{day.month} {day.date}</div>
-          </div>
-          <button className="modal-close" onClick={onClose}>
-            <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div className="modal-body">
-          <div className="form-group">
-            <label className="form-label">Tee time</label>
-            <TimePicker initialValue={initialTime} onChange={v=>{setTime(v);setErr('');}}/>
-          </div>
-          {err && <div className="form-err">{err}</div>}
-        </div>
-        <div className="modal-foot">
-          <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Set time'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
   const [teeModal, setTeeModal] = useState(null); // day object
@@ -1456,7 +1603,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
     }
   },[activeDays.join(',')]);
 
-  async function handleSignupSave({ entry, signupKey, guestEntry, guestEntry2, guestKey1, guestKey2, matchEntry, existingMatchKey, partnerEntry }){
+  async function handleSignupSave({ entry, signupKey, guestEntries, removedGuestKeys, matchEntry, existingMatchKey, partnerEntry }){
     // Save or update main signup
     if(signupKey){
       await write('week/signups/' + signupKey, {...entry});
@@ -1464,22 +1611,20 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
       await push('week/signups', entry);
       if(onLogSignup) onLogSignup(entry);
     }
-    // Save guest signup
-    if(guestEntry){
-      if(guestKey1){
-        await write('week/signups/' + guestKey1, guestEntry);
+    // Save guests (N of them) — each has its own key or is new
+    for(const g of (guestEntries || [])){
+      if(g.key){
+        await write('week/signups/' + g.key, g.entry);
       } else {
-        await push('week/signups', guestEntry);
-        if(onLogSignup) onLogSignup(guestEntry);
+        await push('week/signups', g.entry);
+        if(onLogSignup) onLogSignup(g.entry);
       }
     }
-    if(guestEntry2){
-      if(guestKey2){
-        await write('week/signups/' + guestKey2, guestEntry2);
-      } else {
-        await push('week/signups', guestEntry2);
-        if(onLogSignup) onLogSignup(guestEntry2);
-      }
+    // Delete removed guests
+    for(const k of (removedGuestKeys || [])){
+      const removedGuest = week?.signups?.[k];
+      if(removedGuest && onLogRemove) onLogRemove(k, removedGuest);
+      await del('week/signups/' + k);
     }
     // Handle match pairing — delete old one first if editing
     if(existingMatchKey){
@@ -1599,6 +1744,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, wri
           existingGuests={signupModal.existingGuests||[]}
           fullRoster={fullRoster}
           matchPairings={matchPairings}
+          settings={settings}
           isAdminAdd={signupModal.isAdminAdd}
           onClose={() => setSignupModal(null)}
           onSave={handleSignupSave}
@@ -4652,11 +4798,12 @@ function EmailViewV2({ week, isAdmin }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showAnnouncementsAdmin, setShowAnnouncementsAdmin] = useState(false);
   const [showSignups, setShowSignups] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
   const [showExports, setShowExports] = useState(false);
@@ -4849,7 +4996,103 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
           </div>
         )}
 
-        {/* ── 3. WEEKLY NOTES & ANNOUNCEMENTS ── */}
+        {/* ── 3. ANNOUNCEMENTS ── */}
+        <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+          <SectionHeader
+            icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2" strokeLinecap="round"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>}
+            title="Announcements"
+            count={Object.values(announcements||{}).filter(a=>a.active!==false&&(!a.autoExpireAt||a.autoExpireAt>Date.now())).length || undefined}
+            open={showAnnouncementsAdmin} onToggle={()=>setShowAnnouncementsAdmin(s=>!s)}
+          />
+          {showAnnouncementsAdmin&&(()=>{
+            const all = Object.entries(announcements||{}).map(([k,a])=>({...a,key:k})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+            const now = Date.now();
+            const active = all.filter(a => a.active !== false && (!a.autoExpireAt || a.autoExpireAt > now));
+            const inactive = all.filter(a => a.active === false || (a.autoExpireAt && a.autoExpireAt <= now));
+            return (
+              <div style={{borderTop:'1px solid var(--hairline)',padding:'12px 16px'}}>
+                <button className="btn btn-primary btn-sm" onClick={()=>onEditAnnouncement(true)} style={{width:'100%',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New announcement
+                </button>
+
+                {all.length === 0 && (
+                  <div style={{padding:'18px 12px',textAlign:'center',color:'var(--ink-50)',fontSize:12,background:'var(--surface-sunken)',borderRadius:8}}>
+                    No announcements yet. Create one to notify members.
+                  </div>
+                )}
+
+                {active.length > 0 && (
+                  <>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Active ({active.length})</div>
+                    {active.map(a => {
+                      const cat = getAnnCategory(a.category);
+                      const expiresIn = a.autoExpireAt ? Math.ceil((a.autoExpireAt - now) / (24*60*60*1000)) : null;
+                      return (
+                        <div key={a.key} style={{background:cat.soft,border:'1px solid '+cat.border,borderRadius:10,padding:'10px 12px',marginBottom:8}}>
+                          <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
+                            <span style={{fontSize:16,lineHeight:1,marginTop:1}}>{cat.icon}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:700,color:cat.color,lineHeight:1.3}}>{a.title}</div>
+                              {a.body && <div style={{fontSize:11,color:'var(--ink-70)',marginTop:2,lineHeight:1.4}}>{a.body.length>80?a.body.slice(0,80)+'…':a.body}</div>}
+                            </div>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:8,display:'flex',gap:8,flexWrap:'wrap'}}>
+                            <span>{a.display === 'modal' ? '📢 Modal' : '📌 Banner'}</span>
+                            <span>·</span>
+                            <span>{a.dismissal === 'auto' ? `Expires in ${expiresIn}d` : a.dismissal === 'session' ? 'Per session' : 'Once dismissed'}</span>
+                            {a.createdAt && <><span>·</span><span>{new Date(a.createdAt).toLocaleDateString()}</span></>}
+                          </div>
+                          <div style={{display:'flex',gap:6}}>
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1}} onClick={()=>onToggleAnnouncementActive(a.key, false)}>Pause</button>
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1}} onClick={()=>onEditAnnouncement(a)}>Edit</button>
+                            <button onClick={()=>{if(window.confirm('Delete this announcement?'))onDeleteAnnouncement(a.key);}} title="Delete" style={{background:'none',border:'1px solid var(--hairline)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--money-neg)',display:'flex',alignItems:'center'}}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {inactive.length > 0 && (
+                  <>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'14px 0 6px'}}>Paused / Expired ({inactive.length})</div>
+                    {inactive.map(a => {
+                      const cat = getAnnCategory(a.category);
+                      const isExpired = a.autoExpireAt && a.autoExpireAt <= now;
+                      return (
+                        <div key={a.key} style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',marginBottom:8,opacity:0.7}}>
+                          <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:6}}>
+                            <span style={{fontSize:16,lineHeight:1,marginTop:1,opacity:0.6}}>{cat.icon}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:700,color:'var(--ink-70)',lineHeight:1.3}}>{a.title}</div>
+                              {a.body && <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2,lineHeight:1.4}}>{a.body.length>80?a.body.slice(0,80)+'…':a.body}</div>}
+                            </div>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:8}}>
+                            {isExpired ? 'Expired' : 'Paused'}
+                            {a.createdAt && ' · '+new Date(a.createdAt).toLocaleDateString()}
+                          </div>
+                          <div style={{display:'flex',gap:6}}>
+                            {!isExpired && <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1}} onClick={()=>onToggleAnnouncementActive(a.key, true)}>Resume</button>}
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,flex:1}} onClick={()=>onEditAnnouncement(a)}>Edit</button>
+                            <button onClick={()=>{if(window.confirm('Delete this announcement?'))onDeleteAnnouncement(a.key);}} title="Delete" style={{background:'none',border:'1px solid var(--hairline)',borderRadius:6,padding:'4px 8px',cursor:'pointer',color:'var(--money-neg)',display:'flex',alignItems:'center'}}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* ── 4. WEEKLY NOTES & ANNOUNCEMENTS ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
             icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>}
@@ -5937,6 +6180,277 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
 
 
 // ═══════════════ MAIN APP ═══════════════
+// ═══════════════ ANNOUNCEMENTS ═══════════════
+const ANNOUNCEMENT_CATEGORIES = [
+  {id:'tournament', label:'Tournament', icon:'🏆', color:'#d97706', soft:'rgba(217,119,6,0.10)', border:'rgba(217,119,6,0.30)'},
+  {id:'feature',    label:'New Feature', icon:'🎉', color:'#059669', soft:'rgba(5,150,105,0.10)',  border:'rgba(5,150,105,0.30)'},
+  {id:'schedule',   label:'Schedule', icon:'📅', color:'#2563eb', soft:'rgba(37,99,235,0.10)',  border:'rgba(37,99,235,0.30)'},
+  {id:'important',  label:'Important', icon:'⚠️', color:'#dc2626', soft:'rgba(220,38,38,0.10)',  border:'rgba(220,38,38,0.30)'},
+  {id:'general',    label:'General', icon:'💬', color:'#475569', soft:'rgba(71,85,105,0.10)',   border:'rgba(71,85,105,0.30)'},
+];
+function getAnnCategory(id){ return ANNOUNCEMENT_CATEGORIES.find(c=>c.id===id) || ANNOUNCEMENT_CATEGORIES[4]; }
+
+/** Pick the newest visible announcement for this user — returns [key, ann] or null */
+function pickActiveAnnouncement(announcements, dismissals, joinedAt){
+  const now = Date.now();
+  const list = Object.entries(announcements || {})
+    .map(([k,a]) => ({k, ...a}))
+    .filter(a => a && a.active !== false)
+    .filter(a => !a.autoExpireAt || a.autoExpireAt > now)
+    .filter(a => !(dismissals && dismissals[a.k]))
+    .filter(a => !joinedAt || (a.createdAt || 0) >= joinedAt - 1000) // 1s grace
+    .sort((a,b) => {
+      // Modal beats banner; then newest first
+      if(a.display !== b.display){ if(a.display==='modal') return -1; if(b.display==='modal') return 1; }
+      return (b.createdAt||0) - (a.createdAt||0);
+    });
+  return list[0] || null;
+}
+
+function AnnouncementBanner({ announcement, onDismiss }){
+  if(!announcement) return null;
+  const cat = getAnnCategory(announcement.category);
+  const [expanded, setExpanded] = useState(false);
+  const hasLongBody = (announcement.body || '').length > 60;
+  return (
+    <div style={{
+      background: cat.soft, borderBottom:'1px solid '+cat.border,
+      padding:'10px 14px', display:'flex', alignItems:'flex-start', gap:10,
+      animation:'fadeIn 0.25s ease-out',
+    }}>
+      <div style={{fontSize:18,lineHeight:1,flexShrink:0,marginTop:1}}>{cat.icon}</div>
+      <div style={{flex:1, minWidth:0, cursor: hasLongBody ? 'pointer' : 'default'}} onClick={()=>hasLongBody && setExpanded(e=>!e)}>
+        <div style={{fontSize:13, fontWeight:700, color:cat.color, lineHeight:1.3}}>
+          {announcement.title}
+        </div>
+        {announcement.body && (
+          <div style={{
+            fontSize:12, color:'var(--ink-70)', marginTop:2, lineHeight:1.4,
+            overflow: expanded ? 'visible' : 'hidden',
+            display: expanded ? 'block' : '-webkit-box',
+            WebkitLineClamp: expanded ? 'none' : 2,
+            WebkitBoxOrient: 'vertical'
+          }}>
+            {announcement.body}
+          </div>
+        )}
+      </div>
+      <button onClick={onDismiss} title="Dismiss"
+        style={{background:'none',border:'none',cursor:'pointer',color:cat.color,opacity:0.7,padding:4,flexShrink:0,display:'flex',alignItems:'center'}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  );
+}
+
+function AnnouncementModal({ announcement, onDismiss }){
+  if(!announcement) return null;
+  const cat = getAnnCategory(announcement.category);
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:9050,background:'rgba(15,15,15,0.55)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,animation:'fadeIn 0.2s ease-out'}}>
+      <div style={{background:'var(--surface)',borderRadius:18,maxWidth:420,width:'100%',padding:'30px 24px 22px',textAlign:'center',animation:'slideUp 0.25s ease-out',boxShadow:'0 12px 48px rgba(0,0,0,0.25)',borderTop:'4px solid '+cat.color}}>
+        <div style={{fontSize:56, lineHeight:1, marginBottom:14}}>{cat.icon}</div>
+        <div style={{fontSize:11,fontWeight:700,color:cat.color,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{cat.label}</div>
+        <div style={{fontSize:20,fontWeight:800,color:'var(--ink)',lineHeight:1.25,marginBottom:12}}>{announcement.title}</div>
+        {announcement.body && <div style={{fontSize:14,color:'var(--ink-70)',lineHeight:1.5,marginBottom:22,whiteSpace:'pre-wrap'}}>{announcement.body}</div>}
+        <button onClick={onDismiss}
+          style={{background:cat.color,color:'#fff',border:'none',borderRadius:10,padding:'12px 32px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',minWidth:140}}>
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnnouncementComposeModal({ existing, currentUser, write, push, del, onClose }){
+  const isEdit = !!existing;
+  const [category, setCategory] = useState(existing?.category || 'general');
+  const [title, setTitle] = useState(existing?.title || '');
+  const [body, setBody] = useState(existing?.body || '');
+  const [display, setDisplay] = useState(existing?.display || 'banner');
+  const [dismissal, setDismissal] = useState(existing?.dismissal || 'user');
+  const [autoExpireDays, setAutoExpireDays] = useState(7);
+  const [resetDismissals, setResetDismissals] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const cat = getAnnCategory(category);
+  const TITLE_MAX = 60;
+  const BODY_MAX = 240;
+
+  async function publish(){
+    if(!title.trim()){ setErr('Add a title'); return; }
+    if(title.length > TITLE_MAX){ setErr(`Title too long (${TITLE_MAX} max)`); return; }
+    if(body.length > BODY_MAX){ setErr(`Message too long (${BODY_MAX} max)`); return; }
+    setSaving(true);
+    setErr('');
+    const now = Date.now();
+    const data = {
+      category,
+      title: title.trim(),
+      body: body.trim(),
+      display,
+      dismissal,
+      autoExpireAt: dismissal === 'auto' ? now + (autoExpireDays * 24 * 60 * 60 * 1000) : null,
+      active: existing?.active !== false,
+      createdAt: existing?.createdAt || now,
+      createdBy: existing?.createdBy || currentUser?.name || 'Admin',
+      updatedAt: isEdit ? now : null,
+    };
+    try {
+      if(isEdit){
+        await write('announcements/' + existing.key, data);
+        if(resetDismissals){
+          // Clear all dismissals for this announcement to force re-show
+          await del('announcementDismissals/' + existing.key);
+        }
+      } else {
+        await push('announcements', data);
+      }
+      onClose();
+    } catch(e){
+      setErr('Failed to save');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal" style={{maxWidth:480}}>
+        <div className="modal-head">
+          <div>
+            <div className="modal-title">{isEdit ? 'Edit announcement' : 'New announcement'}</div>
+            <div className="modal-sub">{isEdit ? `Created ${new Date(existing.createdAt).toLocaleDateString()}` : 'Visible to all members'}</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>
+            <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="modal-body">
+
+          {/* CATEGORY */}
+          <div className="form-group">
+            <label className="form-label">Category</label>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:5}}>
+              {ANNOUNCEMENT_CATEGORIES.map(c => (
+                <button key={c.id} onClick={()=>setCategory(c.id)}
+                  style={{padding:'10px 4px',borderRadius:8,border:'1.5px solid',borderColor:category===c.id?c.border:'var(--hairline)',background:category===c.id?c.soft:'var(--surface)',color:category===c.id?c.color:'var(--ink-50)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                  <span style={{fontSize:18,lineHeight:1}}>{c.icon}</span>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TITLE */}
+          <div className="form-group">
+            <label className="form-label">Title</label>
+            <input className="form-input" type="text" placeholder="e.g. Tournament this Saturday" value={title} onChange={e=>{setTitle(e.target.value);setErr('');}} maxLength={TITLE_MAX+10}/>
+            <div style={{fontSize:10,color:title.length>TITLE_MAX?'var(--money-neg)':'var(--ink-40)',marginTop:3,textAlign:'right'}}>{title.length}/{TITLE_MAX}</div>
+          </div>
+
+          {/* BODY */}
+          <div className="form-group">
+            <label className="form-label">Message (optional)</label>
+            <textarea className="form-input" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr('');}} rows={3} maxLength={BODY_MAX+20} style={{resize:'vertical',minHeight:60,fontFamily:'inherit'}}/>
+            <div style={{fontSize:10,color:body.length>BODY_MAX?'var(--money-neg)':'var(--ink-40)',marginTop:3,textAlign:'right'}}>{body.length}/{BODY_MAX}</div>
+          </div>
+
+          {/* DISPLAY STYLE */}
+          <div className="form-group">
+            <label className="form-label">Display style</label>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+              <button onClick={()=>setDisplay('banner')}
+                style={{padding:'12px 10px',borderRadius:8,border:'1.5px solid',borderColor:display==='banner'?'var(--brand-border)':'var(--hairline)',background:display==='banner'?'var(--brand-soft)':'var(--surface)',color:display==='banner'?'var(--brand)':'var(--ink-50)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                <span style={{fontSize:16}}>📌</span>
+                Banner
+                <span style={{fontSize:9,fontWeight:500,opacity:0.8}}>Top of app, dismissable</span>
+              </button>
+              <button onClick={()=>setDisplay('modal')}
+                style={{padding:'12px 10px',borderRadius:8,border:'1.5px solid',borderColor:display==='modal'?'var(--brand-border)':'var(--hairline)',background:display==='modal'?'var(--brand-soft)':'var(--surface)',color:display==='modal'?'var(--brand)':'var(--ink-50)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                <span style={{fontSize:16}}>📢</span>
+                Modal
+                <span style={{fontSize:9,fontWeight:500,opacity:0.8}}>Full popup, forces attention</span>
+              </button>
+            </div>
+          </div>
+
+          {/* DISMISSAL */}
+          <div className="form-group">
+            <label className="form-label">When dismissed</label>
+            <div style={{display:'flex',flexDirection:'column',gap:5}}>
+              {[
+                {id:'user', label:'Stays until each user dismisses it', sub:'No expiration — each person dismisses when ready'},
+                {id:'session', label:'Resets every time the app opens', sub:'Even if dismissed, comes back next session'},
+                {id:'auto', label:'Auto-removes for everyone after X days', sub:'Users can still dismiss early — the date is just a cutoff'},
+              ].map(d => (
+                <button key={d.id} onClick={()=>setDismissal(d.id)}
+                  style={{padding:'10px 12px',borderRadius:8,border:'1.5px solid',borderColor:dismissal===d.id?'var(--brand-border)':'var(--hairline)',background:dismissal===d.id?'var(--brand-soft)':'var(--surface-sunken)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:14,height:14,borderRadius:'50%',border:'2px solid',borderColor:dismissal===d.id?'var(--brand)':'var(--hairline)',background:dismissal===d.id?'var(--brand)':'transparent',flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:dismissal===d.id?'var(--brand)':'var(--ink)'}}>{d.label}</div>
+                    <div style={{fontSize:10,color:'var(--ink-50)',marginTop:1}}>{d.sub}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {dismissal === 'auto' && (
+              <div style={{marginTop:8,display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'var(--surface-sunken)',borderRadius:8}}>
+                <span style={{fontSize:12,color:'var(--ink-70)'}}>Auto-expire after</span>
+                <input type="number" className="form-input" value={autoExpireDays} min={1} max={365} onChange={e=>setAutoExpireDays(parseInt(e.target.value)||7)} style={{width:60,padding:'4px 6px'}}/>
+                <span style={{fontSize:12,color:'var(--ink-70)'}}>days</span>
+              </div>
+            )}
+          </div>
+
+          {/* RESET DISMISSALS (edit only) */}
+          {isEdit && (
+            <div onClick={()=>setResetDismissals(v=>!v)} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderRadius:8,border:'1.5px solid',borderColor:resetDismissals?'var(--warn-border)':'var(--hairline)',background:resetDismissals?'var(--warn-soft)':'var(--surface-sunken)',cursor:'pointer',marginBottom:10}}>
+              <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:resetDismissals?'var(--warn-border)':'var(--hairline)',background:resetDismissals?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                {resetDismissals&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:700,color:resetDismissals?'var(--warn-ink)':'var(--ink-70)'}}>Re-notify everyone</div>
+                <div style={{fontSize:10,color:'var(--ink-50)',marginTop:1}}>Resets dismissals so everyone sees this update</div>
+              </div>
+            </div>
+          )}
+
+          {/* PREVIEW */}
+          <div style={{marginTop:18}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Preview</div>
+            {display === 'banner' ? (
+              <div style={{background:cat.soft,border:'1px solid '+cat.border,borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10}}>
+                <div style={{fontSize:18,lineHeight:1,flexShrink:0,marginTop:1}}>{cat.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:cat.color,lineHeight:1.3}}>{title || 'Your title here'}</div>
+                  {body && <div style={{fontSize:12,color:'var(--ink-70)',marginTop:2,lineHeight:1.4}}>{body}</div>}
+                </div>
+              </div>
+            ) : (
+              <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:14,padding:'18px 16px',textAlign:'center',borderTop:'4px solid '+cat.color}}>
+                <div style={{fontSize:32,marginBottom:6}}>{cat.icon}</div>
+                <div style={{fontSize:10,fontWeight:700,color:cat.color,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{cat.label}</div>
+                <div style={{fontSize:15,fontWeight:800,color:'var(--ink)',marginBottom:body?8:0}}>{title || 'Your title here'}</div>
+                {body && <div style={{fontSize:12,color:'var(--ink-70)',lineHeight:1.4,whiteSpace:'pre-wrap'}}>{body}</div>}
+              </div>
+            )}
+          </div>
+
+          {err && <div className="form-err" style={{marginTop:10}}>{err}</div>}
+
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-primary" onClick={publish} disabled={saving}>
+            {saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Publish')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════ PROFILE MODAL ═══════════════
 function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, rosterEmails, playerCards, write, update, onClose, onLoadDeferred }){
   const playerId = currentUser?.id;
@@ -6362,6 +6876,11 @@ function App(){
   const [playerCards, setPlayerCards] = useState({});
   const [doNotPair, setDoNotPair] = useState({});
   const [showProfile, setShowProfile] = useState(false);
+  // Announcements
+  const [announcements, setAnnouncements] = useState({});
+  const [myDismissals, setMyDismissals] = useState({});
+  const [myJoinedAt, setMyJoinedAt] = useState(null);
+  const [editingAnn, setEditingAnn] = useState(null); // {key, ...ann} when editing, or true for new
   const { ready, read, write, push, del, update } = useDB();
 
   // Hide splash once app renders
@@ -6399,6 +6918,7 @@ function App(){
     u.push(read('settings', v=>setSettings(v||{})));
     u.push(read('settings/playerCards', v=>setPlayerCards(v||{})));
     u.push(read('settings/doNotPair', v=>setDoNotPair(v||{})));
+    u.push(read('announcements', v=>setAnnouncements(v||{})));
     return ()=>{
       u.forEach(f=>{ if(typeof f === 'function') f(); });
       deferredUnsubsRef.current.forEach(f=>{ if(typeof f === 'function') f(); });
@@ -6584,6 +7104,37 @@ function App(){
     }
   }, [rosterAdmins, currentUser?.id, currentUser?.role, ready]);
 
+  // Load this user's dismissals + initialize joinedAt
+  useEffect(() => {
+    if(!currentUser || currentUser.role === 'guest' || !ready) return;
+    const uid = currentUser.id;
+    const unsubs = [];
+    unsubs.push(read('announcementDismissals/' + uid, v => setMyDismissals(v || {})));
+    unsubs.push(read('userMeta/' + uid + '/joinedAt', v => {
+      if(v == null){
+        // First-time seeing this user — set their joinedAt to NOW
+        // This prevents them from being blasted with historical announcements
+        const now = Date.now();
+        write('userMeta/' + uid + '/joinedAt', now);
+        setMyJoinedAt(now);
+      } else {
+        setMyJoinedAt(v);
+      }
+    }));
+    return () => unsubs.forEach(f => { if(typeof f === 'function') f(); });
+  }, [currentUser?.id, currentUser?.role, ready]);
+
+  function dismissAnnouncement(key, dismissalType){
+    if(!currentUser || currentUser.role === 'guest') return;
+    if(dismissalType === 'session'){
+      // Local-only dismissal — won't persist across sessions
+      setMyDismissals(d => ({ ...d, [key]: Date.now() }));
+      return;
+    }
+    // 'user' and 'auto' both store the dismissal in Firebase
+    write('announcementDismissals/' + currentUser.id + '/' + key, Date.now());
+  }
+
 
   // Show landing if not signed in
   if(!currentUser){
@@ -6726,7 +7277,19 @@ function App(){
       </nav>
       )}
 
-      {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
+      {/* Active announcement (banner or modal) */}
+      {(()=>{
+        if(!currentUser || currentUser.role === 'guest') return null;
+        const active = pickActiveAnnouncement(announcements, myDismissals, myJoinedAt);
+        if(!active) return null;
+        const onDismiss = ()=>dismissAnnouncement(active.k, active.dismissal);
+        if(active.display === 'modal'){
+          return <AnnouncementModal announcement={active} onDismiss={onDismiss}/>;
+        }
+        return <AnnouncementBanner announcement={active} onDismiss={onDismiss}/>;
+      })()}
+
+      {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
@@ -6752,6 +7315,10 @@ function App(){
         rosterEmails={rosterEmails} rosterPins={rosterPins}
         rosterAdmins={rosterAdmins} activityLog={activityLog}
         matchPairings={matchPairings}
+        announcements={announcements}
+        onEditAnnouncement={(a)=>setEditingAnn(a||true)}
+        onToggleAnnouncementActive={(key,active)=>safeWrite('announcements/'+key+'/active',active)}
+        onDeleteAnnouncement={(key)=>{safeDel('announcements/'+key);safeDel('announcementDismissals/'+key);}}
         write={safeWrite} push={safePush} del={safeDel} update={safeUpdate} read={read}
         onCreateWeek={(data)=>{const prevDays=safeArray(week?.activeDays||[]);const newDays=safeArray(data.activeDays||[]);newDays.filter(d=>!prevDays.includes(d)).forEach(d=>logActivity('day_setup',{day:d,by:currentUser?currentUser.name:'admin'}));createWeek(data);}} onDeactivateDay={deactivateDay}
         onToggleLock={toggleLock} onUpdateTeeTime={updateTeeTime}
@@ -6780,6 +7347,15 @@ function App(){
           update={update}
           onClose={()=>setShowProfile(false)}
           onLoadDeferred={loadDeferred}
+        />
+      )}
+
+      {editingAnn && isAdmin && (
+        <AnnouncementComposeModal
+          existing={editingAnn === true ? null : editingAnn}
+          currentUser={currentUser}
+          write={safeWrite} push={safePush} del={safeDel}
+          onClose={()=>setEditingAnn(null)}
         />
       )}
     </div>

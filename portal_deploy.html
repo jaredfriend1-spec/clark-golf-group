@@ -2623,6 +2623,310 @@ function SeasonTab(){
   </div>);
 }
 
+// ── ANNOUNCEMENTS TAB ────────────────────────────────────────────────────────
+const ANNOUNCEMENT_CATEGORIES=[
+  {id:"tournament",label:"Tournament",icon:"🏆",color:"#fbbf24",soft:"rgba(251,191,36,0.12)",border:"rgba(251,191,36,0.35)"},
+  {id:"feature",   label:"New Feature",icon:"🎉",color:"#10b981",soft:"rgba(16,185,129,0.12)",border:"rgba(16,185,129,0.35)"},
+  {id:"schedule",  label:"Schedule",icon:"📅",color:"#60a5fa",soft:"rgba(96,165,250,0.12)",border:"rgba(96,165,250,0.35)"},
+  {id:"important", label:"Important",icon:"⚠️",color:"#f87171",soft:"rgba(248,113,113,0.12)",border:"rgba(248,113,113,0.35)"},
+  {id:"general",   label:"General",icon:"💬",color:"#94a3b8",soft:"rgba(148,163,184,0.12)",border:"rgba(148,163,184,0.35)"},
+];
+function getAnnCategory(id){return ANNOUNCEMENT_CATEGORIES.find(c=>c.id===id)||ANNOUNCEMENT_CATEGORIES[4];}
+
+function AnnounceTab({user}){
+  const announcements=useDB("announcements");
+  const [toast,showToast]=useToast();
+  const [editing,setEditing]=useState(null); // null = closed, true = new, object = editing existing
+
+  // Compose form state
+  const [category,setCategory]=useState("general");
+  const [title,setTitle]=useState("");
+  const [body,setBody]=useState("");
+  const [display,setDisplay]=useState("banner");
+  const [dismissal,setDismissal]=useState("user");
+  const [autoExpireDays,setAutoExpireDays]=useState(7);
+  const [resetDismissals,setResetDismissals]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState("");
+
+  const TITLE_MAX=60;
+  const BODY_MAX=240;
+  const cat=getAnnCategory(category);
+
+  // Open editing
+  function openNew(){
+    setCategory("general");setTitle("");setBody("");setDisplay("banner");
+    setDismissal("user");setAutoExpireDays(7);setResetDismissals(false);
+    setErr("");setEditing(true);
+  }
+  function openEdit(a){
+    setCategory(a.category||"general");
+    setTitle(a.title||"");setBody(a.body||"");
+    setDisplay(a.display||"banner");
+    setDismissal(a.dismissal||"user");
+    setAutoExpireDays(7);
+    setResetDismissals(false);
+    setErr("");setEditing(a);
+  }
+  function closeEdit(){setEditing(null);}
+
+  async function publish(){
+    if(!title.trim()){setErr("Add a title");return;}
+    if(title.length>TITLE_MAX){setErr(`Title too long (${TITLE_MAX} max)`);return;}
+    if(body.length>BODY_MAX){setErr(`Message too long (${BODY_MAX} max)`);return;}
+    setSaving(true);setErr("");
+    const now=Date.now();
+    const isEdit=editing&&typeof editing==="object";
+    const data={
+      category,title:title.trim(),body:body.trim(),
+      display,dismissal,
+      autoExpireAt:dismissal==="auto"?now+(autoExpireDays*24*60*60*1000):null,
+      active:isEdit?(editing.active!==false):true,
+      createdAt:isEdit?(editing.createdAt||now):now,
+      createdBy:isEdit?(editing.createdBy||user?.email||"Admin"):(user?.email||"Admin"),
+      updatedAt:isEdit?now:null,
+    };
+    try{
+      if(isEdit){
+        await wr("announcements/"+editing.key,data);
+        if(resetDismissals){await dl("announcementDismissals/"+editing.key);}
+        showToast("Announcement updated");
+      }else{
+        await ps("announcements",data);
+        showToast("Announcement published");
+      }
+      closeEdit();
+    }catch(e){setErr("Failed to save");setSaving(false);}
+    setSaving(false);
+  }
+
+  async function togglePause(key,active){
+    await wr("announcements/"+key+"/active",active);
+    showToast(active?"Resumed":"Paused");
+  }
+  async function remove(key){
+    if(!window.confirm("Delete this announcement?"))return;
+    await dl("announcements/"+key);
+    await dl("announcementDismissals/"+key);
+    showToast("Deleted");
+  }
+
+  const all=Object.entries(announcements||{}).map(([k,a])=>({...a,key:k})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const now=Date.now();
+  const active=all.filter(a=>a.active!==false&&(!a.autoExpireAt||a.autoExpireAt>now));
+  const inactive=all.filter(a=>a.active===false||(a.autoExpireAt&&a.autoExpireAt<=now));
+
+  return(<div className="main">
+    <Toast {...toast}/>
+    <div className="pg-eyebrow">Admin</div>
+    <div className="pg-title">Announcements</div>
+    <div className="pg-sub">Post messages to all members. Banner or modal display, with three dismissal modes. Members see new announcements in real-time.</div>
+
+    {/* New announcement button */}
+    {!editing&&(
+      <button className="btn btn-g btn-full" onClick={openNew} style={{marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New announcement
+      </button>
+    )}
+
+    {/* Compose form (inline) */}
+    {editing&&(
+      <div className="card" style={{marginBottom:18,borderColor:"rgba(16,185,129,0.3)"}}>
+        <div className="card-hdr">
+          <div className="card-title">{typeof editing==="object"?"Edit Announcement":"New Announcement"}</div>
+          <button className="btn btn-gh btn-xs" onClick={closeEdit}>Cancel</button>
+        </div>
+        <div className="card-body">
+          {/* Category */}
+          <div className="lbl">Category</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginBottom:14}}>
+            {ANNOUNCEMENT_CATEGORIES.map(c=>(
+              <button key={c.id} onClick={()=>setCategory(c.id)}
+                style={{padding:"10px 4px",borderRadius:8,border:"1.5px solid",borderColor:category===c.id?c.border:"rgba(255,255,255,0.1)",background:category===c.id?c.soft:"rgba(255,255,255,0.04)",color:category===c.id?c.color:"rgba(255,255,255,0.5)",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:3,transition:"all 0.15s"}}>
+                <span style={{fontSize:18,lineHeight:1}}>{c.icon}</span>
+                <span>{c.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Title */}
+          <div className="lbl">Title</div>
+          <input className="inp" type="text" placeholder="e.g. Tournament this Saturday" value={title} onChange={e=>{setTitle(e.target.value);setErr("");}} maxLength={TITLE_MAX+10} style={{marginBottom:4}}/>
+          <div style={{fontSize:10,color:title.length>TITLE_MAX?"#ef4444":"rgba(255,255,255,0.3)",textAlign:"right",marginBottom:14}}>{title.length}/{TITLE_MAX}</div>
+
+          {/* Body */}
+          <div className="lbl">Message (optional)</div>
+          <textarea className="inp" placeholder="Add details..." value={body} onChange={e=>{setBody(e.target.value);setErr("");}} rows={3} maxLength={BODY_MAX+20} style={{marginBottom:4,minHeight:70}}/>
+          <div style={{fontSize:10,color:body.length>BODY_MAX?"#ef4444":"rgba(255,255,255,0.3)",textAlign:"right",marginBottom:14}}>{body.length}/{BODY_MAX}</div>
+
+          {/* Display style */}
+          <div className="lbl">Display style</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            {[{id:"banner",icon:"📌",label:"Banner",sub:"Top of app, dismissable"},{id:"modal",icon:"📢",label:"Modal",sub:"Full popup, forces attention"}].map(d=>(
+              <button key={d.id} onClick={()=>setDisplay(d.id)}
+                style={{padding:"14px 10px",borderRadius:8,border:"1.5px solid",borderColor:display===d.id?"rgba(16,185,129,0.4)":"rgba(255,255,255,0.1)",background:display===d.id?"rgba(16,185,129,0.1)":"rgba(255,255,255,0.04)",color:display===d.id?"#10b981":"rgba(255,255,255,0.5)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                <span style={{fontSize:18}}>{d.icon}</span>{d.label}
+                <span style={{fontSize:9,opacity:0.8,fontWeight:500}}>{d.sub}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Dismissal */}
+          <div className="lbl">When dismissed</div>
+          <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>
+            {[
+              {id:"user",label:"Stays until each user dismisses it",sub:"No expiration — each person dismisses when ready"},
+              {id:"session",label:"Resets every time the app opens",sub:"Even if dismissed, comes back next session"},
+              {id:"auto",label:"Auto-removes for everyone after X days",sub:"Users can still dismiss early — the date is just a cutoff"},
+            ].map(d=>(
+              <button key={d.id} onClick={()=>setDismissal(d.id)}
+                style={{padding:"10px 12px",borderRadius:8,border:"1.5px solid",borderColor:dismissal===d.id?"rgba(16,185,129,0.4)":"rgba(255,255,255,0.1)",background:dismissal===d.id?"rgba(16,185,129,0.1)":"rgba(255,255,255,0.04)",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid",borderColor:dismissal===d.id?"#10b981":"rgba(255,255,255,0.2)",background:dismissal===d.id?"#10b981":"transparent",flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:dismissal===d.id?"#10b981":"#e2e8f0"}}>{d.label}</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:1}}>{d.sub}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+          {dismissal==="auto"&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:14}}>
+              <span style={{fontSize:12,color:"rgba(255,255,255,0.7)"}}>Auto-remove after</span>
+              <input type="number" className="inp" value={autoExpireDays} min={1} max={365} onChange={e=>setAutoExpireDays(parseInt(e.target.value)||7)} style={{width:70,padding:"6px 8px"}}/>
+              <span style={{fontSize:12,color:"rgba(255,255,255,0.7)"}}>days</span>
+            </div>
+          )}
+
+          {/* Reset dismissals (edit only) */}
+          {editing&&typeof editing==="object"&&(
+            <div onClick={()=>setResetDismissals(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:8,border:"1.5px solid",borderColor:resetDismissals?"rgba(245,158,11,0.4)":"rgba(255,255,255,0.1)",background:resetDismissals?"rgba(245,158,11,0.1)":"rgba(255,255,255,0.04)",cursor:"pointer",marginBottom:14}}>
+              <div style={{width:16,height:16,borderRadius:3,border:"2px solid",borderColor:resetDismissals?"#f59e0b":"rgba(255,255,255,0.2)",background:resetDismissals?"#f59e0b":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {resetDismissals&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:700,color:resetDismissals?"#fbbf24":"#e2e8f0"}}>Re-notify everyone</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:1}}>Resets dismissals so everyone sees this update</div>
+              </div>
+            </div>
+          )}
+
+          {/* Preview */}
+          <div className="lbl">Preview</div>
+          {display==="banner"?(
+            <div style={{background:cat.soft,border:"1px solid "+cat.border,borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"flex-start",gap:10,marginBottom:14}}>
+              <div style={{fontSize:18,lineHeight:1,flexShrink:0,marginTop:1}}>{cat.icon}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,color:cat.color,lineHeight:1.3}}>{title||"Your title here"}</div>
+                {body&&<div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginTop:2,lineHeight:1.4}}>{body}</div>}
+              </div>
+            </div>
+          ):(
+            <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:14,padding:"18px 16px",textAlign:"center",borderTop:"4px solid "+cat.color,marginBottom:14}}>
+              <div style={{fontSize:32,marginBottom:6}}>{cat.icon}</div>
+              <div style={{fontSize:10,fontWeight:700,color:cat.color,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{cat.label}</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#fff",marginBottom:body?8:0}}>{title||"Your title here"}</div>
+              {body&&<div style={{fontSize:12,color:"rgba(255,255,255,0.7)",lineHeight:1.4,whiteSpace:"pre-wrap"}}>{body}</div>}
+            </div>
+          )}
+
+          {err&&<div style={{padding:"8px 12px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,color:"#fca5a5",fontSize:12,marginBottom:10}}>{err}</div>}
+
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-gh" style={{flex:1}} onClick={closeEdit} disabled={saving}>Cancel</button>
+            <button className="btn btn-g" style={{flex:2}} onClick={publish} disabled={saving}>
+              {saving?"Saving…":(typeof editing==="object"?"Save changes":"Publish")}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Active list */}
+    {active.length>0&&(
+      <div className="card">
+        <div className="card-hdr">
+          <div className="card-title">Active ({active.length})</div>
+        </div>
+        <div className="card-body" style={{padding:0}}>
+          {active.map((a,i)=>{
+            const cat=getAnnCategory(a.category);
+            const expiresIn=a.autoExpireAt?Math.ceil((a.autoExpireAt-now)/(24*60*60*1000)):null;
+            return(
+              <div key={a.key} style={{padding:"14px 16px",borderBottom:i<active.length-1?"1px solid rgba(255,255,255,0.06)":"none"}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8}}>
+                  <span style={{fontSize:20,lineHeight:1,marginTop:2,flexShrink:0}}>{cat.icon}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:cat.color,marginBottom:2}}>{a.title}</div>
+                    {a.body&&<div style={{fontSize:12,color:"rgba(255,255,255,0.6)",lineHeight:1.4}}>{a.body.length>120?a.body.slice(0,120)+"…":a.body}</div>}
+                  </div>
+                </div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+                  <span>{a.display==="modal"?"📢 Modal":"📌 Banner"}</span>
+                  <span>·</span>
+                  <span>{a.dismissal==="auto"?`Expires in ${expiresIn}d`:a.dismissal==="session"?"Per session":"Once dismissed"}</span>
+                  {a.createdAt&&<><span>·</span><span>{new Date(a.createdAt).toLocaleDateString()}</span></>}
+                  {a.createdBy&&<><span>·</span><span>by {a.createdBy.split("@")[0]}</span></>}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button className="btn btn-gh btn-sm" onClick={()=>togglePause(a.key,false)}>Pause</button>
+                  <button className="btn btn-gh btn-sm" onClick={()=>openEdit(a)}>Edit</button>
+                  <button className="btn btn-r btn-sm" onClick={()=>remove(a.key)}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {/* Paused / Expired list */}
+    {inactive.length>0&&(
+      <div className="card">
+        <div className="card-hdr">
+          <div className="card-title">Paused / Expired ({inactive.length})</div>
+        </div>
+        <div className="card-body" style={{padding:0}}>
+          {inactive.map((a,i)=>{
+            const cat=getAnnCategory(a.category);
+            const isExpired=a.autoExpireAt&&a.autoExpireAt<=now;
+            return(
+              <div key={a.key} style={{padding:"14px 16px",borderBottom:i<inactive.length-1?"1px solid rgba(255,255,255,0.06)":"none",opacity:0.65}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8}}>
+                  <span style={{fontSize:20,lineHeight:1,marginTop:2,flexShrink:0,opacity:0.6}}>{cat.icon}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.7)",marginBottom:2}}>{a.title}</div>
+                    {a.body&&<div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.4}}>{a.body.length>120?a.body.slice(0,120)+"…":a.body}</div>}
+                  </div>
+                </div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginBottom:10}}>
+                  {isExpired?"Expired":"Paused"}
+                  {a.createdAt&&" · "+new Date(a.createdAt).toLocaleDateString()}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  {!isExpired&&<button className="btn btn-g btn-sm" onClick={()=>togglePause(a.key,true)}>Resume</button>}
+                  <button className="btn btn-gh btn-sm" onClick={()=>openEdit(a)}>Edit</button>
+                  <button className="btn btn-r btn-sm" onClick={()=>remove(a.key)}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {all.length===0&&!editing&&(
+      <div className="card">
+        <div className="card-body" style={{padding:"32px 20px",textAlign:"center",color:"rgba(255,255,255,0.5)",fontSize:13}}>
+          <div style={{fontSize:32,marginBottom:8}}>📢</div>
+          <div style={{fontWeight:700,marginBottom:4,color:"#e2e8f0"}}>No announcements yet</div>
+          <div style={{fontSize:12}}>Create one to notify members.</div>
+        </div>
+      </div>
+    )}
+  </div>);
+}
+
 // ── SETTINGS TAB (Master Only) ────────────────────────────────────────────────
 function SettingsTab({user,onSignOut}){
   const settings=useDB("settings");
@@ -2809,6 +3113,7 @@ const ALL_NAV_ITEMS=[
   {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   {id:"history",label:"History",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
+  {id:"announce",label:"Announce",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>},
   {id:"clarkemail",label:"Clark Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>},
   {id:"attend",label:"Attend",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>},
   {id:"season",label:"Season",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg>},
@@ -2891,6 +3196,7 @@ function Portal(){
           {tab==="roster"&&<RosterTab/>}
           {tab==="access"&&<AccessTab user={user}/>}
           {tab==="history"&&<HistoryTab user={user}/>}
+          {tab==="announce"&&<AnnounceTab user={user}/>}
           {tab==="clarkemail"&&<ClarkEmailTab/>}
           {tab==="attend"&&<AttendTab user={user}/>}
           {tab==="logincards"&&isMaster(user.role)&&<LoginCardsTab/>}
