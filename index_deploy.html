@@ -1565,6 +1565,51 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
   );
 }
 
+function TeeTimeModal({ day, onClose, onSave }){
+  // Initialize from existing time, defaulting to 8:00 AM if none set
+  const initialTime = day.tee.time && day.tee.time !== 'LOTTERY' ? day.tee.time : '08:00 AM';
+  const [time, setTime] = useState(initialTime);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleSave(){
+    if(!time.trim()){ setErr('Pick a tee time'); return; }
+    setSaving(true);
+    await onSave(day.day, time.trim());
+    onClose();
+  }
+
+  return (
+    <div className="modal-bg" onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal">
+        <div className="modal-head">
+          <div>
+            <div className="modal-title">Set tee time — {day.day}</div>
+            <div className="modal-sub">{day.month} {day.date}</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>
+            <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label className="form-label">Tee time</label>
+            <TimePicker initialValue={initialTime} onChange={v=>{setTime(v);setErr('');}}/>
+          </div>
+          {err && <div className="form-err">{err}</div>}
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Set time'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════ WEEK VIEW ═══════════════
 function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
