@@ -7144,6 +7144,24 @@ function App(){
     }
   }, [rosterAdmins, currentUser?.id, currentUser?.role, ready]);
 
+  // Live-sync the logged-in user's default tee + handicap when they update their profile.
+  // Fixes: editing tee/HCP in Profile used to require sign-out + sign-in for sign-up modal to pre-fill correctly.
+  useEffect(() => {
+    if(!currentUser || currentUser.role === 'guest' || !ready) return;
+    const uid = currentUser.id;
+    const newTee = (rosterTee && rosterTee[uid]) || null;
+    const newHcp = (rosterHcp && rosterHcp[uid] != null) ? rosterHcp[uid] : null;
+    let changed = false;
+    const updated = {...currentUser};
+    if(newTee && newTee !== currentUser.tee){ updated.tee = newTee; changed = true; }
+    if(newHcp != null && newHcp !== currentUser.handicap){ updated.handicap = newHcp; changed = true; }
+    if(newHcp == null && currentUser.handicap != null){ updated.handicap = null; changed = true; }
+    if(changed){
+      setCurrentUser(updated);
+      try { localStorage.setItem('cgCurrentUser', JSON.stringify(updated)); } catch {}
+    }
+  }, [rosterTee, rosterHcp, currentUser?.id, ready]);
+
   // Load this user's dismissals + initialize joinedAt
   useEffect(() => {
     if(!currentUser || currentUser.role === 'guest' || !ready) return;
