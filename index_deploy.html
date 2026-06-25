@@ -1399,7 +1399,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
         <div className="modal">
           <div className="modal-head">
             <div>
-              <div className="modal-title">{hasMatch ? 'Edit match request' : 'Request a match'}</div>
+              <div className="modal-title">{hasMatch ? 'Edit match play' : 'Add match play'}</div>
               <div className="modal-sub">{day.day} · {day.month} {day.date}</div>
             </div>
             <button className="modal-close" onClick={()=>{setStep('main');setErr('');}} title="Back">
@@ -1407,10 +1407,22 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
             </button>
           </div>
           <div className="modal-body">
+
+            {/* Prominent clarifier — match play is competition, not casual pairing */}
+            <div style={{padding:'12px 14px',background:'var(--warn-soft)',border:'1.5px solid var(--warn-border)',borderRadius:10,marginBottom:14,display:'flex',gap:10,alignItems:'flex-start'}}>
+              <span style={{fontSize:18,lineHeight:1,flexShrink:0,marginTop:1}}>⚠️</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--warn-ink)',marginBottom:3}}>For formal match play only</div>
+                <div style={{fontSize:11,color:'var(--warn-ink)',lineHeight:1.5}}>
+                  This is for an actual head-to-head match (competition). <strong>Not</strong> for requesting to play with a friend or be on the same team — Clark builds teams to balance handicaps.
+                </div>
+              </div>
+            </div>
+
             <div className="form-group">
-              <label className="form-label">Who do you want to play?</label>
+              <label className="form-label">Who's your opponent?</label>
               <select className="form-input" value={matchDraft.partner} onChange={e=>{setMatchDraft({...matchDraft, partner:e.target.value});setErr('');}}>
-                <option value="">Select partner...</option>
+                <option value="">Select opponent...</option>
                 {availablePartners.map(p=>(
                   <option key={p.id} value={p.name}>{p.name}{daySignedUp.includes(p.name)?' (signed up)':''}</option>
                 ))}
@@ -1436,13 +1448,13 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
               </>
             )}
             <div style={{padding:'10px 12px',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,fontSize:11,color:'var(--ink-50)',lineHeight:1.4}}>
-              ℹ️ Admin will review and approve match requests before teams are built.
+              ℹ️ Admin will review and approve match-play pairings before teams are built.
             </div>
             {err && <div className="form-err" style={{marginTop:8}}>{err}</div>}
           </div>
           <div className="modal-foot">
             <button className="btn btn-cancel" onClick={()=>{setStep('main');setErr('');}}>← Back</button>
-            <button className="btn btn-primary" onClick={saveMatch}>{hasMatch ? 'Update match' : 'Add match'}</button>
+            <button className="btn btn-primary" onClick={saveMatch}>{hasMatch ? 'Update match play' : 'Add match play'}</button>
           </div>
         </div>
       </div>
@@ -1545,10 +1557,10 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
           {/* ── Match card ── */}
           {!isGuestUser && !isEditingGuest && hasMatch && (
             <div style={{marginTop:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Match request</div>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Match play</div>
               <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',display:'flex',alignItems:'center',gap:8}}>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>vs {matchPartner}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Match play vs {matchPartner}</div>
                   <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>Pending admin approval</div>
                 </div>
                 <button className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={startEditMatch}>Edit</button>
@@ -1574,10 +1586,10 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
                   </button>
                 )}
                 {canAddMatch && (
-                  <button onClick={startEditMatch}
+                  <button onClick={startEditMatch} title="For formal head-to-head match play only — not for casual pairing requests"
                     style={{padding:'12px 10px',borderRadius:10,border:'1.5px dashed var(--brand-border)',background:'var(--brand-soft)',color:'var(--brand)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
-                    Request match
+                    Playing a match?
                   </button>
                 )}
               </div>
@@ -1759,7 +1771,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           <>
             <strong>{activeDays.length}</strong> active day{activeDays.length!==1?'s':''}<span className="sep">·</span>
             <strong>{totalSignups}</strong> total sign-up{totalSignups!==1?'s':''}
-            {pairCount > 0 && <><span className="sep">·</span><strong>{pairCount}</strong> pairing request{pairCount!==1?'s':''}</>}
+            {pairCount > 0 && <><span className="sep">·</span><strong>{pairCount}</strong> match play{pairCount!==1?'s':''}</>}
           </>
         )}
       </div>
@@ -3116,7 +3128,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
               </div>
               <div className="modal-body" style={{fontSize:13,color:'var(--ink-70)',lineHeight:1.6}}>
                 {[
-                  {icon:'⚡', title:'Requests honored first', body:'Before any team is built, the app places constrained players: approved match requests (player vs player on the same team), approved guest+host pairings, and approved tee time requests (first/last group). These are locked in before anyone else gets placed.'},
+                  {icon:'⚡', title:'Requests honored first', body:'Before any team is built, the app places constrained players: approved match-play pairings (head-to-head competition on the same team), approved guest+host pairings, and approved tee time requests (first/last group). These are locked in before anyone else gets placed.'},
                   {icon:'⚖️', title:'Balance-aware placement', body:'Remaining players are placed by handicap, but each one goes to the team with the lowest total HCP at that moment. This is smarter than a strict snake draft — it adapts to whatever imbalance the constraints created and keeps team totals close.'},
                   {icon:'🔄', title:'Auto-balance pass', body:'After all players are placed, the app tries every possible swap between any two teams. If swapping two players reduces the spread by 2+ strokes, it does it automatically — then keeps trying. Constrained players (matches, guests, tee pins) are never swapped. Result: teams arrive nearly optimal out of the gate.'},
                   {icon:'📊', title:'History-aware mixing', body:'When past round data exists, the algorithm tracks how many times each pair has been on the same team and uses that to break ties — so the field stays fresh week to week.'},
@@ -3192,9 +3204,9 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
               <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:10,padding:'12px 14px',marginBottom:10}}>
                 <div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2.2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"/></svg>
-                  Match Pairings ({dayMatchPairings.length})
+                  Match Play ({dayMatchPairings.length})
                 </div>
-                <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:8}}>Approve to place on the same team</div>
+                <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:8}}>Approve to place opponents on the same team</div>
                 {dayMatchPairings.map(([key,m])=>(
                   <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
                     <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
@@ -5612,7 +5624,7 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                 ):(
                   <div>
                     {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
-                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match request',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
+                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
                       const cfg=ACFG[e.action]||{label:e.action?.replace(/_/g,' ')||'',color:'var(--ink-50)',icon:'•'};
                       const age=Date.now()-(e.ts||0);
                       const ageStr=age<3600000?Math.round(age/60000)+'m ago':age<86400000?Math.round(age/3600000)+'h ago':Math.round(age/86400000)+'d ago';
@@ -6262,7 +6274,7 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
         {/* ── 9. Player Requests ── */}
         {showSec('behavior')&&<S id="behavior" icon="🎯" title="Player Requests" color="#8b5cf6" borderColor="#8b5cf6" summary={'Match reqs · First/Last tee · Guest bringers'}>
           <div style={{paddingTop:6}}>
-            {topMatchPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Match Requests</div><SmallList items={topMatchPlayers}/>{divider}</>}
+            {topMatchPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Match Plays</div><SmallList items={topMatchPlayers}/>{divider}</>}
             {firstTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬆ First Group Requests</div>{firstTeePlayers.map(([name,data],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--hairline-soft)'}}><span style={{fontSize:12,color:'var(--ink)',fontWeight:500}}>{name}</span><span style={{fontSize:18,fontWeight:800,color:'var(--money-pos)',fontVariantNumeric:'tabular-nums'}}>{data.first}</span></div>))}{divider}</>}
             {lastTeePlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'var(--money-neg)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>⬇ Last Group Requests</div>{lastTeePlayers.map(([name,data],i)=>(<div key={name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--hairline-soft)'}}><span style={{fontSize:12,color:'var(--ink)',fontWeight:500}}>{name}</span><span style={{fontSize:18,fontWeight:800,color:'var(--money-neg)',fontVariantNumeric:'tabular-nums'}}>{data.last}</span></div>))}{divider}</>}
             {topGuestBringers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Guests Brought</div><SmallList items={topGuestBringers}/></>}
