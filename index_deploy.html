@@ -1365,6 +1365,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
             </div>
             <div className="form-group">
               <label className="form-label">Handicap</label>
+              <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Guest's course handicap for the tees they're playing</div>
               <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestDraft.hcp} onChange={e=>{setGuestDraft({...guestDraft, hcp:e.target.value});setErr('');}}/>
             </div>
             <div className="form-group">
@@ -1443,6 +1444,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
                 </div>
                 <div className="form-group">
                   <label className="form-label">{matchDraft.partner}'s handicap</label>
+                  <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Their course handicap for the tees they're playing</div>
                   <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={matchDraft.hcp} onChange={e=>{setMatchDraft({...matchDraft, hcp:e.target.value});setErr('');}}/>
                 </div>
               </>
@@ -1516,6 +1518,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
               </div>
               <div className="form-group">
                 <label className="form-label">Handicap</label>
+                <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Use your course handicap for the tees you're playing today</div>
                 <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
               </div>
               {!isEditingGuest && (
@@ -7030,6 +7033,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
           {/* Default handicap */}
           <div className="form-group">
             <label className="form-label">Default handicap</label>
+            <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Course handicap for the tees you usually play</div>
             <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
             <div style={{fontSize:11,color:'var(--ink-50)',marginTop:4}}>You can override per-round when signing up. Past sign-ups are not affected.</div>
           </div>
