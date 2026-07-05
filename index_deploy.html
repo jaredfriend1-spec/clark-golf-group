@@ -5740,16 +5740,19 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
 
 // Simple setup wizard for v2
 function TimePicker({onChange, initialValue}){
-  // Parse "HH:MM AM/PM" if provided
+  // Parse "HH:MM AM/PM" if provided. Snaps minute to nearest 10-min bucket
+  // so legacy times stored at :15/:45 still display correctly.
   function parse(v){
     if(!v||typeof v!=='string')return null;
     const m=v.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if(!m)return null;
-    return {h:String(parseInt(m[1])),m:m[2],ap:m[3].toUpperCase()};
+    const rawMin=parseInt(m[2],10);
+    const snapped=String(Math.round(rawMin/10)*10 % 60).padStart(2,'0');
+    return {h:String(parseInt(m[1])),m:snapped,ap:m[3].toUpperCase()};
   }
   const init=parse(initialValue);
   const [h,setH]=useState(init?init.h:'7');const [m,setM]=useState(init?init.m:'00');const [ap,setAp]=useState(init?init.ap:'AM');
-  const hrs=Array.from({length:12},(_,i)=>String(i+1));const mins=['00','15','30','45'];
+  const hrs=Array.from({length:12},(_,i)=>String(i+1));const mins=['00','10','20','30','40','50'];
   function emit(nh,nm,nap){onChange(nh.padStart(2,'0')+':'+nm+' '+nap);}
   return(
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
