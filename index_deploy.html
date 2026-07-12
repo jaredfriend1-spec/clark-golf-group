@@ -7329,8 +7329,15 @@ function App(){
     const updates={};
     safeArray(week?.activeDays).forEach((day,index)=>{
       const daySignups=Object.values(week?.signups||{}).filter(s=>s.day===day);
-      if(daySignups.length>0){
-        const roundData={day,date:(week?.dates?.[day])||td(),teams:safeArray(week?.teams?.[day]),scores:week?.scores?.[day]||null,playerCount:daySignups.length,archivedAt:Date.now()};
+      const dayTeams=safeArray(week?.teams?.[day]);
+      const dayScores=week?.scores?.[day]||null;
+      const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
+      const hasScores=!!dayScores&&Object.keys(dayScores).some(k=>k!=='payoutsCalculated'&&k!=='playerCount');
+      // Archive any day with real played data (scores, teams, or signups) — not signups alone.
+      // A scored day whose signups were cleared during team-building must still be archived.
+      if(daySignups.length>0||teamPlayerCount>0||hasScores){
+        const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
+        const roundData={day,date:(week?.dates?.[day])||td(),teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
         updates['history/dr_'+Date.now()+'_'+index]=roundData;
         pushToAttendance(day);
       }
