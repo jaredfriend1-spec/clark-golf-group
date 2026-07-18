@@ -2198,6 +2198,16 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     };
     update({['week/scores/'+activeDay]: data, ['week/complete/'+activeDay]: true});
     setJustSaved(true); setTimeout(()=>setJustSaved(false),2500);
+    return data;
+  }
+
+  function handleFinalize(){
+    if(!window.confirm('Finalize this round?\n\nScores and payouts will be saved and the round will move to History in one step. Players can view results in the History tab.\n\n(Corrections afterward: History → Edit.)'))return;
+    // ONE-STEP FINALIZE: save + archive atomically from the caller's side.
+    // The exact data object we just wrote is handed to archiveDay directly,
+    // so the archive can never capture stale state.
+    const data=handleSaveAndPublish();
+    if(onArchiveDay)onArchiveDay(activeDay, data);
   }
 
   // Build payout rows
@@ -2670,22 +2680,20 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
           );
         })()}
 
-        {/* ── SAVE & PUBLISH ── */}
+        {/* ── FINALIZE (one-step: save + move to history) ── */}
         {isAdmin && (
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
-            <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700}} onClick={handleSaveAndPublish}>
-              {scoresSaved?'Update & Publish Results':'Save & Publish Results'}
+            <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700}} onClick={handleFinalize}>
+              Finalize Round — Save to History
+            </button>
+            <button className="btn btn-outline btn-full" onClick={handleSaveAndPublish}>
+              {scoresSaved?'Update Preview (not finalized)':'Save Preview (not finalized)'}
             </button>
             {justSaved && (
               <div style={{padding:'9px 14px',background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',display:'flex',alignItems:'center',gap:6}}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Saved — players can see scores and payouts.
+                Saved — remember to Finalize to lock it into History.
               </div>
-            )}
-            {scoresSaved && onArchiveDay && (
-              <button className="btn btn-outline btn-full" onClick={()=>onArchiveDay(activeDay)}>
-                Move to History
-              </button>
             )}
             {scoresSaved && onReopenDay && (
               <button className="btn btn-ghost btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>
@@ -7311,11 +7319,13 @@ function App(){
     push('activityLog',entry);
   }
 
-  function archiveDay(day){
+  function archiveDay(day, scoresOverride){
     if(!week)return;
     const daySignups=Object.values(week.signups||{}).filter(s=>s.day===day);
     const dayTeams=safeArray(week.teams?.[day]);
-    const dayScores=(week.scores&&week.scores[day])||null;
+    // scoresOverride: when finalizing in one step, the caller passes the exact
+    // just-saved scores object — App state may not have received it yet (race).
+    const dayScores=scoresOverride||(week.scores&&week.scores[day])||null;
     const dayDate=(week.dates&&week.dates[day])||td();
     // playerCount: signups may be absent for rounds pulled back from history via Edit —
     // fall back to team roster count, then the score record's own stored playerCount.
