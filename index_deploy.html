@@ -7313,7 +7313,11 @@ function App(){
     const dayTeams=safeArray(week.teams?.[day]);
     const dayScores=(week.scores&&week.scores[day])||null;
     const dayDate=(week.dates&&week.dates[day])||td();
-    const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount:daySignups.length,archivedAt:Date.now()};
+    // playerCount: signups may be absent for rounds pulled back from history via Edit —
+    // fall back to team roster count, then the score record's own stored playerCount.
+    const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
+    const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
+    const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
     push('history',roundData);
     pushToAttendance(day);
     const newWeek={...week};
