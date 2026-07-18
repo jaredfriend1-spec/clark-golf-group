@@ -7290,7 +7290,10 @@ function App(){
   }
 
   function editHistoryRound(key,round){
-    del('history/'+key);
+    // NON-DESTRUCTIVE EDIT: the round STAYS in history while being edited.
+    // We track its key in week.editingKeys; archiveDay/endWeek replace the old
+    // entry atomically (push new first, then delete old). The round is never
+    // absent from history — an interrupted edit can no longer lose data.
     const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};
     if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];
     newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};
@@ -7298,6 +7301,7 @@ function App(){
     if(round.scores){const sc={...round.scores};if(round.playerCount&&!sc.playerCount)sc.playerCount=round.playerCount;newWeek.scores={...(newWeek.scores||{}),[round.day]:sc};}
     newWeek.complete={...(newWeek.complete||{}),[round.day]:true};
     newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};
+    newWeek.editingKeys={...(newWeek.editingKeys||{}),[round.day]:key};
     write('week',newWeek);
     setTab('scoring');
   }
@@ -7319,8 +7323,13 @@ function App(){
     const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
     push('history',roundData);
+    // If this day was pulled from history via Edit, delete the OLD entry only now,
+    // AFTER the new one is safely written (atomic replace — never zero copies).
+    const oldKey=week.editingKeys&&week.editingKeys[day];
+    if(oldKey)del('history/'+oldKey);
     pushToAttendance(day);
     const newWeek={...week};
+    if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
     newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
     const ns={};Object.entries(week.signups||{}).forEach(([k,s])=>{if(s.day!==day)ns[k]=s;});newWeek.signups=ns;
     const nt={...(week.teams||{})};delete nt[day];newWeek.teams=nt;
@@ -7343,6 +7352,10 @@ function App(){
         const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
         const roundData={day,date:(week?.dates?.[day])||td(),teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
         updates['history/dr_'+Date.now()+'_'+index]=roundData;
+        // If this day was pulled from history via Edit, remove the superseded
+        // old entry in the SAME atomic update that writes the new one.
+        const oldKey=week?.editingKeys&&week.editingKeys[day];
+        if(oldKey)updates['history/'+oldKey]=null;
         pushToAttendance(day);
       }
     });
