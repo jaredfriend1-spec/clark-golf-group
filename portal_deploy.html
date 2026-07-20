@@ -262,7 +262,12 @@ select.inp option:checked{background:#10b981;color:#fff}
 <script type="text/babel">
 const {useState,useEffect,useRef,useMemo,useCallback}=React;
 
-const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
+// ── ENVIRONMENT SWITCH: production hostname → production Firebase; any other host (previews, localhost) → test DB. Safe to merge. ──
+const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
+const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
+const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
+const FB=IS_PROD_HOST?FB_PROD:FB_TEST;
+if(!IS_PROD_HOST){try{document.title="[TEST] "+document.title;window.addEventListener("DOMContentLoaded",()=>{const b=document.createElement("div");b.textContent="TEST DB";b.style.cssText="position:fixed;bottom:10px;left:10px;z-index:99999;background:#b45309;color:#fff;font:700 11px/1 sans-serif;padding:5px 10px;border-radius:6px;letter-spacing:0.08em;opacity:0.9;pointer-events:none;";document.body.appendChild(b);});}catch(e){}}
 let db,auth;
 try{const app=firebase.apps.length?firebase.apps[0]:firebase.initializeApp(FB);db=firebase.database(app);auth=firebase.auth(app);}catch(e){console.error(e);}
 
