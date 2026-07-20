@@ -250,7 +250,7 @@
         <h3><span class="feature-num">2</span> Bringing Guests?</h3>
         <p>In the sign-up modal you'll see two buttons at the bottom: <b>+ Bring a guest</b> and <b>+ Playing a match?</b> Tap <b>Bring a guest</b> to open a focused screen for the guest's name, tees, handicap, and whether you want to be paired on the same team.</p>
         <p style="margin-top:8px;">After adding a guest, you'll see them as a clean card on the main screen. Tap <b>+ Another guest</b> to add more — up to <b>3 guests total</b>, so one person can sign up a full 4-person team in a single flow.</p>
-        <div class="info-m"><strong>Pair requests</strong><p>Each guest has its own "Pair with me on a team?" toggle. A green "Pair req" badge shows on the guest's row if pairing was requested. The host shows "Host of [Guest Name]" — or "Host of Guest1, Guest2 & Guest3" if multiple.</p></div>
+        <div class="info-m"><strong>Pair requests</strong><p>Each guest has its own "Pair with me on a team?" toggle. A green "Pair req" badge shows on the guest's row if pairing was requested. The host shows "Host of [Guest Name]" — or "Host of Guest1, Guest2 &amp; Guest3" if multiple.</p></div>
 
         <h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink);">Editing or removing guests</h4>
         <p>Tap <b>Edit</b> next to your own row — you'll see a card view of your sign-up with each guest as their own card. Tap a guest's <b>Edit</b> button to update their info, or the trash icon to remove them. You can also add another guest from this view.</p>
@@ -378,23 +378,33 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">6</span> Publish & Lock Teams</h3>
-        <p>Hit <b>Publish & Lock</b>. Teams get official names (Team One, Team Two…) and are visible to all members. <b>Copy teams</b> pastes a clean plain-text version into iMessage or Gmail — includes day header, tee time, player list with slots, any match/tee/guest badges, and a matches summary at the bottom.</p>
+        <h3><span class="feature-num">6</span> Publish &amp; Lock Teams</h3>
+        <p>Hit <b>Publish &amp; Lock</b>. Teams get official names (Team One, Team Two…) and are visible to all members. <b>Copy teams</b> pastes a clean plain-text version into iMessage or Gmail — includes day header, tee time, player list with slots, any match/tee/guest badges, and a matches summary at the bottom.</p>
         <p style="margin-top:8px;"><b>Clear teams</b> — appears before publishing. Wipes the current draft and starts fresh — sign-ups are preserved.<br/><b>Reset Teams</b> — appears after publishing. Unpublishes and clears teams so you can rebuild from scratch.</p>
         <div class="info-m"><strong>Promote from Waitlist</strong><p>In the Teams tab, a gold Waiting List panel shows anyone on the waitlist for that day. Tap <b>Add to Round</b> to move them into sign-ups and unlock the day for rebuilding.</p></div>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">7</span> Score Tab</h3>
+        <h3><span class="feature-num">7</span> Score Tab — Score &amp; Finalize</h3>
         <p>Enter team scores (Front, Back, Overall) and tap Skins buttons. The app calculates the pot, splits ties, and shows exact dollar payouts. Once all scores are entered a 🏆 Winnings Summary appears with team totals and per-player share. Payment tracking lets you mark who has paid with one tap.</p>
         <p style="margin-top:8px;"><b>Skins surplus note:</b> Until you tap at least one skin, the payout preview shows the full skins pot as a "rounding surplus." This is normal — it clears automatically once skins are entered.</p>
-        <p style="margin-top:8px;">After saving and publishing, two additional buttons appear:</p>
-        <p><b>Move to History</b> — archives the day immediately from the Score tab without going through End Week. Useful when one day is fully closed while others are still active.<br/><b>Edit Scores</b> — reopens a saved day for corrections. Resets the lock so scores can be updated and re-published.</p>
+        <p style="margin-top:8px;">When the round is done, two buttons close it out:</p>
+        <p><b>Finalize Round — Save to History</b> — the one-step finish. Saves the scores, calculates payouts, and moves the round into History in a single tap (with a confirmation). This is the normal way to end every round — players view the results in the <b>History tab</b>.<br/><b>Save Preview (not finalized)</b> — optional. Saves and shows the payouts <em>without</em> finalizing, so you can double-check the numbers first. A preview is not in History yet — remember to hit Finalize when you're happy with it.</p>
+        <div class="callout"><strong>One step, no limbo</strong><p>Finalize replaces the old two-step "Save &amp; Publish → Move to History" flow. A finalized round is in History immediately — there's no in-between state where a scored round can be lost.</p></div>
+        <p style="margin-top:8px;"><b>Edit Scores</b> — reopens a saved preview for corrections before finalizing.</p>
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">8</span> Weekly Notes & Announcements</h3>
-        <p>In the Admin tab under <b>Weekly Notes & Announcements</b>, add per-day notes and upcoming events (with B/I/U formatting). Notes appear as a gold callout on the Week tab for members. Upcoming Events persist across End Week — clear manually when done.</p>
+        <h3><span class="feature-num gold">✎</span> Fixing a Round Already in History</h3>
+        <p>Tap <b>Edit</b> on any round in the History tab. The round opens in the Score tab for corrections — and the original entry <b>stays safely in History</b> the whole time. An amber banner on the Score tab reminds you you're editing a past round.</p>
+        <p style="margin-top:8px;">Two ways out:</p>
+        <p><b>Finalize Round</b> — saves your corrections and replaces the old History entry with the updated one (the swap is instant — the round is never missing from History).<br/><b>Cancel Edit — keep History version</b> — discards your changes and leaves the original round in History exactly as it was. Use this if you tapped Edit by accident.</p>
+        <div class="info-m"><strong>While editing</strong><p>The round shows in both History (the original) and the Score tab (your working copy) until you Finalize or Cancel. The Teams tab may show a "Teams are out of date" warning on an edited round — ignore it and do <b>not</b> tap Reset Teams; just Finalize or Cancel from the Score tab.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num">8</span> Weekly Notes &amp; Announcements</h3>
+        <p>In the Admin tab under <b>Weekly Notes &amp; Announcements</b>, add per-day notes and upcoming events (with B/I/U formatting). Notes appear as a gold callout on the Week tab for members. Upcoming Events persist across End Week — clear manually when done.</p>
       </div>
 
       <div class="feature">
@@ -416,9 +426,11 @@
       </div>
 
       <div class="feature">
-        <h3><span class="feature-num">11</span> End of Week Closeout</h3>
-        <p>Tap <b>End Week & Start Fresh</b> at the bottom of the Admin tab. Type <b>END</b> to confirm. All games save to History, attendance updates, and the board resets for next week. Upcoming Events persist — only day notes and subject line clear.</p>
-        <div class="mock-ui"><div class="btn-m dark full">End Week & Start Fresh</div></div>
+        <h3><span class="feature-num">11</span> End of Week — Start the Next Week</h3>
+        <p>Tap <b>End Week &amp; Start Fresh</b> at the bottom of the Admin tab. Type <b>END</b> to confirm. The board resets for next week, attendance updates, and Upcoming Events persist — only day notes and subject line clear.</p>
+        <p style="margin-top:8px;">Since each round is finalized to History from the Score tab as it finishes, End Week is now just the week rollover — it isn't how scores get to History anymore.</p>
+        <div class="info-m"><strong>Safety net</strong><p>If a scored day was somehow never finalized (e.g., left as a preview), End Week automatically sweeps it into History before resetting — a scored round can't be wiped by the rollover. But don't rely on this: Finalize each round from the Score tab as your normal habit.</p></div>
+        <div class="mock-ui"><div class="btn-m dark full">End Week &amp; Start Fresh</div></div>
       </div>
     </div>
 
@@ -431,11 +443,11 @@
         <p>Tap <b>Email</b> in the second admin nav row. The tab shows upcoming play days, status of each (locked, teams published), and the editable subject line.</p>
       </div>
       <div class="feature">
-        <h3><span class="feature-num dark">2</span> Day Notes & Upcoming Events</h3>
+        <h3><span class="feature-num dark">2</span> Day Notes &amp; Upcoming Events</h3>
         <p>Each day has a text area for notes (game format, special instructions). Below that, a large <b>Upcoming Events</b> block with B/I/U formatting — tournament schedules, event announcements, anything not day-specific. Events persist across weeks.</p>
       </div>
       <div class="feature">
-        <h3><span class="feature-num dark">3</span> Preview & Copy</h3>
+        <h3><span class="feature-num dark">3</span> Preview &amp; Copy</h3>
         <p>Tap <b>Preview Email</b> to see exactly what recipients will see. Two copy buttons at the bottom:</p>
         <p><b>Copy Formatted</b> — styled HTML, paste into Gmail.<br/><b>Copy Plain Text</b> — clean text with aligned columns, for iMessage or group texts.</p>
         <div class="mock-ui"><div style="display:flex;gap:8px;"><div class="btn-m dark" style="flex:1;">Copy Formatted</div><div class="btn-m outline" style="flex:1;">Copy Plain Text</div></div></div>
@@ -468,7 +480,7 @@
       <p>Tracks every player across the whole season — rounds played and the year-end tournament pot.</p>
       <div class="feature">
         <h3><span class="feature-num gold">1</span> Automatic Tracking</h3>
-        <p>Every time a week is closed out, player names are pushed to attendance automatically. No duplicate counting — same date pushed twice replaces rather than duplicates.</p>
+        <p>Every time a round is finalized to History (or a week is closed out), player names are pushed to attendance automatically. No duplicate counting — same date pushed twice replaces rather than duplicates.</p>
       </div>
       <div class="feature">
         <h3><span class="feature-num gold">2</span> Season Standings</h3>
