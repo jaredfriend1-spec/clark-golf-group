@@ -2090,7 +2090,7 @@ function ScorePickerV2({ value, onChange, readOnly }){
 }
 
 // ═══════════════ SCORING VIEW V2 ═══════════════
-function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay }){
+function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit }){
   const [activeDay, setActiveDay] = useState(null);
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
   const [sk, setSk] = useState({});        // skinCounts: {teamId: count}
@@ -2683,12 +2683,22 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
         {/* ── FINALIZE (one-step: save + move to history) ── */}
         {isAdmin && (
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+            {week?.editingKeys?.[activeDay] && (
+              <div style={{padding:'9px 14px',background:'#fef7ed',border:'1px solid #f0d9b5',borderRadius:8,fontSize:12.5,fontWeight:600,color:'#8a5a00'}}>
+                Editing a round from History — the original stays safe in History until you Finalize (which replaces it) or Cancel.
+              </div>
+            )}
             <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700}} onClick={handleFinalize}>
               Finalize Round — Save to History
             </button>
             <button className="btn btn-outline btn-full" onClick={handleSaveAndPublish}>
               {scoresSaved?'Update Preview (not finalized)':'Save Preview (not finalized)'}
             </button>
+            {week?.editingKeys?.[activeDay] && onCancelEdit && (
+              <button className="btn btn-outline btn-full" style={{color:'#8a5a00',borderColor:'#f0d9b5'}} onClick={()=>onCancelEdit(activeDay)}>
+                Cancel Edit — keep History version
+              </button>
+            )}
             {justSaved && (
               <div style={{padding:'9px 14px',background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',display:'flex',alignItems:'center',gap:6}}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -7297,6 +7307,22 @@ function App(){
     update({['week/complete/'+day]:false,['week/scores/'+day+'/payoutsCalculated']:false});
   }
 
+  function cancelEditRound(day){
+    if(!week)return;
+    if(!(week.editingKeys&&week.editingKeys[day]))return; // only cancels an in-progress edit
+    if(!window.confirm('Cancel editing this round?\n\nThe editing copy in this week will be discarded. The round in History is untouched.'))return;
+    // Discard ONLY the week's copy — History still holds the original entry.
+    const newWeek={...week};
+    newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
+    if(newWeek.teams){const t={...newWeek.teams};delete t[day];newWeek.teams=t;}
+    if(newWeek.scores){const s={...newWeek.scores};delete s[day];newWeek.scores=s;}
+    if(newWeek.complete){const c={...newWeek.complete};delete c[day];newWeek.complete=c;}
+    if(newWeek.teamsPublished){const p={...newWeek.teamsPublished};delete p[day];newWeek.teamsPublished=p;}
+    if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
+    write('week',newWeek);
+    setTab('history');
+  }
+
   function editHistoryRound(key,round){
     // NON-DESTRUCTIVE EDIT: the round STAYS in history while being edited.
     // We track its key in week.editingKeys; archiveDay/endWeek replace the old
@@ -7615,7 +7641,7 @@ function App(){
 
       {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
-      {tab === 'scoring' && <ScoringViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay}/>}
+      {tab === 'scoring' && <ScoringViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
       {tab === 'leaderboard' && <StandingsViewV2 history={history} currentUser={currentUser}/>}
 
