@@ -772,19 +772,50 @@ function WeekTab({user}){
     noteDebounce.current[day]=setTimeout(()=>wr("week/emailNotes/"+day,val),600);
   }
 
-  function endWeek(){
+  async function endWeek(){
     if(endConfirm!=="END"){showToast("Type END to confirm","err");return;}
+    // Mirrors the FIXED main-app endWeek:
+    //  - archives any day with real played data (scores, teams, OR signups) — never signups alone
+    //  - archives the FULL round (teams + scores), not just a signup list
+    //  - atomically replaces history entries for days under Edit (week.editingKeys)
+    //  - pushes attendance (replace-by-date, no duplicates)
+    //  - rolls dates to next week; all writes in ONE atomic multi-path update
     const signups=week?.signups||{};
-    const hist={};
+    const updates={};
+    const attendancePushes=[];
+    let idx=0;
     activeDays.forEach(day=>{
       const daySups=Object.values(signups).filter(s=>s.day===day);
-      if(!daySups.length)return;
-      const key="hist_"+Date.now()+"_"+day;
-      hist[key]={day,date:dates[day]||"",playerCount:daySups.length,archivedAt:Date.now(),signups:Object.fromEntries(Object.entries(signups).filter(([,s])=>s.day===day))};
+      const dayTeams=safeArr(week?.teams?.[day]);
+      const dayScores=(week?.scores&&week.scores[day])||null;
+      const teamPlayers=dayTeams.flatMap(t=>safeArr(t&&t.players));
+      const hasScores=!!dayScores&&Object.keys(dayScores).some(k=>k!=="payoutsCalculated"&&k!=="playerCount");
+      if(daySups.length>0||teamPlayers.length>0||hasScores){
+        const playerCount=daySups.length||teamPlayers.length||(dayScores&&dayScores.playerCount)||0;
+        updates["history/dr_"+Date.now()+"_"+(idx++)]={day,date:dates[day]||"",teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
+        // Day pulled from history via Edit in the main app? Delete the superseded
+        // old entry in the SAME atomic update that writes the new one.
+        const oldKey=week?.editingKeys&&week.editingKeys[day];
+        if(oldKey)updates["history/"+oldKey]=null;
+        const names=(teamPlayers.length?teamPlayers.map(p=>p&&p.name).filter(Boolean):daySups.map(s=>s.name)).map(normName).filter(Boolean);
+        if(names.length&&dates[day])attendancePushes.push({date:dates[day],players:[...new Set(names)].sort()});
+      }
     });
-    Object.entries(hist).forEach(([k,v])=>wr("history/"+k,v));
-    const emptyWeek={activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},emailNotes:null,emailEvents:week?.emailEvents||null};
-    wr("week",emptyWeek);
+    // Attendance: replace-by-date so re-pushing the same date never duplicates.
+    if(attendancePushes.length){
+      try{
+        const snap=await db.ref("attendance/rounds").once("value");
+        const raw=snap.val();
+        const existing=(Array.isArray(raw)?raw:raw?Object.values(raw):[]).filter(r=>r&&r.date);
+        const pushDates=new Set(attendancePushes.map(a=>a.date));
+        updates["attendance/rounds"]=[...existing.filter(r=>!pushDates.has(r.date)),...attendancePushes].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+      }catch(e){/* attendance read failed — history archive still proceeds */}
+    }
+    // Roll to next week's dates (Fri–Mon), matching the main app.
+    const nwDates={};
+    GOLF_DAYS.forEach(d=>{const cur=dates[d];if(cur){const dt=new Date(cur+"T12:00:00");dt.setDate(dt.getDate()+7);nwDates[d]=dt.toISOString().split("T")[0];}});
+    updates["week"]={activeDays:[],dates:nwDates,signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},locked:{},paid:{},emailNotes:null,emailSubject:null,emailEvents:week?.emailEvents||null};
+    upd(updates);
     setEndConfirm("");
     showToast("Week ended ✓");
   }
@@ -950,7 +981,7 @@ function WeekTab({user}){
 
       {/* ── END WEEK (master only) ── */}
       {openSection==="end"&&isMaster(user.role)&&(<div>
-        <div className="warn"><strong>End Week archives everything.</strong> All active days and sign-ups are archived to history and the week is cleared. Scores should be entered in the main app first. This cannot be undone.</div>
+        <div className="warn"><strong>End Week rolls the board to next week.</strong> Rounds finalized from the main app are already in History. Any scored-but-unfinalized day is swept into History (with full teams and scores) before the reset — but the normal habit is to Finalize each round from the main app’s Score tab. This cannot be undone.</div>
         <div className="card">
           <div className="card-hdr"><span className="card-title">Current Week Summary</span></div>
           <div className="card-body">
@@ -1949,7 +1980,6 @@ function AttendTab({user}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
-    <div className="pg-eyebrow">Tracking</div>
     <div className="pg-eyebrow">Tracking</div>
     <div className="pg-title">Attendance</div>
     <div className="pg-sub">{rounds.length} round{rounds.length!==1?"s":""} · {standings.length} unique players · ${totalEntries} to tournament fund</div>
