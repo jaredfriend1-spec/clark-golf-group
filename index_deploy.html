@@ -5937,7 +5937,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const isCustom=curMode==='__custom__';
   const [showCustom,setShowCustom]=useState(false);
   const [showModeSelect,setShowModeSelect]=useState(false);
-  const [cd,setCd]=useState(()=>customCfg||{name:'Custom Team Game',type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split'});
+  const [cd,setCd]=useState(()=>customCfg||{name:'Custom Team Game',type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split',skinsEnabled:false,skinsPerPlayer:5});
   function cBal(d){
     const buyIn=parseFloat(d.buyIn)||0;
     const fund=d.fundEnabled?(parseFloat(d.fundPerPlayer)||0):0;
@@ -5945,7 +5945,8 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
       const pots=(parseFloat(d.potFront)||0)+(parseFloat(d.potBack)||0)+(parseFloat(d.potOverall)||0)+(parseFloat(d.potSkins)||0);
       return {buyIn,out:fund+pots,diff:buyIn-(fund+pots)};
     }
-    return {buyIn,out:fund,diff:buyIn-fund,pool:buyIn-fund};
+    const skins=d.skinsEnabled?(parseFloat(d.skinsPerPlayer)||0):0;
+    return {buyIn,out:fund+skins,diff:buyIn-(fund+skins),pool:buyIn-fund-skins};
   }
   const bal=cBal(cd);
   const cBalanced=cd.type==='team'?Math.abs(bal.diff)<0.001:bal.diff>=-0.001;
@@ -6054,10 +6055,19 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
                   </div>
                 </div>
               )}
+              {cd.type==='individual'&&(
+                <div className="form-group" style={{marginBottom:8}}>
+                  <label className="form-label">Individual skins $/player</label>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <input type="checkbox" checked={!!cd.skinsEnabled} onChange={e=>setCd({...cd,skinsEnabled:e.target.checked})}/>
+                    <input className="form-input" type="number" inputMode="decimal" disabled={!cd.skinsEnabled} value={cd.skinsPerPlayer} onChange={e=>setCd({...cd,skinsPerPlayer:e.target.value})} style={{opacity:cd.skinsEnabled?1:0.4}}/>
+                  </div>
+                </div>
+              )}
               <div style={{padding:'7px 10px',borderRadius:8,marginBottom:8,fontSize:11,fontWeight:700,background:cBalanced?'var(--brand-soft)':'#fef2f2',color:cBalanced?'var(--brand)':'var(--money-neg)',border:'1px solid '+(cBalanced?'var(--brand-border)':'#fecaca')}}>
                 {cd.type==='team'
                   ?(cBalanced?('✓ Balanced: $'+bal.buyIn+' in = $'+bal.out+' out'):('✗ Off by $'+Math.abs(bal.diff).toFixed(2)))
-                  :(cBalanced?('✓ $'+(bal.pool||0).toFixed(0)+'/player to payout pool'):'✗ Fund exceeds buy-in')}
+                  :(cBalanced?('✓ $'+(bal.pool||0).toFixed(0)+'/player to payout pool'+(cd.skinsEnabled?(' · $'+(parseFloat(cd.skinsPerPlayer)||0)+' skins reserved'):'')):'✗ Fund + skins exceed buy-in')}
               </div>
               <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:8,fontStyle:'italic'}}>One-day setup only — it clears at End Week. Reusable templates are managed in the Admin Portal.</div>
               <div style={{display:'flex',gap:6}}>
