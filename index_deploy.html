@@ -1813,6 +1813,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         <DayCardV2
           key={day.day}
           day={day}
+          modeInfo={(()=>{const mid=week?.modes?.[day.day];const gr=settings?.gameRules;if(mid==='__custom__'){const c=week?.modeConfig?.[day.day];return c?{name:c.name||'Custom game',type:c.type}:null;}const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];return mo?{name:mo.name,type:mo.type}:null;})()}
           currentUser={currentUser}
           isAdmin={isAdmin}
           matchPairings={matchPairings}
@@ -1897,7 +1898,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
+function DayCardV2({ day, modeInfo, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
   const mySignup = day.signups.find(p => p.name === currentUser?.name);
@@ -1922,6 +1923,7 @@ function DayCardV2({ day, currentUser, isAdmin, matchPairings, expanded, onToggl
           <div className="day-meta">
             <div className="day-name-line">
               <span className="day-name">{day.day}</span>
+              {modeInfo&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,marginLeft:6,background:modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')}}>{modeInfo.name}</span>}
               <span className="day-sep">·</span>
               <span>{day.month} {day.date}</span>
             </div>
@@ -5053,7 +5055,7 @@ function EmailViewV2({ week, isAdmin }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5145,13 +5147,16 @@ function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster
     );
   }
 
+  const showWeekSec = viewMode==='week';
+  const showAdminSec = viewMode==='admin';
   return(
     <main className="content">
-      <div className="page-eyebrow">Admin only</div>
-      <div className="page-title">Admin Panel</div>
+      <div className="page-eyebrow">{viewMode==='week'?'Run the week':'Admin only'}</div>
+      <div className="page-title">{viewMode==='week'?'Manage Week':'Admin Panel'}</div>
 
       <div style={{padding:'0 12px'}}>
 
+        {showWeekSec&&(<>
         {/* ── 1. MANAGE DAYS ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <div style={{padding:'13px 16px',borderBottom:'1px solid var(--hairline)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -5251,6 +5256,9 @@ function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster
           </div>
         )}
 
+        </>)}
+
+        {showAdminSec&&(<>
         {/* ── 3. ANNOUNCEMENTS ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
@@ -5409,6 +5417,9 @@ function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster
           )}
         </div>
 
+        </>)}
+
+        {showWeekSec&&(<>
         {/* ── 4. MANAGE SIGN-UPS ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
@@ -5464,6 +5475,9 @@ function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster
           )}
         </div>
 
+        </>)}
+
+        {showAdminSec&&(<>
         {/* ── 5. ROSTER ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
@@ -5768,6 +5782,7 @@ function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster
         {/* Sign out */}
         <button className="btn btn-ghost" style={{width:'100%',marginBottom:20}} onClick={onLogout}>Sign out</button>
 
+        </>)}
       </div>
     </main>
   );
@@ -5824,36 +5839,152 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const signups=Object.values(week?.signups||{}).filter(s=>s.day===day);
   const locked=!!(week?.locked?.[day]);
   const teeInfo=week?.teeTimes?.[day];
+  // ── Game mode state (Step 1) ──
+  const modes=Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,...m}));
+  const dayHasScores=!!(week?.scores&&week.scores[day]);
+  const curMode=week?.modes?.[day]||'';
+  const effMode=curMode||settings?.gameRules?.defaultModeId||'';
+  const customCfg=week?.modeConfig?.[day]||null;
+  const isCustom=curMode==='__custom__';
+  const [showCustom,setShowCustom]=useState(false);
+  const [cd,setCd]=useState(()=>customCfg||{name:'Custom — '+day,type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split'});
+  const [saveAsTemplate,setSaveAsTemplate]=useState(false);
+  function cBal(d){
+    const buyIn=parseFloat(d.buyIn)||0;
+    const fund=d.fundEnabled?(parseFloat(d.fundPerPlayer)||0):0;
+    if(d.type==='team'){
+      const pots=(parseFloat(d.potFront)||0)+(parseFloat(d.potBack)||0)+(parseFloat(d.potOverall)||0)+(parseFloat(d.potSkins)||0);
+      return {buyIn,out:fund+pots,diff:buyIn-(fund+pots)};
+    }
+    return {buyIn,out:fund,diff:buyIn-fund,pool:buyIn-fund};
+  }
+  const bal=cBal(cd);
+  const cBalanced=cd.type==='team'?Math.abs(bal.diff)<0.001:bal.diff>=-0.001;
+  function saveCustom(){
+    if(!cBalanced||!write)return;
+    const clean={...cd,buyIn:parseFloat(cd.buyIn)||0,fundPerPlayer:parseFloat(cd.fundPerPlayer)||0,savedAt:Date.now()};
+    if(saveAsTemplate){
+      const id='m_'+Date.now();
+      write('settings/gameRules/modes/'+id,{...clean,name:(cd.name||'Custom mode').replace(' — '+day,'')});
+      write('week/modes/'+day,id);
+    } else {
+      write('week/modeConfig/'+day,clean);
+      write('week/modes/'+day,'__custom__');
+    }
+    setShowCustom(false);
+  }
+  const modeChosen=!!effMode||isCustom;
+  const modeLabel=isCustom?((customCfg&&customCfg.name)||'Custom for '+day):(modes.find(m=>m.id===effMode)||{}).name;
   return(
     <div style={{background:'var(--surface-sunken)',border:'1.5px solid var(--brand-border)',borderRadius:10,padding:14,marginTop:10}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Setting up {day}</div>
         <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontFamily:'inherit',fontSize:12,fontWeight:600}}>Done</button>
       </div>
-      {(()=>{
-        const modes=Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,...m}));
-        if(!modes.length)return null;
-        const dayHasScores=!!(week?.scores&&week.scores[day]);
-        const cur=week?.modes?.[day]||settings?.gameRules?.defaultModeId||'';
-        return(
-          <div className="form-group" style={{marginBottom:12}}>
-            <label className="form-label">Game mode for {day}</label>
-            <select className="form-input" value={cur} disabled={dayHasScores} onChange={e=>write&&write('week/modes/'+day,e.target.value)} style={{opacity:dayHasScores?0.6:1}}>
-              {!cur&&<option value="">— choose a mode —</option>}
-              {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
-            </select>
-            {dayHasScores&&<div style={{fontSize:10,color:'var(--ink-40)',marginTop:4,fontStyle:'italic'}}>Locked — scores already exist for this day.</div>}
-          </div>
-        );
-      })()}
       <div style={{display:'flex',gap:4,marginBottom:14}}>
-        {[1,2,3].map(num=>(
-          <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&teeInfo)||(num===2&&locked))?'var(--brand)':step===num?'var(--ink)':'var(--hairline)',transition:'background 0.2s'}}/>
+        {[1,2,3,4].map(num=>(
+          <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&modeChosen)||(num===2&&teeInfo)||(num===3&&locked))?'var(--brand)':step===num?'var(--ink)':'var(--hairline)',transition:'background 0.2s'}}/>
         ))}
       </div>
       {step===1&&(
         <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 1 — Set tee time</div>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 1 — Choose the game</div>
+          {dayHasScores&&<div style={{padding:'7px 10px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,fontSize:11,fontWeight:600,color:'var(--warn-ink)',marginBottom:8}}>Mode locked — scores already exist for {day}.</div>}
+          {modeChosen&&!showCustom&&(
+            <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>
+              {modeLabel||'Mode set'}{!curMode&&effMode?' (group default)':''}
+            </div>
+          )}
+          {!showCustom&&(
+            <>
+              {modes.length>0&&(
+                <div className="form-group" style={{marginBottom:8}}>
+                  <label className="form-label">Saved game modes</label>
+                  <select className="form-input" value={isCustom?'':curMode} disabled={dayHasScores} onChange={e=>{if(e.target.value)write&&write('week/modes/'+day,e.target.value);}}>
+                    <option value="">— choose a saved mode —</option>
+                    {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
+                  </select>
+                </div>
+              )}
+              {!dayHasScores&&(
+                <button className="btn btn-outline btn-sm" style={{width:'100%',marginBottom:8}} onClick={()=>setShowCustom(true)}>
+                  {isCustom?'Edit custom game for '+day:'Configure a custom game for '+day}
+                </button>
+              )}
+            </>
+          )}
+          {showCustom&&!dayHasScores&&(
+            <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:8,padding:10,marginBottom:8}}>
+              <div className="form-group" style={{marginBottom:8}}>
+                <label className="form-label">Game type</label>
+                <div className="pref-opts">
+                  <button className={'pref-opt'+(cd.type==='team'?' on':'')} onClick={()=>setCd({...cd,type:'team'})}>Team</button>
+                  <button className={'pref-opt'+(cd.type==='individual'?' on':'')} onClick={()=>setCd({...cd,type:'individual'})}>Individual</button>
+                </div>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+                <div className="form-group" style={{marginBottom:0}}>
+                  <label className="form-label">Buy-in $/player</label>
+                  <input className="form-input" type="number" inputMode="decimal" value={cd.buyIn} onChange={e=>setCd({...cd,buyIn:e.target.value})}/>
+                </div>
+                <div className="form-group" style={{marginBottom:0}}>
+                  <label className="form-label">Fund $/player</label>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <input type="checkbox" checked={cd.fundEnabled} onChange={e=>setCd({...cd,fundEnabled:e.target.checked})}/>
+                    <input className="form-input" type="number" inputMode="decimal" disabled={!cd.fundEnabled} value={cd.fundPerPlayer} onChange={e=>setCd({...cd,fundPerPlayer:e.target.value})} style={{opacity:cd.fundEnabled?1:0.4}}/>
+                  </div>
+                </div>
+              </div>
+              {cd.type==='team'&&(
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,marginBottom:8}}>
+                  {[['potFront','Front'],['potBack','Back'],['potOverall','Overall'],['potSkins','Skins (net)']].map(([k,l])=>(
+                    <div className="form-group" key={k} style={{marginBottom:0}}>
+                      <label className="form-label" style={{fontSize:9}}>{l}</label>
+                      <input className="form-input" type="number" inputMode="decimal" value={cd[k]} onChange={e=>setCd({...cd,[k]:e.target.value})}/>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {cd.type==='individual'&&(
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:8}}>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label className="form-label" style={{fontSize:9}}>Ranking</label>
+                    <select className="form-input" value={cd.ranking} onChange={e=>setCd({...cd,ranking:e.target.value})}><option value="net">Net to target</option><option value="raw">Raw total</option></select>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label className="form-label" style={{fontSize:9}}>Paid spots</label>
+                    <input className="form-input" type="number" min="1" value={cd.paidSpots} onChange={e=>setCd({...cd,paidSpots:e.target.value})}/>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label className="form-label" style={{fontSize:9}}>Ties</label>
+                    <select className="form-input" value={cd.tieRule} onChange={e=>setCd({...cd,tieRule:e.target.value})}><option value="split">Split $</option><option value="admin">Admin</option></select>
+                  </div>
+                </div>
+              )}
+              <div style={{padding:'7px 10px',borderRadius:8,marginBottom:8,fontSize:11,fontWeight:700,background:cBalanced?'var(--brand-soft)':'#fef2f2',color:cBalanced?'var(--brand)':'var(--money-neg)',border:'1px solid '+(cBalanced?'var(--brand-border)':'#fecaca')}}>
+                {cd.type==='team'
+                  ?(cBalanced?('✓ Balanced: $'+bal.buyIn+' in = $'+bal.out+' out'):('✗ Off by $'+Math.abs(bal.diff).toFixed(2)+' — pots + fund must equal buy-in'))
+                  :(cBalanced?('✓ $'+bal.buyIn+' in — $'+(bal.pool||0).toFixed(0)+'/player to payout pool (spots set at scoring)'):'✗ Fund exceeds buy-in')}
+              </div>
+              <label style={{display:'flex',alignItems:'center',gap:7,fontSize:11,color:'var(--ink-50)',marginBottom:8,cursor:'pointer'}}>
+                <input type="checkbox" checked={saveAsTemplate} onChange={e=>setSaveAsTemplate(e.target.checked)}/>
+                Also save as a reusable mode for future days
+              </label>
+              <div style={{display:'flex',gap:6}}>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(false)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={saveCustom} disabled={!cBalanced}>{saveAsTemplate?'Save mode & use for '+day:'Use for '+day}</button>
+              </div>
+            </div>
+          )}
+          <div style={{display:'flex',gap:6,marginTop:4}}>
+            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(2)}>Next</button>
+          </div>
+          {!modeChosen&&<div style={{fontSize:10,color:'var(--ink-40)',marginTop:6,fontStyle:'italic'}}>No mode chosen — the day will score as a standard team round.</div>}
+        </div>
+      )}
+      {step===2&&(
+        <div>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 2 — Set tee time</div>
           {teeInfo?(
             <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>
               {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' – '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
@@ -5876,13 +6007,14 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
             </>
           )}
           <div style={{display:'flex',gap:6,marginTop:8}}>
-            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(2)} disabled={!teeInfo}>Next</button>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(1)}>Back</button>
+            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(3)} disabled={!teeInfo}>Next</button>
           </div>
         </div>
       )}
-      {step===2&&(
+      {step===3&&(
         <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 2 — Lock sign-ups</div>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 3 — Lock sign-ups</div>
           <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:10}}>{signups.length} player{signups.length!==1?'s':''} signed up for {day}</div>
           {locked?(
             <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>Sign-ups locked</div>
@@ -5892,17 +6024,17 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
             </button>
           )}
           <div style={{display:'flex',gap:6}}>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(1)}>Back</button>
-            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(3)} disabled={!locked}>Next</button>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(2)}>Back</button>
+            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(4)} disabled={!locked}>Next</button>
           </div>
         </div>
       )}
-      {step===3&&(
+      {step===4&&(
         <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 3 — Generate teams</div>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 4 — Generate teams</div>
           <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:10}}>Head to the Teams tab to generate rosters, balance players, and set the tee order.</div>
           <div style={{display:'flex',gap:6}}>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(2)}>Back</button>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(3)}>Back</button>
             <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>{onClose();onGoTo('teams');}}>Go to Teams tab</button>
           </div>
         </div>
@@ -7574,6 +7706,7 @@ function App(){
   const MEMBER_TABS = [...MEMBER_TABS_ROW1, ...MEMBER_TABS_ROW2];
 
   const ADMIN_TABS = isAdmin ? [
+    { id:'manage', label:'Manage', icon:<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><path d="M3 10h18"/><path d="M9 16l2 2 4-4"/></svg> },
     { id:'email', label:'Email', icon:<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg> },
     { id:'admin', label:'Admin', icon:<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> },
     { id:'master',  label:'Stats',  icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
@@ -7703,7 +7836,7 @@ function App(){
       })()}
       {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 isAdmin={isAdmin} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite}/>}
       {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin}/>}
-      {tab === 'admin' && <AdminViewV2
+      {(tab === 'admin' || tab === 'manage') && <AdminViewV2 viewMode={tab==='manage'?'week':'admin'}
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
