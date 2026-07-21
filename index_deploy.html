@@ -678,12 +678,13 @@ function useDB(){
     catch(e){setReady(true);}
   },[]);
   const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
+  const readOnce=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return;}db.ref(p).once('value').then(s=>cb(s.val()));},[db]);
   // ALL WRITES BLOCKED IN V2 — logs a warning and no-ops
   const write=useCallback((p,v)=>{if(V2_WRITES_BLOCKED){console.warn('[V2 BLOCKED] write:',p);return Promise.resolve();}if(!db){localStorage.setItem(p,JSON.stringify(v));return Promise.resolve();}return db.ref(p).set(v);},[db]);
   const push=useCallback((p,v)=>{if(V2_WRITES_BLOCKED){console.warn('[V2 BLOCKED] push:',p);return Promise.resolve('blocked');}if(!db){const e=JSON.parse(localStorage.getItem(p)||'{}');const k=Date.now().toString();e[k]=v;localStorage.setItem(p,JSON.stringify(e));return Promise.resolve(k);}return db.ref(p).push(v).then(r=>r.key);},[db]);
   const del=useCallback((p)=>{if(V2_WRITES_BLOCKED){console.warn('[V2 BLOCKED] del:',p);return Promise.resolve();}if(!db){localStorage.removeItem(p);return Promise.resolve();}return db.ref(p).remove();},[db]);
   const update=useCallback((updates)=>{if(V2_WRITES_BLOCKED){console.warn('[V2 BLOCKED] update:',Object.keys(updates));return Promise.resolve();}if(!db){return Promise.resolve();}return db.ref().update(updates);},[db]);
-  return{ready,read,write,push,del,update};
+  return{ready,read,readOnce,write,push,del,update};
 }
 
 // ═══════════════ Markdown parser for Upcoming Events ═══════════════
@@ -7897,7 +7898,7 @@ function App(){
   const [myDismissals, setMyDismissals] = useState({});
   const [myJoinedAt, setMyJoinedAt] = useState(null);
   const [editingAnn, setEditingAnn] = useState(null); // {key, ...ann} when editing, or true for new
-  const { ready, read, write, push, del, update } = useDB();
+  const { ready, read, readOnce, write, push, del, update } = useDB();
 
   // Hide splash once app renders
   useEffect(()=>{
@@ -7987,12 +7988,38 @@ function App(){
   function softDeleteHistory(key){
     const round=history[key]; if(!round)return;
     const trashed={...round,deletedAt:Date.now()};
+    // Attendance follows the round — but ONLY when this is the LAST history
+    // entry for its date (deleting one duplicate twin keeps attendance).
+    // The removed attendance record rides along in trash so Recover restores it.
+    const stillHasDate=Object.entries(history||{}).some(([k,r])=>k!==key&&r&&r.date===round.date);
+    if(round.date&&!stillHasDate){
+      readOnce('attendance/rounds',(raw)=>{
+        const arr=(Array.isArray(raw)?raw:raw?Object.values(raw):[]).filter(x=>x&&x.date);
+        const removed=arr.find(x=>x.date===round.date);
+        if(removed){
+          write('historyTrash/'+key,{...trashed,attendanceBackup:removed});
+          write('attendance/rounds',arr.filter(x=>x.date!==round.date));
+        } else {
+          write('historyTrash/'+key,trashed);
+        }
+        del('history/'+key);
+      });
+      return;
+    }
     write('historyTrash/'+key,trashed); del('history/'+key);
   }
   function recoverHistory(key){
     const round=historyTrash[key]; if(!round)return;
     const recovered={...round}; delete recovered.deletedAt;
+    const ab=recovered.attendanceBackup; delete recovered.attendanceBackup;
     write('history/'+key,recovered); del('historyTrash/'+key);
+    // Restore the attendance record that was removed with the round (replace-by-date).
+    if(ab&&ab.date){
+      readOnce('attendance/rounds',(raw)=>{
+        const arr=(Array.isArray(raw)?raw:raw?Object.values(raw):[]).filter(x=>x&&x.date);
+        write('attendance/rounds',[...arr.filter(x=>x.date!==ab.date),ab].sort((a,b)=>(b.date||'').localeCompare(a.date||'')));
+      });
+    }
   }
   function permanentDeleteHistory(key){ del('historyTrash/'+key); }
 
