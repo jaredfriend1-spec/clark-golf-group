@@ -3208,7 +3208,7 @@ function MovePlayerSheet({ playerName, teams, fromTeamIdx, onMove, onClose }){
 }
 
 // ═══════════════ TEAMS VIEW V2 ═══════════════
-function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished }){
+function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings }){
   // Demo mode is ALWAYS opt-in via button — never touches live data
   const effectiveWeek = week;
   const effectivePairings = livePairings || {};
@@ -3239,6 +3239,13 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
   useEffect(() => {
     if (!activeDay && activeDays.length > 0) setActiveDay(activeDays[0]);
   }, [activeDays.join(',')]);
+
+  // ── Individual-mode presentation: same machinery, "Groups" semantics ──
+  const dayCfg = resolveDayMode(effectiveWeek, settings, activeDay);
+  const indMode = !!(dayCfg && dayCfg.type==='individual');
+  const UNIT = indMode ? 'Group' : 'Team';
+  const UNITS = indMode ? 'Groups' : 'Teams';
+  const MAX_PER = indMode ? 5 : 4;
 
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null), 2500); }
 
@@ -3349,8 +3356,8 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
   }
 
   function publishAndLock(){
-    const names=['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
-    const final=(editTeams||manualTeams||savedTeams).map((t,i)=>({...t,name:names[i]||'Team '+(i+1)}));
+    const names=indMode?['Group 1','Group 2','Group 3','Group 4','Group 5','Group 6','Group 7','Group 8']:['Team One','Team Two','Team Three','Team Four','Team Five','Team Six','Team Seven','Team Eight'];
+    const final=(editTeams||manualTeams||savedTeams).map((t,i)=>({...t,name:names[i]||(indMode?'Group ':'Team ')+(i+1)}));
     publishTeams(activeDay, final);
     setEditTeams(null); setManualTeams(null); setManualMode(false);
     setBuildInfo(null);
@@ -3452,7 +3459,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     <main className="content">
 
 
-      <div className="page-eyebrow">Teams</div>
+      <div className="page-eyebrow">{indMode?"Groups · tee-off order":"Teams"}</div>
       <div className="page-title">Team Builder</div>
       <div className="page-sub">
         {published
@@ -3685,8 +3692,8 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
                 {!manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>}
                 {editTeams && <button className="btn btn-ghost btn-sm" onClick={()=>{saveTeams(activeDay,editTeams);setEditTeams(null);showToast('Draft saved');}}>Save Draft</button>}
                 {manualTeams && <button className="btn btn-ghost btn-sm" onClick={()=>{saveTeams(activeDay,manualTeams);showToast('Draft saved');}}>Save Draft</button>}
-                {currentDisplay.length > 0 && <button className="btn btn-primary btn-sm" onClick={publishAndLock}>Publish & Lock</button>}
-                {currentDisplay.length > 0 && <button className="btn btn-ghost btn-sm" onClick={copyTeams}>{copied?'✓ Copied':'Copy teams'}</button>}
+                {currentDisplay.length > 0 && <button className="btn btn-primary btn-sm" onClick={publishAndLock}>{indMode?"Publish Groups":"Publish & Lock"}</button>}
+                {currentDisplay.length > 0 && <button className="btn btn-ghost btn-sm" onClick={copyTeams}>{copied?'✓ Copied':(indMode?'Copy groups':'Copy teams')}</button>}
                 {currentDisplay.length > 0 && <button className="btn btn-ghost btn-sm" style={{color:'var(--highlight)'}} onClick={()=>setShowBalance(b=>!b)}>⚖️ Balance</button>}
                 {currentDisplay.length > 0 && <button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>{if(window.confirm('Clear all teams and start over? Sign-ups are preserved.')) unpublishTeams(activeDay);}}>Clear teams</button>}
               </div>
@@ -3722,7 +3729,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
               <button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>{if(window.confirm('Clear all teams and start over? Sign-ups are preserved.')) unpublishTeams(activeDay);}}>Reset Teams</button>
               <button className="btn btn-ghost btn-sm" style={{color:'var(--highlight)'}} onClick={()=>setShowBalance(b=>!b)}>⚖️ Balance</button>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={copyTeams}>{copied?'✓ Copied':'Copy teams'}</button>
+            <button className="btn btn-ghost btn-sm" onClick={copyTeams}>{copied?'✓ Copied':(indMode?'Copy groups':'Copy teams')}</button>
           </div>
         )}
 
@@ -8164,7 +8171,7 @@ function App(){
       })()}
 
       {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
-      {tab === 'teams' && <TeamsViewV2 currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
+      {tab === 'teams' && <TeamsViewV2 settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
       {tab === 'leaderboard' && <StandingsViewV2 history={history} currentUser={currentUser}/>}
