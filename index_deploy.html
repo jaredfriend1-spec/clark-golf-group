@@ -3228,7 +3228,7 @@ function MovePlayerSheet({ playerName, teams, fromTeamIdx, onMove, onClose }){
 }
 
 // ═══════════════ TEAMS VIEW V2 ═══════════════
-function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings }){
+function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
   // Demo mode is ALWAYS opt-in via button — never touches live data
   const effectiveWeek = week;
   const effectivePairings = livePairings || {};
@@ -3266,6 +3266,13 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
   const UNIT = indMode ? 'Group' : 'Team';
   const UNITS = indMode ? 'Groups' : 'Teams';
   const MAX_PER = indMode ? 5 : 4;
+  const targetOf = (n)=>{ // sign-up declaration > roster target > 36
+    const nn=normName(n);
+    const sg=Object.values(effectiveWeek?.signups||{}).find(s=>s.day===activeDay&&normName(s.name)===nn);
+    if(sg&&sg.stableTarget!=null&&!isNaN(parseFloat(sg.stableTarget)))return parseFloat(sg.stableTarget);
+    if(targetsByName&&targetsByName[nn]!=null)return targetsByName[nn];
+    return 36;
+  };
 
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null), 2500); }
 
@@ -4092,6 +4099,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
                         <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3}}>
                           {matchOpp&&<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:10,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>⚡ vs. {matchOpp}</span>}
                           {p.teePreference&&<span style={{display:'inline-flex',alignItems:'center',fontSize:10,fontWeight:700,color:p.teePreference==='first'?'var(--info)':'var(--warn-ink)',background:p.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',border:'1px solid '+(p.teePreference==='first'?'var(--info-border)':'var(--warn-border)'),borderRadius:5,padding:'1px 6px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>}
+                          {indMode&&<span style={{display:'inline-flex',alignItems:'center',fontSize:10,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>Tgt {targetOf(p.name)}</span>}
                         </div>
                         {/* Inline edit form */}
                         {editKey===ti+'-'+pi ? (
@@ -8324,7 +8332,7 @@ function App(){
       })()}
 
       {tab === 'home' && <WeekViewV2 rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
-      {tab === 'teams' && <TeamsViewV2 settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
+      {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
       {tab === 'leaderboard' && <StandingsViewV2 history={history} currentUser={currentUser}/>}
