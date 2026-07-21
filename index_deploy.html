@@ -2058,6 +2058,7 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage,
               <div className="player-line" key={p.key||p.name}>
                 <div className="player-info">
                   <div className="player-name">
+                    {isMe&&youSignedUp&&<span style={{width:15,height:15,borderRadius:'50%',background:'var(--brand)',color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginRight:1}}><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
                     <span className="name-text" style={isMe?{fontWeight:600}:{}}>{p.name}</span>
                     {isMe && <span className="tag you">You</span>}
                     {p.isGuest && <span className="tag guest">Guest of {p.guestOf||'?'}</span>}
@@ -2121,15 +2122,7 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage,
       {expanded && (
         <div className="day-card-foot">
           {/* member status / primary action */}
-          {youSignedUp ? (
-            <div style={{display:'flex',alignItems:'center',gap:8,padding:'11px 14px'}}>
-              <span style={{width:18,height:18,borderRadius:'50%',background:'var(--brand-soft)',color:'var(--brand)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              </span>
-              <span style={{flex:1,fontSize:12.5,color:'var(--ink)'}}><strong>You're in</strong> · {mySignup?.tee} · HCP {mySignup?.handicap}</span>
-              {!day.locked && <button onClick={()=>onEditSignup(mySignup, mySignup.key)} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,color:'var(--brand)',padding:'2px 4px',flexShrink:0}}>Edit</button>}
-            </div>
-          ) : currentUser && day.locked && !isAdmin && currentUser.role !== 'guest' ? (
+          {youSignedUp ? null : currentUser && day.locked && !isAdmin && currentUser.role !== 'guest' ? (
             <div style={{padding:'12px 14px'}}>
               <button className="btn btn-full" style={{background:'var(--highlight-soft,#fffbeb)',color:'var(--highlight,#d97706)',border:'1.5px solid var(--highlight-border,#fde68a)',borderRadius:9,padding:'10px 14px',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
                 onClick={()=>onAddToWaitlist&&onAddToWaitlist(day.day)}>
@@ -2231,7 +2224,8 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
   const dayTeams = safeArray(week?.teams?.[day]);
   const groupPlayers = dayTeams.flatMap(t=>safeArray(t&&t.players)).map(p=>p&&p.name).filter(Boolean);
   const signupPlayers = Object.values(week?.signups||{}).filter(s=>s.day===day).map(s=>s.name);
-  const players = [...new Set(groupPlayers.length?groupPlayers:signupPlayers)];
+  const savedNames = savedInd ? Object.keys(savedInd.indScores||{}) : [];
+  const players = [...new Set(groupPlayers.length?groupPlayers:(signupPlayers.length?signupPlayers:savedNames))];
   const pc = players.length;
 
   const buyIn = parseFloat(cfg.buyIn)||0;
@@ -2623,8 +2617,19 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   const canSeeScores = isAdmin || scoresSaved;
 
   // ── MODE BRANCH: individual days render the Stableford engine ──
-  const dayModeCfg = resolveDayMode(effectiveWeek, settings, activeDay);
-  if(activeDay && dayModeCfg && dayModeCfg.type==='individual'){
+  // The SAVED round is authoritative: a round edited back from History carries
+  // gameMode + modeSnapshot, and must render as individual even if the day's
+  // CURRENT mode resolves team (this mismatch froze the app — team code cannot
+  // digest individual score data).
+  const savedDayScores = effectiveWeek?.scores && effectiveWeek.scores[activeDay];
+  const savedIsInd = !!(savedDayScores && savedDayScores.gameMode==='individual');
+  let dayModeCfg = resolveDayMode(effectiveWeek, settings, activeDay);
+  if(savedIsInd){
+    dayModeCfg = savedDayScores.modeSnapshot
+      || (dayModeCfg&&dayModeCfg.type==='individual'?dayModeCfg:null)
+      || {type:'individual',name:'Individual game',buyIn:savedDayScores.buyIn||25,fundEnabled:savedDayScores.fundEnabled!==false,fundPerPlayer:savedDayScores.fundPerPlayer||1,ranking:savedDayScores.ranking||'net',paidSpots:safeArray(savedDayScores.spots).length||3,tieRule:savedDayScores.tieRule||'split',skinsEnabled:!!savedDayScores.skinsEnabled,skinsPerPlayer:0};
+  }
+  if(activeDay && dayModeCfg && (dayModeCfg.type==='individual'||savedIsInd)){
     return <IndividualScoringV2 targetsByName={targetsByName||{}} currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
   }
 
@@ -8049,10 +8054,15 @@ function App(){
     const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
     push('history',roundData);
-    // If this day was pulled from history via Edit, delete the OLD entry only now,
-    // AFTER the new one is safely written (atomic replace — never zero copies).
+    // Replace, never duplicate: AFTER the new entry is safely written, delete
+    // (1) the entry being edited (editingKeys), and (2) any OTHER existing
+    // entries for the same day+date — re-finalizing a round supersedes the old
+    // copy instead of appending a twin. New copy always lands first (atomic).
     const oldKey=week.editingKeys&&week.editingKeys[day];
     if(oldKey)del('history/'+oldKey);
+    Object.entries(history||{}).forEach(([k,r])=>{
+      if(k!==oldKey&&r&&r.day===day&&r.date===dayDate)del('history/'+k);
+    });
     pushToAttendance(day);
     const newWeek={...week};
     if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
