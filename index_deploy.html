@@ -2067,6 +2067,7 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage,
                     {p.pairWithGuest && <span className="tag pair">Pair req</span>}
                     {p.teePreference === 'first' && <span className="tag first">1st tee</span>}
                     {p.teePreference === 'last' && <span className="tag last">Last tee</span>}
+                    {modeInfo&&modeInfo.type==='individual'&&p.stableTarget!=null&&<span className="tag" style={{background:'var(--info-soft)',color:'var(--info)',border:'1px solid var(--info-border)'}}>Tgt {p.stableTarget}</span>}
                     {teamName && (
                       <span className="tag team">
                         <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
