@@ -1060,7 +1060,7 @@ function TabStub({ tabName, sessionNumber }){
 }
 
 // ═══════════════ SIGNUP MODAL ═══════════════
-function SignupModal({ day, currentUser, existingSignup, signupKey, existingGuests, fullRoster, matchPairings, settings, onClose, onSave, isAdminAdd }){
+function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existingSignup, signupKey, existingGuests, fullRoster, matchPairings, settings, onClose, onSave, isAdminAdd }){
   // ── Configuration ──
   const MAX_GUESTS = Math.max(0, Math.min(3, settings?.maxGuests ?? 3));
   // ── Sign-up rules (Game Rules → Sign-up Rules; default all allowed) ──
@@ -1117,6 +1117,11 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
            : (defaultHcp != null ? String(defaultHcp) : '')
   );
   const [pref, setPref] = useState(isEdit ? (existingSignup.teePreference || 'none') : 'none');
+  const [stTarget, setStTarget] = useState(isEdit && existingSignup.stableTarget!=null ? String(existingSignup.stableTarget) : '');
+  const rosterTargetFor = (nm)=>{ // roster default for the person being signed up
+    const match=(fullRoster||[]).find(p=>normName(p.name)===normName(nm||''));
+    return match&&rosterTargets&&rosterTargets[match.id]!=null?rosterTargets[match.id]:null;
+  };
 
   // ── Guests state ──
   // Array of: { name, tee, hcp, pair, key?, addedAt? }
@@ -1258,10 +1263,12 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
       day: day.day, name: finalName, tee, handicap: hcpNum,
       isGuest: true, guestOf,
       teePreference: pref === 'none' ? null : pref,
+      stableTarget: isIndividualDay ? (stTarget!==''&&!isNaN(parseFloat(stTarget))?parseFloat(stTarget):(rosterTargetFor(finalName)??null)) : null,
       addedAt: Date.now(),
     } : {
       day: day.day, name: finalName, tee, handicap: hcpNum,
       teePreference: pref === 'none' ? null : pref,
+      stableTarget: isIndividualDay ? (stTarget!==''&&!isNaN(parseFloat(stTarget))?parseFloat(stTarget):(rosterTargetFor(finalName)??null)) : null,
       addedAt: existingSignup?.addedAt || Date.now(),
     };
 
@@ -1551,6 +1558,13 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
                 <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Use your course handicap for the tees you're playing today</div>
                 <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
               </div>
+              {!isEditingGuest && isIndividualDay && (
+                <div className="form-group">
+                  <label className="form-label">Stableford target</label>
+                  <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Individual game this day — the points you're playing to. Leave as-is if unsure; admins can adjust at scoring.</div>
+                  <input className="form-input" type="number" inputMode="numeric" placeholder={String(rosterTargetFor(playerName)??36)} value={stTarget} onChange={e=>setStTarget(e.target.value)}/>
+                </div>
+              )}
               {!isEditingGuest && ALLOW_TEEPREFS && (
                 <div className="form-group">
                   <label className="form-label">Tee time preference</label>
@@ -1688,7 +1702,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
   const [teeModal, setTeeModal] = useState(null); // day object
@@ -1880,6 +1894,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       {signupModal && (
         <SignupModal
           day={signupModal.day}
+          isIndividualDay={(()=>{const c=resolveDayMode(week,settings,signupModal.day&&signupModal.day.day?signupModal.day.day:signupModal.day);return !!(c&&c.type==='individual');})()}
+          rosterTargets={rosterTargets||{}}
           currentUser={currentUser}
           existingSignup={signupModal.existingSignup}
           signupKey={signupModal.signupKey}
@@ -2205,7 +2221,7 @@ function resolveDayMode(week, settings, day){
 }
 
 // ═══════════════ INDIVIDUAL SCORING (Stableford) ═══════════════
-function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, day, days, onPickDay, onSwitchTab, onArchiveDay, onCancelEdit, resolveCfg }){
+function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, day, days, onPickDay, onSwitchTab, onArchiveDay, onCancelEdit, resolveCfg, targetsByName }){
   const saved = (week?.scores && week.scores[day]) || null;
   const savedInd = saved && saved.gameMode==='individual' ? saved : null;
   const [rows,setRows]=useState({});          // {name:{total:'',target:'36'}}
@@ -2256,8 +2272,10 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
   const spotRemainder = pool - allocated; // must be >= 0; goes to fund
 
   // ── Leaderboard ──
+  const signupTargetByName={}; Object.values(week?.signups||{}).forEach(s=>{if(s.day===day&&s.stableTarget!=null)signupTargetByName[normName(s.name)]=parseFloat(s.stableTarget);});
+  const defTarget=n=>{const sn=normName(n);if(signupTargetByName[sn]!=null&&!isNaN(signupTargetByName[sn]))return signupTargetByName[sn];return targetsByName&&targetsByName[sn]!=null?targetsByName[sn]:36;};
   const board = players
-    .map(n=>{const r=rows[n]||{};const t=parseFloat(r.total);const tg=parseFloat(r.target);return {name:n,total:isNaN(t)?null:t,target:isNaN(tg)?36:tg};})
+    .map(n=>{const r=rows[n]||{};const t=parseFloat(r.total);const tg=parseFloat(r.target);return {name:n,total:isNaN(t)?null:t,target:isNaN(tg)?defTarget(n):tg};})
     .filter(p=>p.total!==null)
     .map(p=>({...p,net:p.total-p.target,val:ranking==='raw'?p.total:p.total-p.target}))
     .sort((a,b)=>b.val-a.val);
@@ -2290,12 +2308,12 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
   const balanced = spotRemainder>=0;
   const editingKey = week?.editingKeys && week.editingKeys[day];
 
-  function setRow(n,k,v){ setRows(r=>({...r,[n]:{...(r[n]||{target:'36'}),[k]:v}})); }
+  function setRow(n,k,v){ setRows(r=>({...r,[n]:{...(r[n]||{target:String(defTarget(n))}),[k]:v}})); }
   function bumpSkin(n,d){ setSkinCounts(s=>{const c=Math.max(0,(parseInt(s[n])||0)+d);const x={...s};if(c===0)delete x[n];else x[n]=c;return x;}); }
   function setSpot(i,v){ const base=(spotsTouched&&spotVals.length===nSpots)?[...spotVals]:evenSplit.map(String); base[i]=v; setSpotVals(base); setSpotsTouched(true); }
 
   function buildData(){
-    const indScores={}; players.forEach(n=>{const r=rows[n];if(r&&r.total!==''&&!isNaN(parseFloat(r.total)))indScores[n]={total:parseFloat(r.total),target:isNaN(parseFloat(r.target))?36:parseFloat(r.target)};});
+    const indScores={}; players.forEach(n=>{const r=rows[n];if(r&&r.total!==''&&!isNaN(parseFloat(r.total)))indScores[n]={total:parseFloat(r.total),target:isNaN(parseFloat(r.target))?defTarget(n):parseFloat(r.target)};});
     return {
       gameMode:'individual',
       modeSnapshot:{...cfg, resolvedAt:Date.now()},   // full rules snapshot — history is immutable
@@ -2356,7 +2374,8 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
                 <div>Player</div><div style={{textAlign:'center'}}>Points</div><div style={{textAlign:'center'}}>Target</div><div style={{textAlign:'center'}}>{ranking==='raw'?'Total':'Net'}</div>{skinsOn&&<div style={{textAlign:'center'}}>Skins</div>}
               </div>
               {players.map(n=>{
-                const r=rows[n]||{total:'',target:'36'};
+                const rosterT=String(defTarget(n));
+                const r=rows[n]||{total:'',target:rosterT};
                 const t=parseFloat(r.total),tg=parseFloat(r.target);
                 const net=(!isNaN(t)&&!isNaN(tg))?t-tg:null;
                 const disp=ranking==='raw'?(isNaN(t)?null:t):net;
@@ -2457,7 +2476,7 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
   );
 }
 
-function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings }){
+function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings, targetsByName }){
   const [activeDay, setActiveDay] = useState(null);
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
   const [sk, setSk] = useState({});        // skinCounts: {teamId: count}
@@ -2611,7 +2630,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   // ── MODE BRANCH: individual days render the Stableford engine ──
   const dayModeCfg = resolveDayMode(effectiveWeek, settings, activeDay);
   if(activeDay && dayModeCfg && dayModeCfg.type==='individual'){
-    return <IndividualScoringV2 currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
+    return <IndividualScoringV2 targetsByName={targetsByName||{}} currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
   }
 
   return(
@@ -4340,18 +4359,55 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
               {isOpen && (
                 <div style={{borderTop:'1px solid var(--hairline)',padding:'14px 16px'}}>
 
+                  {/* ── INDIVIDUAL (Stableford) ROUND ── */}
+                  {r.scores&&r.scores.gameMode==='individual'&&(()=>{
+                    const s=r.scores;
+                    const snap=s.modeSnapshot||{};
+                    const ranking=s.ranking==='raw'?'raw':'net';
+                    const rows=Object.entries(s.indScores||{}).map(([name,v])=>({name,total:parseFloat(v.total)||0,target:parseFloat(v.target)||36}))
+                      .map(p=>({...p,net:p.total-p.target,val:ranking==='raw'?p.total:p.total-p.target}))
+                      .sort((a,b)=>b.val-a.val);
+                    let lv=null,lr=0; rows.forEach((p,i)=>{if(lv!==null&&p.val===lv){p.rank=lr;}else{p.rank=i+1;lr=i+1;lv=p.val;}});
+                    const awardMap={}; safeArray(s.awards).forEach(a=>{awardMap[a.name]=(awardMap[a.name]||0)+(a.amount||0);});
+                    const skinMap={}; safeArray(s.skinsAwards).forEach(a=>{skinMap[a.name]=a;});
+                    const nSpots=safeArray(s.spots).length;
+                    return(
+                      <div style={{marginBottom:14}}>
+                        <div style={{padding:'7px 10px',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:8,fontSize:11,fontWeight:700,color:'var(--info)',marginBottom:10}}>
+                          {(snap.name||'Individual game')} · Stableford · ranked by {ranking==='raw'?'raw total':'net to target'} · ${s.buyIn||snap.buyIn||0}/player
+                        </div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Leaderboard</div>
+                        {rows.map(p=>(
+                          <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderTop:'1px solid var(--hairline-soft)',fontSize:12}}>
+                            <span style={{width:22,height:22,borderRadius:'50%',background:p.rank<=nSpots?'var(--highlight)':'var(--surface-sunken)',color:p.rank<=nSpots?'#fff':'var(--ink-40)',fontSize:10,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{p.rank}</span>
+                            <span style={{flex:1,fontWeight:600,color:'var(--ink)'}}>{p.name}</span>
+                            <span style={{color:'var(--ink-50)'}}>{p.total} pts{ranking==='net'?` (tgt ${p.target}, ${p.net>=0?'+':''}${p.net})`:''}</span>
+                            {(awardMap[p.name]||0)>0&&<span style={{fontWeight:800,color:'var(--brand)'}}>${awardMap[p.name]}</span>}
+                            {skinMap[p.name]&&skinMap[p.name].amount>0&&<span style={{fontSize:11,fontWeight:700,color:'var(--info)'}}>+${skinMap[p.name].amount} sk ({skinMap[p.name].count})</span>}
+                          </div>
+                        ))}
+                        <div style={{marginTop:12,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,padding:'8px 12px',fontSize:11,color:'var(--ink-70)',lineHeight:1.9}}>
+                          <div style={{display:'flex',justifyContent:'space-between'}}><span>Collected ({s.playerCount||rows.length} × ${s.buyIn||0})</span><b>${(s.playerCount||rows.length)*(s.buyIn||0)}</b></div>
+                          {s.skinsEnabled&&<div style={{display:'flex',justifyContent:'space-between'}}><span>Skins pot ({Object.values(s.skinCounts||{}).reduce((a,b)=>a+(parseInt(b)||0),0)} skins × ${s.perSkin||0})</span><b>${s.skinsPot||0}</b></div>}
+                          <div style={{display:'flex',justifyContent:'space-between'}}><span>Tournament fund{s.fundEnabled===false?' (off this round)':''}{(s.surplusToFund||0)>0?' incl. rounding':''}</span><b>${s.tournFund||s.fundTotal||0}</b></div>
+                          <div style={{display:'flex',justifyContent:'space-between'}}><span>Paid spots</span><b>{safeArray(s.spots).map(v=>'$'+v).join(' / ')||'—'}</b></div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Teams */}
                   {r.teams && r.teams.length > 0 && (
                     <div style={{marginBottom:14}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>Teams</div>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{r.scores&&r.scores.gameMode==='individual'?'Groups · tee-off order':'Teams'}</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
                         {r.teams.map(t=>(
                           <div key={t.id} style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,padding:'8px 10px'}}>
                             <div style={{fontSize:12,fontWeight:700,color:'var(--brand)',marginBottom:2}}>{t.name}</div>
-                            <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:5}}>HCP {((t.totalHcp||0)+(t.blindDraw?parseFloat(t.blindDraw.handicap||0):0)).toFixed(1)}</div>
+                            {!(r.scores&&r.scores.gameMode==='individual')&&<div style={{fontSize:10,color:'var(--ink-40)',marginBottom:5}}>HCP {((t.totalHcp||0)+(t.blindDraw?parseFloat(t.blindDraw.handicap||0):0)).toFixed(1)}</div>}
                             {safeArray(t.players).map((p,i)=>(
                               <div key={i} style={{display:'flex',alignItems:'center',gap:5,padding:'2px 0',fontSize:11,color:'var(--ink-70)'}}>
-                                <span style={{fontSize:8,fontWeight:700,background:'var(--highlight)',color:'#fff',padding:'1px 4px',borderRadius:3,flexShrink:0}}>{p.slot}</span>
+                                {!(r.scores&&r.scores.gameMode==='individual')&&<span style={{fontSize:8,fontWeight:700,background:'var(--highlight)',color:'#fff',padding:'1px 4px',borderRadius:3,flexShrink:0}}>{p.slot}</span>}
                                 {p.name}
                               </div>
                             ))}
@@ -4361,8 +4417,8 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
                     </div>
                   )}
 
-                  {/* Scores + payouts */}
-                  {hasScores && r.teams && (
+                  {/* Scores + payouts (team rounds) */}
+                  {hasScores && r.teams && !(r.scores&&r.scores.gameMode==='individual') && (
                     <>
                       {/* Score grid */}
                       <div style={{marginBottom:14}}>
@@ -5084,6 +5140,18 @@ function getShortDateRange(week,days){
   if(m1===m2)return MO[parseInt(m1)-1]+' '+parseInt(d1)+'-'+parseInt(d2);
   return MO[parseInt(m1)-1]+' '+parseInt(d1)+'-'+MO[parseInt(m2)-1]+' '+parseInt(d2);
 }
+// ── Individual round → email fragments ──
+function indEmailData(s){
+  const ranking=s.ranking==='raw'?'raw':'net';
+  const rows=Object.entries(s.indScores||{}).map(([name,v])=>({name,total:parseFloat(v.total)||0,target:parseFloat(v.target)||36}))
+    .map(p=>({...p,net:p.total-p.target,val:ranking==='raw'?p.total:p.total-p.target}))
+    .sort((a,b)=>b.val-a.val);
+  let lv=null,lr=0; rows.forEach((p,i)=>{if(lv!==null&&p.val===lv){p.rank=lr;}else{p.rank=i+1;lr=i+1;lv=p.val;}});
+  const awardMap={}; safeArray(s.awards).forEach(a=>{awardMap[a.name]=(awardMap[a.name]||0)+(a.amount||0);});
+  const skinMap={}; safeArray(s.skinsAwards).forEach(a=>{if(a.amount>0)skinMap[a.name]=a;});
+  return {ranking,rows,awardMap,skinMap,name:(s.modeSnapshot&&s.modeSnapshot.name)||'Individual game'};
+}
+
 function renderEmailHTML(week,notes,subject,events){
   const days=getUpcomingDays(week);
   const dateRange=days.length?getShortDateRange(week,days):'';
@@ -5134,8 +5202,28 @@ function renderEmailHTML(week,notes,subject,events){
       html+='</div>';
     }
 
+    // Individual round results (Stableford)
+    const dayScores=week.scores&&week.scores[day];
+    const isIndDay=dayScores&&dayScores.gameMode==='individual';
+    if(isIndDay&&dayScores.indScores&&Object.keys(dayScores.indScores).length){
+      const e=indEmailData(dayScores);
+      html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:'+INK50+';margin-bottom:8px;">'+e.name+' &middot; Stableford &middot; ranked by '+(e.ranking==='raw'?'raw total':'net to target')+'</div>';
+      html+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+      e.rows.forEach(p=>{
+        const won=(e.awardMap[p.name]||0), sk=e.skinMap[p.name];
+        html+='<tr style="border-bottom:1px solid '+HAIRLINE+';">';
+        html+='<td style="padding:5px 4px;width:26px;font-weight:800;color:'+(won>0?BRAND:INK50)+';">'+p.rank+'</td>';
+        html+='<td style="padding:5px 4px;font-weight:600;">'+p.name+'</td>';
+        html+='<td style="padding:5px 4px;color:'+INK50+';">'+p.total+' pts'+(e.ranking==='net'?' (tgt '+p.target+', '+(p.net>=0?'+':'')+p.net+')':'')+'</td>';
+        html+='<td style="padding:5px 4px;text-align:right;font-weight:800;color:'+BRAND+';">'+(won>0?('$'+won):'')+(sk?(' <span style="color:#2563eb;font-weight:700;">+$'+sk.amount+' sk</span>'):'')+'</td>';
+        html+='</tr>';
+      });
+      html+='</table>';
+      html+='<div style="font-size:11px;color:'+INK50+';margin-top:8px;">Tournament fund'+(dayScores.fundEnabled===false?' (off this round)':'')+': $'+(dayScores.tournFund||0)+((dayScores.skinsEnabled&&dayScores.skinsPot)?(' &middot; Skins pot: $'+dayScores.skinsPot+' ($'+(dayScores.perSkin||0)+'/skin)'):'')+'</div>';
+    }
+
     // Teams published
-    if(isPublished&&teams.length){
+    if(!isIndDay&&isPublished&&teams.length){
       html+='<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-spacing:8px;border-collapse:separate;margin:-8px;">';
       for(let i=0;i<teams.length;i+=2){
         html+='<tr>';
@@ -5220,7 +5308,18 @@ function renderEmailPlainText(week,notes,subject,events){
     txt+=nl+'\u26F3  '+day.toUpperCase()+' \u00B7 '+fmtDFull(date)+nl;
     txt+='Tee: '+teeStr+' \u00B7 '+playerCount+' player'+(playerCount!==1?'s':'')+' signed up'+nl;
     if(note.trim())txt+=nl+'NOTE: '+note.trim()+nl;
-    if(isPublished&&teams.length){
+    const dayScoresP=week.scores&&week.scores[day];
+    const isIndDayP=dayScoresP&&dayScoresP.gameMode==='individual';
+    if(isIndDayP&&dayScoresP.indScores&&Object.keys(dayScoresP.indScores).length){
+      const e=indEmailData(dayScoresP);
+      txt+=nl+e.name.toUpperCase()+' \u00B7 STABLEFORD ('+(e.ranking==='raw'?'raw total':'net to target')+')'+nl+div+nl;
+      e.rows.forEach(p=>{
+        const won=(e.awardMap[p.name]||0), sk=e.skinMap[p.name];
+        txt+=' '+String(p.rank).padStart(2)+'. '+p.name+' \u2014 '+p.total+' pts'+(e.ranking==='net'?' ('+(p.net>=0?'+':'')+p.net+')':'')+(won>0?('  $'+won):'')+(sk?('  +$'+sk.amount+' skins'):'')+nl;
+      });
+      txt+='Fund'+(dayScoresP.fundEnabled===false?' (off)':'')+': $'+(dayScoresP.tournFund||0)+((dayScoresP.skinsEnabled&&dayScoresP.skinsPot)?(' \u00B7 Skins: $'+dayScoresP.skinsPot):'')+nl;
+    }
+    if(!isIndDayP&&isPublished&&teams.length){
       teams.forEach(t=>{
         txt+=nl+'  '+(t.name||'Group '+t.id)+'  (HCP '+((t.totalHcp||0)).toFixed(0)+')'+nl;
         txt+='  '+div+nl;
@@ -5450,7 +5549,7 @@ function EmailViewV2({ week, isAdmin }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5477,6 +5576,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [editRosterPinVal, setEditRosterPinVal] = useState('');
   const [editRosterRole, setEditRosterRole] = useState('none'); // 'none' | 'scoring' | 'admin' | 'master'
   const [editRosterHcp, setEditRosterHcp] = useState('');
+  const [editRosterTarget, setEditRosterTarget] = useState('');
   const [editRosterTee, setEditRosterTee] = useState('Whites');
   const [localNotes, setLocalNotes] = useState({});
   const [localEvents, setLocalEvents] = useState('');
@@ -5965,6 +6065,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                           </div>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                             <div><label className="form-label">Handicap</label><input className="form-input" type="number" step="0.1" placeholder="e.g. 14.2" value={editRosterHcp} onChange={e=>setEditRosterHcp(e.target.value)}/></div>
+                            <div><label className="form-label">Stableford target</label><input className="form-input" type="number" step="1" placeholder="36" value={editRosterTarget} onChange={e=>setEditRosterTarget(e.target.value)}/></div>
                             <div><label className="form-label">Tee</label>
                               <select className="form-input" value={editRosterTee} onChange={e=>setEditRosterTee(e.target.value)}>
                                 <option>Whites</option><option>Golds</option><option>SGA</option><option>Reds</option>
@@ -6017,6 +6118,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                                 onSaveAdminFlag(p.id, roleVal);
                               }
                               if(editRosterHcp!==''){const hcpVal=parseFloat(editRosterHcp);if(!isNaN(hcpVal)){const re={...(rosterEdits||{}),[p.id]:rosterEdits?.[p.id]||p.name};write('rosterHcp/'+p.id,hcpVal);}}
+                              if(editRosterTarget===''){write('rosterTargets/'+p.id,null);}else{const tv=parseInt(editRosterTarget);if(!isNaN(tv))write('rosterTargets/'+p.id,tv);}
                               write('rosterTee/'+p.id,editRosterTee||'Whites');
                               setEditRosterId(null);
                             }}>Save</button>
@@ -6047,6 +6149,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                               const cur = rosterAdmins && rosterAdmins[p.id];
                               setEditRosterRole(cur==='master'?'master':cur==='scoring'?'scoring':cur?'admin':'none');
                               setEditRosterHcp(p.handicap!=null?String(p.handicap):'');
+                              setEditRosterTarget(rosterTargets&&rosterTargets[p.id]!=null?String(rosterTargets[p.id]):'');
                               setEditRosterTee(p.tee||'Whites');
                             }}>Edit</button>
                             <button onClick={()=>{if(window.confirm('Remove '+p.name+' from roster?')){if(p.id>96)onRemovePlayer(p.id);else onHidePlayer(p.id);}}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',padding:4}}>
@@ -6322,7 +6425,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
               )}
               <div style={{display:'flex',gap:6}}>
                 {modes.length>0&&(effMode||isCustom)&&!showModeSelect&&(
-                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowModeSelect(true)}>Change game</button>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowModeSelect(true)}>Switch to a saved game</button>
                 )}
                 <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(true)}>
                   {isCustom?'Edit custom game':'Or configure a custom game'}
@@ -7731,6 +7834,7 @@ function App(){
   const [rosterEdits, setRosterEdits] = useState({});
   const [rosterHidden, setRosterHidden] = useState({});
   const [rosterHcp, setRosterHcp] = useState({});
+  const [rosterTargets, setRosterTargets] = useState({});
   const [rosterTee, setRosterTee] = useState({});
   const [rosterPins, setRosterPins] = useState({});
   const [rosterAdmins, setRosterAdmins] = useState({});
@@ -7778,6 +7882,7 @@ function App(){
     u.push(read('rosterEdits', v=>setRosterEdits(v||{})));
     u.push(read('rosterHidden', v=>setRosterHidden(v||{})));
     u.push(read('rosterHcp', v=>setRosterHcp(v||{})));
+    u.push(read('rosterTargets', v=>setRosterTargets(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
     u.push(read('rosterPins', v=>setRosterPins(v||{})));
     u.push(read('rosterAdmins', v=>setRosterAdmins(v||{})));
@@ -8217,9 +8322,9 @@ function App(){
         return <AnnouncementBanner announcement={active} onDismiss={onDismiss}/>;
       })()}
 
-      {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
+      {tab === 'home' && <WeekViewV2 rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
-      {tab === 'scoring' && <ScoringViewV2 settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
+      {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
       {tab === 'leaderboard' && <StandingsViewV2 history={history} currentUser={currentUser}/>}
 
@@ -8239,7 +8344,7 @@ function App(){
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
-        rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}
+        rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterTargets={rosterTargets} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}
         rosterEmails={rosterEmails} rosterPins={rosterPins}
         rosterAdmins={rosterAdmins} activityLog={activityLog}
         matchPairings={matchPairings}
