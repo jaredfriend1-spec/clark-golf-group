@@ -1813,7 +1813,10 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         <DayCardV2
           key={day.day}
           day={day}
-          modeInfo={(()=>{const mid=week?.modes?.[day.day];const gr=settings?.gameRules;if(mid==='__custom__'){const c=week?.modeConfig?.[day.day];return c?{name:c.name||'Custom game',type:c.type}:null;}const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];return mo?{name:mo.name,type:mo.type}:null;})()}
+          modeInfo={(()=>{const mid=week?.modes?.[day.day];const gr=settings?.gameRules;if(mid==='__custom__'){const c=week?.modeConfig?.[day.day];return c?{name:c.name||'Custom game',type:c.type,id:'__custom__'}:null;}const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];return mo?{name:mo.name,type:mo.type,id:mid||null}:null;})()}
+          modesList={Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,name:m.name,type:m.type}))}
+          modeLocked={!!(week?.scores&&week.scores[day.day])}
+          onSetMode={(id)=>{ if(id==='__custom__')return; write('week/modes/'+day.day,id); }}
           currentUser={currentUser}
           isAdmin={isAdmin}
           matchPairings={matchPairings}
@@ -1898,7 +1901,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, modeInfo, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
+function DayCardV2({ day, modeInfo, modesList, onSetMode, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
   const mySignup = day.signups.find(p => p.name === currentUser?.name);
@@ -1923,7 +1926,20 @@ function DayCardV2({ day, modeInfo, currentUser, isAdmin, matchPairings, expande
           <div className="day-meta">
             <div className="day-name-line">
               <span className="day-name">{day.day}</span>
-              {modeInfo&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,marginLeft:6,background:modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')}}>{modeInfo.name}</span>}
+              {(()=>{
+                const pill={fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,marginLeft:6,background:modeInfo&&modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo&&modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo&&modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')};
+                const canChange=isAdmin&&onSetMode&&!modeLocked&&(modesList&&modesList.length>0);
+                if(!canChange) return modeInfo?<span style={pill}>{modeInfo.name}{modeLocked&&isAdmin?' 🔒':''}</span>:null;
+                // Admin: badge is a live selector — change the game right from the Week page (until scores exist)
+                return (
+                  <select value={modeInfo&&modeInfo.id?modeInfo.id:''} onClick={e=>e.stopPropagation()} onChange={e=>{e.stopPropagation();if(e.target.value)onSetMode(e.target.value);}}
+                    style={{...pill,cursor:'pointer',appearance:'auto',fontFamily:'inherit'}}
+                    title="Change the game mode for this day">
+                    {!(modeInfo&&modeInfo.id)&&<option value="">{modeInfo?modeInfo.name:'Set game ▾'}</option>}
+                    {modesList.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
+                  </select>
+                );
+              })()}
               <span className="day-sep">·</span>
               <span>{day.month} {day.date}</span>
             </div>
@@ -5889,6 +5905,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
       {step===1&&(
         <div>
           <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 1 — Choose the game</div>
+          <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:8,fontStyle:'italic'}}>Changeable any time until scores are entered — here or right from the Week page badge.</div>
           {dayHasScores&&<div style={{padding:'7px 10px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,fontSize:11,fontWeight:600,color:'var(--warn-ink)',marginBottom:8}}>Mode locked — scores already exist for {day}.</div>}
           {modeChosen&&!showCustom&&(
             <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>
