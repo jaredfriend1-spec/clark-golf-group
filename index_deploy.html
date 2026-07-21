@@ -5663,7 +5663,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const showAdminSec = viewMode==='admin';
   return(
     <main className="content">
-      <div className="page-eyebrow">{viewMode==='week'?'Run the week':'Admin only'}</div>
+      <div className="page-eyebrow" style={{marginTop:10}}>{viewMode==='week'?'Run the week':'Admin only'}</div>
       <div className="page-title">{viewMode==='week'?'Manage Week':'Admin Panel'}</div>
 
       <div style={{padding:'0 12px'}}>
@@ -6356,11 +6356,11 @@ function TimePicker({onChange, initialValue}){
 }
 
 function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
-  // Simple setup panel — no steps. Day is already activated by "Set up".
-  // 1) choose the game  2) set the tee time. Locking happens later from the day card.
+  // ── Settings-row day setup: three uniform rows, edits happen in modals/inline ──
   const [newTime, setNewTime] = useState('');
   const [isLottery, setIsLottery] = useState(false);
-  const [editTime, setEditTime] = useState(false);
+  const [teeOpen, setTeeOpen] = useState(false);
+  const [gameModal, setGameModal] = useState(null); // null | 'list' | 'custom'
   const teeInfo=week?.teeTimes?.[day];
   const dayLocked=!!(week?.locked?.[day]);
   const suCount=Object.values(week?.signups||{}).filter(s=>s.day===day).length;
@@ -6370,8 +6370,6 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const effMode=curMode||settings?.gameRules?.defaultModeId||'';
   const customCfg=week?.modeConfig?.[day]||null;
   const isCustom=curMode==='__custom__';
-  const [showCustom,setShowCustom]=useState(false);
-  const [showModeSelect,setShowModeSelect]=useState(false);
   const [cd,setCd]=useState(()=>customCfg||{name:'Custom Team Game',type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split',skinsEnabled:false,skinsPerPlayer:5});
   function cBal(d){
     const buyIn=parseFloat(d.buyIn)||0;
@@ -6387,169 +6385,176 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const cBalanced=cd.type==='team'?Math.abs(bal.diff)<0.001:bal.diff>=-0.001;
   function saveCustom(){
     if(!cBalanced||!write)return;
-    // Day-only snapshot: lives on this day, cleared at End Week. Reusable
-    // templates are created and managed ONLY in the Admin Portal.
     const clean={...cd,buyIn:parseFloat(cd.buyIn)||0,fundPerPlayer:parseFloat(cd.fundPerPlayer)||0,savedAt:Date.now()};
     write('week/modeConfig/'+day,clean);
     write('week/modes/'+day,'__custom__');
-    setShowCustom(false);
+    setGameModal(null);
   }
-  const modeLabel=isCustom?((customCfg&&customCfg.name)||'Custom for '+day):(modes.find(m=>m.id===effMode)||{}).name;
+  const selMode=isCustom?null:modes.find(m=>m.id===effMode);
+  const gName=isCustom?((customCfg&&customCfg.name)||'Custom game'):(selMode?selMode.name:null);
+  const gType=isCustom?(customCfg&&customCfg.type):(selMode&&selMode.type);
+  const isDefault=!curMode&&!!effMode;
+  const teeStr=teeInfo?(teeInfo.lottery?('Lottery'+(teeInfo.lotteryReq?' – '+teeInfo.lotteryReq:'')):teeInfo.time):null;
+
+  const rowStyle={display:'flex',alignItems:'center',gap:10,padding:'12px 12px',background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:10,marginBottom:8};
+  const Row=({icon,label,value,sub,tone,action,onAction,disabled})=>(
+    <div style={rowStyle}>
+      <span style={{fontSize:16,flexShrink:0,width:22,textAlign:'center'}}>{icon}</span>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</div>
+        <div style={{fontSize:13.5,fontWeight:700,color:tone||'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</div>
+        {sub&&<div style={{fontSize:10,color:'var(--ink-40)',marginTop:1}}>{sub}</div>}
+      </div>
+      {action&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0,opacity:disabled?0.5:1}} disabled={disabled} onClick={onAction}>{action}</button>}
+    </div>
+  );
+
   return(
-    <div style={{background:'var(--surface-sunken)',border:'1.5px solid var(--brand-border)',borderRadius:10,padding:14,marginTop:10}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-        <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{day} is active — set the game &amp; tee time</div>
+    <div style={{background:'var(--surface-sunken)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:'12px 12px 6px',marginTop:10}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,padding:'0 2px'}}>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Set up {day}</div>
         <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontFamily:'inherit',fontSize:12,fontWeight:600}}>Done</button>
       </div>
 
-      {/* ── GAME ── */}
-      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Game</div>
-      {(()=>{
-        const selMode=isCustom?null:modes.find(m=>m.id===effMode);
-        const gName=isCustom?((customCfg&&customCfg.name)||'Custom game'):(selMode?selMode.name:null);
-        const gType=isCustom?(customCfg&&customCfg.type):(selMode&&selMode.type);
-        const isDefault=!curMode&&!!effMode;
-        return(
-          <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:8,marginBottom:8,background:gName?(gType==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface)',border:'1.5px solid '+(gName?(gType==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:700,color:gName?(gType==='individual'?'var(--info)':'var(--brand)'):'var(--ink-40)'}}>{gName||'No game set'}</div>
-              <div style={{fontSize:10,color:'var(--ink-40)',marginTop:1}}>
-                {gName?((gType==='individual'?'Individual game · Stableford':'Team game')+(isDefault?' · group default':'')+(dayHasScores?' · locked (scores exist)':'')):'Will score as a standard team round'}
-              </div>
-            </div>
-            {gName&&<span style={{fontSize:16}}>{dayHasScores?'🔒':'✓'}</span>}
-          </div>
-        );
-      })()}
-      {!dayHasScores&&(
-        <div style={{marginBottom:12}}>
-          {!showCustom&&(
-            <>
-              {modes.length>0&&(showModeSelect||(!effMode&&!isCustom))&&(
-                <select className="form-input" value={isCustom?'__custom__':effMode} onChange={e=>{const v=e.target.value;if(v&&v!=='__custom__'){write&&write('week/modes/'+day,v);setShowModeSelect(false);}}} style={{marginBottom:6}}>
-                  {isCustom&&<option value="__custom__">{(customCfg&&customCfg.name)||'Custom game'} (this day only)</option>}
-                  {!effMode&&!isCustom&&<option value="">— choose the game —</option>}
-                  {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual (Stableford)':' · Team'}</option>)}
-                </select>
-              )}
-              <div style={{display:'flex',gap:6}}>
-                {modes.length>0&&(effMode||isCustom)&&!showModeSelect&&(
-                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowModeSelect(true)}>Switch to a saved game</button>
-                )}
-                <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(true)}>
-                  {isCustom?'Edit custom game':'Or configure a custom game'}
-                </button>
-              </div>
-            </>
-          )}
-          {showCustom&&(
-            <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:8,padding:10}}>
-              <div className="form-group" style={{marginBottom:8}}>
-                <label className="form-label">Game type</label>
-                <div className="pref-opts">
-                  <button className={'pref-opt'+(cd.type==='team'?' on':'')} onClick={()=>setCd({...cd,type:'team',name:(!cd.name||/^Custom (Team|Individual) Game$/.test(cd.name))?'Custom Team Game':cd.name})}>Team</button>
-                  <button className={'pref-opt'+(cd.type==='individual'?' on':'')} onClick={()=>setCd({...cd,type:'individual',name:(!cd.name||/^Custom (Team|Individual) Game$/.test(cd.name))?'Custom Individual Game':cd.name})}>Individual</button>
-                </div>
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
-                <div className="form-group" style={{marginBottom:0}}>
-                  <label className="form-label">Buy-in $/player</label>
-                  <input className="form-input" type="number" inputMode="decimal" value={cd.buyIn} onChange={e=>setCd({...cd,buyIn:e.target.value})}/>
-                </div>
-                <div className="form-group" style={{marginBottom:0}}>
-                  <label className="form-label">Fund $/player</label>
-                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                    <input type="checkbox" checked={cd.fundEnabled} onChange={e=>setCd({...cd,fundEnabled:e.target.checked})}/>
-                    <input className="form-input" type="number" inputMode="decimal" disabled={!cd.fundEnabled} value={cd.fundPerPlayer} onChange={e=>setCd({...cd,fundPerPlayer:e.target.value})} style={{opacity:cd.fundEnabled?1:0.4}}/>
-                  </div>
-                </div>
-              </div>
-              {cd.type==='team'&&(
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,marginBottom:8}}>
-                  {[['potFront','Front'],['potBack','Back'],['potOverall','Overall'],['potSkins','Skins (net)']].map(([k,l])=>(
-                    <div className="form-group" key={k} style={{marginBottom:0}}>
-                      <label className="form-label" style={{fontSize:9}}>{l}</label>
-                      <input className="form-input" type="number" inputMode="decimal" value={cd[k]} onChange={e=>setCd({...cd,[k]:e.target.value})}/>
+      <Row icon="⛳" label="Game"
+        value={gName||'No game set'}
+        sub={gName?((gType==='individual'?'Individual · Stableford':'Team game')+(isDefault?' · group default':'')):'Will score as a standard team round'}
+        tone={gName?(gType==='individual'?'var(--info)':'var(--brand)'):'var(--ink-40)'}
+        action={dayHasScores?'🔒 Locked':'Change ›'} disabled={dayHasScores}
+        onAction={()=>setGameModal('list')}/>
+
+      <Row icon="🕐" label="Tee time"
+        value={teeStr||'Not set'}
+        tone={teeStr?'var(--ink)':'var(--ink-40)'}
+        action={teeOpen?'Close':(teeInfo?'Change ›':'Set ›')}
+        onAction={()=>{setTeeOpen(o=>!o);if(teeInfo){setIsLottery(!!teeInfo.lottery);setNewTime('');}}}/>
+      {teeOpen&&(
+        <div style={{...rowStyle,flexWrap:'wrap',background:'var(--surface)'}}>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,fontWeight:600,color:'var(--ink)',flexShrink:0,cursor:'pointer'}}>
+            <input type="checkbox" checked={isLottery} onChange={e=>setIsLottery(e.target.checked)}/> Lottery
+          </label>
+          {!isLottery&&<div style={{flex:'1 1 150px',minWidth:140}}><TimePicker onChange={setNewTime}/></div>}
+          <button className="btn btn-primary btn-sm" style={{flexShrink:0}} disabled={!isLottery&&!newTime}
+            onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setTeeOpen(false);}}>Save</button>
+        </div>
+      )}
+
+      <Row icon={dayLocked?'🔒':'🔓'} label="Sign-ups"
+        value={(dayLocked?'Locked':'Open')+' · '+suCount+' signed up'}
+        tone={dayLocked?'var(--warn-ink)':'var(--ink)'}
+        action={onToggleLock?(dayLocked?'Unlock':'Lock'):null}
+        onAction={()=>onToggleLock(day,!dayLocked)}/>
+
+      <div style={{fontSize:10,color:'var(--ink-40)',padding:'2px 4px 8px',fontStyle:'italic'}}>
+        Game can change any time — here or the Week page — until scores are entered.
+      </div>
+
+      {gameModal&&(
+        <div onClick={()=>setGameModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:360,maxHeight:'85vh',overflowY:'auto',boxShadow:'0 10px 40px rgba(0,0,0,0.25)'}}>
+            {gameModal==='list'?(
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Game for {day}</div>
+                <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Sign-ups are never affected by changing the game.</div>
+                {modes.map(m=>(
+                  <button key={m.id} onClick={()=>{write&&write('week/modes/'+day,m.id);setGameModal(null);}}
+                    style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(!isCustom&&effMode===m.id)?(m.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px solid '+((!isCustom&&effMode===m.id)?(m.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{m.name}</div>
+                      <div style={{fontSize:10,color:'var(--ink-50)'}}>{m.type==='individual'?'Individual · Stableford':'Team game'}</div>
                     </div>
-                  ))}
-                </div>
-              )}
-              {cd.type==='individual'&&(
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:8}}>
-                  <div className="form-group" style={{marginBottom:0}}>
-                    <label className="form-label" style={{fontSize:9}}>Ranking</label>
-                    <select className="form-input" value={cd.ranking} onChange={e=>setCd({...cd,ranking:e.target.value})}><option value="net">Net to target</option><option value="raw">Raw total</option></select>
-                  </div>
-                  <div className="form-group" style={{marginBottom:0}}>
-                    <label className="form-label" style={{fontSize:9}}>Paid spots</label>
-                    <input className="form-input" type="number" min="1" value={cd.paidSpots} onChange={e=>setCd({...cd,paidSpots:e.target.value})}/>
-                  </div>
-                  <div className="form-group" style={{marginBottom:0}}>
-                    <label className="form-label" style={{fontSize:9}}>Ties</label>
-                    <select className="form-input" value={cd.tieRule} onChange={e=>setCd({...cd,tieRule:e.target.value})}><option value="split">Split $</option><option value="admin">Admin</option></select>
-                  </div>
-                </div>
-              )}
-              {cd.type==='individual'&&(
+                    {!isCustom&&effMode===m.id&&<span style={{color:m.type==='individual'?'var(--info)':'var(--brand)',fontWeight:700}}>✓</span>}
+                  </button>
+                ))}
+                {customCfg&&(
+                  <button onClick={()=>{write&&write('week/modes/'+day,'__custom__');setGameModal(null);}}
+                    style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:isCustom?(customCfg.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px dashed '+(isCustom?(customCfg.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{customCfg.name||'Custom game'}</div>
+                      <div style={{fontSize:10,color:'var(--ink-50)'}}>{customCfg.type==='individual'?'Individual · Stableford':'Team game'} · this day only</div>
+                    </div>
+                    {isCustom&&<span style={{color:customCfg.type==='individual'?'var(--info)':'var(--brand)',fontWeight:700}}>✓</span>}
+                  </button>
+                )}
+                <button onClick={()=>setGameModal('custom')}
+                  style={{display:'block',width:'100%',textAlign:'center',padding:'11px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:'transparent',border:'1.5px dashed var(--hairline)',fontSize:12,fontWeight:600,color:'var(--ink-50)'}}>
+                  + Configure a custom game for {day}…
+                </button>
+                <button onClick={()=>setGameModal(null)} className="btn btn-ghost btn-sm" style={{width:'100%'}}>Cancel</button>
+              </div>
+            ):(
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:10}}>Custom game — {day} only</div>
                 <div className="form-group" style={{marginBottom:8}}>
-                  <label className="form-label">Individual skins $/player</label>
-                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                    <input type="checkbox" checked={!!cd.skinsEnabled} onChange={e=>setCd({...cd,skinsEnabled:e.target.checked})}/>
-                    <input className="form-input" type="number" inputMode="decimal" disabled={!cd.skinsEnabled} value={cd.skinsPerPlayer} onChange={e=>setCd({...cd,skinsPerPlayer:e.target.value})} style={{opacity:cd.skinsEnabled?1:0.4}}/>
+                  <label className="form-label">Game type</label>
+                  <div className="pref-opts">
+                    <button className={'pref-opt'+(cd.type==='team'?' on':'')} onClick={()=>setCd({...cd,type:'team',name:(!cd.name||/^Custom (Team|Individual) Game$/.test(cd.name))?'Custom Team Game':cd.name})}>Team</button>
+                    <button className={'pref-opt'+(cd.type==='individual'?' on':'')} onClick={()=>setCd({...cd,type:'individual',name:(!cd.name||/^Custom (Team|Individual) Game$/.test(cd.name))?'Custom Individual Game':cd.name})}>Individual</button>
                   </div>
                 </div>
-              )}
-              <div style={{padding:'7px 10px',borderRadius:8,marginBottom:8,fontSize:11,fontWeight:700,background:cBalanced?'var(--brand-soft)':'#fef2f2',color:cBalanced?'var(--brand)':'var(--money-neg)',border:'1px solid '+(cBalanced?'var(--brand-border)':'#fecaca')}}>
-                {cd.type==='team'
-                  ?(cBalanced?('✓ Balanced: $'+bal.buyIn+' in = $'+bal.out+' out'):('✗ Off by $'+Math.abs(bal.diff).toFixed(2)))
-                  :(cBalanced?('✓ $'+(bal.pool||0).toFixed(0)+'/player to payout pool'+(cd.skinsEnabled?(' · $'+(parseFloat(cd.skinsPerPlayer)||0)+' skins reserved'):'')):'✗ Fund + skins exceed buy-in')}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label className="form-label">Buy-in $/player</label>
+                    <input className="form-input" type="number" inputMode="decimal" value={cd.buyIn} onChange={e=>setCd({...cd,buyIn:e.target.value})}/>
+                  </div>
+                  <div className="form-group" style={{marginBottom:0}}>
+                    <label className="form-label">Fund $/player</label>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <input type="checkbox" checked={cd.fundEnabled} onChange={e=>setCd({...cd,fundEnabled:e.target.checked})}/>
+                      <input className="form-input" type="number" inputMode="decimal" disabled={!cd.fundEnabled} value={cd.fundPerPlayer} onChange={e=>setCd({...cd,fundPerPlayer:e.target.value})} style={{opacity:cd.fundEnabled?1:0.4}}/>
+                    </div>
+                  </div>
+                </div>
+                {cd.type==='team'&&(
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:6,marginBottom:8}}>
+                    {[['potFront','Front'],['potBack','Back'],['potOverall','Overall'],['potSkins','Skins (net)']].map(([k,l])=>(
+                      <div className="form-group" key={k} style={{marginBottom:0}}>
+                        <label className="form-label" style={{fontSize:9}}>{l}</label>
+                        <input className="form-input" type="number" inputMode="decimal" value={cd[k]} onChange={e=>setCd({...cd,[k]:e.target.value})}/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {cd.type==='individual'&&(
+                  <div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:8}}>
+                      <div className="form-group" style={{marginBottom:0}}>
+                        <label className="form-label" style={{fontSize:9}}>Ranking</label>
+                        <select className="form-input" value={cd.ranking} onChange={e=>setCd({...cd,ranking:e.target.value})}><option value="net">Net to target</option><option value="raw">Raw total</option></select>
+                      </div>
+                      <div className="form-group" style={{marginBottom:0}}>
+                        <label className="form-label" style={{fontSize:9}}>Paid spots</label>
+                        <input className="form-input" type="number" min="1" value={cd.paidSpots} onChange={e=>setCd({...cd,paidSpots:e.target.value})}/>
+                      </div>
+                      <div className="form-group" style={{marginBottom:0}}>
+                        <label className="form-label" style={{fontSize:9}}>Ties</label>
+                        <select className="form-input" value={cd.tieRule} onChange={e=>setCd({...cd,tieRule:e.target.value})}><option value="split">Split $</option><option value="admin">Admin</option></select>
+                      </div>
+                    </div>
+                    <div className="form-group" style={{marginBottom:8}}>
+                      <label className="form-label">Individual skins $/player</label>
+                      <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                        <input type="checkbox" checked={!!cd.skinsEnabled} onChange={e=>setCd({...cd,skinsEnabled:e.target.checked})}/>
+                        <input className="form-input" type="number" inputMode="decimal" disabled={!cd.skinsEnabled} value={cd.skinsPerPlayer} onChange={e=>setCd({...cd,skinsPerPlayer:e.target.value})} style={{opacity:cd.skinsEnabled?1:0.4}}/>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div style={{padding:'7px 10px',borderRadius:8,marginBottom:10,fontSize:11,fontWeight:700,background:cBalanced?'var(--brand-soft)':'#fef2f2',color:cBalanced?'var(--brand)':'var(--money-neg)',border:'1px solid '+(cBalanced?'var(--brand-border)':'#fecaca')}}>
+                  {cd.type==='team'
+                    ?(cBalanced?('✓ Balanced: $'+bal.buyIn+' in = $'+bal.out+' out'):('✗ Off by $'+Math.abs(bal.diff).toFixed(2)))
+                    :(cBalanced?('✓ $'+(bal.pool||0).toFixed(0)+'/player to payout pool'+(cd.skinsEnabled?(' · $'+(parseFloat(cd.skinsPerPlayer)||0)+' skins reserved'):'')):'✗ Fund + skins exceed buy-in')}
+                </div>
+                <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:10,fontStyle:'italic'}}>One-day setup only — clears at End Week. Reusable templates live in the Admin Portal.</div>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setGameModal('list')}>‹ Back</button>
+                  <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={saveCustom} disabled={!cBalanced}>Use for {day}</button>
+                </div>
               </div>
-              <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:8,fontStyle:'italic'}}>One-day setup only — it clears at End Week. Reusable templates are managed in the Admin Portal.</div>
-              <div style={{display:'flex',gap:6}}>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(false)}>Cancel</button>
-                <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={saveCustom} disabled={!cBalanced}>Use for {day}</button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
-
-      {/* ── TEE TIME ── */}
-      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Tee time</div>
-      {teeInfo&&!editTime?(
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-          <div style={{flex:1,padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)'}}>
-            {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' – '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{setEditTime(true);setIsLottery(!!teeInfo.lottery);setNewTime('');}}>Change</button>
-        </div>
-      ):(
-        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
-          <div onClick={()=>setIsLottery(!isLottery)} style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',padding:'8px 10px',background:'var(--surface)',borderRadius:8,border:'1.5px solid '+(isLottery?'var(--warn-border)':'var(--hairline)'),flexShrink:0}}>
-            <div style={{width:15,height:15,borderRadius:3,border:'2px solid',borderColor:isLottery?'var(--warn-border)':'var(--hairline)',background:isLottery?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              {isLottery&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-            </div>
-            <span style={{fontSize:12,fontWeight:500,color:'var(--ink)',whiteSpace:'nowrap'}}>Lottery</span>
-          </div>
-          {!isLottery&&<div style={{flex:'1 1 140px',minWidth:130}}><TimePicker onChange={setNewTime}/></div>}
-          {editTime&&<button className="btn btn-ghost btn-sm" onClick={()=>setEditTime(false)}>Cancel</button>}
-          <button className="btn btn-primary btn-sm" style={{flex:'0 1 auto'}} disabled={!isLottery&&!newTime} onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setEditTime(false);}}>
-            Save
-          </button>
-        </div>
-      )}
-
-      {/* ── SIGN-UPS ── */}
-      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'12px 0 6px'}}>Sign-ups</div>
-      <div style={{display:'flex',alignItems:'center',gap:8}}>
-        <div style={{flex:1,padding:'8px 12px',background:dayLocked?'var(--warn-soft)':'var(--surface)',border:'1px solid '+(dayLocked?'var(--warn-border)':'var(--hairline)'),borderRadius:8,fontSize:13,fontWeight:600,color:dayLocked?'var(--warn-ink)':'var(--ink)'}}>
-          {dayLocked?'🔒 Locked':'🔓 Open'} · {suCount} signed up
-        </div>
-        {onToggleLock&&<button className="btn btn-ghost btn-sm" onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock':'Lock'}</button>}
-      </div>
-      <div style={{fontSize:10,color:'var(--ink-40)',marginTop:10,fontStyle:'italic'}}>
-        Change the game any time — here or from the Week page — until scores are entered.
-      </div>
     </div>
   );
 }
