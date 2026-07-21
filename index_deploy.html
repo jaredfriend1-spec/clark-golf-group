@@ -2194,7 +2194,270 @@ function ScorePickerV2({ value, onChange, readOnly }){
 }
 
 // ═══════════════ SCORING VIEW V2 ═══════════════
-function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit }){
+// ═══════════════ MODE RESOLUTION (shared) ═══════════════
+function resolveDayMode(week, settings, day){
+  if(!day) return null;
+  const mid = week?.modes?.[day];
+  if(mid==='__custom__') return week?.modeConfig?.[day]||null;
+  const id = mid || settings?.gameRules?.defaultModeId;
+  const m = id && settings?.gameRules?.modes && settings.gameRules.modes[id];
+  return m||null;
+}
+
+// ═══════════════ INDIVIDUAL SCORING (Stableford) ═══════════════
+function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, day, days, onPickDay, onSwitchTab, onArchiveDay, onCancelEdit, resolveCfg }){
+  const saved = (week?.scores && week.scores[day]) || null;
+  const savedInd = saved && saved.gameMode==='individual' ? saved : null;
+  const [rows,setRows]=useState({});          // {name:{total:'',target:'36'}}
+  const [skinCounts,setSkinCounts]=useState({});
+  const [fundOn,setFundOn]=useState(cfg.fundEnabled!==false);
+  const [spotVals,setSpotVals]=useState([]);
+  const [spotsTouched,setSpotsTouched]=useState(false);
+  const [justSaved,setJustSaved]=useState(false);
+  const [hydratedFor,setHydratedFor]=useState(null);
+
+  // Players for the day: published groups first, else sign-ups
+  const dayTeams = safeArray(week?.teams?.[day]);
+  const groupPlayers = dayTeams.flatMap(t=>safeArray(t&&t.players)).map(p=>p&&p.name).filter(Boolean);
+  const signupPlayers = Object.values(week?.signups||{}).filter(s=>s.day===day).map(s=>s.name);
+  const players = [...new Set(groupPlayers.length?groupPlayers:signupPlayers)];
+  const pc = players.length;
+
+  const buyIn = parseFloat(cfg.buyIn)||0;
+  const fundPer = parseFloat(cfg.fundPerPlayer)||0;
+  const skinsOn = !!cfg.skinsEnabled;
+  const skinsPer = skinsOn ? (parseFloat(cfg.skinsPerPlayer)||0) : 0;
+  const nSpots = Math.max(1, parseInt(cfg.paidSpots)||1);
+  const ranking = cfg.ranking==='raw' ? 'raw' : 'net';
+  const tieRule = cfg.tieRule==='admin' ? 'admin' : 'split';
+
+  // Hydrate from saved data when the day changes
+  useEffect(()=>{
+    if(hydratedFor===day) return;
+    if(savedInd){
+      const r={}; Object.entries(savedInd.indScores||{}).forEach(([n,v])=>{r[n]={total:String(v.total??''),target:String(v.target??36)};});
+      setRows(r);
+      setSkinCounts({...(savedInd.skinCounts||{})});
+      setFundOn(savedInd.fundEnabled!==false);
+      if(Array.isArray(savedInd.spots)&&savedInd.spots.length){setSpotVals(savedInd.spots.map(String));setSpotsTouched(true);}
+      else{setSpotVals([]);setSpotsTouched(false);}
+    } else { setRows({}); setSkinCounts({}); setFundOn(cfg.fundEnabled!==false); setSpotVals([]); setSpotsTouched(false); }
+    setHydratedFor(day);
+  },[day,savedInd,hydratedFor]);
+
+  // ── Money ──
+  const collected = pc*buyIn;
+  const fund = fundOn ? pc*fundPer : 0;
+  const skinsPot = skinsOn ? pc*skinsPer : 0;
+  const pool = collected - fund - skinsPot;
+  const evenSplit = (()=>{const per=nSpots>0?Math.floor(pool/nSpots):0;return Array.from({length:nSpots},()=>per);})();
+  const effSpots = (spotsTouched&&spotVals.length===nSpots) ? spotVals.map(v=>parseFloat(v)||0) : evenSplit;
+  const allocated = effSpots.reduce((a,b)=>a+b,0);
+  const spotRemainder = pool - allocated; // must be >= 0; goes to fund
+
+  // ── Leaderboard ──
+  const board = players
+    .map(n=>{const r=rows[n]||{};const t=parseFloat(r.total);const tg=parseFloat(r.target);return {name:n,total:isNaN(t)?null:t,target:isNaN(tg)?36:tg};})
+    .filter(p=>p.total!==null)
+    .map(p=>({...p,net:p.total-p.target,val:ranking==='raw'?p.total:p.total-p.target}))
+    .sort((a,b)=>b.val-a.val);
+  // Rank with ties
+  let lastVal=null,lastRank=0;
+  board.forEach((p,i)=>{ if(lastVal!==null&&p.val===lastVal){p.rank=lastRank;} else {p.rank=i+1;lastRank=i+1;lastVal=p.val;} });
+
+  // ── Awards (tie-aware) ──
+  let tieRemainder=0; const awards={};
+  (()=>{
+    const groups=[]; board.forEach(p=>{const g=groups[groups.length-1];if(g&&g.rank===p.rank)g.names.push(p.name);else groups.push({rank:p.rank,names:[p.name]});});
+    groups.forEach(g=>{
+      const places=[]; for(let pl=g.rank;pl<g.rank+g.names.length;pl++){ if(pl<=nSpots) places.push(effSpots[pl-1]||0); }
+      if(!places.length) return;
+      const pooled=places.reduce((a,b)=>a+b,0);
+      const each=Math.floor(pooled/g.names.length);
+      tieRemainder += pooled - each*g.names.length;
+      g.names.forEach(n=>{ if(each>0) awards[n]=(awards[n]||0)+each; });
+    });
+  })();
+  // ── Skins payouts ──
+  const totalSkins = Object.values(skinCounts).reduce((a,b)=>a+(parseInt(b)||0),0);
+  const perSkin = (skinsOn&&totalSkins>0)?Math.floor(skinsPot/totalSkins):0;
+  const skinsPaid = perSkin*totalSkins;
+  const skinsRemainder = skinsOn ? (skinsPot-skinsPaid) : 0;
+  const surplus = Math.max(0,spotRemainder)+tieRemainder+skinsRemainder;
+  const fundTotal = fund + surplus;
+  const scoredCount = board.length;
+  const allScored = pc>0 && scoredCount===pc;
+  const balanced = spotRemainder>=0;
+  const editingKey = week?.editingKeys && week.editingKeys[day];
+
+  function setRow(n,k,v){ setRows(r=>({...r,[n]:{...(r[n]||{target:'36'}),[k]:v}})); }
+  function bumpSkin(n,d){ setSkinCounts(s=>{const c=Math.max(0,(parseInt(s[n])||0)+d);const x={...s};if(c===0)delete x[n];else x[n]=c;return x;}); }
+  function setSpot(i,v){ const base=(spotsTouched&&spotVals.length===nSpots)?[...spotVals]:evenSplit.map(String); base[i]=v; setSpotVals(base); setSpotsTouched(true); }
+
+  function buildData(){
+    const indScores={}; players.forEach(n=>{const r=rows[n];if(r&&r.total!==''&&!isNaN(parseFloat(r.total)))indScores[n]={total:parseFloat(r.total),target:isNaN(parseFloat(r.target))?36:parseFloat(r.target)};});
+    return {
+      gameMode:'individual',
+      modeSnapshot:{...cfg, resolvedAt:Date.now()},   // full rules snapshot — history is immutable
+      indScores, skinCounts:{...skinCounts},
+      buyIn, fundEnabled:fundOn, fundPerPlayer:fundPer, fundTotal,
+      skinsEnabled:skinsOn, skinsPot, perSkin,
+      ranking, tieRule, spots:effSpots,
+      awards:Object.entries(awards).map(([name,amount])=>({name,amount})),
+      skinsAwards:Object.entries(skinCounts).map(([name,c])=>({name,count:parseInt(c)||0,amount:(parseInt(c)||0)*perSkin})).filter(a=>a.count>0),
+      surplusToFund:surplus, tournFund:fundTotal,
+      playerCount:pc, savedAt:Date.now(), payoutsCalculated:true, payoutsAt:Date.now(),
+    };
+  }
+  function handleSavePreview(){
+    const data=buildData();
+    update({['week/scores/'+day]:data,['week/complete/'+day]:true});
+    setJustSaved(true); setTimeout(()=>setJustSaved(false),2500);
+    return data;
+  }
+  function handleFinalize(){
+    if(!balanced){window.alert('Payout spots exceed the pool — fix the amounts first.');return;}
+    if(!window.confirm('Finalize this individual round?\n\nScores, payouts and the game rules will be saved to History in one step.\n\n(Corrections afterward: History → Edit.)'))return;
+    const data=handleSavePreview();
+    if(onArchiveDay)onArchiveDay(day,data);
+  }
+  const scoresSaved = !!savedInd;
+  const canSee = isAdmin || scoresSaved;
+
+  return(
+    <main className="content">
+      <div className="page-eyebrow">Individual · Stableford</div>
+      <div className="page-title">Score</div>
+      <div style={{padding:'0 12px'}}>
+        {days.length>1&&(
+          <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+            {days.map(d=>{
+              const c=resolveCfg?resolveCfg(d):null; const ind=c&&c.type==='individual';
+              return <button key={d} onClick={()=>onPickDay(d)} className={'pref-opt'+(d===day?' on':'')} style={{flex:'0 0 auto'}}>{d}{ind?' · Ind':''}</button>;
+            })}
+          </div>
+        )}
+        <div style={{padding:'8px 12px',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:8,fontSize:12,fontWeight:600,color:'var(--info)',marginBottom:12}}>
+          {cfg.name||'Individual game'} · ${buyIn} buy-in{fundOn?` · $${fundPer} fund`:' · no fund'}{skinsOn?` · $${skinsPer} skins`:''} · ranked by {ranking==='raw'?'raw total':'net to target'} · {nSpots} paid spot{nSpots!==1?'s':''}
+        </div>
+        {editingKey&&(
+          <div style={{padding:'9px 14px',background:'#fef7ed',border:'1px solid #f0d9b5',borderRadius:8,fontSize:12.5,fontWeight:600,color:'#8a5a00',marginBottom:10}}>
+            Editing a round from History — the original stays safe until you Finalize (replaces it) or Cancel.
+          </div>
+        )}
+        {pc===0&&<div style={{fontSize:13,color:'var(--ink-50)',marginBottom:12}}>No players yet — sign-ups (or published groups) feed this list.</div>}
+
+        {/* ── SCORE ENTRY (admin) ── */}
+        {isAdmin&&pc>0&&(
+          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+            <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',fontSize:12,fontWeight:700,color:'var(--ink)'}}>Enter Stableford points {scoredCount>0&&<span style={{color:'var(--ink-40)',fontWeight:600}}>· {scoredCount}/{pc} scored</span>}</div>
+            <div style={{padding:'6px 14px 10px'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 64px 64px 54px'+(skinsOn?' 86px':''),gap:6,padding:'6px 0',fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em'}}>
+                <div>Player</div><div style={{textAlign:'center'}}>Points</div><div style={{textAlign:'center'}}>Target</div><div style={{textAlign:'center'}}>{ranking==='raw'?'Total':'Net'}</div>{skinsOn&&<div style={{textAlign:'center'}}>Skins</div>}
+              </div>
+              {players.map(n=>{
+                const r=rows[n]||{total:'',target:'36'};
+                const t=parseFloat(r.total),tg=parseFloat(r.target);
+                const net=(!isNaN(t)&&!isNaN(tg))?t-tg:null;
+                const disp=ranking==='raw'?(isNaN(t)?null:t):net;
+                return(
+                  <div key={n} style={{display:'grid',gridTemplateColumns:'1fr 64px 64px 54px'+(skinsOn?' 86px':''),gap:6,alignItems:'center',padding:'5px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                    <div style={{fontSize:13,fontWeight:600,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{n}</div>
+                    <input className="form-input" type="number" inputMode="numeric" style={{padding:'6px',textAlign:'center'}} value={r.total} onChange={e=>setRow(n,'total',e.target.value)}/>
+                    <input className="form-input" type="number" inputMode="numeric" style={{padding:'6px',textAlign:'center',opacity:0.8}} value={r.target??'36'} onChange={e=>setRow(n,'target',e.target.value)}/>
+                    <div style={{textAlign:'center',fontSize:13,fontWeight:700,color:disp===null?'var(--ink-40)':disp>=0?'var(--brand)':'var(--money-neg)'}}>{disp===null?'—':(ranking==='net'&&disp>0?'+':'')+disp}</div>
+                    {skinsOn&&(
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                        <button onClick={()=>bumpSkin(n,-1)} className="btn btn-ghost btn-sm" style={{padding:'2px 8px'}}>−</button>
+                        <span style={{fontSize:12,fontWeight:700,minWidth:14,textAlign:'center'}}>{skinCounts[n]||0}</span>
+                        <button onClick={()=>bumpSkin(n,1)} className="btn btn-ghost btn-sm" style={{padding:'2px 8px'}}>+</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── PAYOUT BUILDER (admin) ── */}
+        {isAdmin&&pc>0&&(
+          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+            <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',fontSize:12,fontWeight:700,color:'var(--ink)'}}>Payouts</div>
+            <div style={{padding:'10px 14px',fontSize:12,color:'var(--ink)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}><span>Collected ({pc} × ${buyIn})</span><b>${collected}</b></div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'3px 0'}}>
+                <span style={{display:'flex',alignItems:'center',gap:6}}>
+                  <input type="checkbox" checked={fundOn} onChange={e=>setFundOn(e.target.checked)}/>
+                  Tournament fund (${fundPer}/player)
+                </span><b>−${fund}</b>
+              </div>
+              {skinsOn&&<div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}><span>Skins pot (${skinsPer}/player)</span><b>−${skinsPot}</b></div>}
+              <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderTop:'1px solid var(--hairline)',marginTop:4}}><span style={{fontWeight:700}}>Payout pool</span><b>${pool}</b></div>
+              <div style={{marginTop:8}}>
+                {effSpots.map((v,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+                    <span style={{fontSize:12,fontWeight:700,width:56}}>{i+1===1?'1st':i+1===2?'2nd':i+1===3?'3rd':(i+1)+'th'}</span>
+                    <input className="form-input" type="number" inputMode="decimal" style={{padding:'6px',maxWidth:110}} value={(spotsTouched&&spotVals.length===nSpots)?spotVals[i]:String(v)} onChange={e=>setSpot(i,e.target.value)}/>
+                  </div>
+                ))}
+              </div>
+              <div style={{padding:'7px 10px',borderRadius:8,marginTop:6,fontSize:11,fontWeight:700,background:balanced?'var(--brand-soft)':'#fef2f2',color:balanced?'var(--brand)':'var(--money-neg)',border:'1px solid '+(balanced?'var(--brand-border)':'#fecaca')}}>
+                {balanced?('✓ Balanced — $'+allocated+' to spots'+(surplus>0?(' · $'+surplus+' rounding to fund'):'')):('✗ Spots exceed the pool by $'+Math.abs(spotRemainder))}
+              </div>
+              {skinsOn&&<div style={{fontSize:11,color:'var(--ink-50)',marginTop:6}}>{totalSkins>0?('Skins: '+totalSkins+' × $'+perSkin+' = $'+skinsPaid+(skinsRemainder>0?(' · $'+skinsRemainder+' to fund'):'')):'Skins: none tapped yet — full pot shows as fund surplus until skins are entered.'}</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── LEADERBOARD ── */}
+        {canSee&&board.length>0&&(
+          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+            <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',fontSize:12,fontWeight:700,color:'var(--ink)'}}>Leaderboard · {ranking==='raw'?'raw Stableford total':'net to target'}</div>
+            <div style={{padding:'4px 14px 10px'}}>
+              {board.map(p=>(
+                <div key={p.name} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                  <span style={{width:24,height:24,borderRadius:'50%',background:p.rank<=nSpots?'var(--highlight)':'var(--surface-sunken)',color:p.rank<=nSpots?'#fff':'var(--ink-40)',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{p.rank}</span>
+                  <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--ink)'}}>{p.name}</span>
+                  <span style={{fontSize:12,color:'var(--ink-50)'}}>{p.total} pts{ranking==='net'?` (${p.net>=0?'+':''}${p.net})`:''}</span>
+                  {(awards[p.name]||0)>0&&<span style={{fontSize:13,fontWeight:800,color:'var(--brand)'}}>${awards[p.name]}</span>}
+                  {skinsOn&&(skinCounts[p.name]||0)>0&&perSkin>0&&<span style={{fontSize:11,fontWeight:700,color:'var(--info)'}}>+${(skinCounts[p.name]||0)*perSkin} sk</span>}
+                </div>
+              ))}
+              {tieRule==='admin'&&<div style={{fontSize:10,color:'var(--warn-ink)',marginTop:6}}>Tie rule is "admin resolves" — tied paid spots are shown split evenly; adjust spot amounts if you want a different resolution.</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── FINALIZE ── */}
+        {isAdmin&&pc>0&&(
+          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+            {!allScored&&<div style={{fontSize:11,color:'var(--warn-ink)'}}>⚠ {pc-scoredCount} player{pc-scoredCount!==1?'s':''} not scored yet — they'll be left out of the round if you finalize.</div>}
+            <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700}} onClick={handleFinalize} disabled={board.length===0}>
+              Finalize Round — Save to History
+            </button>
+            <button className="btn btn-outline btn-full" onClick={handleSavePreview} disabled={board.length===0}>
+              {scoresSaved?'Update Preview (not finalized)':'Save Preview (not finalized)'}
+            </button>
+            {editingKey&&onCancelEdit&&(
+              <button className="btn btn-outline btn-full" style={{color:'#8a5a00',borderColor:'#f0d9b5'}} onClick={()=>onCancelEdit(day)}>
+                Cancel Edit — keep History version
+              </button>
+            )}
+            {justSaved&&(
+              <div style={{padding:'9px 14px',background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)'}}>
+                ✓ Saved — remember to Finalize to lock it into History.
+              </div>
+            )}
+          </div>
+        )}
+        {!isAdmin&&!scoresSaved&&<div style={{fontSize:13,color:'var(--ink-50)'}}>Scores will appear here once the admin saves them.</div>}
+      </div>
+    </main>
+  );
+}
+
+function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings }){
   const [activeDay, setActiveDay] = useState(null);
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
   const [sk, setSk] = useState({});        // skinCounts: {teamId: count}
@@ -2344,6 +2607,12 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   }
 
   const canSeeScores = isAdmin || scoresSaved;
+
+  // ── MODE BRANCH: individual days render the Stableford engine ──
+  const dayModeCfg = resolveDayMode(effectiveWeek, settings, activeDay);
+  if(activeDay && dayModeCfg && dayModeCfg.type==='individual'){
+    return <IndividualScoringV2 currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
+  }
 
   return(
     <main className="content">
@@ -7896,7 +8165,7 @@ function App(){
 
       {tab === 'home' && <WeekViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
-      {tab === 'scoring' && <ScoringViewV2 currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
+      {tab === 'scoring' && <ScoringViewV2 settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
       {tab === 'leaderboard' && <StandingsViewV2 history={history} currentUser={currentUser}/>}
 
