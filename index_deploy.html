@@ -3348,18 +3348,22 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     const lasts=units.filter(u=>prefOf(u)==='last');
     const mids=units.filter(u=>{const f=prefOf(u);return f!=='first'&&f!=='last';});
     const ordered=[...firsts,...mids,...lasts];
-    const size=4, numG=Math.max(1,Math.ceil(daySignups.length/size));
-    const groups=Array.from({length:numG},(_,i)=>({id:i+1,name:'Group '+(i+1),players:[],totalHcp:0}));
-    // Deal units front-to-back, always into the group with the most room (stable order)
+    // Even split: max 4 per group, sizes as equal as possible (5→3+2, 6→3+3, 7→4+3, 9→3+3+3, 10→4+3+3)
+    const n=daySignups.length;
+    const numG=Math.max(1,Math.ceil(n/4));
+    const base=Math.floor(n/numG), extra=n%numG;
+    const groups=Array.from({length:numG},(_,i)=>({id:i+1,name:'Group '+(i+1),players:[],totalHcp:0,_target:base+(i<extra?1:0)}));
+    // Deal units front-to-back into the first group with room under its target
     ordered.forEach(u=>{
-      let gi=0;
-      for(let i=0;i<groups.length;i++){ if(groups[i].players.length+u.length<=size){gi=i;break;} gi=-1; }
-      if(gi===-1){ // no group fits within 4 — put in the emptiest (allows a 5th)
+      let gi=-1;
+      for(let i=0;i<groups.length;i++){ if(groups[i].players.length+u.length<=groups[i]._target){gi=i;break;} }
+      if(gi===-1){ // a pair couldn't fit any target — put it where there's most room (may make a 5)
         gi=0; groups.forEach((g,i)=>{if(g.players.length<groups[gi].players.length)gi=i;});
       }
       u.forEach(p=>groups[gi].players.push({name:p.name,tee:p.tee,handicap:parseFloat(p.handicap||0)}));
     });
     const filled=groups.filter(g=>g.players.length>0);
+    filled.forEach(g=>{delete g._target;});
     reSlot(filled);
     setEditTeams(filled);
     setBuildInfo(null);
