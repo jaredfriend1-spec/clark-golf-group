@@ -5185,6 +5185,14 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
     notesDebounce.current=setTimeout(()=>onSaveEvents(val),600);
   }
 
+  function freshDayWeek(base,day,dateVal){
+    // A newly activated day starts CLEAN on the group's default game —
+    // strip any stale mode override / custom config left from earlier.
+    const w={...base,activeDays:[...safeArray(base?.activeDays),day],dates:{...(base?.dates||{}),[day]:dateVal}};
+    if(w.modes){const m={...w.modes};delete m[day];w.modes=m;}
+    if(w.modeConfig){const mc={...w.modeConfig};delete mc[day];w.modeConfig=mc;}
+    return w;
+  }
   function handleToggleDay(day){
     const isActive=activeDays.includes(day);
     if(isActive){
@@ -5192,13 +5200,13 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
       if(cnt>0){setWarnDeact({day,cnt});return;}
       onDeactivateDay(day);
     } else {
-      onCreateWeek({...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:wd[day]}});
+      onCreateWeek(freshDayWeek(week,day,wd[day]));
     }
   }
 
   function handleSetupDay(day){
     const isAct=activeDays.includes(day);
-    if(!isAct) onCreateWeek({...week,activeDays:[...safeArray(week?.activeDays),day],dates:{...(week?.dates||{}),[day]:effectiveDates[day]}});
+    if(!isAct) onCreateWeek(freshDayWeek(week,day,effectiveDates[day]));
     setWizDay(wizDay===day?null:day);
   }
 
@@ -6065,25 +6073,18 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
           <button className="btn btn-ghost btn-sm" onClick={()=>{setEditTime(true);setIsLottery(!!teeInfo.lottery);setNewTime('');}}>Change</button>
         </div>
       ):(
-        <div style={{marginBottom:4}}>
-          <div onClick={()=>setIsLottery(!isLottery)} style={{display:'flex',alignItems:'center',gap:9,marginBottom:8,cursor:'pointer',padding:'8px 10px',background:'var(--surface)',borderRadius:8,border:'1.5px solid '+(isLottery?'var(--warn-border)':'var(--hairline)')}}>
-            <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:isLottery?'var(--warn-border)':'var(--hairline)',background:isLottery?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
+          <div onClick={()=>setIsLottery(!isLottery)} style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',padding:'8px 10px',background:'var(--surface)',borderRadius:8,border:'1.5px solid '+(isLottery?'var(--warn-border)':'var(--hairline)'),flexShrink:0}}>
+            <div style={{width:15,height:15,borderRadius:3,border:'2px solid',borderColor:isLottery?'var(--warn-border)':'var(--hairline)',background:isLottery?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
               {isLottery&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
-            <span style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>Waiting on lottery</span>
+            <span style={{fontSize:12,fontWeight:500,color:'var(--ink)',whiteSpace:'nowrap'}}>Lottery</span>
           </div>
-          {!isLottery&&(
-            <div className="form-group" style={{marginBottom:8}}>
-              <label className="form-label">Tee time</label>
-              <TimePicker onChange={setNewTime}/>
-            </div>
-          )}
-          <div style={{display:'flex',gap:6}}>
-            {editTime&&<button className="btn btn-ghost btn-sm" onClick={()=>setEditTime(false)}>Cancel</button>}
-            <button className="btn btn-primary btn-sm" style={{flex:1}} disabled={!isLottery&&!newTime} onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setEditTime(false);}}>
-              Save tee time
-            </button>
-          </div>
+          {!isLottery&&<div style={{flex:'1 1 140px',minWidth:130}}><TimePicker onChange={setNewTime}/></div>}
+          {editTime&&<button className="btn btn-ghost btn-sm" onClick={()=>setEditTime(false)}>Cancel</button>}
+          <button className="btn btn-primary btn-sm" style={{flex:'0 1 auto'}} disabled={!isLottery&&!newTime} onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setEditTime(false);}}>
+            Save
+          </button>
         </div>
       )}
 
@@ -7508,7 +7509,7 @@ function App(){
 
   // ── Admin functions ──
   function createWeek(data){ write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data}); }
-  function deactivateDay(day){ const newWeek={...week,activeDays:safeArray(week?.activeDays).filter(d=>d!==day)};const tt={...(week?.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;write('week',newWeek); }
+  function deactivateDay(day){ const newWeek={...week,activeDays:safeArray(week?.activeDays).filter(d=>d!==day)};const tt={...(week?.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;if(newWeek.modes){const m={...newWeek.modes};delete m[day];newWeek.modes=m;}if(newWeek.modeConfig){const mc={...newWeek.modeConfig};delete mc[day];newWeek.modeConfig=mc;}write('week',newWeek); }
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
   function updateTeeTime(day,data){ const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt}); }
   function addSignup(entry){ logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
