@@ -5936,6 +5936,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const customCfg=week?.modeConfig?.[day]||null;
   const isCustom=curMode==='__custom__';
   const [showCustom,setShowCustom]=useState(false);
+  const [showModeSelect,setShowModeSelect]=useState(false);
   const [cd,setCd]=useState(()=>customCfg||{name:'Custom Team Game',type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split'});
   function cBal(d){
     const buyIn=parseFloat(d.buyIn)||0;
@@ -5988,16 +5989,21 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
         <div style={{marginBottom:12}}>
           {!showCustom&&(
             <>
-              {modes.length>0&&(
-                <select className="form-input" value={isCustom?'__custom__':effMode} onChange={e=>{const v=e.target.value;if(v&&v!=='__custom__')write&&write('week/modes/'+day,v);}} style={{marginBottom:6}}>
+              {modes.length>0&&(showModeSelect||(!effMode&&!isCustom))&&(
+                <select className="form-input" value={isCustom?'__custom__':effMode} onChange={e=>{const v=e.target.value;if(v&&v!=='__custom__'){write&&write('week/modes/'+day,v);setShowModeSelect(false);}}} style={{marginBottom:6}}>
                   {isCustom&&<option value="__custom__">{(customCfg&&customCfg.name)||'Custom game'} (this day only)</option>}
                   {!effMode&&!isCustom&&<option value="">— choose the game —</option>}
                   {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual (Stableford)':' · Team'}</option>)}
                 </select>
               )}
-              <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(true)}>
-                {isCustom?'Edit custom game':'Or configure a custom game'}
-              </button>
+              <div style={{display:'flex',gap:6}}>
+                {modes.length>0&&(effMode||isCustom)&&!showModeSelect&&(
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowModeSelect(true)}>Change game</button>
+                )}
+                <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(true)}>
+                  {isCustom?'Edit custom game':'Or configure a custom game'}
+                </button>
+              </div>
             </>
           )}
           {showCustom&&(
