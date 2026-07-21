@@ -3323,6 +3323,49 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     setEditTeams([...savedTeams.map(t=>({...t,players:[...safeArray(t.players).map(p=>({...p}))]}))]);
   }
 
+  function genRandomGroups(){
+    // Individual mode: handicaps are irrelevant — pure random deal into groups of 4.
+    // Kept: guest/match pairs stay together; first-tee prefs → Group 1, last-tee → last group.
+    if(daySignups.length<3)return;
+    const pinned=teeRequests.filter(([k])=>approvals[k]).map(([,sig])=>({name:sig.name,pref:sig.teePreference}));
+    const guestPairs=guestPairingRequests.filter(([k])=>approvals['gp_'+k]).map(([,sig])=>({guest:sig.name,member:sig.guestOf}));
+    const matchPairs=dayMatchPairings.filter(([k])=>approvals['match_'+k]).map(([,m])=>({requester:m.requester,partner:m.partner}));
+    const allPairs=[...guestPairs,...matchPairs.map(m=>({guest:m.requester,member:m.partner}))];
+    setManualTeams(null); setManualMode(false);
+    // Build units: paired players travel together; everyone else is a single
+    const byName={}; daySignups.forEach(p=>{byName[p.name]=p;});
+    const used=new Set(); const units=[];
+    allPairs.forEach(pr=>{
+      const a=byName[pr.member],b=byName[pr.guest];
+      if(a&&b&&!used.has(a.name)&&!used.has(b.name)){units.push([a,b]);used.add(a.name);used.add(b.name);}
+    });
+    daySignups.forEach(p=>{if(!used.has(p.name)){units.push([p]);used.add(p.name);}});
+    // Random shuffle of units
+    for(let i=units.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[units[i],units[j]]=[units[j],units[i]];}
+    // Tee prefs: first-pref units to the front, last-pref to the back
+    const prefOf=u=>{const pn=pinned.find(x=>u.some(p=>p.name===x.name));return pn?pn.pref:null;};
+    const firsts=units.filter(u=>prefOf(u)==='first');
+    const lasts=units.filter(u=>prefOf(u)==='last');
+    const mids=units.filter(u=>{const f=prefOf(u);return f!=='first'&&f!=='last';});
+    const ordered=[...firsts,...mids,...lasts];
+    const size=4, numG=Math.max(1,Math.ceil(daySignups.length/size));
+    const groups=Array.from({length:numG},(_,i)=>({id:i+1,name:'Group '+(i+1),players:[],totalHcp:0}));
+    // Deal units front-to-back, always into the group with the most room (stable order)
+    ordered.forEach(u=>{
+      let gi=0;
+      for(let i=0;i<groups.length;i++){ if(groups[i].players.length+u.length<=size){gi=i;break;} gi=-1; }
+      if(gi===-1){ // no group fits within 4 — put in the emptiest (allows a 5th)
+        gi=0; groups.forEach((g,i)=>{if(g.players.length<groups[gi].players.length)gi=i;});
+      }
+      u.forEach(p=>groups[gi].players.push({name:p.name,tee:p.tee,handicap:parseFloat(p.handicap||0)}));
+    });
+    const filled=groups.filter(g=>g.players.length>0);
+    reSlot(filled);
+    setEditTeams(filled);
+    setBuildInfo(null);
+    showToast('Groups shuffled — drag anyone to rearrange');
+  }
+
   function gen(size){
     if(daySignups.length<3)return;
     const s=parseInt(size||autoSize)||4;
@@ -3635,7 +3678,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
               <>
                 {!showAutoOpts ? (
                   <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-                    <button className="btn btn-primary btn-sm" onClick={()=>{if(indMode){setAutoSize('4');gen('4');}else setShowAutoOpts(true);}} disabled={cnt<3}>{indMode?'Build groups':'Auto-generate'}</button>
+                    <button className="btn btn-primary btn-sm" onClick={()=>{if(indMode){genRandomGroups();}else setShowAutoOpts(true);}} disabled={cnt<3}>{indMode?'Build groups':'Auto-generate'}</button>
                     <button className="btn btn-ghost btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>
                   </div>
                 ) : (
@@ -3687,7 +3730,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
             {/* Teams exist — action bar */}
             {(editTeams || manualTeams || currentDisplay.length > 0) && (
               <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
-                {!manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>{if(indMode){setAutoSize('4');gen('4');}else setShowAutoOpts(s=>!s);}}>{indMode?'Shuffle groups':'Regenerate'}</button>}
+                {!manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>{if(indMode){genRandomGroups();}else setShowAutoOpts(s=>!s);}}>{indMode?'Shuffle groups':'Regenerate'}</button>}
                 {manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>{setManualTeams(null);setManualMode(false);setShowAutoOpts(true);}}>Switch to auto</button>}
                 {!manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>}
                 {editTeams && <button className="btn btn-ghost btn-sm" onClick={()=>{saveTeams(activeDay,editTeams);setEditTeams(null);showToast('Draft saved');}}>Save Draft</button>}
