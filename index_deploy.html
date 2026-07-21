@@ -1063,6 +1063,12 @@ function TabStub({ tabName, sessionNumber }){
 function SignupModal({ day, currentUser, existingSignup, signupKey, existingGuests, fullRoster, matchPairings, settings, onClose, onSave, isAdminAdd }){
   // ── Configuration ──
   const MAX_GUESTS = Math.max(0, Math.min(3, settings?.maxGuests ?? 3));
+  // ── Sign-up rules (Game Rules → Sign-up Rules; default all allowed) ──
+  const SR = settings?.gameRules?.signupRules || {};
+  const ALLOW_GUESTS = SR.allowGuests !== false;
+  const ALLOW_PAIRINGS = SR.allowPairings !== false;
+  const ALLOW_MATCHES = SR.allowMatches !== false;
+  const ALLOW_TEEPREFS = SR.allowTeePrefs !== false;
   const isEdit = !!existingSignup && !isAdminAdd;
   const isGuestUser = !isAdminAdd && currentUser?.role === 'guest';
   const isEditingGuest = isEdit && !!(existingSignup?.isGuest);
@@ -1179,10 +1185,11 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
     if(!guestDraft.name.trim()){ setErr('Enter guest name'); return; }
     const ghcp = parseFloat(guestDraft.hcp);
     if(guestDraft.hcp === '' || isNaN(ghcp) || ghcp < 0 || ghcp > 54){ setErr('Enter guest handicap (0–54)'); return; }
+    const draft = { ...guestDraft, pair: ALLOW_PAIRINGS ? guestDraft.pair : false };
     if(guestIdx === -1){
-      setGuests([...guests, { ...guestDraft, name: guestDraft.name.trim(), key:null, addedAt: Date.now() + guests.length }]);
+      setGuests([...guests, { ...draft, name: draft.name.trim(), key:null, addedAt: Date.now() + guests.length }]);
     } else {
-      setGuests(guests.map((g,i)=> i===guestIdx ? { ...g, ...guestDraft, name: guestDraft.name.trim() } : g));
+      setGuests(guests.map((g,i)=> i===guestIdx ? { ...g, ...draft, name: draft.name.trim() } : g));
     }
     setErr('');
     setStep('main');
@@ -1311,8 +1318,8 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
     <span>{playerName}<span style={{color:'var(--ink-40)'}}> · {tee} · HCP {hcp || '—'}</span>{pref !== 'none' && <span style={{color:'var(--ink-40)'}}> · {pref==='first'?'First tee':'Last tee'}</span>}</span>
   ) : null;
 
-  const canAddGuest = !isGuestUser && !isEditingGuest && guests.length < MAX_GUESTS;
-  const canAddMatch = !isGuestUser && !isEditingGuest && !hasMatch;
+  const canAddGuest = ALLOW_GUESTS && !isGuestUser && !isEditingGuest && guests.length < MAX_GUESTS;
+  const canAddMatch = ALLOW_MATCHES && !isGuestUser && !isEditingGuest && !hasMatch;
 
   // ═════════════════════════════════════════════════════════════
   // SCREEN: PICK PLAYER (admin-add only)
@@ -1389,6 +1396,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
               <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Guest's course handicap for the tees they're playing</div>
               <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestDraft.hcp} onChange={e=>{setGuestDraft({...guestDraft, hcp:e.target.value});setErr('');}}/>
             </div>
+            {ALLOW_PAIRINGS && (
             <div className="form-group">
               <label className="form-label">Pair with {isAdminAdd ? playerName : 'host'} on a team?</label>
               <div className="pref-opts">
@@ -1396,6 +1404,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
                 <button className={'pref-opt'+(!guestDraft.pair?' on':'')} onClick={()=>setGuestDraft({...guestDraft, pair:false})}>No preference</button>
               </div>
             </div>
+            )}
             {err && <div className="form-err">{err}</div>}
           </div>
           <div className="modal-foot">
@@ -1542,7 +1551,7 @@ function SignupModal({ day, currentUser, existingSignup, signupKey, existingGues
                 <div style={{fontSize:10,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Use your course handicap for the tees you're playing today</div>
                 <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
               </div>
-              {!isEditingGuest && (
+              {!isEditingGuest && ALLOW_TEEPREFS && (
                 <div className="form-group">
                   <label className="form-label">Tee time preference</label>
                   <div className="pref-opts">

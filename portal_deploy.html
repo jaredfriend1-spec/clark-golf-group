@@ -2111,6 +2111,225 @@ function AttendTab({user}){
   </div>);
 }
 
+// ── GAME RULES TAB (mode templates + sign-up rules) ──────────────────────────
+function GameRulesTab({user}){
+  const gameRules=useDB("settings/gameRules");
+  const [section,setSection]=useState("modes");
+  const [toast,showToast]=useToast();
+  const [editing,setEditing]=useState(null); // null | {id?, draft}
+  const [confirmDel,setConfirmDel]=useState(null);
+
+  const modes=Object.entries(gameRules?.modes||{}).map(([id,m])=>({id,...m}));
+  const defaultModeId=gameRules?.defaultModeId||null;
+  const sr=gameRules?.signupRules||{};
+
+  const BLANK_TEAM={name:"",type:"team",buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,skinsMode:"team",skinsSource:"buyin",roundDown:true};
+  const BLANK_IND={name:"",type:"individual",buyIn:25,fundEnabled:true,fundPerPlayer:1,ranking:"net",paidSpots:3,tieRule:"split",skinsEnabled:false,skinsMode:"individual",skinsPerPlayer:0,roundDown:true};
+
+  // ── Money-in = money-out engine (per-player dollars) ──
+  function balance(d){
+    const buyIn=parseFloat(d.buyIn)||0;
+    const fund=d.fundEnabled?(parseFloat(d.fundPerPlayer)||0):0;
+    if(d.type==="team"){
+      const pots=(parseFloat(d.potFront)||0)+(parseFloat(d.potBack)||0)+(parseFloat(d.potOverall)||0)+(parseFloat(d.potSkins)||0);
+      return {allocated:fund+pots,buyIn,diff:buyIn-(fund+pots)};
+    }
+    // individual: skins (if separate per-player carve) + fund allocated; remainder feeds the paid-spots pool set at scoring
+    const skins=d.skinsEnabled?(parseFloat(d.skinsPerPlayer)||0):0;
+    const allocated=fund+skins;
+    return {allocated,buyIn,diff:buyIn-allocated,poolPerPlayer:buyIn-allocated};
+  }
+
+  function openNew(type){setEditing({id:null,draft:type==="team"?{...BLANK_TEAM}:{...BLANK_IND}});}
+  function openEdit(m){const{id,...rest}=m;setEditing({id,draft:{...rest}});}
+
+  function save(){
+    const d=editing.draft;
+    if(!d.name||!d.name.trim()){showToast("Name the mode","err");return;}
+    const b=balance(d);
+    if(d.type==="team"&&Math.abs(b.diff)>0.001){showToast("Money in must equal money out","err");return;}
+    if(d.type==="individual"&&b.diff<-0.001){showToast("Fund + skins exceed the buy-in","err");return;}
+    if(d.type==="individual"&&(parseInt(d.paidSpots)||0)<1){showToast("At least 1 paid spot","err");return;}
+    const clean={...d,name:d.name.trim(),buyIn:parseFloat(d.buyIn)||0,fundPerPlayer:parseFloat(d.fundPerPlayer)||0,updatedAt:Date.now(),updatedBy:user?.name||user?.email||"admin"};
+    if(editing.id){wr("settings/gameRules/modes/"+editing.id,clean);}
+    else{ps("settings/gameRules/modes",{...clean,createdAt:Date.now()});}
+    setEditing(null);showToast("Mode saved ✓");
+  }
+  function removeMode(m){
+    dl("settings/gameRules/modes/"+m.id);
+    if(defaultModeId===m.id)dl("settings/gameRules/defaultModeId");
+    setConfirmDel(null);showToast("Mode deleted ✓");
+  }
+  function setDefault(id){wr("settings/gameRules/defaultModeId",id);showToast("Default mode set ✓");}
+  function toggleRule(key){
+    const cur=sr[key]!==false; // default true
+    wr("settings/gameRules/signupRules/"+key,!cur);
+    showToast(!cur?"Enabled ✓":"Disabled ✓");
+  }
+
+  const num=(v,cb)=>e=>cb(e.target.value);
+  const upd_=(patch)=>setEditing(ed=>({...ed,draft:{...ed.draft,...patch}}));
+
+  return(<div>
+    <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Configuration</div>
+    <div className="pg-title">Game Rules</div>
+    <div className="pg-sub">Mode templates for how rounds are played and paid, plus sign-up rules. Config applies to FUTURE rounds only — finalized history is never rewritten.</div>
+
+    <div className="sec-tabs">
+      {[["modes","🏌️ Game Modes"],["signup","⚙️ Sign-up Rules"]].map(([id,label])=>(
+        <button key={id} className={"mtab"+(section===id?" on":"")} style={{fontSize:12}} onClick={()=>setSection(id)}>{label}</button>
+      ))}
+    </div>
+
+    {section==="signup"&&(<div>
+      <div className="info-box"><strong>Turn request types on or off for the whole group.</strong> When off, the option disappears from the sign-up form. Existing sign-ups are unaffected.</div>
+      <div className="card">
+        {[
+          {key:"allowGuests",label:"Allow guests",sub:"Members can bring up to 3 guests"},
+          {key:"allowPairings",label:"Allow guest pairing requests",sub:"“Pair with me on a team” toggle on guests"},
+          {key:"allowMatches",label:"Allow match play requests",sub:"Formal head-to-head match sign-ups"},
+          {key:"allowTeePrefs",label:"Allow tee time preferences",sub:"First tee / last tee requests"},
+        ].map(({key,label,sub})=>{
+          const on=sr[key]!==false;
+          return(
+            <div key={key} className="s-row" style={{gap:12}}>
+              <div onClick={()=>toggleRule(key)} style={{width:36,height:20,borderRadius:20,background:on?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0,transition:"background 0.2s"}}>
+                <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:on?"#e2e8f0":"rgba(255,255,255,0.4)"}}>{label}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:1}}>{sub}</div>
+              </div>
+              <span style={{fontSize:10,fontWeight:700,color:on?"#10b981":"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{on?"On":"Off"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>)}
+
+    {section==="modes"&&(<div>
+      {!editing&&(<div style={{display:"flex",gap:8,marginBottom:14}}>
+        <button className="btn btn-g btn-sm" onClick={()=>openNew("team")}>+ Team mode</button>
+        <button className="btn btn-b btn-sm" onClick={()=>openNew("individual")}>+ Individual mode</button>
+      </div>)}
+
+      {editing&&(()=>{
+        const d=editing.draft;const b=balance(d);
+        const balanced=d.type==="team"?Math.abs(b.diff)<0.001:b.diff>=-0.001;
+        return(
+        <div className="card" style={{marginBottom:16,borderColor:"rgba(16,185,129,0.3)"}}>
+          <div className="card-hdr">
+            <span className="card-title">{editing.id?"Edit Mode":"New "+(d.type==="team"?"Team":"Individual")+" Mode"}</span>
+            <button className="btn btn-gh btn-xs" onClick={()=>setEditing(null)}>Cancel</button>
+          </div>
+          <div className="card-body">
+            <div className="lbl">Mode name</div>
+            <input className="inp" placeholder={d.type==="team"?"e.g. Saturday Best Ball":"e.g. Individual Stableford"} value={d.name} onChange={num(0,v=>upd_({name:v}))} style={{marginBottom:12}}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+              <div><div className="lbl">Buy-in ($/player)</div><input className="inp" type="number" value={d.buyIn} onChange={num(0,v=>upd_({buyIn:v}))}/></div>
+              <div><div className="lbl">Tournament fund</div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <div onClick={()=>upd_({fundEnabled:!d.fundEnabled})} style={{width:36,height:20,borderRadius:20,background:d.fundEnabled?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}><div style={{position:"absolute",top:2,left:d.fundEnabled?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/></div>
+                  <input className="inp" type="number" disabled={!d.fundEnabled} value={d.fundPerPlayer} onChange={num(0,v=>upd_({fundPerPlayer:v}))} style={{opacity:d.fundEnabled?1:0.4}}/>
+                </div>
+              </div>
+            </div>
+
+            {d.type==="team"&&(<div>
+              <div className="lbl">Pots ($/player — must total the buy-in with fund)</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
+                {[["potFront","Front 9"],["potBack","Back 9"],["potOverall","Overall"],["potSkins","Skins"]].map(([k,l])=>(
+                  <div key={k}><div className="lbl" style={{fontSize:9}}>{l}</div><input className="inp" type="number" value={d[k]} onChange={num(0,v=>upd_({[k]:v}))}/></div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                <div><div className="lbl">Skins mode</div>
+                  <select className="inp" value={d.skinsMode} onChange={num(0,v=>upd_({skinsMode:v}))}><option value="team">Team skins</option><option value="individual">Individual skins</option></select>
+                </div>
+                <div><div className="lbl">Skins money source</div>
+                  <select className="inp" value={d.skinsSource} onChange={num(0,v=>upd_({skinsSource:v}))}><option value="buyin">From buy-in</option><option value="separate">Separate pot</option></select>
+                </div>
+              </div>
+            </div>)}
+
+            {d.type==="individual"&&(<div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <div><div className="lbl">Ranking</div>
+                  <select className="inp" value={d.ranking} onChange={num(0,v=>upd_({ranking:v}))}><option value="net">Net to target (points − target)</option><option value="raw">Raw Stableford total</option></select>
+                </div>
+                <div><div className="lbl">Paid spots</div><input className="inp" type="number" min="1" max="20" value={d.paidSpots} onChange={num(0,v=>upd_({paidSpots:v}))}/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <div><div className="lbl">Tie for a paid spot</div>
+                  <select className="inp" value={d.tieRule} onChange={num(0,v=>upd_({tieRule:v}))}><option value="split">Split pooled $ evenly</option><option value="admin">Admin resolves</option></select>
+                </div>
+                <div><div className="lbl">Individual skins</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <div onClick={()=>upd_({skinsEnabled:!d.skinsEnabled})} style={{width:36,height:20,borderRadius:20,background:d.skinsEnabled?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}><div style={{position:"absolute",top:2,left:d.skinsEnabled?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/></div>
+                    <input className="inp" type="number" disabled={!d.skinsEnabled} placeholder="$/player" value={d.skinsPerPlayer} onChange={num(0,v=>upd_({skinsPerPlayer:v}))} style={{opacity:d.skinsEnabled?1:0.4}}/>
+                  </div>
+                </div>
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginBottom:10,lineHeight:1.6}}>Per-spot dollar amounts are set at scoring time from the collected pool ({b.poolPerPlayer>=0?("$"+b.poolPerPlayer.toFixed(0)+"/player after fund"+(d.skinsEnabled?" + skins":"")):"—"}) with a true-up to $0 before finalize.</div>
+            </div>)}
+
+            {/* Money balance strip */}
+            <div style={{padding:"10px 14px",borderRadius:8,marginBottom:12,background:balanced?"rgba(16,185,129,0.08)":"rgba(239,68,68,0.08)",border:"1px solid "+(balanced?"rgba(16,185,129,0.25)":"rgba(239,68,68,0.25)")}}>
+              <span style={{fontSize:12,fontWeight:700,color:balanced?"#34d399":"#f87171"}}>
+                {d.type==="team"
+                  ?(balanced?"✓ Balanced: $"+b.buyIn+" in = $"+b.allocated+" out":"✗ Off by $"+Math.abs(b.diff).toFixed(2)+" — pots + fund must equal the buy-in")
+                  :(balanced?"✓ $"+b.buyIn+" in — $"+b.allocated+" reserved, $"+(b.poolPerPlayer||0).toFixed(0)+"/player to the payout pool":"✗ Fund + skins exceed the buy-in")}
+              </span>
+            </div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginBottom:12}}>All payouts round down to whole dollars; surplus goes to the tournament fund.</div>
+            <button className="btn btn-g btn-full" onClick={save} disabled={!balanced}>{editing.id?"Save changes":"Create mode"}</button>
+          </div>
+        </div>);})()}
+
+      {!editing&&modes.length===0&&(
+        <div className="info-box"><strong>No modes yet.</strong> Create a Team mode matching today’s game ($25: $1 fund, $5/$5/$5 pots, $9 skins) and an Individual Stableford mode. Day setup will pick from these.</div>
+      )}
+      {!editing&&modes.map(m=>{
+        const b=balance(m);
+        return(
+        <div key={m.id} className="card" style={{marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px"}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{m.name}</span>
+                <span className={m.type==="team"?"b b-g":"b b-b"}>{m.type==="team"?"Team":"Individual"}</span>
+                {defaultModeId===m.id&&<span className="b b-a">★ Default</span>}
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginTop:3}}>
+                ${m.buyIn}/player{m.fundEnabled?" · $"+m.fundPerPlayer+" fund":" · no fund"}
+                {m.type==="team"
+                  ?" · F$"+m.potFront+" B$"+m.potBack+" O$"+m.potOverall+" Sk$"+m.potSkins+" · "+(m.skinsMode==="individual"?"ind.":"team")+" skins"
+                  :" · "+(m.ranking==="raw"?"raw total":"net-to-target")+" · "+m.paidSpots+" spots · "+(m.tieRule==="admin"?"admin ties":"split ties")+(m.skinsEnabled?" · skins $"+m.skinsPerPlayer:"")}
+              </div>
+            </div>
+            {defaultModeId!==m.id&&<button className="btn btn-gh btn-xs" onClick={()=>setDefault(m.id)}>Set default</button>}
+            <button className="btn btn-gh btn-xs" onClick={()=>openEdit(m)}>Edit</button>
+            <button className="btn btn-r btn-xs" onClick={()=>setConfirmDel(m)}>Del</button>
+          </div>
+        </div>);})}
+    </div>)}
+
+    {confirmDel&&(
+      <div className="overlay">
+        <div className="modal">
+          <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#f87171"}}>Delete mode “{confirmDel.name}”?</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>Future day setups can’t pick it. Already-finalized rounds are untouched — they snapshot their rules at finalize.</div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-r" style={{flex:1}} onClick={()=>removeMode(confirmDel)}>Delete</button>
+            <button className="btn btn-gh" style={{flex:1}} onClick={()=>setConfirmDel(null)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>);
+}
+
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
 
 function ClarkEmailTab(){
@@ -3159,6 +3378,7 @@ function SettingsTab({user,onSignOut}){
 const ALL_NAV_ITEMS=[
   {id:"dash",label:"Dashboard",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>},
   {id:"access",label:"Access",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>},
+  {id:"gamerules",label:"Game Rules",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/><path d="M5.5 5.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2M18.5 18.5l-2-2"/></svg>},
   {id:"week",label:"Week",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
   {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
@@ -3241,6 +3461,7 @@ function Portal(){
         </div>
         <div className="main">
           {tab==="dash"&&<DashTab user={user}/>}
+          {tab==="gamerules"&&<GameRulesTab user={user}/>}
           {tab==="week"&&<WeekTab user={user}/>}
           {tab==="email"&&<EmailTab/>}
           {tab==="roster"&&<RosterTab/>}
