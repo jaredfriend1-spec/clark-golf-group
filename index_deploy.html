@@ -1832,7 +1832,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           modesList={Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,name:m.name,type:m.type,cfg:m}))}
           dayCustom={week?.modeConfig?.[day.day]||null}
           modeLocked={!!(week?.scores&&week.scores[day.day])}
-          onSetMode={(id)=>{ if(id==='__custom__'&&!(week?.modeConfig?.[day.day]))return; write('week/modes/'+day.day,id); }}
+          onSetMode={(id)=>{ if(id==='__custom__'&&!(week?.modeConfig?.[day.day]))return; write('week/modes/'+day.day,id); del&&del('week/teams/'+day.day); del&&del('week/teamsPublished/'+day.day); }}
           onGoManage={()=>{ if(onSwitchTab)onSwitchTab('manage'); }}
           currentUser={currentUser}
           isAdmin={isAdmin}
@@ -1980,7 +1980,7 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage,
                     })():(
                       <div>
                         <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Game for {day.day}</div>
-                        <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Sign-ups are never affected by changing the game.</div>
+                        <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Changing the game clears any built teams or groups. Sign-ups are never affected.</div>
                         {modesList.map(m=>(
                           <button key={m.id} onClick={e=>{e.stopPropagation();onSetMode(m.id);setShowModePicker(false);}}
                             style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px solid '+((modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
@@ -6411,6 +6411,8 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
     const clean={...cd,buyIn:parseFloat(cd.buyIn)||0,fundPerPlayer:parseFloat(cd.fundPerPlayer)||0,savedAt:Date.now()};
     write('week/modeConfig/'+day,clean);
     write('week/modes/'+day,'__custom__');
+    write('week/teams/'+day,null);
+    write('week/teamsPublished/'+day,null);
     setGameModal(null);
   }
   const selMode=isCustom?null:modes.find(m=>m.id===effMode);
@@ -6478,9 +6480,9 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
             {gameModal==='list'?(
               <div>
                 <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Game for {day}</div>
-                <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Sign-ups are never affected by changing the game.</div>
+                <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Changing the game clears any built teams or groups. Sign-ups are never affected.</div>
                 {modes.map(m=>(
-                  <button key={m.id} onClick={()=>{write&&write('week/modes/'+day,m.id);setGameModal(null);}}
+                  <button key={m.id} onClick={()=>{write&&write('week/modes/'+day,m.id);write&&write('week/teams/'+day,null);write&&write('week/teamsPublished/'+day,null);setGameModal(null);}}
                     style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(!isCustom&&effMode===m.id)?(m.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px solid '+((!isCustom&&effMode===m.id)?(m.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{m.name}</div>
@@ -6490,7 +6492,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
                   </button>
                 ))}
                 {customCfg&&(
-                  <button onClick={()=>{write&&write('week/modes/'+day,'__custom__');setGameModal(null);}}
+                  <button onClick={()=>{write&&write('week/modes/'+day,'__custom__');write&&write('week/teams/'+day,null);write&&write('week/teamsPublished/'+day,null);setGameModal(null);}}
                     style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:isCustom?(customCfg.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px dashed '+(isCustom?(customCfg.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{customCfg.name||'Custom game'}</div>
@@ -6905,6 +6907,23 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
               {statCard(stbl.avgNet!=null?((stbl.avgNet>=0?'+':'')+stbl.avgNet):'—','Avg vs Target','#8b5cf6')}
               {statCard(stbl.skins,'Total Skins','var(--brand)')}
             </div>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Stableford — Round by Round</div>
+            {[...indHist].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map((r,i)=>{
+              const es=Object.entries(r.scores.indScores||{}).map(([n,v])=>({n,t:parseFloat(v.total)||0}));
+              if(!es.length)return null;
+              const top=es.reduce((a,b)=>b.t>a.t?b:a,es[0]);
+              const avg=Math.round(es.reduce((s,x)=>s+x.t,0)/es.length*10)/10;
+              const sk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+(parseInt(x)||0),0);
+              return(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                  <div style={{fontSize:11,color:'var(--ink-40)',width:44,flexShrink:0}}>{r.date?.slice(5)||''}</div>
+                  <div style={{flex:1,fontSize:11.5,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>🏆 <b>{top.n}</b> · {top.t} pts</div>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',padding:'2px 5px',borderRadius:5,flexShrink:0}}>avg {avg}</span>
+                  {sk>0&&<span style={{fontSize:11,fontWeight:700,color:'var(--brand)',background:'var(--brand-soft)',padding:'2px 5px',borderRadius:5,flexShrink:0}}>{sk} sk</span>}
+                  <div style={{fontSize:10,color:'var(--ink-40)',flexShrink:0}}>{es.length}p</div>
+                </div>
+              );
+            })}
           </>)}
           {divider}
           <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round</div>

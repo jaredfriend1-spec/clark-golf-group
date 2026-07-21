@@ -974,7 +974,7 @@ function WeekTab({user}){
                 {active?(
                   <>
                     {(()=>{const modes=Object.entries(gameRules?.modes||{}).map(([id,m])=>({id,...m}));if(!modes.length)return null;const dayHasScores=!!(week?.scores&&week.scores[day]);const cur=week?.modes?.[day]||gameRules?.defaultModeId||"";return(
-                      <select className="inp" style={{width:"auto",fontSize:11,padding:"6px 8px",opacity:dayHasScores?0.5:1}} disabled={dayHasScores} title={dayHasScores?"Mode locked — scores exist for this day":"Game mode for "+day} value={cur} onChange={e=>{wr("week/modes/"+day,e.target.value);showToast(day+" mode set ✓");}}>
+                      <select className="inp" style={{width:"auto",fontSize:11,padding:"6px 8px",opacity:dayHasScores?0.5:1}} disabled={dayHasScores} title={dayHasScores?"Mode locked — scores exist for this day":"Game mode for "+day} value={cur} onChange={e=>{wr("week/modes/"+day,e.target.value);wr("week/teams/"+day,null);wr("week/teamsPublished/"+day,null);showToast(day+" mode set ✓ (built teams cleared)");}}>
                         {!cur&&<option value="">— mode —</option>}
                         {modes.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
                       </select>
