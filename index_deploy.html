@@ -5053,7 +5053,7 @@ function EmailViewV2({ week, isAdmin }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5232,7 +5232,7 @@ function AdminViewV2({ week, history, isAdmin, currentUser, fullRoster, effectiv
                     </div>
                   )}
                   {wizDay===day&&(
-                    <SetupWizardV2 day={day} week={week} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>
+                    <SetupWizardV2 day={day} week={week} settings={settings} write={write} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>
                   )}
                 </div>
               );
@@ -5817,7 +5817,7 @@ function TimePicker({onChange, initialValue}){
   );
 }
 
-function SetupWizardV2({ day, week, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
+function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
   const [step, setStep] = useState(1);
   const [newTime, setNewTime] = useState('');
   const [isLottery, setIsLottery] = useState(false);
@@ -5830,6 +5830,22 @@ function SetupWizardV2({ day, week, onClose, onGoTo, onUpdateTeeTime, onToggleLo
         <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Setting up {day}</div>
         <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontFamily:'inherit',fontSize:12,fontWeight:600}}>Done</button>
       </div>
+      {(()=>{
+        const modes=Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,...m}));
+        if(!modes.length)return null;
+        const dayHasScores=!!(week?.scores&&week.scores[day]);
+        const cur=week?.modes?.[day]||settings?.gameRules?.defaultModeId||'';
+        return(
+          <div className="form-group" style={{marginBottom:12}}>
+            <label className="form-label">Game mode for {day}</label>
+            <select className="form-input" value={cur} disabled={dayHasScores} onChange={e=>write&&write('week/modes/'+day,e.target.value)} style={{opacity:dayHasScores?0.6:1}}>
+              {!cur&&<option value="">— choose a mode —</option>}
+              {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
+            </select>
+            {dayHasScores&&<div style={{fontSize:10,color:'var(--ink-40)',marginTop:4,fontStyle:'italic'}}>Locked — scores already exist for this day.</div>}
+          </div>
+        );
+      })()}
       <div style={{display:'flex',gap:4,marginBottom:14}}>
         {[1,2,3].map(num=>(
           <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&teeInfo)||(num===2&&locked))?'var(--brand)':step===num?'var(--ink)':'var(--hairline)',transition:'background 0.2s'}}/>
@@ -7688,7 +7704,7 @@ function App(){
       {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 isAdmin={isAdmin} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite}/>}
       {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin}/>}
       {tab === 'admin' && <AdminViewV2
-        week={activeWeek} history={history} isAdmin={isAdmin}
+settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
         rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}

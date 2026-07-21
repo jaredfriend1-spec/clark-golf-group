@@ -702,6 +702,7 @@ function DashTab({user}){
 // ── WEEK TAB ──────────────────────────────────────────────────────────────────
 function WeekTab({user}){
   const week=useDB("week");
+  const gameRules=useDB("settings/gameRules");
   const extra=useDB("extraPlayers");
   const rosterEdits=useDB("rosterEdits");
   // Default: all days expanded. Track CLOSED days instead.
@@ -872,6 +873,7 @@ function WeekTab({user}){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
                   <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:20,fontWeight:800,color:"#10b981"}}>{sups.length}</span>
+                  {(()=>{const mid=week?.modes?.[day]||gameRules?.defaultModeId;const m=mid&&gameRules?.modes&&gameRules.modes[mid];return m?<span className={m.type==="individual"?"b b-b":"b b-g"}>{m.name}</span>:null;})()}
                   {locked&&<span className="b b-a">🔒 Locked</span>}
                   {teeInfo&&<span className="b b-b">{teeInfo.lottery?"Lottery":teeInfo.time}</span>}
                   {complete&&<span className="b b-g">Complete</span>}
@@ -971,6 +973,12 @@ function WeekTab({user}){
                 </div>
                 {active?(
                   <>
+                    {(()=>{const modes=Object.entries(gameRules?.modes||{}).map(([id,m])=>({id,...m}));if(!modes.length)return null;const dayHasScores=!!(week?.scores&&week.scores[day]);const cur=week?.modes?.[day]||gameRules?.defaultModeId||"";return(
+                      <select className="inp" style={{width:"auto",fontSize:11,padding:"6px 8px",opacity:dayHasScores?0.5:1}} disabled={dayHasScores} title={dayHasScores?"Mode locked — scores exist for this day":"Game mode for "+day} value={cur} onChange={e=>{wr("week/modes/"+day,e.target.value);showToast(day+" mode set ✓");}}>
+                        {!cur&&<option value="">— mode —</option>}
+                        {modes.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                    );})()}
                     <span className="b b-g">✓ Active</span>
                     <button className="btn btn-gh btn-sm" onClick={()=>toggleDay(day)}>Remove</button>
                   </>
@@ -2111,10 +2119,66 @@ function AttendTab({user}){
   </div>);
 }
 
+// ── APP SETTINGS TAB (global app behavior) ──────────────────────────────
+function AppSettingsTab({user}){
+  const gameRules=useDB("settings/gameRules");
+  const settings=useDB("settings");
+  const [toast,showToast]=useToast();
+  const sr=gameRules?.signupRules||{};
+  const maxGuests=settings?.maxGuests??3;
+  function toggleRule(key){
+    const cur=sr[key]!==false;
+    wr("settings/gameRules/signupRules/"+key,!cur);
+    showToast(!cur?"Enabled ✓":"Disabled ✓");
+  }
+  return(<div>
+    <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Configuration</div>
+    <div className="pg-title">App Settings</div>
+    <div className="pg-sub">Global settings that apply to every day and every week. More settings will land here as the app grows.</div>
+    <div className="card">
+      <div className="card-hdr"><span className="card-title">Sign-up Rules</span></div>
+
+      <div className="info-box"><strong>Turn request types on or off for the whole group.</strong> When off, the option disappears from the sign-up form. Existing sign-ups are unaffected.</div>
+      <div className="card">
+        {[
+          {key:"allowGuests",label:"Allow guests",sub:"Members can bring up to 3 guests"},
+          {key:"allowPairings",label:"Allow guest pairing requests",sub:"“Pair with me on a team” toggle on guests"},
+          {key:"allowMatches",label:"Allow match play requests",sub:"Formal head-to-head match sign-ups"},
+          {key:"allowTeePrefs",label:"Allow tee time preferences",sub:"First tee / last tee requests"},
+        ].map(({key,label,sub})=>{
+          const on=sr[key]!==false;
+          return(
+            <div key={key} className="s-row" style={{gap:12}}>
+              <div onClick={()=>toggleRule(key)} style={{width:36,height:20,borderRadius:20,background:on?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0,transition:"background 0.2s"}}>
+                <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:on?"#e2e8f0":"rgba(255,255,255,0.4)"}}>{label}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:1}}>{sub}</div>
+              </div>
+              <span style={{fontSize:10,fontWeight:700,color:on?"#10b981":"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{on?"On":"Off"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+    <div className="card">
+      <div className="card-hdr"><span className="card-title">Guests per member</span></div>
+      <div className="card-body">
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:8}}>Maximum guests one member can bring (0–3). Ignored when guests are disabled above.</div>
+        <select className="inp" value={maxGuests} onChange={e=>{wr("settings/maxGuests",parseInt(e.target.value));showToast("Saved ✓");}} style={{maxWidth:120}}>
+          {[0,1,2,3].map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+    </div>
+  </div>);
+}
+
 // ── GAME RULES TAB (mode templates + sign-up rules) ──────────────────────────
 function GameRulesTab({user}){
   const gameRules=useDB("settings/gameRules");
-  const [section,setSection]=useState("modes");
+
   const [toast,showToast]=useToast();
   const [editing,setEditing]=useState(null); // null | {id?, draft}
   const [confirmDel,setConfirmDel]=useState(null);
@@ -2173,42 +2237,10 @@ function GameRulesTab({user}){
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
     <div className="pg-eyebrow">Configuration</div>
-    <div className="pg-title">Game Rules</div>
-    <div className="pg-sub">Mode templates for how rounds are played and paid, plus sign-up rules. Config applies to FUTURE rounds only — finalized history is never rewritten.</div>
+    <div className="pg-title">Game Modes</div>
+    <div className="pg-sub">Templates for how rounds are played and paid. Each day picks its own mode at day setup — Friday can be team while Saturday runs individual. Config applies to FUTURE rounds only — finalized history is never rewritten.</div>
 
-    <div className="sec-tabs">
-      {[["modes","🏌️ Game Modes"],["signup","⚙️ Sign-up Rules"]].map(([id,label])=>(
-        <button key={id} className={"mtab"+(section===id?" on":"")} style={{fontSize:12}} onClick={()=>setSection(id)}>{label}</button>
-      ))}
-    </div>
-
-    {section==="signup"&&(<div>
-      <div className="info-box"><strong>Turn request types on or off for the whole group.</strong> When off, the option disappears from the sign-up form. Existing sign-ups are unaffected.</div>
-      <div className="card">
-        {[
-          {key:"allowGuests",label:"Allow guests",sub:"Members can bring up to 3 guests"},
-          {key:"allowPairings",label:"Allow guest pairing requests",sub:"“Pair with me on a team” toggle on guests"},
-          {key:"allowMatches",label:"Allow match play requests",sub:"Formal head-to-head match sign-ups"},
-          {key:"allowTeePrefs",label:"Allow tee time preferences",sub:"First tee / last tee requests"},
-        ].map(({key,label,sub})=>{
-          const on=sr[key]!==false;
-          return(
-            <div key={key} className="s-row" style={{gap:12}}>
-              <div onClick={()=>toggleRule(key)} style={{width:36,height:20,borderRadius:20,background:on?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0,transition:"background 0.2s"}}>
-                <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
-              </div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:on?"#e2e8f0":"rgba(255,255,255,0.4)"}}>{label}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:1}}>{sub}</div>
-              </div>
-              <span style={{fontSize:10,fontWeight:700,color:on?"#10b981":"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{on?"On":"Off"}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>)}
-
-    {section==="modes"&&(<div>
+    {(<div>
       {!editing&&(<div style={{display:"flex",gap:8,marginBottom:14}}>
         <button className="btn btn-g btn-sm" onClick={()=>openNew("team")}>+ Team mode</button>
         <button className="btn btn-b btn-sm" onClick={()=>openNew("individual")}>+ Individual mode</button>
@@ -3378,7 +3410,8 @@ function SettingsTab({user,onSignOut}){
 const ALL_NAV_ITEMS=[
   {id:"dash",label:"Dashboard",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>},
   {id:"access",label:"Access",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>},
-  {id:"gamerules",label:"Game Rules",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/><path d="M5.5 5.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2M18.5 18.5l-2-2"/></svg>},
+  {id:"gamerules",label:"Game Modes",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/><path d="M5.5 5.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2M18.5 18.5l-2-2"/></svg>},
+  {id:"appsettings",label:"App Settings",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>},
   {id:"week",label:"Week",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
   {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
@@ -3462,6 +3495,7 @@ function Portal(){
         <div className="main">
           {tab==="dash"&&<DashTab user={user}/>}
           {tab==="gamerules"&&<GameRulesTab user={user}/>}
+          {tab==="appsettings"&&<AppSettingsTab user={user}/>}
           {tab==="week"&&<WeekTab user={user}/>}
           {tab==="email"&&<EmailTab/>}
           {tab==="roster"&&<RosterTab/>}
