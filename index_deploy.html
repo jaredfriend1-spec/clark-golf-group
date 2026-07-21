@@ -5475,38 +5475,17 @@ function EmailViewV2({ week, isAdmin }){
           </div>
         </div>
 
-        {/* Day notes preview */}
-        {Object.values(notes).some(n=>n&&n.trim()) && (
-          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
-            <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',display:'flex',alignItems:'center',gap:7,background:'var(--surface-sunken)'}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <span style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Day Notes</span>
-              <span style={{fontSize:11,color:'var(--ink-40)',fontWeight:400,marginLeft:'auto'}}>Edit in Admin tab</span>
-            </div>
-            <div style={{padding:'10px 14px',display:'flex',flexDirection:'column',gap:8}}>
-              {days.filter(d=>notes[d]&&notes[d].trim()).map(d=>(
-                <div key={d} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'var(--ink)',minWidth:72,paddingTop:1}}>{d}</span>
-                  <span style={{fontSize:13,color:'var(--ink-70)',lineHeight:1.5,flex:1}}>{notes[d].length>80?notes[d].substring(0,80)+'...':notes[d]}</span>
-                </div>
-              ))}
-            </div>
+        {/* Rendered email — read-only */}
+        <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+          <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',display:'flex',alignItems:'center',gap:7}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Email preview — read only</span>
           </div>
-        )}
-
-        {/* Upcoming events preview */}
-        {events.trim() && (
-          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
-            <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',display:'flex',alignItems:'center',gap:7,background:'var(--surface-sunken)'}}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warn-ink)" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Upcoming Events</span>
-              <span style={{fontSize:11,color:'var(--ink-40)',fontWeight:400,marginLeft:'auto'}}>Edit in Admin tab</span>
-            </div>
-            <div style={{padding:'10px 14px'}}>
-              <div style={{fontSize:13,color:'var(--ink-70)',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{events}</div>
-            </div>
+          <div style={{maxHeight:440,overflowY:'auto',background:'#ffffff'}} dangerouslySetInnerHTML={{__html:emailHTML}}/>
+          <div style={{padding:'8px 14px',borderTop:'1px solid var(--hairline-soft)',fontSize:10.5,color:'var(--ink-40)'}}>
+            To change content: <b>day notes</b> in Manage Week (per-day setup) · <b>upcoming events</b> in Admin · game &amp; tee time on each day.
           </div>
-        )}
+        </div>
 
         {/* Preview button */}
         <button onClick={()=>setShowPreview(true)}
@@ -5806,7 +5785,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
             icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2" strokeLinecap="round"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>}
-            title="Announcements"
+            title="Pop-up Announcements & Banners (in-app)"
             count={Object.values(announcements||{}).filter(a=>a.active!==false&&(!a.autoExpireAt||a.autoExpireAt>Date.now())).length || undefined}
             open={showAnnouncementsAdmin} onToggle={()=>setShowAnnouncementsAdmin(s=>!s)}
           />
@@ -5909,30 +5888,11 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
             icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>}
-            title="Weekly Notes & Announcements" open={showNotes} onToggle={()=>setShowNotes(s=>!s)}
+            title="Upcoming Events — persists across weeks" open={showNotes} onToggle={()=>setShowNotes(s=>!s)}
           />
           {showNotes&&(
             <div style={{borderTop:'1px solid var(--hairline)',padding:'12px 16px'}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--highlight)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Day Notes — shown to players & included in email</div>
-              {DAYS_OF_WEEK.map(day=>{
-                const val=localNotes[day]||'';
-                const isActive=activeDays.includes(day);
-                return(
-                  <div key={day} style={{marginBottom:10,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,overflow:'hidden'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',borderBottom:'1px solid var(--hairline)'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{day}</span>
-                        {!isActive&&<span style={{fontSize:10,color:'var(--ink-40)'}}>not active this week</span>}
-                      </div>
-                      {val&&<button onClick={()=>clearNote(day)} style={{fontSize:10,fontWeight:600,color:'var(--money-neg)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Clear</button>}
-                    </div>
-                    <textarea value={val} onChange={e=>updateNote(day,e.target.value)}
-                      placeholder={'Note for '+day+' (game format, reminders...)'}
-                      style={{width:'100%',border:'none',outline:'none',padding:'10px 12px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',resize:'vertical',minHeight:80,background:'transparent',lineHeight:1.5,boxSizing:'border-box'}}/>
-                    <div style={{padding:'2px 12px 6px',fontSize:10,color:'var(--ink-40)'}}>{val.length}/1000</div>
-                  </div>
-                );
-              })}
+              <div style={{fontSize:11,color:'var(--ink-40)',marginBottom:10,fontStyle:'italic'}}>Day notes moved — set each day's note in <b>Manage Week → Set up day → Day note</b>.</div>
               <div style={{fontSize:11,fontWeight:700,color:'var(--highlight)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:16,marginBottom:8}}>Upcoming Events — persists across weeks</div>
               <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,overflow:'hidden'}}>
                 <div style={{display:'flex',alignItems:'center',gap:4,padding:'6px 10px',borderBottom:'1px solid var(--hairline)'}}>
@@ -6383,6 +6343,8 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const [newTime, setNewTime] = useState('');
   const [isLottery, setIsLottery] = useState(false);
   const [teeOpen, setTeeOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
   const [gameModal, setGameModal] = useState(null); // null | 'list' | 'custom'
   const teeInfo=week?.teeTimes?.[day];
   const dayLocked=!!(week?.locked?.[day]);
@@ -6464,6 +6426,26 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
         </div>
       )}
 
+      {(()=>{const dayNote=(week?.emailNotes&&week.emailNotes[day])||'';return(<>
+      <Row icon="📝" label="Day note"
+        value={dayNote?(dayNote.length>48?dayNote.slice(0,48)+'…':dayNote):'None'}
+        sub={dayNote?'Shown to players on the Week tab · included in the email':null}
+        tone={dayNote?'var(--ink)':'var(--ink-40)'}
+        action={noteOpen?'Close':(dayNote?'Change ›':'Set ›')}
+        onAction={()=>{setNoteDraft(dayNote);setNoteOpen(o=>!o);}}/>
+      {noteOpen&&(
+        <div style={{...rowStyle,flexDirection:'column',alignItems:'stretch',gap:8}}>
+          <textarea value={noteDraft} maxLength={1000} onChange={e=>setNoteDraft(e.target.value)}
+            placeholder={'Note for '+day+' (game format, reminders…)'}
+            style={{width:'100%',border:'1px solid var(--hairline)',borderRadius:8,outline:'none',padding:'9px 11px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',resize:'vertical',minHeight:70,lineHeight:1.5,boxSizing:'border-box',background:'var(--surface)'}}/>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:10,color:'var(--ink-40)',flex:1}}>{noteDraft.length}/1000</span>
+            {dayNote&&<button className="btn btn-ghost btn-sm" onClick={()=>{write&&write('week/emailNotes/'+day,null);setNoteOpen(false);}}>Clear</button>}
+            <button className="btn btn-primary btn-sm" onClick={()=>{write&&write('week/emailNotes/'+day,noteDraft.trim()||null);setNoteOpen(false);}}>Save</button>
+          </div>
+        </div>
+      )}
+      </>);})()}
       <Row icon={dayLocked?'🔒':'🔓'} label="Sign-ups"
         value={(dayLocked?'Locked':'Open')+' · '+suCount+' signed up'}
         tone={dayLocked?'var(--warn-ink)':'var(--ink)'}
@@ -6968,7 +6950,25 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
               {statCard('$'+Math.round(indPots.pool),'Payout Pools','var(--info)')}
               {statCard('$'+Math.round(indPots.skins),'Skins Pots','var(--brand)')}
             </div>
-            <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:12}}>Tournament fund is shared across both games — Stableford rounds contributed ${Math.round(indPots.fund)} of the ${Math.round(potTotals.fund)} total.</div>
+            {[...indHist].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map((r,i)=>{
+              const s=r.scores||{};
+              const pc=s.playerCount||Object.keys(s.indScores||{}).length;
+              const coll=pc*(parseFloat(s.buyIn)||0);
+              const pool=safeArray(s.spots).reduce((x,y)=>x+(parseFloat(y)||0),0);
+              return(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                  <div style={{fontSize:11,color:'var(--ink-40)',width:44,flexShrink:0}}>{r.date?.slice(5)||''}</div>
+                  <div style={{flex:1,display:'flex',gap:3,flexWrap:'wrap'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',padding:'2px 5px',borderRadius:5}}>${coll} in</span>
+                    <span style={{fontSize:11,fontWeight:700,color:'#8b5cf6',background:'#8b5cf622',padding:'2px 5px',borderRadius:5}}>${pool} spots</span>
+                    {(s.skinsPot||0)>0&&<span style={{fontSize:11,fontWeight:700,color:'var(--brand)',background:'var(--brand-soft)',padding:'2px 5px',borderRadius:5}}>${s.skinsPot} skins</span>}
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--highlight)',background:'var(--highlight-soft)',padding:'2px 5px',borderRadius:5}}>${s.tournFund||0} fund{s.fundEnabled===false?' (off+surplus)':''}</span>
+                  </div>
+                  <div style={{fontSize:10,color:'var(--ink-40)',flexShrink:0}}>{pc}p</div>
+                </div>
+              );
+            })}
+            <div style={{fontSize:10,color:'var(--ink-40)',margin:'8px 0 12px'}}>Tournament fund is shared across both games — Stableford rounds contributed ${Math.round(indPots.fund)} of the ${Math.round(potTotals.fund)} total.</div>
           </>)}
           {divider}
           <div style={{overflowX:'auto'}}>
