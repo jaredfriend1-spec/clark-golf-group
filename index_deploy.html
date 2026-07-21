@@ -4901,14 +4901,27 @@ function StandingsViewV2({ history, currentUser }){
   const [expandedPlayer, setExpandedPlayer] = useState(null);
   const meName = currentUser?.name || null;
 
-  const rounds = useMemo(()=>Object.values(history||{}).filter(r=>r.teams&&r.scores),
+  const rounds = useMemo(()=>Object.values(history||{}).filter(r=>r&&r.scores&&(r.teams||r.scores.gameMode==='individual')),
     [Object.keys(history||{}).length]);
 
   // Build leaderboard — paid in, won, net per player
   const leaderboard = useMemo(()=>{
     const players = {};
     rounds.forEach(r=>{
-      r.teams.forEach(team=>{
+      // ── Individual (Stableford) rounds: paid from buy-in, winnings from the
+      //    round's own computed awards + skins awards. Team math never runs.
+      if(r.scores.gameMode==='individual'){
+        const buyIn=parseFloat(r.scores.buyIn)||25;
+        Object.keys(r.scores.indScores||{}).forEach(nm=>{
+          const pn=normName(nm);
+          if(!players[pn])players[pn]={name:pn,rounds:0,won:0,paid:0};
+          players[pn].rounds++; players[pn].paid+=buyIn;
+        });
+        safeArray(r.scores.awards).forEach(a=>{const pn=normName(a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
+        safeArray(r.scores.skinsAwards).forEach(a=>{const pn=normName(a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
+        return;
+      }
+      safeArray(r.teams).forEach(team=>{
         safeArray(team.players).forEach(p=>{
           const pn = normName(p.name);
           if(!players[pn]) players[pn]={name:pn,rounds:0,won:0,paid:0};
@@ -4961,10 +4974,20 @@ function StandingsViewV2({ history, currentUser }){
   const playerBreakdowns = useMemo(()=>{
     const data={};
     [...rounds].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(r=>{
+      if(r.scores.gameMode==='individual'){
+        const perName={};
+        safeArray(r.scores.awards).forEach(a=>{const k=normName(a.name);(perName[k]=perName[k]||[]).push({label:'Finish',amt:parseFloat(a.amount)||0});});
+        safeArray(r.scores.skinsAwards).forEach(a=>{const k=normName(a.name);(perName[k]=perName[k]||[]).push({label:'Skins ('+(a.count||0)+')',amt:parseFloat(a.amount)||0});});
+        Object.entries(perName).forEach(([pbn,wins])=>{
+          if(!data[pbn])data[pbn]=[];
+          data[pbn].push({date:r.date,day:r.day,teamName:(r.scores.modeSnapshot&&r.scores.modeSnapshot.name)||'Individual',wins,total:wins.reduce((s,w)=>s+w.amt,0)});
+        });
+        return;
+      }
       const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
       const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
       const psk=tsk>0?Math.floor(snet/tsk):0;
-      r.teams.forEach(team=>{
+      safeArray(r.teams).forEach(team=>{
         const pc=safeArray(team.players).length; if(!pc)return;
         const wins=[];
         [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,k1:'f1',k2:'f2',label:'Front'},
@@ -6597,6 +6620,12 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const seasonStartFmt=seasonStart?new Date(seasonStart+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
   const totalRounds=activeHist.length;
   const avgField=totalRounds?Math.round(activeHist.reduce((s,r)=>s+(r.playerCount||0),0)/totalRounds):0;
+  const roundPlayerNames=(r)=>{
+    const fromTeams=Object.values(r.teams||{}).flatMap(t=>safeArray(t&&t.players).map(p=>p&&p.name)).filter(Boolean);
+    if(fromTeams.length)return fromTeams;
+    if(r.scores&&r.scores.gameMode==='individual')return Object.keys(r.scores.indScores||{});
+    return [];
+  };
   const potTotals=activeHist.reduce((acc,r)=>{acc.skins+=(r.scores?.skinsPot||0);acc.front+=(r.scores?.frontPot||0);acc.back+=(r.scores?.backPot||0);acc.overall+=(r.scores?.overallPot||0);acc.fund+=(r.scores?.tournFund||r.tournFund||0);return acc;},{skins:0,front:0,back:0,overall:0,fund:0});
   const totalPot=potTotals.skins+potTotals.front+potTotals.back+potTotals.overall;
   const avgPot=totalRounds?Math.round(totalPot/totalRounds):0;
@@ -6610,6 +6639,9 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const playerRounds={};const playerHcps={};const playerTees={};const teamPairs={};const playerTeePrefs={};const playerGuestCount={};
   activeHist.forEach(r=>{
     Object.values(r.signups||{}).filter(s=>s.isGuest&&s.guestOf).forEach(s=>{playerGuestCount[s.guestOf]=(playerGuestCount[s.guestOf]||0)+1;});
+    if(r.scores&&r.scores.gameMode==='individual'&&!Object.values(r.teams||{}).length){
+      Object.keys(r.scores.indScores||{}).forEach(n=>{playerRounds[n]=(playerRounds[n]||0)+1;});
+    }
     Object.values(r.teams||{}).forEach(team=>{
       const players=safeArray(team.players).filter(p=>p.name);
       players.forEach(p=>{
@@ -6644,7 +6676,7 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const totalMembers=roster.length;
   const cutoff60=new Date(Date.now()-60*msDay).toISOString().slice(0,10);
   const activePlayers=new Set();
-  histArr.filter(r=>(r.date||'')>=cutoff60).forEach(r=>Object.values(r.teams||{}).forEach(t=>safeArray(t.players).forEach(p=>{if(p.name)activePlayers.add(p.name);})));
+  histArr.filter(r=>(r.date||'')>=cutoff60).forEach(r=>roundPlayerNames(r).forEach(n=>activePlayers.add(n)));
   const inactive=roster.filter(p=>!activePlayers.has(p.name));
   const notRegistered=roster.filter(p=>!(rosterPins||{})[p.id]);
   const signupLogs=activeLog.filter(e=>e.action==='signup'&&e.ts);
