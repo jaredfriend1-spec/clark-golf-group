@@ -1813,10 +1813,12 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         <DayCardV2
           key={day.day}
           day={day}
-          modeInfo={(()=>{const mid=week?.modes?.[day.day];const gr=settings?.gameRules;if(mid==='__custom__'){const c=week?.modeConfig?.[day.day];return c?{name:c.name||'Custom game',type:c.type,id:'__custom__'}:null;}const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];return mo?{name:mo.name,type:mo.type,id:mid||null}:null;})()}
-          modesList={Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,name:m.name,type:m.type}))}
+          modeInfo={(()=>{const mid=week?.modes?.[day.day];const gr=settings?.gameRules;if(mid==='__custom__'){const c=week?.modeConfig?.[day.day];return c?{name:c.name||'Custom game',type:c.type,id:'__custom__',cfg:c}:null;}const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];return mo?{name:mo.name,type:mo.type,id:mid||null,cfg:mo}:null;})()}
+          modesList={Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,name:m.name,type:m.type,cfg:m}))}
+          dayCustom={week?.modeConfig?.[day.day]||null}
           modeLocked={!!(week?.scores&&week.scores[day.day])}
-          onSetMode={(id)=>{ if(id==='__custom__')return; write('week/modes/'+day.day,id); }}
+          onSetMode={(id)=>{ if(id==='__custom__'&&!(week?.modeConfig?.[day.day]))return; write('week/modes/'+day.day,id); }}
+          onGoManage={()=>{ if(onSwitchTab)onSwitchTab('manage'); }}
           currentUser={currentUser}
           isAdmin={isAdmin}
           matchPairings={matchPairings}
@@ -1901,7 +1903,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, modeInfo, modesList, onSetMode, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
+function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
   const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
@@ -1928,31 +1930,69 @@ function DayCardV2({ day, modeInfo, modesList, onSetMode, modeLocked, currentUse
             <div className="day-name-line">
               <span className="day-name">{day.day}</span>
               {(()=>{
-                const pillStyle={fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:20,marginLeft:6,display:'inline-flex',alignItems:'center',gap:4,background:modeInfo&&modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo&&modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo&&modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')};
-                const canChange=isAdmin&&onSetMode&&!modeLocked&&modesList&&modesList.length>0;
-                if(!canChange) return modeInfo?<span style={pillStyle}>{modeInfo.name}{modeLocked&&isAdmin?' 🔒':''}</span>:null;
+                const pillStyle={fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:20,marginLeft:6,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer',fontFamily:'inherit',background:modeInfo&&modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo&&modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo&&modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')};
+                const canChange=isAdmin&&onSetMode&&!modeLocked;
+                if(!modeInfo&&!canChange) return null;
                 return(
-                  <button onClick={e=>{e.stopPropagation();setShowModePicker(true);}} style={{...pillStyle,cursor:'pointer',fontFamily:'inherit'}} title="Tap to change the game for this day">
-                    {modeInfo?modeInfo.name:'Set game'} <span style={{fontSize:8}}>▾</span>
+                  <button onClick={e=>{e.stopPropagation();setShowModePicker(canChange?'pick':'info');}} style={pillStyle} title={canChange?'Tap to change the game':'Tap to see the game details'}>
+                    {modeInfo?modeInfo.name:'Set game'}{modeLocked?' 🔒':''} <span style={{fontSize:8}}>{canChange?'▾':'ⓘ'}</span>
                   </button>
                 );
               })()}
               {showModePicker&&(
                 <div onClick={e=>{e.stopPropagation();setShowModePicker(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
                   <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:340,boxShadow:'0 10px 40px rgba(0,0,0,0.25)'}}>
-                    <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Game for {day.day}</div>
-                    <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Sign-ups are never affected by changing the game.</div>
-                    {modesList.map(m=>(
-                      <button key={m.id} onClick={e=>{e.stopPropagation();onSetMode(m.id);setShowModePicker(false);}}
-                        style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px solid '+((modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{m.name}</div>
-                          <div style={{fontSize:10,color:'var(--ink-50)'}}>{m.type==='individual'?'Individual game':'Team game'}</div>
+                    {showModePicker==='info'?(()=>{
+                      const c=modeInfo&&modeInfo.cfg;const isInd=modeInfo&&modeInfo.type==='individual';
+                      return(
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>{modeInfo?modeInfo.name:'Game'} — {day.day}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:isInd?'var(--info)':'var(--brand)',marginBottom:10}}>{isInd?'Individual game · Stableford':'Team game · Best ball'}</div>
+                          {c&&(
+                            <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px 12px',marginBottom:12,fontSize:12,color:'var(--ink)',lineHeight:1.8}}>
+                              <div>Buy-in: <b>${parseFloat(c.buyIn)||0}</b> per player</div>
+                              {c.fundEnabled!==false&&<div>Tournament fund: <b>${parseFloat(c.fundPerPlayer)||0}</b> per player</div>}
+                              {!isInd&&<div>Pots: <b>${parseFloat(c.potFront)||0}</b> front · <b>${parseFloat(c.potBack)||0}</b> back · <b>${parseFloat(c.potOverall)||0}</b> overall · <b>${parseFloat(c.potSkins)||0}</b> skins</div>}
+                              {isInd&&<div>Ranked by <b>{c.ranking==='raw'?'raw Stableford total':'net to target'}</b> · <b>{parseInt(c.paidSpots)||0}</b> paid spots</div>}
+                            </div>
+                          )}
+                          {modeLocked&&<div style={{fontSize:11,color:'var(--warn-ink)',marginBottom:10}}>🔒 Locked — scores have been entered for this day.</div>}
+                          <button onClick={e=>{e.stopPropagation();setShowModePicker(false);}} className="btn btn-ghost btn-sm" style={{width:'100%'}}>Close</button>
                         </div>
-                        {modeInfo&&modeInfo.id===m.id&&<span style={{color:m.type==='individual'?'var(--info)':'var(--brand)',fontWeight:700}}>✓</span>}
-                      </button>
-                    ))}
-                    <button onClick={e=>{e.stopPropagation();setShowModePicker(false);}} className="btn btn-ghost btn-sm" style={{width:'100%'}}>Cancel</button>
+                      );
+                    })():(
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Game for {day.day}</div>
+                        <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Sign-ups are never affected by changing the game.</div>
+                        {modesList.map(m=>(
+                          <button key={m.id} onClick={e=>{e.stopPropagation();onSetMode(m.id);setShowModePicker(false);}}
+                            style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px solid '+((modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{m.name}</div>
+                              <div style={{fontSize:10,color:'var(--ink-50)'}}>{m.type==='individual'?'Individual · Stableford':'Team game'}</div>
+                            </div>
+                            {modeInfo&&modeInfo.id===m.id&&<span style={{color:m.type==='individual'?'var(--info)':'var(--brand)',fontWeight:700}}>✓</span>}
+                          </button>
+                        ))}
+                        {dayCustom&&(
+                          <button onClick={e=>{e.stopPropagation();onSetMode('__custom__');setShowModePicker(false);}}
+                            style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(modeInfo&&modeInfo.id==='__custom__')?(dayCustom.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px dashed '+((modeInfo&&modeInfo.id==='__custom__')?(dayCustom.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{dayCustom.name||'Custom game'}</div>
+                              <div style={{fontSize:10,color:'var(--ink-50)'}}>{dayCustom.type==='individual'?'Individual · Stableford':'Team game'} · this day only</div>
+                            </div>
+                            {modeInfo&&modeInfo.id==='__custom__'&&<span style={{color:dayCustom.type==='individual'?'var(--info)':'var(--brand)',fontWeight:700}}>✓</span>}
+                          </button>
+                        )}
+                        {onGoManage&&(
+                          <button onClick={e=>{e.stopPropagation();setShowModePicker(false);onGoManage();}}
+                            style={{display:'block',width:'100%',textAlign:'center',padding:'10px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:'transparent',border:'1.5px dashed var(--hairline)',fontSize:12,fontWeight:600,color:'var(--ink-50)'}}>
+                            + Configure a custom game… (opens Manage Week)
+                          </button>
+                        )}
+                        <button onClick={e=>{e.stopPropagation();setShowModePicker(false);}} className="btn btn-ghost btn-sm" style={{width:'100%'}}>Cancel</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -5919,18 +5959,32 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
 
       {/* ── GAME ── */}
       <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Game</div>
-      {dayHasScores?(
-        <div style={{padding:'8px 12px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,fontSize:12,fontWeight:600,color:'var(--warn-ink)',marginBottom:12}}>
-          {modeLabel||'Standard team round'} — locked (scores exist)
-        </div>
-      ):(
+      {(()=>{
+        const selMode=isCustom?null:modes.find(m=>m.id===effMode);
+        const gName=isCustom?((customCfg&&customCfg.name)||'Custom game'):(selMode?selMode.name:null);
+        const gType=isCustom?(customCfg&&customCfg.type):(selMode&&selMode.type);
+        const isDefault=!curMode&&!!effMode;
+        return(
+          <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:8,marginBottom:8,background:gName?(gType==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface)',border:'1.5px solid '+(gName?(gType==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:700,color:gName?(gType==='individual'?'var(--info)':'var(--brand)'):'var(--ink-40)'}}>{gName||'No game set'}</div>
+              <div style={{fontSize:10,color:'var(--ink-40)',marginTop:1}}>
+                {gName?((gType==='individual'?'Individual game · Stableford':'Team game')+(isDefault?' · group default':'')+(dayHasScores?' · locked (scores exist)':'')):'Will score as a standard team round'}
+              </div>
+            </div>
+            {gName&&<span style={{fontSize:16}}>{dayHasScores?'🔒':'✓'}</span>}
+          </div>
+        );
+      })()}
+      {!dayHasScores&&(
         <div style={{marginBottom:12}}>
           {!showCustom&&(
             <>
               {modes.length>0&&(
-                <select className="form-input" value={isCustom?'':curMode} onChange={e=>{if(e.target.value)write&&write('week/modes/'+day,e.target.value);}} style={{marginBottom:6}}>
-                  <option value="">{isCustom?(modeLabel||'Custom game'):effMode&&!curMode?((modeLabel||'Default')+' (group default)'):'— choose the game —'}</option>
-                  {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
+                <select className="form-input" value={isCustom?'__custom__':effMode} onChange={e=>{const v=e.target.value;if(v&&v!=='__custom__')write&&write('week/modes/'+day,v);}} style={{marginBottom:6}}>
+                  {isCustom&&<option value="__custom__">{(customCfg&&customCfg.name)||'Custom game'} (this day only)</option>}
+                  {!effMode&&!isCustom&&<option value="">— choose the game —</option>}
+                  {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual (Stableford)':' · Team'}</option>)}
                 </select>
               )}
               <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(true)}>
