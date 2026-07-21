@@ -6627,14 +6627,20 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
     if(r.scores&&r.scores.gameMode==='individual')return Object.keys(r.scores.indScores||{});
     return [];
   };
-  const potTotals=activeHist.reduce((acc,r)=>{acc.skins+=(r.scores?.skinsPot||0);acc.front+=(r.scores?.frontPot||0);acc.back+=(r.scores?.backPot||0);acc.overall+=(r.scores?.overallPot||0);acc.fund+=(r.scores?.tournFund||r.tournFund||0);return acc;},{skins:0,front:0,back:0,overall:0,fund:0});
+  const teamHist=activeHist.filter(r=>!(r.scores&&r.scores.gameMode==='individual'));
+  const indHist=activeHist.filter(r=>r.scores&&r.scores.gameMode==='individual');
+  // Team pot structure from TEAM rounds only; the tournament fund is shared, so it sums ALL rounds.
+  const potTotals=teamHist.reduce((acc,r)=>{acc.skins+=(r.scores?.skinsPot||0);acc.front+=(r.scores?.frontPot||0);acc.back+=(r.scores?.backPot||0);acc.overall+=(r.scores?.overallPot||0);return acc;},{skins:0,front:0,back:0,overall:0});
+  potTotals.fund=activeHist.reduce((s,r)=>s+(r.scores?.tournFund||r.tournFund||0),0);
+  const indPots=indHist.reduce((a,r)=>{const s=r.scores||{};a.pool+=safeArray(s.spots).reduce((x,y)=>x+(parseFloat(y)||0),0);a.skins+=(parseFloat(s.skinsPot)||0);a.collected+=((s.playerCount||Object.keys(s.indScores||{}).length)*(parseFloat(s.buyIn)||0));a.fund+=(parseFloat(s.tournFund)||0);return a;},{pool:0,skins:0,collected:0,fund:0});
+  const stbl=(()=>{if(!indHist.length)return null;let tot=0,cnt=0,netTot=0,winPts=[],skins=0;indHist.forEach(r=>{let best=null;Object.values(r.scores.indScores||{}).forEach(v=>{const t=parseFloat(v.total)||0;const tg=parseFloat(v.target)||36;tot+=t;netTot+=(t-tg);cnt++;if(best===null||t>best)best=t;});if(best!==null)winPts.push(best);skins+=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+(parseInt(x)||0),0);});return{rounds:indHist.length,avgPts:cnt?Math.round(tot/cnt*10)/10:null,avgNet:cnt?Math.round(netTot/cnt*10)/10:null,avgWin:winPts.length?Math.round(winPts.reduce((a,b)=>a+b,0)/winPts.length*10)/10:null,skins};})();
   const totalPot=potTotals.skins+potTotals.front+potTotals.back+potTotals.overall;
-  const avgPot=totalRounds?Math.round(totalPot/totalRounds):0;
+  const avgPot=teamHist.length?Math.round(totalPot/teamHist.length):0;
   const startingBalance=filterPeriod==='all'?(settings?.tournFundStartingBalance||0):0;
   const totalFund=potTotals.fund+startingBalance;
-  const potRounds=activeHist.map(r=>({total:(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0),date:r.date?.slice(5)||'',day:r.day||'',players:r.playerCount||0})).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+  const potRounds=teamHist.map(r=>({total:(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0),date:r.date?.slice(5)||'',day:r.day||'',players:r.playerCount||0})).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
   const biggestPot=potRounds[0]||null;const smallestPot=potRounds.length>1?potRounds[potRounds.length-1]:null;
-  const potChartData=activeHist.slice(-10).map(r=>({date:r.date?.slice(5)||'',skins:r.scores?.skinsPot||0,front:r.scores?.frontPot||0,back:r.scores?.backPot||0,overall:r.scores?.overallPot||0,players:r.playerCount||0,fp:r.scores?.frontPlaces||1,bp:r.scores?.backPlaces||1,op:r.scores?.overallPlaces||1,f1:r.scores?.f1||0,f2:r.scores?.f2||0,b1:r.scores?.b1||0,b2:r.scores?.b2||0,o1:r.scores?.o1||0,o2:r.scores?.o2||0}));
+  const potChartData=teamHist.slice(-10).map(r=>({date:r.date?.slice(5)||'',skins:r.scores?.skinsPot||0,front:r.scores?.frontPot||0,back:r.scores?.backPot||0,overall:r.scores?.overallPot||0,players:r.playerCount||0,fp:r.scores?.frontPlaces||1,bp:r.scores?.backPlaces||1,op:r.scores?.overallPlaces||1,f1:r.scores?.f1||0,f2:r.scores?.f2||0,b1:r.scores?.b1||0,b2:r.scores?.b2||0,o1:r.scores?.o1||0,o2:r.scores?.o2||0}));
   const maxPotBar=Math.max(...potChartData.map(p=>p.skins+p.front+p.back+p.overall))||1;
 
   const playerRounds={};const playerHcps={};const playerTees={};const teamPairs={};const playerTeePrefs={};const playerGuestCount={};
@@ -6884,12 +6890,22 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
 
         {/* ── 3. Scoring Analytics ── */}
         {showSec('scores')&&<S id="scores" icon="⛳" title="Scoring Analytics" color="var(--brand)" borderColor="var(--brand)" summary={'Avg win F'+(avgWinFront??'—')+' B'+(avgWinBack??'—')+' O'+(avgWinOverall??'—')+' · '+(avgSkins??'—')+' skins/round'}>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,paddingTop:6,marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'6px 0 8px'}}>Regular Team Game · {teamHist.length} rounds</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:12}}>
             {statCard(avgWinFront??'—','Avg Win Front','var(--brand)')}
             {statCard(avgWinBack??'—','Avg Win Back','var(--info)')}
             {statCard(avgWinOverall??'—','Avg Win Overall','#8b5cf6')}
             {statCard(avgSkins??'—','Avg Skins','var(--brand)')}
           </div>
+          {stbl&&(<>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'2px 0 8px'}}>Stableford · {stbl.rounds} round{stbl.rounds!==1?'s':''}</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:12}}>
+              {statCard(stbl.avgWin??'—','Avg Winning Pts','var(--info)')}
+              {statCard(stbl.avgPts??'—','Avg Points','var(--info)')}
+              {statCard(stbl.avgNet!=null?((stbl.avgNet>=0?'+':'')+stbl.avgNet):'—','Avg vs Target','#8b5cf6')}
+              {statCard(stbl.skins,'Total Skins','var(--brand)')}
+            </div>
+          </>)}
           {divider}
           <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round</div>
           {winningScores.map((r,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
@@ -6910,7 +6926,7 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
             {smallestPot&&statCard('$'+smallestPot.total,'Smallest Pot','var(--ink-50)')}
           </div>
           {divider}
-          <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Last {potChartData.length} Rounds</div>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Regular Team Game · last {potChartData.length} rounds</div>
           <div style={{display:'flex',alignItems:'flex-end',gap:4,height:80,marginBottom:6}}>
             {potChartData.map((r,i)=>{const total=r.skins+r.front+r.back+r.overall;const h=Math.round((total/maxPotBar)*74)+4;return(<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>
               <div style={{fontSize:8,fontWeight:700,color:'var(--highlight)',marginBottom:1}}>{'$'+total}</div>
@@ -6926,6 +6942,15 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
           <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'var(--ink-50)',marginBottom:12}}>
             {[['var(--brand)','Skins'],['var(--info)','Front'],['var(--highlight)','Back'],['#8b5cf6','Overall']].map(([c,l])=>(<span key={l}><span style={{display:'inline-block',width:8,height:8,background:c,borderRadius:2,marginRight:3}}></span>{l}</span>))}
           </div>
+          {indHist.length>0&&(<>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'2px 0 8px'}}>Stableford · {indHist.length} round{indHist.length!==1?'s':''}</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:8}}>
+              {statCard('$'+Math.round(indPots.collected),'Collected','var(--info)')}
+              {statCard('$'+Math.round(indPots.pool),'Payout Pools','var(--info)')}
+              {statCard('$'+Math.round(indPots.skins),'Skins Pots','var(--brand)')}
+            </div>
+            <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:12}}>Tournament fund is shared across both games — Stableford rounds contributed ${Math.round(indPots.fund)} of the ${Math.round(potTotals.fund)} total.</div>
+          </>)}
           {divider}
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
