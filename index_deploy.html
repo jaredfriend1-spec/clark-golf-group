@@ -5849,13 +5849,12 @@ function TimePicker({onChange, initialValue}){
 }
 
 function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
-  const [step, setStep] = useState(1);
+  // Simple setup panel — no steps. Day is already activated by "Set up".
+  // 1) choose the game  2) set the tee time. Locking happens later from the day card.
   const [newTime, setNewTime] = useState('');
   const [isLottery, setIsLottery] = useState(false);
-  const signups=Object.values(week?.signups||{}).filter(s=>s.day===day);
-  const locked=!!(week?.locked?.[day]);
+  const [editTime, setEditTime] = useState(false);
   const teeInfo=week?.teeTimes?.[day];
-  // ── Game mode state (Step 1) ──
   const modes=Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,...m}));
   const dayHasScores=!!(week?.scores&&week.scores[day]);
   const curMode=week?.modes?.[day]||'';
@@ -5864,7 +5863,6 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const isCustom=curMode==='__custom__';
   const [showCustom,setShowCustom]=useState(false);
   const [cd,setCd]=useState(()=>customCfg||{name:'Custom — '+day,type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split'});
-  const [saveAsTemplate,setSaveAsTemplate]=useState(false);
   function cBal(d){
     const buyIn=parseFloat(d.buyIn)||0;
     const fund=d.fundEnabled?(parseFloat(d.fundPerPlayer)||0):0;
@@ -5878,60 +5876,44 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const cBalanced=cd.type==='team'?Math.abs(bal.diff)<0.001:bal.diff>=-0.001;
   function saveCustom(){
     if(!cBalanced||!write)return;
+    // Day-only snapshot: lives on this day, cleared at End Week. Reusable
+    // templates are created and managed ONLY in the Admin Portal.
     const clean={...cd,buyIn:parseFloat(cd.buyIn)||0,fundPerPlayer:parseFloat(cd.fundPerPlayer)||0,savedAt:Date.now()};
-    if(saveAsTemplate){
-      const id='m_'+Date.now();
-      write('settings/gameRules/modes/'+id,{...clean,name:(cd.name||'Custom mode').replace(' — '+day,'')});
-      write('week/modes/'+day,id);
-    } else {
-      write('week/modeConfig/'+day,clean);
-      write('week/modes/'+day,'__custom__');
-    }
+    write('week/modeConfig/'+day,clean);
+    write('week/modes/'+day,'__custom__');
     setShowCustom(false);
   }
-  const modeChosen=!!effMode||isCustom;
   const modeLabel=isCustom?((customCfg&&customCfg.name)||'Custom for '+day):(modes.find(m=>m.id===effMode)||{}).name;
   return(
     <div style={{background:'var(--surface-sunken)',border:'1.5px solid var(--brand-border)',borderRadius:10,padding:14,marginTop:10}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-        <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Setting up {day}</div>
+        <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{day} is active — set the game &amp; tee time</div>
         <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontFamily:'inherit',fontSize:12,fontWeight:600}}>Done</button>
       </div>
-      <div style={{display:'flex',gap:4,marginBottom:14}}>
-        {[1,2,3,4].map(num=>(
-          <div key={num} style={{flex:1,height:4,borderRadius:2,background:(step>num||(num===1&&modeChosen)||(num===2&&teeInfo)||(num===3&&locked))?'var(--brand)':step===num?'var(--ink)':'var(--hairline)',transition:'background 0.2s'}}/>
-        ))}
-      </div>
-      {step===1&&(
-        <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 1 — Choose the game</div>
-          <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:8,fontStyle:'italic'}}>Changeable any time until scores are entered — here or right from the Week page badge.</div>
-          {dayHasScores&&<div style={{padding:'7px 10px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,fontSize:11,fontWeight:600,color:'var(--warn-ink)',marginBottom:8}}>Mode locked — scores already exist for {day}.</div>}
-          {modeChosen&&!showCustom&&(
-            <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>
-              {modeLabel||'Mode set'}{!curMode&&effMode?' (group default)':''}
-            </div>
-          )}
+
+      {/* ── GAME ── */}
+      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Game</div>
+      {dayHasScores?(
+        <div style={{padding:'8px 12px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,fontSize:12,fontWeight:600,color:'var(--warn-ink)',marginBottom:12}}>
+          {modeLabel||'Standard team round'} — locked (scores exist)
+        </div>
+      ):(
+        <div style={{marginBottom:12}}>
           {!showCustom&&(
             <>
               {modes.length>0&&(
-                <div className="form-group" style={{marginBottom:8}}>
-                  <label className="form-label">Saved game modes</label>
-                  <select className="form-input" value={isCustom?'':curMode} disabled={dayHasScores} onChange={e=>{if(e.target.value)write&&write('week/modes/'+day,e.target.value);}}>
-                    <option value="">— choose a saved mode —</option>
-                    {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
-                  </select>
-                </div>
+                <select className="form-input" value={isCustom?'':curMode} onChange={e=>{if(e.target.value)write&&write('week/modes/'+day,e.target.value);}} style={{marginBottom:6}}>
+                  <option value="">{isCustom?(modeLabel||'Custom game'):effMode&&!curMode?((modeLabel||'Default')+' (group default)'):'— choose the game —'}</option>
+                  {modes.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
+                </select>
               )}
-              {!dayHasScores&&(
-                <button className="btn btn-outline btn-sm" style={{width:'100%',marginBottom:8}} onClick={()=>setShowCustom(true)}>
-                  {isCustom?'Edit custom game for '+day:'Configure a custom game for '+day}
-                </button>
-              )}
+              <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(true)}>
+                {isCustom?'Edit custom game':'Or configure a custom game'}
+              </button>
             </>
           )}
-          {showCustom&&!dayHasScores&&(
-            <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:8,padding:10,marginBottom:8}}>
+          {showCustom&&(
+            <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:8,padding:10}}>
               <div className="form-group" style={{marginBottom:8}}>
                 <label className="form-label">Game type</label>
                 <div className="pref-opts">
@@ -5980,82 +5962,54 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
               )}
               <div style={{padding:'7px 10px',borderRadius:8,marginBottom:8,fontSize:11,fontWeight:700,background:cBalanced?'var(--brand-soft)':'#fef2f2',color:cBalanced?'var(--brand)':'var(--money-neg)',border:'1px solid '+(cBalanced?'var(--brand-border)':'#fecaca')}}>
                 {cd.type==='team'
-                  ?(cBalanced?('✓ Balanced: $'+bal.buyIn+' in = $'+bal.out+' out'):('✗ Off by $'+Math.abs(bal.diff).toFixed(2)+' — pots + fund must equal buy-in'))
-                  :(cBalanced?('✓ $'+bal.buyIn+' in — $'+(bal.pool||0).toFixed(0)+'/player to payout pool (spots set at scoring)'):'✗ Fund exceeds buy-in')}
+                  ?(cBalanced?('✓ Balanced: $'+bal.buyIn+' in = $'+bal.out+' out'):('✗ Off by $'+Math.abs(bal.diff).toFixed(2)))
+                  :(cBalanced?('✓ $'+(bal.pool||0).toFixed(0)+'/player to payout pool'):'✗ Fund exceeds buy-in')}
               </div>
-              <label style={{display:'flex',alignItems:'center',gap:7,fontSize:11,color:'var(--ink-50)',marginBottom:8,cursor:'pointer'}}>
-                <input type="checkbox" checked={saveAsTemplate} onChange={e=>setSaveAsTemplate(e.target.checked)}/>
-                Also save as a reusable mode for future days
-              </label>
+              <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:8,fontStyle:'italic'}}>One-day setup only — it clears at End Week. Reusable templates are managed in the Admin Portal.</div>
               <div style={{display:'flex',gap:6}}>
                 <button className="btn btn-ghost btn-sm" onClick={()=>setShowCustom(false)}>Cancel</button>
-                <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={saveCustom} disabled={!cBalanced}>{saveAsTemplate?'Save mode & use for '+day:'Use for '+day}</button>
+                <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={saveCustom} disabled={!cBalanced}>Use for {day}</button>
               </div>
             </div>
           )}
-          <div style={{display:'flex',gap:6,marginTop:4}}>
-            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(2)}>Next</button>
-          </div>
-          {!modeChosen&&<div style={{fontSize:10,color:'var(--ink-40)',marginTop:6,fontStyle:'italic'}}>No mode chosen — the day will score as a standard team round.</div>}
         </div>
       )}
-      {step===2&&(
-        <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 2 — Set tee time</div>
-          {teeInfo?(
-            <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>
-              {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' – '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
+
+      {/* ── TEE TIME ── */}
+      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Tee time</div>
+      {teeInfo&&!editTime?(
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+          <div style={{flex:1,padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)'}}>
+            {teeInfo.lottery?'Lottery'+(teeInfo.lotteryReq?' – '+teeInfo.lotteryReq:''):'First Tee: '+teeInfo.time}
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{setEditTime(true);setIsLottery(!!teeInfo.lottery);setNewTime('');}}>Change</button>
+        </div>
+      ):(
+        <div style={{marginBottom:4}}>
+          <div onClick={()=>setIsLottery(!isLottery)} style={{display:'flex',alignItems:'center',gap:9,marginBottom:8,cursor:'pointer',padding:'8px 10px',background:'var(--surface)',borderRadius:8,border:'1.5px solid '+(isLottery?'var(--warn-border)':'var(--hairline)')}}>
+            <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:isLottery?'var(--warn-border)':'var(--hairline)',background:isLottery?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              {isLottery&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
-          ):(
-            <>
-              <div onClick={()=>setIsLottery(!isLottery)} style={{display:'flex',alignItems:'center',gap:9,marginBottom:10,cursor:'pointer',padding:'8px 10px',background:'var(--surface)',borderRadius:8,border:'1.5px solid '+(isLottery?'var(--warn-border)':'var(--hairline)')}}>
-                <div style={{width:16,height:16,borderRadius:3,border:'2px solid',borderColor:isLottery?'var(--warn-border)':'var(--hairline)',background:isLottery?'var(--warn-border)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  {isLottery&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                </div>
-                <span style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>Waiting on lottery</span>
-              </div>
-              <div className="form-group" style={{marginBottom:8}}>
-                <label className="form-label">{isLottery?'Requested time':'Tee time'}</label>
-                <TimePicker onChange={setNewTime}/>
-              </div>
-              <button className="btn btn-primary btn-sm" style={{width:'100%'}} onClick={()=>onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery})}>
-                Save tee time
-              </button>
-            </>
-          )}
-          <div style={{display:'flex',gap:6,marginTop:8}}>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(1)}>Back</button>
-            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(3)} disabled={!teeInfo}>Next</button>
+            <span style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>Waiting on lottery</span>
           </div>
-        </div>
-      )}
-      {step===3&&(
-        <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 3 — Lock sign-ups</div>
-          <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:10}}>{signups.length} player{signups.length!==1?'s':''} signed up for {day}</div>
-          {locked?(
-            <div style={{padding:'8px 12px',background:'var(--brand-soft)',borderRadius:8,fontSize:13,fontWeight:600,color:'var(--brand)',marginBottom:10}}>Sign-ups locked</div>
-          ):(
-            <button className="btn btn-ghost btn-sm" style={{width:'100%',marginBottom:10}} onClick={()=>onToggleLock(day,true)}>
-              Lock sign-ups ({signups.length} players)
+          {!isLottery&&(
+            <div className="form-group" style={{marginBottom:8}}>
+              <label className="form-label">Tee time</label>
+              <TimePicker onChange={setNewTime}/>
+            </div>
+          )}
+          <div style={{display:'flex',gap:6}}>
+            {editTime&&<button className="btn btn-ghost btn-sm" onClick={()=>setEditTime(false)}>Cancel</button>}
+            <button className="btn btn-primary btn-sm" style={{flex:1}} disabled={!isLottery&&!newTime} onClick={()=>{onUpdateTeeTime(day,{time:isLottery?'LOTTERY':newTime,lottery:isLottery});setEditTime(false);}}>
+              Save tee time
             </button>
-          )}
-          <div style={{display:'flex',gap:6}}>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(2)}>Back</button>
-            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>setStep(4)} disabled={!locked}>Next</button>
           </div>
         </div>
       )}
-      {step===4&&(
-        <div>
-          <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'var(--ink)'}}>Step 4 — Generate teams</div>
-          <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:10}}>Head to the Teams tab to generate rosters, balance players, and set the tee order.</div>
-          <div style={{display:'flex',gap:6}}>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(3)}>Back</button>
-            <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>{onClose();onGoTo('teams');}}>Go to Teams tab</button>
-          </div>
-        </div>
-      )}
+
+      <div style={{fontSize:10,color:'var(--ink-40)',marginTop:10,fontStyle:'italic'}}>
+        That's it — sign-ups are open. Lock sign-ups any time from the day card, and change the game any time (here or the Week page badge) until scores are entered.
+      </div>
     </div>
   );
 }
