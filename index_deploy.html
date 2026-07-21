@@ -1902,6 +1902,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
 }
 
 function DayCardV2({ day, modeInfo, modesList, onSetMode, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
+  const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
   const mySignup = day.signups.find(p => p.name === currentUser?.name);
@@ -1927,19 +1928,34 @@ function DayCardV2({ day, modeInfo, modesList, onSetMode, modeLocked, currentUse
             <div className="day-name-line">
               <span className="day-name">{day.day}</span>
               {(()=>{
-                const pill={fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,marginLeft:6,background:modeInfo&&modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo&&modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo&&modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')};
-                const canChange=isAdmin&&onSetMode&&!modeLocked&&(modesList&&modesList.length>0);
-                if(!canChange) return modeInfo?<span style={pill}>{modeInfo.name}{modeLocked&&isAdmin?' 🔒':''}</span>:null;
-                // Admin: badge is a live selector — change the game right from the Week page (until scores exist)
-                return (
-                  <select value={modeInfo&&modeInfo.id?modeInfo.id:''} onClick={e=>e.stopPropagation()} onChange={e=>{e.stopPropagation();if(e.target.value)onSetMode(e.target.value);}}
-                    style={{...pill,cursor:'pointer',appearance:'auto',fontFamily:'inherit'}}
-                    title="Change the game mode for this day">
-                    {!(modeInfo&&modeInfo.id)&&<option value="">{modeInfo?modeInfo.name:'Set game ▾'}</option>}
-                    {modesList.map(m=><option key={m.id} value={m.id}>{m.name}{m.type==='individual'?' · Individual':' · Team'}</option>)}
-                  </select>
+                const pillStyle={fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:20,marginLeft:6,display:'inline-flex',alignItems:'center',gap:4,background:modeInfo&&modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo&&modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo&&modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')};
+                const canChange=isAdmin&&onSetMode&&!modeLocked&&modesList&&modesList.length>0;
+                if(!canChange) return modeInfo?<span style={pillStyle}>{modeInfo.name}{modeLocked&&isAdmin?' 🔒':''}</span>:null;
+                return(
+                  <button onClick={e=>{e.stopPropagation();setShowModePicker(true);}} style={{...pillStyle,cursor:'pointer',fontFamily:'inherit'}} title="Tap to change the game for this day">
+                    {modeInfo?modeInfo.name:'Set game'} <span style={{fontSize:8}}>▾</span>
+                  </button>
                 );
               })()}
+              {showModePicker&&(
+                <div onClick={e=>{e.stopPropagation();setShowModePicker(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:340,boxShadow:'0 10px 40px rgba(0,0,0,0.25)'}}>
+                    <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Game for {day.day}</div>
+                    <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Sign-ups are never affected by changing the game.</div>
+                    {modesList.map(m=>(
+                      <button key={m.id} onClick={e=>{e.stopPropagation();onSetMode(m.id);setShowModePicker(false);}}
+                        style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'12px 14px',marginBottom:8,borderRadius:10,cursor:'pointer',fontFamily:'inherit',background:(modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-soft)':'var(--brand-soft)'):'var(--surface-sunken)',border:'1.5px solid '+((modeInfo&&modeInfo.id===m.id)?(m.type==='individual'?'var(--info-border)':'var(--brand-border)'):'var(--hairline)')}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{m.name}</div>
+                          <div style={{fontSize:10,color:'var(--ink-50)'}}>{m.type==='individual'?'Individual game':'Team game'}</div>
+                        </div>
+                        {modeInfo&&modeInfo.id===m.id&&<span style={{color:m.type==='individual'?'var(--info)':'var(--brand)',fontWeight:700}}>✓</span>}
+                      </button>
+                    ))}
+                    <button onClick={e=>{e.stopPropagation();setShowModePicker(false);}} className="btn btn-ghost btn-sm" style={{width:'100%'}}>Cancel</button>
+                  </div>
+                </div>
+              )}
               <span className="day-sep">·</span>
               <span>{day.month} {day.date}</span>
             </div>
@@ -5207,19 +5223,27 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:700,color:isActive?'var(--ink)':'var(--ink-40)'}}>{day}</div>
                       <div style={{fontSize:11,color:'var(--ink-40)',marginTop:1}}>{fmtDFull(effectiveDates[day])}</div>
-                      {isActive&&teeInfo&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:1}}>{teeInfo.lottery?'Lottery':'Tee: '+teeInfo.time}{signupCnt>0?' · '+signupCnt+' signed up':''}</div>}
+                      {isActive&&(()=>{
+                        const gr=settings?.gameRules;const mid=week?.modes?.[day];
+                        let g=null;
+                        if(mid==='__custom__'){const c=week?.modeConfig?.[day];g=c?{name:c.name||('Custom '+(c.type==='individual'?'Individual':'Team')+' Game'),type:c.type}:null;}
+                        else{const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];g=mo?{name:mo.name,type:mo.type}:null;}
+                        const chip=(txt,tone)=><span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,background:tone==='blue'?'var(--info-soft)':tone==='green'?'var(--brand-soft)':tone==='warn'?'var(--warn-soft)':'var(--surface)',color:tone==='blue'?'var(--info)':tone==='green'?'var(--brand)':tone==='warn'?'var(--warn-ink)':'var(--ink-40)',border:'1px solid '+(tone==='blue'?'var(--info-border)':tone==='green'?'var(--brand-border)':tone==='warn'?'var(--warn-border)':'var(--hairline)')}}>{txt}</span>;
+                        return(
+                          <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:4}}>
+                            {chip(g?g.name:'No game set',g?(g.type==='individual'?'blue':'green'):'gray')}
+                            {chip(teeInfo?(teeInfo.lottery?'⏰ Lottery':'⏰ '+teeInfo.time):'⏰ No tee time','gray')}
+                            {chip(locked?'🔒 Locked':'🔓 Open',locked?'warn':'gray')}
+                            {chip(signupCnt+' signed up','gray')}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                       {!isActive&&(
                         <button onClick={()=>onToggleNoteOnly(day,!week?.showNoteOnly?.[day])}
                           style={{padding:'4px 10px',borderRadius:20,border:'1.5px solid',borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':'var(--hairline)',background:week?.showNoteOnly?.[day]?'var(--warn-soft)':'transparent',cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:600,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
                           {week?.showNoteOnly?.[day]?'📌 Showing note on Week tab':'Show note on Week tab'}
-                        </button>
-                      )}
-                      {isActive&&(
-                        <button onClick={()=>setWizDay(showChk?null:'chk_'+day)}
-                          style={{padding:'4px 10px',borderRadius:20,border:'1.5px solid',borderColor:allDone?'var(--brand)':doneCount>0?'var(--warn-border)':'var(--hairline)',background:allDone?'var(--brand-soft)':doneCount>0?'var(--warn-soft)':'var(--surface)',cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:700,color:allDone?'var(--brand)':doneCount>0?'var(--warn-ink)':'var(--ink-40)',display:'flex',alignItems:'center',gap:4}}>
-                          {allDone?'✓':'⚡'} {doneCount}/{chkSteps.length}
                         </button>
                       )}
                       {isActive&&<button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>handleToggleDay(day)}>Remove</button>}
@@ -5855,6 +5879,8 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const [isLottery, setIsLottery] = useState(false);
   const [editTime, setEditTime] = useState(false);
   const teeInfo=week?.teeTimes?.[day];
+  const dayLocked=!!(week?.locked?.[day]);
+  const suCount=Object.values(week?.signups||{}).filter(s=>s.day===day).length;
   const modes=Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,...m}));
   const dayHasScores=!!(week?.scores&&week.scores[day]);
   const curMode=week?.modes?.[day]||'';
@@ -5862,7 +5888,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
   const customCfg=week?.modeConfig?.[day]||null;
   const isCustom=curMode==='__custom__';
   const [showCustom,setShowCustom]=useState(false);
-  const [cd,setCd]=useState(()=>customCfg||{name:'Custom — '+day,type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split'});
+  const [cd,setCd]=useState(()=>customCfg||{name:'Custom Team Game',type:'team',buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,ranking:'net',paidSpots:3,tieRule:'split'});
   function cBal(d){
     const buyIn=parseFloat(d.buyIn)||0;
     const fund=d.fundEnabled?(parseFloat(d.fundPerPlayer)||0):0;
@@ -5917,8 +5943,8 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
               <div className="form-group" style={{marginBottom:8}}>
                 <label className="form-label">Game type</label>
                 <div className="pref-opts">
-                  <button className={'pref-opt'+(cd.type==='team'?' on':'')} onClick={()=>setCd({...cd,type:'team'})}>Team</button>
-                  <button className={'pref-opt'+(cd.type==='individual'?' on':'')} onClick={()=>setCd({...cd,type:'individual'})}>Individual</button>
+                  <button className={'pref-opt'+(cd.type==='team'?' on':'')} onClick={()=>setCd({...cd,type:'team',name:(!cd.name||/^Custom (Team|Individual) Game$/.test(cd.name))?'Custom Team Game':cd.name})}>Team</button>
+                  <button className={'pref-opt'+(cd.type==='individual'?' on':'')} onClick={()=>setCd({...cd,type:'individual',name:(!cd.name||/^Custom (Team|Individual) Game$/.test(cd.name))?'Custom Individual Game':cd.name})}>Individual</button>
                 </div>
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
@@ -6007,8 +6033,16 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
         </div>
       )}
 
+      {/* ── SIGN-UPS ── */}
+      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'12px 0 6px'}}>Sign-ups</div>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <div style={{flex:1,padding:'8px 12px',background:dayLocked?'var(--warn-soft)':'var(--surface)',border:'1px solid '+(dayLocked?'var(--warn-border)':'var(--hairline)'),borderRadius:8,fontSize:13,fontWeight:600,color:dayLocked?'var(--warn-ink)':'var(--ink)'}}>
+          {dayLocked?'🔒 Locked':'🔓 Open'} · {suCount} signed up
+        </div>
+        {onToggleLock&&<button className="btn btn-ghost btn-sm" onClick={()=>onToggleLock(day,!dayLocked)}>{dayLocked?'Unlock':'Lock'}</button>}
+      </div>
       <div style={{fontSize:10,color:'var(--ink-40)',marginTop:10,fontStyle:'italic'}}>
-        That's it — sign-ups are open. Lock sign-ups any time from the day card, and change the game any time (here or the Week page badge) until scores are entered.
+        Change the game any time — here or from the Week page — until scores are entered.
       </div>
     </div>
   );
