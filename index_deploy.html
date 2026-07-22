@@ -797,7 +797,10 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
 }
 
 // ═══════════════ LANDING ═══════════════
-function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,savePinFn,settings,playerCards,week}){
+function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,savePinFn,settings,playerCards,week,push}){
+  const [showJoinReq,setShowJoinReq]=useState(false);
+  const [jr,setJr]=useState({name:'',phone:'',email:'',referredBy:''});
+  const [jrSent,setJrSent]=useState(false);
   const [pin,setPin]=useState('');
   const [showPad,setShowPad]=useState(false);
   const [disambigList,setDisambigList]=useState([]);
@@ -997,6 +1000,39 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(16,185,129,0.5)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             <button onClick={e=>{e.stopPropagation();dismissBanner();}} style={{position:'absolute',top:8,right:10,background:'none',border:'none',color:'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:13,lineHeight:1,padding:2}}>✕</button>
+          </div>
+        )}
+        <div style={{textAlign:'center',marginBottom:16}}>
+          <button onClick={()=>{setJrSent(false);setShowJoinReq(true);}} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.45)',textDecoration:'underline',textUnderlineOffset:3}}>
+            Not a member yet? Request to join →
+          </button>
+        </div>
+        {showJoinReq&&(
+          <div onClick={e=>{if(e.target===e.currentTarget)setShowJoinReq(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:9500,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+            <div style={{background:'#fff',borderRadius:14,padding:20,width:'100%',maxWidth:380,boxShadow:'0 10px 40px rgba(0,0,0,0.35)'}}>
+              {jrSent?(
+                <div style={{textAlign:'center',padding:'10px 0'}}>
+                  <div style={{fontSize:34,marginBottom:8}}>⛳</div>
+                  <div style={{fontSize:15,fontWeight:700,color:'#0f172a',marginBottom:4}}>Request sent!</div>
+                  <div style={{fontSize:12.5,color:'#64748b',lineHeight:1.5,marginBottom:14}}>An admin will review it and set you up. You'll get your sign-in details once approved.</div>
+                  <button onClick={()=>setShowJoinReq(false)} style={{width:'100%',padding:'11px',borderRadius:10,border:'none',background:'#0f172a',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,cursor:'pointer'}}>Done</button>
+                </div>
+              ):(
+                <div>
+                  <div style={{fontSize:15,fontWeight:700,color:'#0f172a',marginBottom:2}}>Request to join Clark Golf Group</div>
+                  <div style={{fontSize:11.5,color:'#64748b',marginBottom:14,lineHeight:1.5}}>An admin reviews every request. Tell us who you are:</div>
+                  {[['name','Your full name *'],['phone','Phone number'],['email','Email'],['referredBy','Who do you know in the group?']].map(([k,ph])=>(
+                    <input key={k} value={jr[k]} onChange={e=>setJr({...jr,[k]:e.target.value})} placeholder={ph}
+                      style={{width:'100%',boxSizing:'border-box',padding:'11px 12px',marginBottom:8,border:'1.5px solid #e2e8f0',borderRadius:10,fontFamily:'inherit',fontSize:13,outline:'none'}}/>
+                  ))}
+                  <button disabled={!jr.name.trim()} onClick={()=>{if(!push)return;push('joinRequests',{name:jr.name.trim(),phone:jr.phone.trim(),email:jr.email.trim(),referredBy:jr.referredBy.trim(),createdAt:Date.now(),status:'pending'});setJrSent(true);setJr({name:'',phone:'',email:'',referredBy:''});}}
+                    style={{width:'100%',padding:'12px',borderRadius:10,border:'none',background:jr.name.trim()?'#1F6B47':'#cbd5e1',color:'#fff',fontFamily:'inherit',fontSize:13.5,fontWeight:700,cursor:jr.name.trim()?'pointer':'default',marginTop:2}}>
+                    Send request
+                  </button>
+                  <button onClick={()=>setShowJoinReq(false)} style={{width:'100%',padding:'9px',marginTop:6,borderRadius:10,border:'none',background:'none',color:'#94a3b8',fontFamily:'inherit',fontSize:12,fontWeight:600,cursor:'pointer'}}>Cancel</button>
+                </div>
+              )}
+            </div>
           </div>
         )}
         <div style={{background:'rgba(255,255,255,0.04)',borderRadius:18,overflow:'hidden',border:'1px solid rgba(255,255,255,0.07)',marginBottom:12}}>
@@ -1800,6 +1836,10 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         }
       });
       if(onLogRemove) onLogRemove(signupKey, removedSignup);
+      // Post-publish drop → admin alert (teams/groups already out for that day)
+      if(week?.teamsPublished&&week.teamsPublished[removedSignup.day]&&push){
+        push('alerts/drops',{name:removedSignup.name,day:removedSignup.day,ts:Date.now(),by:(currentUser&&currentUser.name)||'member',cleared:false});
+      }
     }
     await del('week/signups/' + signupKey);
   }
@@ -5557,7 +5597,7 @@ function EmailViewV2({ week, isAdmin }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5585,6 +5625,8 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [editRosterRole, setEditRosterRole] = useState('none'); // 'none' | 'scoring' | 'admin' | 'master'
   const [editRosterHcp, setEditRosterHcp] = useState('');
   const [editRosterTarget, setEditRosterTarget] = useState('');
+  const [approveModal, setApproveModal] = useState(null); // {key, req}
+  const [apr, setApr] = useState({tee:'Whites',hcp:'',pin:'',email:''});
   const [editRosterTee, setEditRosterTee] = useState('Whites');
   const [localNotes, setLocalNotes] = useState({});
   const [localEvents, setLocalEvents] = useState('');
@@ -5664,6 +5706,28 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
     <main className="content">
       <div className="page-eyebrow" style={{marginTop:10}}>{viewMode==='week'?'Run the week':'Admin only'}</div>
       <div className="page-title" style={{marginBottom:14}}>{viewMode==='week'?'Manage Week':'Admin Panel'}</div>
+      {(()=>{
+        const pend=Object.entries(joinRequests||{}).filter(([,r])=>r&&r.status==='pending');
+        const drops=Object.entries(alertsDrops||{}).filter(([,a])=>a&&!a.cleared).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+        if(!pend.length&&!drops.length)return null;
+        const ago=ts=>{const m=Math.round((Date.now()-ts)/60000);return m<60?m+'m ago':m<1440?Math.round(m/60)+'h ago':Math.round(m/1440)+'d ago';};
+        return(
+          <div style={{background:'var(--surface)',border:'1.5px solid #fca5a5',borderRadius:12,padding:'12px 14px',marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:800,color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>⚠ Needs attention</div>
+            {drops.map(([k,a])=>(
+              <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                <span style={{flex:1,fontSize:12.5,color:'var(--ink)'}}><b>{a.name}</b> dropped <b>{a.day}</b> after teams were published <span style={{color:'var(--ink-40)'}}>· {ago(a.ts)}</span></span>
+                {onDismissDrop&&<button className="btn btn-ghost btn-sm" onClick={()=>onDismissDrop(k)}>Dismiss</button>}
+              </div>
+            ))}
+            {pend.length>0&&(
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                <span style={{flex:1,fontSize:12.5,color:'var(--ink)'}}><b>{pend.length}</b> join request{pend.length!==1?'s':''} pending{viewMode==='week'?' — review in the Admin tab':''}</span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div style={{padding:'0 12px'}}>
 
@@ -5978,6 +6042,62 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         </>)}
 
         {showAdminSec&&(<>
+        {(()=>{
+          const pend=Object.entries(joinRequests||{}).filter(([,r])=>r&&r.status==='pending').sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+          if(!pend.length)return null;
+          return(
+            <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+              <div style={{padding:'12px 16px',fontSize:13,fontWeight:700,color:'var(--ink)',display:'flex',alignItems:'center',gap:8}}>
+                <span style={{width:20,height:20,borderRadius:'50%',background:'#dc2626',color:'#fff',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{pend.length}</span>
+                Join Requests
+              </div>
+              <div style={{borderTop:'1px solid var(--hairline)',padding:'4px 16px 12px'}}>
+                {pend.map(([k,r])=>(
+                  <div key={k} style={{padding:'10px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                    <div style={{fontSize:13.5,fontWeight:700,color:'var(--ink)'}}>{r.name}</div>
+                    <div style={{fontSize:11.5,color:'var(--ink-50)',margin:'2px 0 8px',lineHeight:1.6}}>
+                      {r.phone&&<span>📱 {r.phone} · </span>}{r.email&&<span>✉️ {r.email} · </span>}{r.referredBy&&<span>knows <b>{r.referredBy}</b> · </span>}<span style={{color:'var(--ink-40)'}}>{new Date(r.createdAt||0).toLocaleDateString()}</span>
+                    </div>
+                    <div style={{display:'flex',gap:6}}>
+                      <button className="btn btn-primary btn-sm" onClick={()=>{setApr({tee:'Whites',hcp:'',pin:'',email:r.email||''});setApproveModal({key:k,req:r});}}>Approve…</button>
+                      <button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)'}} onClick={()=>{if(window.confirm('Decline '+r.name+"'s request?"))onDeclineJoin&&onDeclineJoin(k,r);}}>Decline</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+        {approveModal&&(
+          <div onClick={e=>{if(e.target===e.currentTarget)setApproveModal(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+            <div style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:340}}>
+              <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2}}>Approve {approveModal.req.name}</div>
+              <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Creates their roster entry. Share the PIN with them so they can sign in.</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+                <div className="form-group" style={{marginBottom:0}}>
+                  <label className="form-label">Tees</label>
+                  <select className="form-input" value={apr.tee} onChange={e=>setApr({...apr,tee:e.target.value})}>{['Whites','Blues','Golds','Reds'].map(t=><option key={t}>{t}</option>)}</select>
+                </div>
+                <div className="form-group" style={{marginBottom:0}}>
+                  <label className="form-label">Handicap</label>
+                  <input className="form-input" type="number" step="0.1" value={apr.hcp} onChange={e=>setApr({...apr,hcp:e.target.value})}/>
+                </div>
+              </div>
+              <div className="form-group" style={{marginBottom:8}}>
+                <label className="form-label">4-digit PIN (for their sign-in)</label>
+                <input className="form-input" type="number" inputMode="numeric" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,4)})}/>
+              </div>
+              <div className="form-group" style={{marginBottom:12}}>
+                <label className="form-label">Email</label>
+                <input className="form-input" value={apr.email} onChange={e=>setApr({...apr,email:e.target.value})}/>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setApproveModal(null)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={()=>{onApproveJoin&&onApproveJoin(approveModal.key,approveModal.req,apr);setApproveModal(null);}}>Approve &amp; add to roster</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{margin:'22px 0 18px',borderTop:'2px solid var(--hairline)'}}/>
         {/* ── 5. ROSTER ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
@@ -7923,6 +8043,8 @@ function App(){
   const [rosterHidden, setRosterHidden] = useState({});
   const [rosterHcp, setRosterHcp] = useState({});
   const [rosterTargets, setRosterTargets] = useState({});
+  const [joinRequests, setJoinRequests] = useState({});
+  const [alertsDrops, setAlertsDrops] = useState({});
   const [rosterTee, setRosterTee] = useState({});
   const [rosterPins, setRosterPins] = useState({});
   const [rosterAdmins, setRosterAdmins] = useState({});
@@ -7971,6 +8093,8 @@ function App(){
     u.push(read('rosterHidden', v=>setRosterHidden(v||{})));
     u.push(read('rosterHcp', v=>setRosterHcp(v||{})));
     u.push(read('rosterTargets', v=>setRosterTargets(v||{})));
+    u.push(read('joinRequests', v=>setJoinRequests(v||{})));
+    u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
     u.push(read('rosterPins', v=>setRosterPins(v||{})));
     u.push(read('rosterAdmins', v=>setRosterAdmins(v||{})));
@@ -8071,7 +8195,20 @@ function App(){
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
   function updateTeeTime(day,data){ const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt}); }
   function addSignup(entry){ logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
-  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs)logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); del('week/signups/'+key); }
+  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});}} del('week/signups/'+key); }
+  function approveJoinRequest(key,req,opts){
+    const newId=Date.now();
+    write('extraPlayers',safeArray(extra).concat([{id:newId,name:normName(req.name),handicap:parseFloat(opts.hcp)||0,tee:opts.tee||'Whites'}]));
+    if(opts.pin&&String(opts.pin).trim())write('rosterPins/'+newId,String(opts.pin).trim());
+    if(req.email||opts.email)write('rosterEmails/'+newId,(opts.email||req.email||'').trim());
+    update({['joinRequests/'+key+'/status']:'approved',['joinRequests/'+key+'/handledBy']:currentUser?currentUser.name:'admin',['joinRequests/'+key+'/handledAt']:Date.now(),['joinRequests/'+key+'/rosterId']:newId});
+    logActivity('join_approved',{name:req.name,by:currentUser?currentUser.name:'admin'});
+  }
+  function declineJoinRequest(key,req){
+    update({['joinRequests/'+key+'/status']:'declined',['joinRequests/'+key+'/handledBy']:currentUser?currentUser.name:'admin',['joinRequests/'+key+'/handledAt']:Date.now()});
+    logActivity('join_declined',{name:req.name,by:currentUser?currentUser.name:'admin'});
+  }
+  function dismissDropAlert(key){ write('alerts/drops/'+key+'/cleared',true); }
   function addPlayer(p){ const newId=p.id||Date.now();logActivity('roster_add',{name:p.name,by:currentUser?currentUser.name:'admin'});write('extraPlayers',safeArray(extra).concat([{...p,id:newId}])); }
   function removePlayer(id){ const pl=safeArray(extra).find(p=>p.id===id);if(pl)logActivity('roster_remove',{name:pl.name,by:currentUser?currentUser.name:'admin'}); write('extraPlayers',safeArray(extra).filter(p=>p.id!==id));del('rosterPins/'+id);del('rosterEmails/'+id);del('rosterAdmins/'+id); }
   function editRosterName(id,name){ update({['rosterEdits/'+id]:name}); }
@@ -8297,6 +8434,7 @@ function App(){
       settings={settings}
       playerCards={playerCards}
       savePinFn={saveMemberPin}
+      push={safePush}
       onPlayer={()=>loginUser({name:'Guest',id:'guest',role:'guest',ini:'?'})}
       onMemberLogin={loginUser}
     />;
@@ -8420,11 +8558,14 @@ function App(){
             </button>
           ))}
           {/* Always: admin tabs */}
-          {ADMIN_TABS.map(t => (
-            <button key={t.id} className={'tab'+(tab===t.id?' on':'')} onClick={()=>setTab(t.id)}>
+          {ADMIN_TABS.map(t => {
+            const alertCount=t.id==='admin'?(Object.values(joinRequests||{}).filter(r=>r&&r.status==='pending').length+Object.values(alertsDrops||{}).filter(a=>a&&!a.cleared).length):0;
+            return(
+            <button key={t.id} className={'tab'+(tab===t.id?' on':'')} onClick={()=>setTab(t.id)} style={{position:'relative'}}>
               {t.icon}{t.label}
+              {alertCount>0&&<span style={{position:'absolute',top:2,right:'50%',marginRight:-26,background:'#dc2626',color:'#fff',fontSize:9,fontWeight:800,minWidth:15,height:15,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px'}}>{alertCount}</span>}
             </button>
-          ))}
+          );})}
         </div>
       </nav>
       )}
@@ -8463,6 +8604,7 @@ function App(){
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
+        joinRequests={joinRequests} alertsDrops={alertsDrops} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
         rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterTargets={rosterTargets} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}
         rosterEmails={rosterEmails} rosterPins={rosterPins}
         rosterAdmins={rosterAdmins} activityLog={activityLog}

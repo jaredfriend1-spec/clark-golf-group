@@ -1220,6 +1220,9 @@ function EmailTab(){
 // ── ROSTER TAB (segmented + full PIN management) ──────────────────────────────
 function RosterTab(){
   const extra=useDB("extraPlayers");
+  const joinRequests=useDB("joinRequests");
+  const [aprModal,setAprModal]=React.useState(null);
+  const [apr,setApr]=React.useState({tee:"Whites",hcp:"",pin:"",email:""});
   const portalUser=useDB("_portalSession"); // not real — use localStorage
   const isMasterUser=()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch{return false;}};
   const rosterEdits=useDB("rosterEdits");
@@ -1328,6 +1331,47 @@ function RosterTab(){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
+    {(()=>{const pend=Object.entries(joinRequests||{}).filter(([,r])=>r&&r.status==="pending");if(!pend.length)return null;return(
+      <div className="card" style={{marginBottom:14,border:"1.5px solid #fca5a5"}}>
+        <div style={{fontSize:13,fontWeight:800,color:"#b91c1c",marginBottom:8}}>Join Requests ({pend.length})</div>
+        {pend.map(([k2,r])=>(
+          <div key={k2} style={{padding:"8px 0",borderTop:"1px solid #eee"}}>
+            <div style={{fontSize:13.5,fontWeight:700}}>{r.name}</div>
+            <div style={{fontSize:11.5,color:"#64748b",margin:"2px 0 6px"}}>{r.phone||""}{r.email?(" \u00b7 "+r.email):""}{r.referredBy?(" \u00b7 knows "+r.referredBy):""}</div>
+            <div style={{display:"flex",gap:6}}>
+              <button className="btn btn-sm" onClick={()=>{setApr({tee:"Whites",hcp:"",pin:"",email:r.email||""});setAprModal({key:k2,req:r});}}>Approve\u2026</button>
+              <button className="btn btn-sm btn-ghost" style={{color:"#b91c1c"}} onClick={()=>{if(window.confirm("Decline "+r.name+"?")){wr("joinRequests/"+k2+"/status","declined");wr("joinRequests/"+k2+"/handledAt",Date.now());showToast("Declined");}}}>Decline</button>
+            </div>
+          </div>
+        ))}
+      </div>);})()}
+    {aprModal&&(
+      <div onClick={e=>{if(e.target===e.currentTarget)setAprModal(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:"#fff",borderRadius:14,padding:18,width:"100%",maxWidth:340}}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Approve {aprModal.req.name}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+            <select className="input" value={apr.tee} onChange={e=>setApr({...apr,tee:e.target.value})}>{["Whites","Blues","Golds","Reds"].map(t=><option key={t}>{t}</option>)}</select>
+            <input className="input" type="number" placeholder="HCP" value={apr.hcp} onChange={e=>setApr({...apr,hcp:e.target.value})}/>
+          </div>
+          <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="4-digit PIN" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,4)})}/>
+          <input className="input" style={{marginBottom:12,width:"100%",boxSizing:"border-box"}} placeholder="Email" value={apr.email} onChange={e=>setApr({...apr,email:e.target.value})}/>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-sm btn-ghost" onClick={()=>setAprModal(null)}>Cancel</button>
+            <button className="btn btn-sm" style={{flex:1}} onClick={()=>{
+              const newId=Date.now();
+              wr("extraPlayers",(Array.isArray(extra)?extra:extra?Object.values(extra):[]).concat([{id:newId,name:aprModal.req.name,handicap:parseFloat(apr.hcp)||0,tee:apr.tee}]));
+              if(apr.pin.trim())wr("rosterPins/"+newId,apr.pin.trim());
+              if(apr.email.trim())wr("rosterEmails/"+newId,apr.email.trim());
+              wr("joinRequests/"+aprModal.key+"/status","approved");
+              wr("joinRequests/"+aprModal.key+"/handledAt",Date.now());
+              wr("joinRequests/"+aprModal.key+"/rosterId",newId);
+              showToast("Approved \u2713");
+              setAprModal(null);
+            }}>Approve &amp; add</button>
+          </div>
+        </div>
+      </div>
+    )}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:8}}>
       <div>
         <div className="pg-eyebrow">Members</div>
