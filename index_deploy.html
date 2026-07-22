@@ -2137,6 +2137,10 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage,
                 {currentUser.role === 'guest' ? 'Sign up as guest' : 'Sign me up'}
               </button>
             </div>
+          ) : currentUser && day.locked ? (
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',fontSize:12,color:'var(--ink-40)'}}>
+              🔒 Sign-ups are locked for {day.day}
+            </div>
           ) : null}
           {/* admin actions: one uniform row */}
           {isAdmin && (
@@ -5462,7 +5466,7 @@ function EmailViewV2({ week, isAdmin }){
         <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
           <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',display:'flex',alignItems:'center',gap:7,background:'var(--surface-sunken)'}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-            <span style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Subject line</span>
+            <span style={{fontSize:11,fontWeight:700,color:'var(--ink)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Subject line</span>
             <span style={{fontSize:11,color:'var(--ink-40)',fontWeight:400,marginLeft:'auto'}}>Editable</span>
           </div>
           <div style={{padding:'12px 14px'}}>
@@ -5479,21 +5483,14 @@ function EmailViewV2({ week, isAdmin }){
         <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
           <div style={{padding:'10px 14px',borderBottom:'1px solid var(--hairline)',display:'flex',alignItems:'center',gap:7}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Email preview — read only</span>
+            <span style={{fontSize:11,fontWeight:700,color:'var(--ink)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Email preview — read only</span>
           </div>
-          <div style={{maxHeight:440,overflowY:'auto',background:'#ffffff'}} dangerouslySetInnerHTML={{__html:emailHTML}}/>
+          <div style={{maxHeight:'72vh',minHeight:380,overflowY:'auto',background:'#ffffff'}} dangerouslySetInnerHTML={{__html:emailHTML}}/>
           <div style={{padding:'8px 14px',borderTop:'1px solid var(--hairline-soft)',fontSize:10.5,color:'var(--ink-40)'}}>
             To change content: <b>day notes</b> in Manage Week (per-day setup) · <b>upcoming events</b> in Admin · game &amp; tee time on each day.
           </div>
         </div>
 
-        {/* Preview button */}
-        <button onClick={()=>setShowPreview(true)}
-          className="btn btn-ghost"
-          style={{width:'100%',padding:13,fontSize:14,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          Preview Email
-        </button>
 
       </div>
 
@@ -5981,6 +5978,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         </>)}
 
         {showAdminSec&&(<>
+        <div style={{margin:'22px 0 18px',borderTop:'2px solid var(--hairline)'}}/>
         {/* ── 5. ROSTER ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
@@ -6388,8 +6386,8 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
     <div style={rowStyle}>
       <span style={{fontSize:16,flexShrink:0,width:22,textAlign:'center'}}>{icon}</span>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</div>
-        <div style={{fontSize:13.5,fontWeight:700,color:tone||'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</div>
+        <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{label}</div>
+        <div style={{fontSize:12,fontWeight:500,color:tone||'var(--ink-50)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</div>
         {sub&&<div style={{fontSize:10,color:'var(--ink-40)',marginTop:1}}>{sub}</div>}
       </div>
       {action&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0,opacity:disabled?0.5:1}} disabled={disabled} onClick={onAction}>{action}</button>}
@@ -6437,7 +6435,7 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
         <div style={{...rowStyle,flexDirection:'column',alignItems:'stretch',gap:8}}>
           <textarea value={noteDraft} maxLength={1000} onChange={e=>setNoteDraft(e.target.value)}
             placeholder={'Note for '+day+' (game format, reminders…)'}
-            style={{width:'100%',border:'1px solid var(--hairline)',borderRadius:8,outline:'none',padding:'9px 11px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',resize:'vertical',minHeight:70,lineHeight:1.5,boxSizing:'border-box',background:'var(--surface)'}}/>
+            style={{width:'100%',border:'1px solid var(--hairline)',borderRadius:8,outline:'none',padding:'9px 11px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',resize:'vertical',minHeight:130,lineHeight:1.5,boxSizing:'border-box',background:'var(--surface)'}}/>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <span style={{fontSize:10,color:'var(--ink-40)',flex:1}}>{noteDraft.length}/1000</span>
             {dayNote&&<button className="btn btn-ghost btn-sm" onClick={()=>{write&&write('week/emailNotes/'+day,null);setNoteOpen(false);}}>Clear</button>}
@@ -6881,8 +6879,8 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
             {statCard(avgWinOverall??'—','Avg Win Overall','#8b5cf6')}
             {statCard(avgSkins??'—','Avg Skins','var(--brand)')}
           </div>
-          {stbl&&(<>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'2px 0 8px'}}>Stableford · {stbl.rounds} round{stbl.rounds!==1?'s':''}</div>
+          {stbl&&(<div style={{marginTop:16,paddingTop:14,borderTop:'2px solid var(--hairline)'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'0 0 8px'}}>Stableford · {stbl.rounds} round{stbl.rounds!==1?'s':''}</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:12}}>
               {statCard(stbl.avgWin??'—','Avg Winning Pts','var(--info)')}
               {statCard(stbl.avgPts??'—','Avg Points','var(--info)')}
@@ -6906,7 +6904,7 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
                 </div>
               );
             })}
-          </>)}
+          </div>)}
           {divider}
           <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}}>Round by Round</div>
           {winningScores.map((r,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
@@ -6943,8 +6941,8 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
           <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',fontSize:10,color:'var(--ink-50)',marginBottom:12}}>
             {[['var(--brand)','Skins'],['var(--info)','Front'],['var(--highlight)','Back'],['#8b5cf6','Overall']].map(([c,l])=>(<span key={l}><span style={{display:'inline-block',width:8,height:8,background:c,borderRadius:2,marginRight:3}}></span>{l}</span>))}
           </div>
-          {indHist.length>0&&(<>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'2px 0 8px'}}>Stableford · {indHist.length} round{indHist.length!==1?'s':''}</div>
+          {indHist.length>0&&(<div style={{marginTop:16,paddingTop:14,borderTop:'2px solid var(--hairline)'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.07em',margin:'0 0 8px'}}>Stableford · {indHist.length} round{indHist.length!==1?'s':''}</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:8}}>
               {statCard('$'+Math.round(indPots.collected),'Collected','var(--info)')}
               {statCard('$'+Math.round(indPots.pool),'Payout Pools','var(--info)')}
@@ -6968,8 +6966,8 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
                 </div>
               );
             })}
-            <div style={{fontSize:10,color:'var(--ink-40)',margin:'8px 0 12px'}}>Tournament fund is shared across both games — Stableford rounds contributed ${Math.round(indPots.fund)} of the ${Math.round(potTotals.fund)} total.</div>
-          </>)}
+            <div style={{fontSize:10,color:'var(--ink-40)',margin:'8px 0 4px'}}>Tournament fund is shared across both games — Stableford rounds contributed ${Math.round(indPots.fund)} of the ${Math.round(potTotals.fund)} total.</div>
+          </div>)}
           {divider}
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
