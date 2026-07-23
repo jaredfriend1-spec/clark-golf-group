@@ -658,6 +658,41 @@ const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clar
 const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
 const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
 const FB_CONFIG=IS_PROD_HOST?FB_PROD:FB_TEST;
+// ── PUSH NOTIFICATIONS (FCM) ──────────────────────────────────────────────
+// VAPID public keys: Firebase Console → Project settings → Cloud Messaging →
+// Web Push certificates → "Key pair". Paste each project's key below.
+const PUSH_VAPID_PROD = "PASTE_PROD_VAPID_KEY_HERE";
+const PUSH_VAPID_TEST = "PASTE_TEST_VAPID_KEY_HERE";
+const PUSH_VAPID = IS_PROD_HOST ? PUSH_VAPID_PROD : PUSH_VAPID_TEST;
+const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
+const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
+function sendPushNotify(p){
+  try{
+    fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key:NOTIFY_KEY,project:IS_PROD_HOST?'prod':'test',audience:p.audience||'admins',title:p.title,body:p.body||'',url:p.url||'/',tag:p.tag||''})
+    }).catch(()=>{});
+  }catch(e){}
+}
+async function enablePushForUser(user,isAdminFlag){
+  if(!PUSH_READY) throw new Error('Push keys not configured yet');
+  if(!('Notification' in window)) throw new Error('This browser does not support notifications');
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted') throw new Error('Permission not granted');
+  // Own scope so we NEVER displace the existing PWA service-worker.js at '/'
+  const reg=await navigator.serviceWorker.register('/firebase-messaging-sw.js',{scope:'/firebase-cloud-messaging-push-scope'});
+  const messaging=firebase.messaging();
+  const token=await messaging.getToken({vapidKey:PUSH_VAPID,serviceWorkerRegistration:reg});
+  if(!token) throw new Error('No token issued');
+  const uid=String(user&&user.id!=null?user.id:'anon');
+  await firebase.database().ref().update({
+    ['fcmTokens/'+uid+'/tokens/'+token]:true,
+    ['fcmTokens/'+uid+'/name']:(user&&user.name)||'',
+    ['fcmTokens/'+uid+'/admin']:!!isAdminFlag,
+    ['fcmTokens/'+uid+'/ts']:Date.now(),
+  });
+  try{localStorage.setItem('cgPushOn','1');}catch(e){}
+  return token;
+}
 if(!IS_PROD_HOST){
   // Persistent on-screen badge so a test environment is never mistaken for production.
   try{
@@ -1025,7 +1060,7 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
                     <input key={k} value={jr[k]} onChange={e=>setJr({...jr,[k]:e.target.value})} placeholder={ph}
                       style={{width:'100%',boxSizing:'border-box',padding:'11px 12px',marginBottom:8,border:'1.5px solid #e2e8f0',borderRadius:10,fontFamily:'inherit',fontSize:13,outline:'none'}}/>
                   ))}
-                  <button disabled={!jr.name.trim()} onClick={()=>{if(!push)return;push('joinRequests',{name:jr.name.trim(),phone:jr.phone.trim(),email:jr.email.trim(),referredBy:jr.referredBy.trim(),createdAt:Date.now(),status:'pending'});setJrSent(true);setJr({name:'',phone:'',email:'',referredBy:''});}}
+                  <button disabled={!jr.name.trim()} onClick={()=>{if(!push)return;push('joinRequests',{name:jr.name.trim(),phone:jr.phone.trim(),email:jr.email.trim(),referredBy:jr.referredBy.trim(),createdAt:Date.now(),status:'pending'});sendPushNotify({audience:'admins',title:'New join request',body:jr.name.trim()+' wants to join Clark Golf Group.',url:'/',tag:'join'});setJrSent(true);setJr({name:'',phone:'',email:'',referredBy:''});}}
                     style={{width:'100%',padding:'12px',borderRadius:10,border:'none',background:jr.name.trim()?'#1F6B47':'#cbd5e1',color:'#fff',fontFamily:'inherit',fontSize:13.5,fontWeight:700,cursor:jr.name.trim()?'pointer':'default',marginTop:2}}>
                     Send request
                   </button>
@@ -1838,7 +1873,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       if(onLogRemove) onLogRemove(signupKey, removedSignup);
       // Post-publish drop → admin alert (teams/groups already out for that day)
       if(week?.teamsPublished&&week.teamsPublished[removedSignup.day]&&push){
-        push('alerts/drops',{name:removedSignup.name,day:removedSignup.day,ts:Date.now(),by:(currentUser&&currentUser.name)||'member',cleared:false});
+        push('alerts/drops',{name:removedSignup.name,day:removedSignup.day,ts:Date.now(),by:(currentUser&&currentUser.name)||'member',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:removedSignup.name+' dropped '+removedSignup.day+' after teams were published.',url:'/',tag:'drop'});
       }
     }
     await del('week/signups/' + signupKey);
@@ -3382,6 +3417,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     write('week/teams/'+day, teams).then(()=>write('week/teamsPublished/'+day, true));
     update({['week/locked/'+day]:true});
     if(onTeamsPublished) onTeamsPublished(day, teams);
+    sendPushNotify({audience:'all',title:(indMode?'Groups':'Teams')+' for '+day+' are out!',body:indMode?'See your group and tee-off order.':'See your team and slot.',url:'/',tag:'pub-'+day});
   }
 
   function unpublishTeams(day){
@@ -3479,7 +3515,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     publishTeams(activeDay, final);
     setEditTeams(null); setManualTeams(null); setManualMode(false);
     setBuildInfo(null);
-    showToast('Teams published!');
+    showToast(indMode?'Groups published!':'Teams published!');
   }
 
   function startManual(){
@@ -8043,6 +8079,7 @@ function App(){
   const [rosterHidden, setRosterHidden] = useState({});
   const [rosterHcp, setRosterHcp] = useState({});
   const [rosterTargets, setRosterTargets] = useState({});
+  const [pushOn, setPushOn] = useState(()=>{try{return localStorage.getItem('cgPushOn')==='1'&&('Notification' in window)&&Notification.permission==='granted';}catch(e){return false;}});
   const [joinRequests, setJoinRequests] = useState({});
   const [alertsDrops, setAlertsDrops] = useState({});
   const [rosterTee, setRosterTee] = useState({});
@@ -8195,7 +8232,7 @@ function App(){
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
   function updateTeeTime(day,data){ const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt}); }
   function addSignup(entry){ logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
-  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});}} del('week/signups/'+key); }
+  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop'});}} del('week/signups/'+key); }
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
     write('extraPlayers',safeArray(extra).concat([{id:newId,name:normName(req.name),handicap:parseFloat(opts.hcp)||0,tee:opts.tee||'Whites'}]));
@@ -8292,6 +8329,7 @@ function App(){
     const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
     push('history',roundData);
+    sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day});
     // Replace, never duplicate: AFTER the new entry is safely written, delete
     // (1) the entry being edited (editingKeys), and (2) any OTHER existing
     // entries for the same day+date — re-finalizing a round supersedes the old
@@ -8506,6 +8544,10 @@ function App(){
             {isAdmin && <span className="user-role admin">{String(currentUser.id)==='22'?'Master':'Admin'}</span>}
             {isScoring && <span className="user-role admin">Scoring</span>}
           </div>
+          <button title={pushOn?'Notifications on':'Turn on notifications'} onClick={async()=>{try{await enablePushForUser(currentUser,isAdmin);setPushOn(true);}catch(e){window.alert('Notifications: '+e.message);}}}
+            style={{background:'none',border:'none',cursor:'pointer',padding:'4px 6px',marginRight:2,color:pushOn?'#36A56F':'rgba(255,255,255,0.45)'}}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill={pushOn?'currentColor':'none'} stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          </button>
           <button className="user-signout" onClick={logoutUser}>Sign out</button>
         </div>
 
