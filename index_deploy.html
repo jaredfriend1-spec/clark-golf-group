@@ -661,8 +661,8 @@ const FB_CONFIG=IS_PROD_HOST?FB_PROD:FB_TEST;
 // ── PUSH NOTIFICATIONS (FCM) ──────────────────────────────────────────────
 // VAPID public keys: Firebase Console → Project settings → Cloud Messaging →
 // Web Push certificates → "Key pair". Paste each project's key below.
-const PUSH_VAPID_PROD = "PASTE_PROD_VAPID_KEY_HERE";
-const PUSH_VAPID_TEST = "PASTE_TEST_VAPID_KEY_HERE";
+const PUSH_VAPID_PROD = "BHlU-O7gJa0ckczChXKbEm0Uyt0ho7I2aOq57KvMJ4RBbnh-oGpHRkW24ZntbGh2jySsiqaTu7iMxNBf-kznYIo";
+const PUSH_VAPID_TEST = "BMBC1cQ86-DiV8kuVCVB7h4SQ0hYYqGujUMg_lZNzh2f3ET0Vzr2po7QHG8JKQl969tWOAsGtgEGK1P8D4yXH1A";
 const PUSH_VAPID = IS_PROD_HOST ? PUSH_VAPID_PROD : PUSH_VAPID_TEST;
 const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
 const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
