@@ -692,8 +692,25 @@ async function enablePushForUser(user,isAdminFlag){
     ['fcmTokens/'+uid+'/ts']:Date.now(),
   });
   try{localStorage.setItem('cgPushOn','1');}catch(e){}
+  wireForegroundPush();
   return token;
 }
+// Foreground messages (app tab focused) bypass the background SW handler —
+// show them explicitly so pushes are never silently swallowed.
+let __fgWired=false;
+function wireForegroundPush(){
+  if(__fgWired||!PUSH_READY||!('Notification' in window)||Notification.permission!=='granted')return;
+  try{
+    firebase.messaging().onMessage(function(payload){
+      const d=(payload&&payload.data)||{};
+      navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope').then(function(reg){
+        if(reg)reg.showNotification(d.title||'Clark Golf Group',{body:d.body||'',icon:'/icon-192.png',badge:'/icon-192.png',data:{url:d.url||'/'},tag:d.tag||undefined});
+      });
+    });
+    __fgWired=true;
+  }catch(e){}
+}
+try{ if(localStorage.getItem('cgPushOn')==='1') setTimeout(wireForegroundPush, 1500); }catch(e){}
 if(!IS_PROD_HOST){
   // Persistent on-screen badge so a test environment is never mistaken for production.
   try{
