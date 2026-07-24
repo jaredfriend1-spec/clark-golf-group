@@ -7716,6 +7716,10 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
           {err && <div className="form-err" style={{marginTop:10}}>{err}</div>}
 
         </div>
+        <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'4px 0 10px',cursor:'pointer'}}>
+          <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
+          <span>📣 Also send as a push notification to everyone</span>
+        </label>
         <div className="modal-foot">
           <button className="btn btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
           <button className="btn btn-primary" onClick={publish} disabled={saving}>
@@ -8115,10 +8119,6 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
             {phoneIncomplete && !phoneMismatch && <div style={{fontSize:11,color:'var(--warn-ink)',marginTop:4}}>Enter a full 10-digit number</div>}
           </div>
 
-          <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'2px 0 10px',cursor:'pointer'}}>
-              <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
-              📣 Also send as push notification to everyone
-            </label>
             {err && <div className="form-err">{err}</div>}
 
           {/* Read-only note */}
