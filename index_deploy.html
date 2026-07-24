@@ -1502,10 +1502,6 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
               </div>
             </div>
             )}
-            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'2px 0 10px',cursor:'pointer'}}>
-              <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
-              📣 Also send as push notification to everyone
-            </label>
             {err && <div className="form-err">{err}</div>}
           </div>
           <div className="modal-foot">
@@ -1782,10 +1778,6 @@ function TeeTimeModal({ day, onClose, onSave }){
             <label className="form-label">Tee time</label>
             <TimePicker initialValue={initialTime} onChange={v=>{setTime(v);setErr('');}}/>
           </div>
-          <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'2px 0 10px',cursor:'pointer'}}>
-              <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
-              📣 Also send as push notification to everyone
-            </label>
             {err && <div className="form-err">{err}</div>}
         </div>
         <div className="modal-foot">
