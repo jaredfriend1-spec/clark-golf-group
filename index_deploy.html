@@ -1793,6 +1793,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 
 // ═══════════════ WEEK VIEW ═══════════════
 function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+  const [pushPromptGone,setPushPromptGone]=useState(false);
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
   const [teeModal, setTeeModal] = useState(null); // day object
@@ -1903,6 +1904,33 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
 
   return (
     <main className="content">
+      {(()=>{
+        if(!currentUser||typeof PUSH_READY==='undefined'||!PUSH_READY)return null;
+        let dismissed=false,on=false;
+        try{dismissed=localStorage.getItem('cgPushPromptDismissed')==='1';on=localStorage.getItem('cgPushOn')==='1'&&('Notification' in window)&&Notification.permission==='granted';}catch(e){}
+        if(on||dismissed||pushPromptGone)return null;
+        const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+        const standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+        return(
+          <div style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:'12px 14px',margin:'0 0 14px',display:'flex',alignItems:'flex-start',gap:10}}>
+            <span style={{fontSize:18,lineHeight:'22px'}}>🔔</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Get notified</div>
+              <div style={{fontSize:11.5,color:'var(--ink-50)',lineHeight:1.5,margin:'2px 0 8px'}}>
+                {isIOS&&!standalone
+                  ? 'Know the moment teams and results are posted. On iPhone: tap Share → Add to Home Screen, open the app from that icon, then tap the bell at the top.'
+                  : 'Know the moment teams are posted, results are in, and more.'}
+              </div>
+              {!(isIOS&&!standalone)&&(
+                <button className="btn btn-primary btn-sm" onClick={async()=>{try{await enablePushForUser(currentUser,isAdmin);setPushPromptGone(true);}catch(e){window.alert('Notifications: '+e.message);}}}>
+                  Turn on notifications
+                </button>
+              )}
+            </div>
+            <button onClick={()=>{try{localStorage.setItem('cgPushPromptDismissed','1');}catch(e){}setPushPromptGone(true);}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-40)',fontSize:14,padding:2,flexShrink:0}}>✕</button>
+          </div>
+        );
+      })()}
       <div className="page-eyebrow">This week</div>
       <div className="page-title">Sign-ups</div>
       <div className="page-sub">
@@ -5679,6 +5707,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [editRosterRole, setEditRosterRole] = useState('none'); // 'none' | 'scoring' | 'admin' | 'master'
   const [editRosterHcp, setEditRosterHcp] = useState('');
   const [editRosterTarget, setEditRosterTarget] = useState('');
+  const [showAppSettings, setShowAppSettings] = useState(false);
   const [approveModal, setApproveModal] = useState(null); // {key, req}
   const [apr, setApr] = useState({tee:'Whites',hcp:'',pin:'',email:''});
   const [editRosterTee, setEditRosterTee] = useState('Whites');
@@ -6153,6 +6182,47 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
           </div>
         )}
         <div style={{margin:'22px 0 18px',borderTop:'2px solid var(--hairline)'}}/>
+        {/* ── APP SETTINGS (mirror of portal → Configuration/App Settings) ── */}
+        <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+          <button onClick={()=>setShowAppSettings(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'12px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+            <span style={{fontSize:14}}>⚙️</span>
+            <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>App Settings <span style={{fontWeight:500,color:'var(--ink-40)',fontSize:11}}>· sign-up rules &amp; guests</span></span>
+            <span style={{color:'var(--ink-40)',fontSize:11}}>{showAppSettings?'▲':'▼'}</span>
+          </button>
+          {showAppSettings&&(
+            <div style={{borderTop:'1px solid var(--hairline)',padding:'6px 16px 14px'}}>
+              {[
+                {key:'allowGuests',label:'Allow guests',sub:'Members can bring guests to a day'},
+                {key:'allowPairings',label:'Allow guest pairing requests',sub:'"Pair with me" option on guest sign-ups'},
+                {key:'allowMatches',label:'Allow match play requests',sub:'Head-to-head match sign-ups'},
+                {key:'allowTeePrefs',label:'Allow tee time preferences',sub:'First tee / last tee requests'},
+              ].map(({key,label,sub})=>{
+                const on=(settings?.gameRules?.signupRules?.[key])!==false;
+                return(
+                  <div key={key} style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                    <div onClick={()=>write('settings/gameRules/signupRules/'+key,!on)} style={{width:36,height:20,borderRadius:20,background:on?'var(--brand)':'var(--hairline)',position:'relative',cursor:'pointer',flexShrink:0,transition:'background 0.2s'}}>
+                      <div style={{position:'absolute',top:2,left:on?18:2,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600,color:on?'var(--ink)':'var(--ink-40)'}}>{label}</div>
+                      <div style={{fontSize:10.5,color:'var(--ink-40)'}}>{sub}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{display:'flex',alignItems:'center',gap:11,padding:'10px 0 2px'}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>Max guests per member</div>
+                  <div style={{fontSize:10.5,color:'var(--ink-40)'}}>Per day, when guests are allowed</div>
+                </div>
+                <select className="form-input" style={{maxWidth:80}} value={settings?.maxGuests??3} onChange={e=>write('settings/maxGuests',parseInt(e.target.value))}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div style={{fontSize:10,color:'var(--ink-40)',marginTop:8,fontStyle:'italic'}}>Changes apply instantly. Game mode templates are still managed in the Admin Portal.</div>
+            </div>
+          )}
+        </div>
         {/* ── 5. ROSTER ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
