@@ -1502,6 +1502,10 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
               </div>
             </div>
             )}
+            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'2px 0 10px',cursor:'pointer'}}>
+              <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
+              📣 Also send as push notification to everyone
+            </label>
             {err && <div className="form-err">{err}</div>}
           </div>
           <div className="modal-foot">
@@ -1778,7 +1782,11 @@ function TeeTimeModal({ day, onClose, onSave }){
             <label className="form-label">Tee time</label>
             <TimePicker initialValue={initialTime} onChange={v=>{setTime(v);setErr('');}}/>
           </div>
-          {err && <div className="form-err">{err}</div>}
+          <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'2px 0 10px',cursor:'pointer'}}>
+              <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
+              📣 Also send as push notification to everyone
+            </label>
+            {err && <div className="form-err">{err}</div>}
         </div>
         <div className="modal-foot">
           <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
@@ -7526,6 +7534,7 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
   const [display, setDisplay] = useState(existing?.display || 'banner');
   const [dismissal, setDismissal] = useState(existing?.dismissal || 'user');
   const [autoExpireDays, setAutoExpireDays] = useState(7);
+  const [sendPush, setSendPush] = useState(false);
   const [resetDismissals, setResetDismissals] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -7562,6 +7571,9 @@ function AnnouncementComposeModal({ existing, currentUser, write, push, del, onC
         }
       } else {
         await push('announcements', data);
+      }
+      if(sendPush && typeof sendPushNotify==='function'){
+        sendPushNotify({audience:'all',title:'📣 '+data.title,body:data.body.slice(0,140),url:'/',tag:'announce'});
       }
       onClose();
     } catch(e){
@@ -8111,7 +8123,11 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
             {phoneIncomplete && !phoneMismatch && <div style={{fontSize:11,color:'var(--warn-ink)',marginTop:4}}>Enter a full 10-digit number</div>}
           </div>
 
-          {err && <div className="form-err">{err}</div>}
+          <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,fontWeight:600,color:'var(--ink)',margin:'2px 0 10px',cursor:'pointer'}}>
+              <input type="checkbox" checked={sendPush} onChange={e=>setSendPush(e.target.checked)}/>
+              📣 Also send as push notification to everyone
+            </label>
+            {err && <div className="form-err">{err}</div>}
 
           {/* Read-only note */}
           <div style={{marginTop:16,padding:'10px 12px',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,fontSize:11,color:'var(--ink-50)',lineHeight:1.5}}>
