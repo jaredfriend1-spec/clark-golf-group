@@ -5711,7 +5711,7 @@ function EmailViewV2({ week, isAdmin, history }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5740,6 +5740,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [editRosterHcp, setEditRosterHcp] = useState('');
   const [editRosterTarget, setEditRosterTarget] = useState('');
   const [showAppSettings, setShowAppSettings] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
   const [approveModal, setApproveModal] = useState(null); // {key, req}
   const [apr, setApr] = useState({tee:'Whites',hcp:'',pin:'',email:''});
   const [editRosterTee, setEditRosterTee] = useState('Whites');
@@ -6452,6 +6453,37 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         </div>
 
 
+        {/* ── CANCELLED DAYS LOG ── */}
+        {cancelledDays&&Object.keys(cancelledDays).length>0&&(
+          <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+            <SectionHeader
+              icon={<span style={{fontSize:13}}>🌧</span>}
+              title="Cancelled Days"
+              count={Object.keys(cancelledDays).length}
+              open={showCancelled}
+              onToggle={()=>setShowCancelled(s=>!s)}
+            />
+            {showCancelled&&(
+              <div style={{borderTop:'1px solid var(--hairline)',padding:'4px 16px 12px'}}>
+                {Object.entries(cancelledDays).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).map(([k,c])=>(
+                  <div key={k} style={{padding:'10px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                    <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}}>
+                      <span style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{c.day}</span>
+                      <span style={{fontSize:11.5,color:'var(--ink-50)'}}>{c.date}</span>
+                      {c.reason&&<span style={{fontSize:11,fontWeight:600,color:'var(--money-neg)',background:'var(--money-neg-soft, #fee2e2)',padding:'1px 7px',borderRadius:6}}>{c.reason}</span>}
+                    </div>
+                    <div style={{fontSize:11,color:'var(--ink-50)',marginTop:3,lineHeight:1.55}}>
+                      Cancelled by <b>{c.by||'admin'}</b> · {c.ts?new Date(c.ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):''}
+                      {c.signups&&c.signups.length>0
+                        ? <> · {c.signups.length} signed up: <span style={{color:'var(--ink-70)'}}>{c.signups.join(', ')}</span></>
+                        : <> · no one was signed up</>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {/* ── ACTIVITY LOG ── */}
         {activityLog&&activityLog.length>0&&(
           <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
@@ -8251,6 +8283,7 @@ function App(){
   const [rosterTargets, setRosterTargets] = useState({});
   const [pushOn, setPushOn] = useState(()=>{try{return localStorage.getItem('cgPushOn')==='1'&&('Notification' in window)&&Notification.permission==='granted';}catch(e){return false;}});
   const [joinRequests, setJoinRequests] = useState({});
+  const [cancelledDays, setCancelledDays] = useState({});
   const [alertsDrops, setAlertsDrops] = useState({});
   const [rosterTee, setRosterTee] = useState({});
   const [rosterPins, setRosterPins] = useState({});
@@ -8301,6 +8334,7 @@ function App(){
     u.push(read('rosterHcp', v=>setRosterHcp(v||{})));
     u.push(read('rosterTargets', v=>setRosterTargets(v||{})));
     u.push(read('joinRequests', v=>setJoinRequests(v||{})));
+    u.push(read('cancelledDays', v=>setCancelledDays(v||{})));
     u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
     u.push(read('rosterPins', v=>setRosterPins(v||{})));
@@ -8819,7 +8853,7 @@ function App(){
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
-        joinRequests={joinRequests} alertsDrops={alertsDrops} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
+        joinRequests={joinRequests} alertsDrops={alertsDrops} cancelledDays={cancelledDays} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
         rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterTargets={rosterTargets} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}
         rosterEmails={rosterEmails} rosterPins={rosterPins}
         rosterAdmins={rosterAdmins} activityLog={activityLog}
