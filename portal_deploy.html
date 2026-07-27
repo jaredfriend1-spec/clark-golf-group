@@ -1337,9 +1337,9 @@ function RosterTab(){
         {pend.map(([k2,r])=>(
           <div key={k2} style={{padding:"8px 0",borderTop:"1px solid #eee"}}>
             <div style={{fontSize:13.5,fontWeight:700}}>{r.name}</div>
-            <div style={{fontSize:11.5,color:"#64748b",margin:"2px 0 6px"}}>{r.phone||""}{r.email?(" \u00b7 "+r.email):""}{r.referredBy?(" \u00b7 knows "+r.referredBy):""}</div>
+            <div style={{fontSize:11.5,color:"#64748b",margin:"2px 0 6px"}}>{r.phone||""}{r.email?(" · "+r.email):""}{r.referredBy?(" · knows "+r.referredBy):""}</div>
             <div style={{display:"flex",gap:6}}>
-              <button className="btn btn-sm" onClick={()=>{setApr({tee:"Whites",hcp:"",pin:"",email:r.email||""});setAprModal({key:k2,req:r});}}>Approve\u2026</button>
+              <button className="btn btn-sm" onClick={()=>{setApr({tee:"Whites",hcp:"",pin:"",email:r.email||""});setAprModal({key:k2,req:r});}}>Approve…</button>
               <button className="btn btn-sm btn-ghost" style={{color:"#b91c1c"}} onClick={()=>{if(window.confirm("Decline "+r.name+"?")){wr("joinRequests/"+k2+"/status","declined");wr("joinRequests/"+k2+"/handledAt",Date.now());showToast("Declined");}}}>Decline</button>
             </div>
           </div>
@@ -2939,45 +2939,45 @@ function SeasonTab(){
 
   async function archiveSeason(){
     if(typed.trim().toUpperCase()!=="ARCHIVE"||busy)return;
-    setBusy(true);setLog("Snapshotting live season\u2026");
+    setBusy(true);setLog("Snapshotting live season…");
     try{
       const dbr=db;
       const hist=(await dbr.ref("history").once("value")).val()||{};
       const att=(await dbr.ref("attendance").once("value")).val()||null;
       const rc=Object.keys(hist).length;
-      if(!rc){setLog("Nothing to archive \u2014 live history is empty.");setBusy(false);return;}
+      if(!rc){setLog("Nothing to archive — live history is empty.");setBusy(false);return;}
       const fund=Math.round(Object.values(hist).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0));
       const sname=(season&&season.name)||String(new Date().getFullYear());
       const id=(sname+"_"+Date.now()).replace(/[^A-Za-z0-9_-]/g,"_");
       await dbr.ref("seasons/"+id).set({meta:{name:sname,endDate:(season&&season.endDate)||null,startedAt:(season&&season.startedAt)||null,archivedAt:Date.now(),by:me,roundCount:rc,attRounds:att&&att.rounds?(Array.isArray(att.rounds)?att.rounds.length:Object.keys(att.rounds).length):0,fundTotal:fund},history:hist,attendance:att});
-      setLog("Verifying snapshot\u2026");
+      setLog("Verifying snapshot…");
       const back=(await dbr.ref("seasons/"+id+"/history").once("value")).val()||{};
-      if(Object.keys(back).length!==rc){setLog("\u26a0 VERIFY FAILED \u2014 live data NOT touched. Snapshot kept at seasons/"+id+" \u2014 tell Claude.");setBusy(false);return;}
+      if(Object.keys(back).length!==rc){setLog("⚠ VERIFY FAILED — live data NOT touched. Snapshot kept at seasons/"+id+" — tell Claude.");setBusy(false);return;}
       await dbr.ref("fundAudit").push({action:"season_archive",season:sname,fundTotalAtArchive:fund,rounds:rc,by:me,ts:Date.now()});
-      setLog("Snapshot verified ("+rc+" rounds). Clearing live season\u2026");
+      setLog("Snapshot verified ("+rc+" rounds). Clearing live season…");
       await dbr.ref("history").set(null);
       await dbr.ref("attendance").set(null);
       const nextName=String((parseInt(sname,10)||new Date().getFullYear())+1);
       await dbr.ref("settings/season").set({name:nextName,startedAt:Date.now()});
       setTyped("");
-      setLog("\u2705 Season "+sname+" archived \u2014 "+rc+" rounds, $"+fund+" fund recorded. Live data is fresh for "+nextName+". Roster, PINs, settings and game templates untouched.");
-    }catch(e){setLog("\u26a0 Error: "+e.message+" \u2014 live data was not cleared unless the log above says so.");}
+      setLog("✅ Season "+sname+" archived — "+rc+" rounds, $"+fund+" fund recorded. Live data is fresh for "+nextName+". Roster, PINs, settings and game templates untouched.");
+    }catch(e){setLog("⚠ Error: "+e.message+" — live data was not cleared unless the log above says so.");}
     setBusy(false);
   }
 
   async function restoreSeason(id,meta){
     if(busy)return;
-    if(liveRounds>0){window.alert("Live history is not empty ("+liveRounds+" rounds) \u2014 restore is blocked to avoid overwriting. Archive or clear the live season first.");return;}
+    if(liveRounds>0){window.alert("Live history is not empty ("+liveRounds+" rounds) — restore is blocked to avoid overwriting. Archive or clear the live season first.");return;}
     if(!window.confirm("Restore season \""+(meta&&meta.name)+"\" ("+(meta&&meta.roundCount)+" rounds) back to LIVE?"))return;
-    setBusy(true);setLog("Restoring\u2026");
+    setBusy(true);setLog("Restoring…");
     try{
       const snap=(await db.ref("seasons/"+id).once("value")).val();
       if(!snap||!snap.history){setLog("Archive unreadable.");setBusy(false);return;}
       await db.ref("history").set(snap.history);
       if(snap.attendance)await db.ref("attendance").set(snap.attendance);
       if(snap.meta&&snap.meta.name)await db.ref("settings/season").set({name:snap.meta.name,endDate:snap.meta.endDate||null,startedAt:snap.meta.startedAt||Date.now()});
-      setLog("\u2705 Restored \""+(snap.meta&&snap.meta.name)+"\" to live ("+Object.keys(snap.history).length+" rounds). The archive copy is kept.");
-    }catch(e){setLog("\u26a0 Restore error: "+e.message);}
+      setLog("✅ Restored \""+(snap.meta&&snap.meta.name)+"\" to live ("+Object.keys(snap.history).length+" rounds). The archive copy is kept.");
+    }catch(e){setLog("⚠ Restore error: "+e.message);}
     setBusy(false);
   }
 
@@ -2990,11 +2990,11 @@ function SeasonTab(){
   return(<div>
     <div className="pg-eyebrow">Master Only</div>
     <div className="pg-title">Season Management</div>
-    <div className="pg-sub">End the season safely \u2014 archive everything, start fresh, restore if needed</div>
+    <div className="pg-sub">End the season safely — archive everything, start fresh, restore if needed</div>
 
     {/* CURRENT SEASON */}
     <div className="card">
-      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>\ud83d\udcc5</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Current Season</span></div>
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📅</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Current Season</span></div>
         {daysLeft!=null&&<span style={{fontSize:10,fontWeight:800,padding:"3px 9px",borderRadius:20,background:daysLeft<=35?"rgba(245,158,11,0.12)":"rgba(255,255,255,0.06)",color:daysLeft<=35?"#fbbf24":"rgba(255,255,255,0.4)"}}>{daysLeft>=0?(daysLeft+" days left"):"ended "+(-daysLeft)+"d ago"}</span>}
       </div>
       <div className="card-body">
@@ -3008,16 +3008,16 @@ function SeasonTab(){
 
     {/* ARCHIVE */}
     <div className="card">
-      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>\ud83d\uddc4\ufe0f</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archive Season &amp; Start Fresh</span></div></div>
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>🗄️</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archive Season &amp; Start Fresh</span></div></div>
       <div className="card-body">
         <div style={{fontSize:13,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:10}}>
-          Live right now: <b style={{color:"#e2e8f0"}}>{liveRounds} rounds</b> \u00b7 <b style={{color:"#e2e8f0"}}>{attCount} attendance rounds</b> \u00b7 tournament fund <b style={{color:"#e2e8f0"}}>${Math.round(liveFund)}</b>.<br/>
+          Live right now: <b style={{color:"#e2e8f0"}}>{liveRounds} rounds</b> · <b style={{color:"#e2e8f0"}}>{attCount} attendance rounds</b> · tournament fund <b style={{color:"#e2e8f0"}}>${Math.round(liveFund)}</b>.<br/>
           Archiving copies ALL of it into a permanent snapshot first, <b>verifies the copy</b>, logs the fund total to the audit trail, and only then clears live history + attendance and rolls the season name. Roster, PINs, settings and game templates are never touched.
         </div>
         <div style={lbl}>Type ARCHIVE to confirm</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <input style={{...inp,maxWidth:160,letterSpacing:"0.15em",fontWeight:700}} value={typed} onChange={e=>setTyped(e.target.value)}/>
-          <button className="btn btn-sm" disabled={typed.trim().toUpperCase()!=="ARCHIVE"||busy} style={{background:typed.trim().toUpperCase()==="ARCHIVE"?"#b91c1c":"rgba(255,255,255,0.08)",color:"#fff",opacity:busy?0.6:1}} onClick={archiveSeason}>{busy?"Working\u2026":"Archive season"}</button>
+          <button className="btn btn-sm" disabled={typed.trim().toUpperCase()!=="ARCHIVE"||busy} style={{background:typed.trim().toUpperCase()==="ARCHIVE"?"#b91c1c":"rgba(255,255,255,0.08)",color:"#fff",opacity:busy?0.6:1}} onClick={archiveSeason}>{busy?"Working…":"Archive season"}</button>
         </div>
         {log&&<div style={{marginTop:10,fontSize:12.5,color:"#fbbf24",lineHeight:1.6}}>{log}</div>}
       </div>
@@ -3025,19 +3025,25 @@ function SeasonTab(){
 
     {/* ARCHIVED SEASONS */}
     <div className="card">
-      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>\ud83d\udcda</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archived Seasons</span></div></div>
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📚</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archived Seasons</span></div></div>
       <div className="card-body">
         {archList.length===0?<div style={{fontSize:13,color:"rgba(255,255,255,0.35)"}}>No archived seasons yet.</div>:
           archList.map(([id,s])=>{const m=s.meta||{};return(
             <div key={id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:180}}>
                 <div style={{fontSize:13.5,fontWeight:700,color:"#e2e8f0"}}>{m.name||id}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{m.roundCount||0} rounds \u00b7 fund ${m.fundTotal||0} \u00b7 archived {m.archivedAt?new Date(m.archivedAt).toLocaleDateString():""} by {m.by||""}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{m.roundCount||0} rounds · fund ${m.fundTotal||0} · archived {m.archivedAt?new Date(m.archivedAt).toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}):""} by {m.by||""}</div>
               </div>
               <button className="btn btn-sm btn-ghost" disabled={busy} onClick={()=>restoreSeason(id,m)}>Restore to live</button>
+              <button className="btn btn-sm btn-ghost" disabled={busy} style={{color:"#f87171"}} onClick={()=>{
+                const t=window.prompt("Permanently delete this archive? Type the season name (\""+(m.name||id)+"\") to confirm:");
+                if(t==null)return;
+                if(String(t).trim()!==(m.name||id)){window.alert("Name did not match — nothing deleted.");return;}
+                db.ref("seasons/"+id).remove().then(()=>setLog("Archive \""+(m.name||id)+"\" ("+(m.roundCount||0)+" rounds) permanently deleted."));
+              }}>Delete</button>
             </div>
           );})}
-        <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>Restore is blocked unless live history is empty \u2014 archives are never deleted from here.</div>
+        <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>Restore is blocked unless live history is empty. Delete requires typing the season name — it is permanent.</div>
       </div>
     </div>
 
@@ -3045,7 +3051,7 @@ function SeasonTab(){
     {/* Stats by Season — LIVE in the app */}
     <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📊</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Stats by Season</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(54,165,111,0.12)",color:"#4ade80",border:"1px solid rgba(54,165,111,0.2)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Live</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Done — in the main app, the History, Standings and Stats tabs have a <b style={{color:"#e2e8f0"}}>Season selector</b>. Everyone can browse any archived season’s rounds, money and analytics exactly like the current one.</div></div></div>
     <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>🏆</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Season Awards</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.15)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Coming Soon</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Auto-generated award summaries from an archived season — most rounds, most skins, best net average, biggest single-round win — shareable as a formatted email. Next up after launch.</div></div></div>
-    <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management \u00b7 Master Only \u00b7 Fund reset is handled by Archive (audit-logged)</div>
+    <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management · Master Only · Fund reset is handled by Archive (audit-logged)</div>
   </div>);
 }
 function getAnnCategory(id){return ANNOUNCEMENT_CATEGORIES.find(c=>c.id===id)||ANNOUNCEMENT_CATEGORIES[4];}
