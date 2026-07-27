@@ -5901,6 +5901,37 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
           </div>
         );
       })()}
+        {cancelDay&&(
+          <div onClick={e=>{if(e.target===e.currentTarget)setCancelDay(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:9100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+            <div style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:340}}>
+              <div style={{fontSize:14,fontWeight:700,color:'var(--money-neg)',marginBottom:4}}>🌧 Cancel {cancelDay}?</div>
+              <div style={{fontSize:12,color:'var(--ink-70)',lineHeight:1.6,marginBottom:10}}>
+                Removes {cancelDay} from the week — sign-ups, teams, tee time and game are cleared. The cancellation (and who was signed up) is kept in a permanent log, and a note stays on the Week tab.
+              </div>
+              <input className="form-input" placeholder="Reason (optional — e.g. rain)" value={cancelReason} onChange={e=>setCancelReason(e.target.value)} style={{marginBottom:8}}/>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginBottom:5}}>Type CANCEL to confirm</div>
+              <input className="form-input" value={cancelTyped} onChange={e=>setCancelTyped(e.target.value)} style={{marginBottom:12,letterSpacing:'0.15em',fontWeight:700}}/>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setCancelDay(null)}>Keep the day</button>
+                <button className="btn btn-sm" disabled={cancelTyped.trim().toUpperCase()!=='CANCEL'}
+                  style={{flex:1,background:cancelTyped.trim().toUpperCase()==='CANCEL'?'var(--money-neg)':'var(--hairline)',color:'#fff',border:'none',borderRadius:8,padding:'7px',fontWeight:700,cursor:cancelTyped.trim().toUpperCase()==='CANCEL'?'pointer':'default',fontFamily:'inherit'}}
+                  onClick={()=>{
+                    const d=cancelDay;
+                    const dayDate=(week?.dates&&week.dates[d])||'';
+                    const sus=Object.entries(week?.signups||{}).filter(([,s])=>s.day===d);
+                    push('cancelledDays',{day:d,date:dayDate,reason:cancelReason.trim()||null,by:(currentUser&&currentUser.name)||'admin',ts:Date.now(),signups:sus.map(([,s])=>s.name)});
+                    sus.forEach(([k])=>{del('week/signups/'+k);});
+                    onDeactivateDay&&onDeactivateDay(d);
+                    if(typeof sendPushNotify==='function')sendPushNotify({audience:'all',title:'🌧 '+d+' is cancelled',body:(cancelReason.trim()?cancelReason.trim()+' — ':'')+'sign-ups for '+d+' have been cleared.',url:'/',tag:'cancel-'+d});
+                    setCancelDay(null);
+                    if(wizDay===d)setWizDay(null);
+                  }}>
+                  Cancel {cancelDay}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       <div style={{padding:'0 12px'}}>
 
@@ -5957,8 +5988,8 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     </div>
                     <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                       {!isActive&&(
-                        <button onClick={()=>{const on=!week?.showNoteOnly?.[day];onToggleNoteOnly(day,on);if(on){setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}else{if(noteEditDay===day)setNoteEditDay(null);}}}
-                          style={{padding:'5px 12px',borderRadius:8,lineHeight:1.35,border:'1.5px solid',borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':'var(--hairline)',background:week?.showNoteOnly?.[day]?'var(--warn-soft)':'transparent',cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:600,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>{const on=!week?.showNoteOnly?.[day];onToggleNoteOnly(day,on);if(on){setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}else{if(noteEditDay===day)setNoteEditDay(null);}}}
+                          style={{borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':undefined,background:week?.showNoteOnly?.[day]?'var(--warn-soft)':undefined,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
                           {week?.showNoteOnly?.[day]?'📌 Showing note on Week tab':'Show note on Week tab'}
                         </button>
                       )}
@@ -6527,37 +6558,6 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         </div>
 
 
-        {cancelDay&&(
-          <div onClick={e=>{if(e.target===e.currentTarget)setCancelDay(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:9100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-            <div style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:340}}>
-              <div style={{fontSize:14,fontWeight:700,color:'var(--money-neg)',marginBottom:4}}>🌧 Cancel {cancelDay}?</div>
-              <div style={{fontSize:12,color:'var(--ink-70)',lineHeight:1.6,marginBottom:10}}>
-                Removes {cancelDay} from the week — sign-ups, teams, tee time and game are cleared. The cancellation (and who was signed up) is kept in a permanent log, and a note stays on the Week tab.
-              </div>
-              <input className="form-input" placeholder="Reason (optional — e.g. rain)" value={cancelReason} onChange={e=>setCancelReason(e.target.value)} style={{marginBottom:8}}/>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginBottom:5}}>Type CANCEL to confirm</div>
-              <input className="form-input" value={cancelTyped} onChange={e=>setCancelTyped(e.target.value)} style={{marginBottom:12,letterSpacing:'0.15em',fontWeight:700}}/>
-              <div style={{display:'flex',gap:8}}>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setCancelDay(null)}>Keep the day</button>
-                <button className="btn btn-sm" disabled={cancelTyped.trim().toUpperCase()!=='CANCEL'}
-                  style={{flex:1,background:cancelTyped.trim().toUpperCase()==='CANCEL'?'var(--money-neg)':'var(--hairline)',color:'#fff',border:'none',borderRadius:8,padding:'7px',fontWeight:700,cursor:cancelTyped.trim().toUpperCase()==='CANCEL'?'pointer':'default',fontFamily:'inherit'}}
-                  onClick={()=>{
-                    const d=cancelDay;
-                    const dayDate=(week?.dates&&week.dates[d])||'';
-                    const sus=Object.entries(week?.signups||{}).filter(([,s])=>s.day===d);
-                    push('cancelledDays',{day:d,date:dayDate,reason:cancelReason.trim()||null,by:(currentUser&&currentUser.name)||'admin',ts:Date.now(),signups:sus.map(([,s])=>s.name)});
-                    sus.forEach(([k])=>{del('week/signups/'+k);});
-                    onDeactivateDay&&onDeactivateDay(d);
-                    if(typeof sendPushNotify==='function')sendPushNotify({audience:'all',title:'🌧 '+d+' is cancelled',body:(cancelReason.trim()?cancelReason.trim()+' — ':'')+'sign-ups for '+d+' have been cleared.',url:'/',tag:'cancel-'+d});
-                    setCancelDay(null);
-                    if(wizDay===d)setWizDay(null);
-                  }}>
-                  Cancel {cancelDay}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         {/* ── CANCELLED DAYS LOG ── */}
         {cancelledDays&&Object.keys(cancelledDays).length>0&&(
           <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
