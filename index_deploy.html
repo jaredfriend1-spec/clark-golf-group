@@ -4163,6 +4163,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
           const teamNameDisplay=published?team.name:('Group '+(ti+1));
           const playerCount=safeArray(team.players).length;
           const teamHcp=((team.totalHcp||0)+(blindDraw?parseFloat(blindDraw.handicap||0):0)).toFixed(1);
+          const teeChip=(()=>{const raw=week&&week.teeTimesInfo&&week.teeTimesInfo[activeDay];if(!raw)return null;const arr=String(raw).split(',').map(s=>s.trim()).filter(Boolean);return arr[ti]||null;})();
           return(
             <div key={team.id||ti} className="day-card" style={{marginBottom:12}}>
               {/* Team header */}
@@ -4180,6 +4181,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
                   <span style={{fontSize:published?15:13,fontWeight:700,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{teamNameDisplay}</span>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                  {teeChip&&<span style={{fontSize:11,color:'#7dd3a8',background:'rgba(125,211,168,0.12)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>🕐 {teeChip}</span>}
                   <span style={{fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>{indMode?('⛳ Off '+(ti+1===1?'1st':ti+1===2?'2nd':ti+1===3?'3rd':(ti+1)+'th')):('HCP '+teamHcp)}</span>
                   {manualMode && isAdmin && !published && (
                     <button onClick={()=>setPickingTeam(pickingTeam===ti?null:ti)} style={{background:pickingTeam===ti?'var(--brand)':'rgba(255,255,255,0.1)',border:'none',borderRadius:6,padding:'4px 8px',color:pickingTeam===ti?'#0A1614':'#fff',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ Add</button>
