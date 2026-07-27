@@ -382,7 +382,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday'];
+const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // ═══════════════ HELPERS ═══════════════
@@ -406,10 +406,13 @@ function getWeekDates(){
   const sat=new Date(mon);sat.setDate(mon.getDate()+5);
   const sun=new Date(mon);sun.setDate(mon.getDate()+6);
   const nxtMon=new Date(mon);nxtMon.setDate(mon.getDate()+7);
+  const tue=new Date(mon);tue.setDate(mon.getDate()+8);
+  const wed=new Date(mon);wed.setDate(mon.getDate()+9);
+  const thu=new Date(mon);thu.setDate(mon.getDate()+10);
   const fmt=d=>d.toISOString().split('T')[0];
-  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(nxtMon)};
+  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(nxtMon),Tuesday:fmt(tue),Wednesday:fmt(wed),Thursday:fmt(thu)};
 }
-function getWeekLabel(week){const wd=getWeekDates();const fri=(week?.dates?.Friday)||wd.Friday;const mon=(week?.dates?.Monday)||wd.Monday;return'Week of '+fmtD(fri)+' - '+fmtD(mon);}
+function getWeekLabel(week){const wd=getWeekDates();const vals=Object.values(week?.dates||{}).filter(Boolean).sort();if(vals.length)return'Week of '+fmtD(vals[0])+' - '+fmtD(vals[vals.length-1]);return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
 function getNextWeekDates(){
   const now=new Date();
   const day=now.getDay();
@@ -419,8 +422,11 @@ function getNextWeekDates(){
   const sat=new Date(fri);sat.setDate(fri.getDate()+1);
   const sun=new Date(fri);sun.setDate(fri.getDate()+2);
   const mon=new Date(fri);mon.setDate(fri.getDate()+3);
+  const tue=new Date(fri);tue.setDate(fri.getDate()+4);
+  const wed=new Date(fri);wed.setDate(fri.getDate()+5);
+  const thu=new Date(fri);thu.setDate(fri.getDate()+6);
   const fmt=d=>d.toISOString().split('T')[0];
-  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(mon)};
+  return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(mon),Tuesday:fmt(tue),Wednesday:fmt(wed),Thursday:fmt(thu)};
 }
 function getNextWeekLabel(){const wd=getNextWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
 
@@ -1949,6 +1955,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         <DayCardV2
           key={day.day}
           day={day}
+          teeInfo={week?.teeTimesInfo?.[day.day]}
+          pubGroups={week?.teamsPublished?.[day.day]?safeArray(week?.teams?.[day.day]):null}
           modeInfo={(()=>{const mid=week?.modes?.[day.day];const gr=settings?.gameRules;if(mid==='__custom__'){const c=week?.modeConfig?.[day.day];return c?{name:c.name||'Custom game',type:c.type,id:'__custom__',cfg:c}:null;}const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];return mo?{name:mo.name,type:mo.type,id:mid||null,cfg:mo}:null;})()}
           modesList={Object.entries(settings?.gameRules?.modes||{}).map(([id,m])=>({id,name:m.name,type:m.type,cfg:m}))}
           dayCustom={week?.modeConfig?.[day.day]||null}
@@ -2041,7 +2049,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
+function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
   const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
@@ -2144,6 +2152,18 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, onSetMode, onGoManage,
                 <span>Tee <strong>{day.tee.time}</strong></span>
               )}
             </div>
+            {teeInfo&&String(teeInfo).trim()&&(
+              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:4}}>
+                {String(teeInfo).split(',').map(s=>s.trim()).filter(Boolean).map((t,i)=>{
+                  const g=pubGroups&&pubGroups[i];
+                  return(
+                    <span key={i} style={{fontSize:10.5,fontWeight:700,padding:'2px 8px',borderRadius:12,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',color:'var(--ink-70)'}}>
+                      🕐 {t}{g?(' · '+(g.name||('Group '+(i+1)))+' ('+(safeArray(g.players).length)+')'):''}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="day-count">
             <div className={'day-count-num' + (count === 0 ? ' zero' : '')}>{count}</div>
@@ -6653,6 +6673,8 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
   const [isLottery, setIsLottery] = useState(false);
   const [teeOpen, setTeeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [teeInfoOpen, setTeeInfoOpen] = useState(false);
+  const [teeInfoDraft, setTeeInfoDraft] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
   const [gameModal, setGameModal] = useState(null); // null | 'list' | 'custom'
   const teeInfo=week?.teeTimes?.[day];
@@ -6724,6 +6746,26 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
         tone={teeStr?'var(--ink)':'var(--ink-40)'}
         action={teeOpen?'Close':(teeInfo?'Change ›':'Set ›')}
         onAction={()=>{setTeeOpen(o=>!o);if(teeInfo){setIsLottery(!!teeInfo.lottery);setNewTime('');}}}/>
+      {(()=>{const ti=(week?.teeTimesInfo&&week.teeTimesInfo[day])||'';return(<>
+      <Row icon="🕐" label="More tee times"
+        value={ti?ti:'None'}
+        sub={ti?'Info only — shown to players with group counts once groups are published':null}
+        tone={ti?'var(--ink)':'var(--ink-40)'}
+        action={teeInfoOpen?'Close':(ti?'Change ›':'Add ›')}
+        onAction={()=>{setTeeInfoDraft(ti);setTeeInfoOpen(o=>!o);}}/>
+      {teeInfoOpen&&(
+        <div style={{...rowStyle,flexDirection:'column',alignItems:'stretch',gap:8}}>
+          <input value={teeInfoDraft} onChange={e=>setTeeInfoDraft(e.target.value)}
+            placeholder="Comma-separated, in tee-off order — e.g. 9:00, 9:10, 9:20"
+            style={{width:'100%',border:'1px solid var(--hairline)',borderRadius:8,outline:'none',padding:'9px 11px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',boxSizing:'border-box',background:'var(--surface)'}}/>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:10,color:'var(--ink-40)',flex:1}}>First time = Group 1, second = Group 2, and so on.</span>
+            {ti&&<button className="btn btn-ghost btn-sm" onClick={()=>{write&&write('week/teeTimesInfo/'+day,null);setTeeInfoOpen(false);}}>Clear</button>}
+            <button className="btn btn-primary btn-sm" onClick={()=>{write&&write('week/teeTimesInfo/'+day,teeInfoDraft.trim()||null);setTeeInfoOpen(false);}}>Save</button>
+          </div>
+        </div>
+      )}
+      </>);})()}
       {teeOpen&&(
         <div style={{...rowStyle,flexWrap:'wrap',background:'var(--surface)'}}>
           <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,fontWeight:600,color:'var(--ink)',flexShrink:0,cursor:'pointer'}}>
@@ -8435,7 +8477,16 @@ function App(){
   function deactivateDay(day){ const newWeek={...week,activeDays:safeArray(week?.activeDays).filter(d=>d!==day)};const tt={...(week?.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;if(newWeek.modes){const m={...newWeek.modes};delete m[day];newWeek.modes=m;}if(newWeek.modeConfig){const mc={...newWeek.modeConfig};delete mc[day];newWeek.modeConfig=mc;}write('week',newWeek); }
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
   function updateTeeTime(day,data){ const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt}); }
-  function addSignup(entry){ logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
+  function addSignup(entry){
+    // Duplicate/typo guard: normalize, block same-day dupes, snap to roster spelling
+    const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+    const n=norm(entry.name);
+    if(!n){window.alert('Name is required.');return;}
+    const dupe=Object.values(week?.signups||{}).find(s=>s.day===entry.day&&norm(s.name)===n);
+    if(dupe){window.alert(entry.name+' is already signed up for '+entry.day+'.');return;}
+    const rosterMatch=(effectiveRoster||[]).find(p=>norm(p.name)===n);
+    if(rosterMatch&&rosterMatch.name!==entry.name)entry={...entry,name:rosterMatch.name};
+    logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
   function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop'});}} del('week/signups/'+key); }
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
