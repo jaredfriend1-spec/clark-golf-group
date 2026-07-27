@@ -3660,7 +3660,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
 
 
       <div className="page-eyebrow">{indMode?"Groups · tee-off order":"Teams"}</div>
-      <div className="page-title">Team Builder</div>
+      <div className="page-title">{indMode?"Group Builder":"Team Builder"}</div>
       <div className="page-sub">
         {published
           ? <><strong>Published</strong> — players can see their teams</>
@@ -4311,7 +4311,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
           <div style={{textAlign:'center',padding:'32px 20px 20px',color:'var(--ink-50)'}}>
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ink-20)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{marginBottom:10}}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
             <div style={{fontSize:14,fontWeight:600,color:'var(--ink-50)',marginBottom:4}}>Ready to build teams</div>
-            <div style={{fontSize:12,color:'var(--ink-40)'}}>Review any requests above, then tap Auto-generate or Manual build.</div>
+            <div style={{fontSize:12,color:'var(--ink-40)'}}>{indMode?'Review any requests above, then tap Build groups — or Manual build to place people yourself.':'Review any requests above, then tap Auto-generate or Manual build.'}</div>
           </div>
         )}
 
@@ -5310,7 +5310,7 @@ function indEmailData(s){
   return {ranking,rows,awardMap,skinMap,name:(s.modeSnapshot&&s.modeSnapshot.name)||'Individual game'};
 }
 
-function renderEmailHTML(week,notes,subject,events){
+function renderEmailHTML(week,notes,subject,events,history){
   const days=getUpcomingDays(week);
   const dateRange=days.length?getShortDateRange(week,days):'';
   const allSignups=week?.signups||{};
@@ -5361,7 +5361,10 @@ function renderEmailHTML(week,notes,subject,events){
     }
 
     // Individual round results (Stableford)
-    const dayScores=week.scores&&week.scores[day];
+    // Results source: live week scores, else the FINALIZED round from history
+    // for this day's date (finalize clears week scores — results must survive).
+    const histRound=(()=>{const d=week.dates&&week.dates[day];if(!d)return null;const cands=Object.values(history||{}).filter(r=>r&&r.day===day&&r.date===d&&r.scores);return cands.sort((a,b)=>(b.archivedAt||0)-(a.archivedAt||0))[0]||null;})();
+    const dayScores=(week.scores&&week.scores[day])||(histRound&&histRound.scores)||null;
     const isIndDay=dayScores&&dayScores.gameMode==='individual';
     if(isIndDay&&dayScores.indScores&&Object.keys(dayScores.indScores).length){
       const e=indEmailData(dayScores);
@@ -5378,6 +5381,23 @@ function renderEmailHTML(week,notes,subject,events){
       });
       html+='</table>';
       html+='<div style="font-size:11px;color:'+INK50+';margin-top:8px;">Tournament fund'+(dayScores.fundEnabled===false?' (off this round)':'')+': $'+(dayScores.tournFund||0)+((dayScores.skinsEnabled&&dayScores.skinsPot)?(' &middot; Skins pot: $'+dayScores.skinsPot+' ($'+(dayScores.perSkin||0)+'/skin)'):'')+'</div>';
+    }
+
+    // Team round RESULTS (winners per segment + pots) — from live or finalized scores
+    const resTeams=(week.teams&&week.teams[day]&&week.teams[day].length)?week.teams[day]:((histRound&&histRound.teams)||[]);
+    if(!isIndDay&&dayScores&&dayScores.teamScores&&resTeams.length){
+      const segs=[['front','Front 9',dayScores.frontPot],['back','Back 9',dayScores.backPot],['overall','Overall',dayScores.overallPot]];
+      html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:'+INK50+';margin-bottom:8px;">Results</div>';
+      html+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+      segs.forEach(([k,label,pot])=>{
+        const sc=resTeams.map(t=>({name:t.name,v:parseFloat(dayScores.teamScores[t.id]?dayScores.teamScores[t.id][k]:NaN)})).filter(t=>!isNaN(t.v));
+        if(!sc.length)return;
+        const best=Math.min.apply(null,sc.map(t=>t.v));
+        const winners=sc.filter(t=>t.v===best).map(t=>t.name).join(' & ');
+        html+='<tr style="border-bottom:1px solid '+HAIRLINE+';"><td style="padding:5px 4px;color:'+INK50+';width:70px;">'+label+'</td><td style="padding:5px 4px;font-weight:700;">'+winners+'</td><td style="padding:5px 4px;text-align:right;">'+sc.filter(t=>t.v===best)[0].v+((pot||0)>0?(' <span style="color:'+BRAND+';font-weight:800;">$'+pot+'</span>'):'')+'</td></tr>';
+      });
+      html+='</table>';
+      html+='<div style="font-size:11px;color:'+INK50+';margin-top:8px;">'+((dayScores.skinsPot||0)>0?('Skins pot: $'+dayScores.skinsPot+' &middot; '):'')+'Tournament fund: $'+(dayScores.tournFund||0)+'</div>';
     }
 
     // Teams published
@@ -5448,7 +5468,7 @@ function renderEmailHTML(week,notes,subject,events){
   html+='</div></div>';
   return html;
 }
-function renderEmailPlainText(week,notes,subject,events){
+function renderEmailPlainText(week,notes,subject,events,history){
   const days=getUpcomingDays(week);
   const dateRange=getShortDateRange(week,days);
   const allSignups=week?.signups||{};
@@ -5466,7 +5486,8 @@ function renderEmailPlainText(week,notes,subject,events){
     txt+=nl+'\u26F3  '+day.toUpperCase()+' \u00B7 '+fmtDFull(date)+nl;
     txt+='Tee: '+teeStr+' \u00B7 '+playerCount+' player'+(playerCount!==1?'s':'')+' signed up'+nl;
     if(note.trim())txt+=nl+'NOTE: '+note.trim()+nl;
-    const dayScoresP=week.scores&&week.scores[day];
+    const histRoundP=(()=>{const d=week.dates&&week.dates[day];if(!d)return null;const cands=Object.values(history||{}).filter(r=>r&&r.day===day&&r.date===d&&r.scores);return cands.sort((a,b)=>(b.archivedAt||0)-(a.archivedAt||0))[0]||null;})();
+    const dayScoresP=(week.scores&&week.scores[day])||(histRoundP&&histRoundP.scores)||null;
     const isIndDayP=dayScoresP&&dayScoresP.gameMode==='individual';
     if(isIndDayP&&dayScoresP.indScores&&Object.keys(dayScoresP.indScores).length){
       const e=indEmailData(dayScoresP);
@@ -5476,6 +5497,17 @@ function renderEmailPlainText(week,notes,subject,events){
         txt+=' '+String(p.rank).padStart(2)+'. '+p.name+' \u2014 '+p.total+' pts'+(e.ranking==='net'?' ('+(p.net>=0?'+':'')+p.net+')':'')+(won>0?('  $'+won):'')+(sk?('  +$'+sk.amount+' skins'):'')+nl;
       });
       txt+='Fund'+(dayScoresP.fundEnabled===false?' (off)':'')+': $'+(dayScoresP.tournFund||0)+((dayScoresP.skinsEnabled&&dayScoresP.skinsPot)?(' \u00B7 Skins: $'+dayScoresP.skinsPot):'')+nl;
+    }
+    const resTeamsP=(week.teams&&week.teams[day]&&week.teams[day].length)?week.teams[day]:((histRoundP&&histRoundP.teams)||[]);
+    if(!isIndDayP&&dayScoresP&&dayScoresP.teamScores&&resTeamsP.length){
+      txt+=nl+'RESULTS'+nl+div+nl;
+      [['front','Front 9',dayScoresP.frontPot],['back','Back 9',dayScoresP.backPot],['overall','Overall',dayScoresP.overallPot]].forEach(([k,label,pot])=>{
+        const sc=resTeamsP.map(t=>({name:t.name,v:parseFloat(dayScoresP.teamScores[t.id]?dayScoresP.teamScores[t.id][k]:NaN)})).filter(t=>!isNaN(t.v));
+        if(!sc.length)return;
+        const best=Math.min.apply(null,sc.map(t=>t.v));
+        txt+=' '+label+': '+sc.filter(t=>t.v===best).map(t=>t.name).join(' & ')+' ('+best+')'+((pot||0)>0?('  $'+pot):'')+nl;
+      });
+      txt+=((dayScoresP.skinsPot||0)>0?('Skins pot: $'+dayScoresP.skinsPot+' \u00B7 '):'')+'Fund: $'+(dayScoresP.tournFund||0)+nl;
     }
     if(!isIndDayP&&isPublished&&teams.length){
       teams.forEach(t=>{
@@ -5500,7 +5532,7 @@ function renderEmailPlainText(week,notes,subject,events){
 }
 
 // ═══════════════ EMAIL VIEW V2 ═══════════════
-function EmailViewV2({ week, isAdmin }){
+function EmailViewV2({ week, isAdmin, history }){
   const [subject, setSubject] = useState('');
   const [copiedMain, setCopiedMain] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -5518,8 +5550,8 @@ function EmailViewV2({ week, isAdmin }){
 
   async function copyEmail(){
     try{
-      const html=renderEmailHTML(week,notes,subject,events);
-      const plain=renderEmailPlainText(week,notes,subject,events);
+      const html=renderEmailHTML(week,notes,subject,events,history);
+      const plain=renderEmailPlainText(week,notes,subject,events,history);
       await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);
       setCopiedMain(true); setTimeout(()=>setCopiedMain(false),2500);
     }catch(e){ console.error(e); }
@@ -5527,14 +5559,14 @@ function EmailViewV2({ week, isAdmin }){
 
   async function copyPlainText(){
     try{
-      const plain=renderEmailPlainText(week,notes,subject,events);
+      const plain=renderEmailPlainText(week,notes,subject,events,history);
       await navigator.clipboard.writeText(plain);
       setCopiedText(true); setTimeout(()=>setCopiedText(false),2500);
     }catch(e){ console.error(e); }
   }
 
   let emailHTML='';
-  try{ emailHTML=renderEmailHTML(week,notes,subject,events)||''; }
+  try{ emailHTML=renderEmailHTML(week,notes,subject,events,history)||''; }
   catch(e){ emailHTML='<p style="padding:20px;color:#dc2626;">Preview error: '+e.message+'</p>'; }
   const previewDoc='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;padding:12px;background:#f1f5f9;}</style></head><body>'+emailHTML+'</body></html>';
 
@@ -5903,7 +5935,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     </div>
                   )}
                   {wizDay===day&&(
-                    <SetupWizardV2 day={day} week={week} settings={settings} write={write} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>
+                    <SetupWizardV2 day={day} week={week} settings={settings} write={write} push={push} del={del} currentUser={currentUser} onDeactivateDay={onDeactivateDay} onClose={()=>setWizDay(null)} onGoTo={onGoTo} onUpdateTeeTime={onUpdateTeeTime} onToggleLock={onToggleLock}/>
                   )}
                 </div>
               );
@@ -6580,7 +6612,10 @@ function TimePicker({onChange, initialValue}){
   );
 }
 
-function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
+function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onDeactivateDay, onClose, onGoTo, onUpdateTeeTime, onToggleLock }){
+  const [cancelModal,setCancelModal]=useState(false);
+  const [cancelTyped,setCancelTyped]=useState('');
+  const [cancelReason,setCancelReason]=useState('');
   // ── Settings-row day setup: three uniform rows, edits happen in modals/inline ──
   const [newTime, setNewTime] = useState('');
   const [isLottery, setIsLottery] = useState(false);
@@ -6694,9 +6729,42 @@ function SetupWizardV2({ day, week, settings, write, onClose, onGoTo, onUpdateTe
         action={onToggleLock?(dayLocked?'Unlock':'Lock'):null}
         onAction={()=>onToggleLock(day,!dayLocked)}/>
 
-      <div style={{fontSize:10,color:'var(--ink-40)',padding:'2px 4px 8px',fontStyle:'italic'}}>
-        Game can change any time — here or the Week page — until scores are entered.
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'2px 4px 8px'}}>
+        <span style={{fontSize:10,color:'var(--ink-40)',fontStyle:'italic'}}>Game can change any time until scores are entered.</span>
+        <button onClick={()=>{setCancelTyped('');setCancelReason('');setCancelModal(true);}} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:700,color:'var(--money-neg)',padding:'2px 4px'}}>
+          🌧 Cancel this day
+        </button>
       </div>
+      {cancelModal&&(
+        <div onClick={e=>{if(e.target===e.currentTarget)setCancelModal(false);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:9100,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:'var(--surface)',borderRadius:14,padding:18,width:'100%',maxWidth:340}}>
+            <div style={{fontSize:14,fontWeight:700,color:'var(--money-neg)',marginBottom:4}}>🌧 Cancel {day}?</div>
+            <div style={{fontSize:12,color:'var(--ink-70)',lineHeight:1.6,marginBottom:10}}>
+              This removes {day} from the week — sign-ups, teams, tee time and game are cleared. The cancellation (and who was signed up) is kept in a permanent log. This can't be undone; the day can be re-activated fresh.
+            </div>
+            <input className="form-input" placeholder="Reason (optional — e.g. rain)" value={cancelReason} onChange={e=>setCancelReason(e.target.value)} style={{marginBottom:8}}/>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginBottom:5}}>Type CANCEL to confirm</div>
+            <input className="form-input" value={cancelTyped} onChange={e=>setCancelTyped(e.target.value)} style={{marginBottom:12,letterSpacing:'0.15em',fontWeight:700}}/>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setCancelModal(false)}>Keep the day</button>
+              <button className="btn btn-sm" disabled={cancelTyped.trim().toUpperCase()!=='CANCEL'}
+                style={{flex:1,background:cancelTyped.trim().toUpperCase()==='CANCEL'?'var(--money-neg)':'var(--hairline)',color:'#fff',border:'none',borderRadius:8,padding:'9px',fontWeight:700,cursor:cancelTyped.trim().toUpperCase()==='CANCEL'?'pointer':'default',fontFamily:'inherit'}}
+                onClick={()=>{
+                  const dayDate=(week?.dates&&week.dates[day])||'';
+                  const sus=Object.entries(week?.signups||{}).filter(([,s])=>s.day===day);
+                  if(push)push('cancelledDays',{day,date:dayDate,reason:cancelReason.trim()||null,by:(currentUser&&currentUser.name)||'admin',ts:Date.now(),signups:sus.map(([,s])=>s.name)});
+                  sus.forEach(([k])=>{del&&del('week/signups/'+k);});
+                  if(onDeactivateDay)onDeactivateDay(day);
+                  if(typeof sendPushNotify==='function')sendPushNotify({audience:'all',title:'🌧 '+day+' is cancelled',body:(cancelReason.trim()?cancelReason.trim()+' — ':'')+'sign-ups for '+day+' have been cleared.',url:'/',tag:'cancel-'+day});
+                  setCancelModal(false);
+                  onClose&&onClose();
+                }}>
+                Cancel {day}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {gameModal&&(
         <div onClick={()=>setGameModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -8430,16 +8498,19 @@ function App(){
     const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
     const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
-    push('history',roundData);
+    const newRef=push('history',roundData);
+    const newKey=newRef&&newRef.key?newRef.key:null;
     sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day});
     // Replace, never duplicate: AFTER the new entry is safely written, delete
-    // (1) the entry being edited (editingKeys), and (2) any OTHER existing
-    // entries for the same day+date — re-finalizing a round supersedes the old
-    // copy instead of appending a twin. New copy always lands first (atomic).
+    // (1) the entry being edited (editingKeys), and (2) any OTHER entries for
+    // the same day+date. Sweeps from a FRESH one-shot DB read — component state
+    // proved stale-able (July 24 dup bug). New copy always lands first (atomic).
     const oldKey=week.editingKeys&&week.editingKeys[day];
     if(oldKey)del('history/'+oldKey);
-    Object.entries(history||{}).forEach(([k,r])=>{
-      if(k!==oldKey&&r&&r.day===day&&r.date===dayDate)del('history/'+k);
+    readOnce('history',(h)=>{
+      Object.entries(h||{}).forEach(([k,r])=>{
+        if(k!==newKey&&k!==oldKey&&r&&r.day===day&&r.date===dayDate)del('history/'+k);
+      });
     });
     pushToAttendance(day);
     const newWeek={...week};
@@ -8743,7 +8814,7 @@ function App(){
         return null;
       })()}
       {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 isAdmin={isAdmin} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite}/>}
-      {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin}/>}
+      {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin} history={history}/>}
       {(tab === 'admin' || tab === 'manage') && <AdminViewV2 viewMode={tab==='manage'?'week':'admin'}
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
