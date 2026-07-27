@@ -1798,7 +1798,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [pushPromptGone,setPushPromptGone]=useState(false);
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
@@ -1851,6 +1851,19 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   },[activeDays.join(',')]);
 
   async function handleSignupSave({ entry, signupKey, guestEntries, removedGuestKeys, matchEntry, existingMatchKey, partnerEntry }){
+    // ── Duplicate/typo guard (same rules as admin adds) ──────────────────
+    const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+    const takenBy=(name,excludeKey)=>Object.entries(week?.signups||{}).find(([k,s])=>k!==excludeKey&&s.day===entry.day&&norm(s.name)===norm(name));
+    if(!signupKey&&takenBy(entry.name,null)){
+      window.alert(entry.name+' is already signed up for '+entry.day+'.');
+      return;
+    }
+    if(signupKey&&takenBy(entry.name,signupKey)){
+      window.alert('Another sign-up for '+entry.name+' already exists on '+entry.day+'.');
+      return;
+    }
+    const rosterMatch=(fullRoster||[]).find(p=>norm(p.name)===norm(entry.name));
+    if(rosterMatch&&rosterMatch.name!==entry.name)entry={...entry,name:rosterMatch.name};
     // Save or update main signup
     if(signupKey){
       await write('week/signups/' + signupKey, {...entry});
@@ -1860,6 +1873,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     }
     // Save guests (N of them) — each has its own key or is new
     for(const g of (guestEntries || [])){
+      if(!g.key&&takenBy(g.entry&&g.entry.name,null)){continue; /* skip duplicate guest silently-safe */}
       if(g.key){
         await write('week/signups/' + g.key, g.entry);
       } else {
@@ -1882,7 +1896,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       if(onLogMatch) onLogMatch(matchEntry);
     }
     // Auto-add partner if they weren't signed up
-    if(partnerEntry){
+    if(partnerEntry&&!takenBy(partnerEntry.name,null)){
       await push('week/signups', partnerEntry);
     }
   }
@@ -2003,6 +2017,22 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
             <div className="note-only-body">
               <div className="note-only-rail"></div>
               <div className="note-only-content">
+      {(()=>{
+        const active=safeArray(week?.activeDays);
+        const cutoff=Date.now()-7*86400000;
+        const items=Object.values(cancelledDays||{}).filter(c=>c&&c.ts>=cutoff&&!active.includes(c.day)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+        if(!items.length)return null;
+        return items.map((c,i)=>(
+          <div key={i} style={{border:'1.5px dashed var(--hairline)',borderRadius:14,padding:'14px 16px',marginBottom:14,background:'var(--surface-sunken)',opacity:0.85}}>
+            <div style={{display:'flex',alignItems:'center',gap:9,flexWrap:'wrap'}}>
+              <span style={{fontSize:16}}>🌧</span>
+              <span style={{fontSize:13.5,fontWeight:700,color:'var(--ink-70)'}}>{c.day} {c.date?('· '+c.date.slice(5).replace('-','/')) : ''} — cancelled</span>
+              {c.reason&&<span style={{fontSize:11,fontWeight:600,color:'var(--money-neg)',background:'#fee2e2',padding:'1px 8px',borderRadius:8}}>{c.reason}</span>}
+            </div>
+            {c.signups&&c.signups.length>0&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:3}}>{c.signups.length} were signed up — see Admin → Cancelled Days for the list</div>}
+          </div>
+        ));
+      })()}
                 <div className="note-only-text">{week.emailNotes[d]}</div>
               </div>
             </div>
@@ -8935,7 +8965,7 @@ function App(){
         return <AnnouncementBanner announcement={active} onDismiss={onDismiss}/>;
       })()}
 
-      {tab === 'home' && <WeekViewV2 rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
+      {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {tab === 'history' && <HistoryViewV2 history={history} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
