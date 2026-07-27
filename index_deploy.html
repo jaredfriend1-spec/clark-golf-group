@@ -1954,6 +1954,18 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       <div className="page-eyebrow">This week</div>
       <div className="page-title">Sign-ups</div>
       {(()=>{
+        const s=settings&&settings.season;
+        if(!s||!s.endDate)return null;
+        const d=Math.ceil((new Date(s.endDate+'T23:59:59')-new Date())/86400000);
+        if(d>42)return null;
+        const label=d>1?('Season'+(s.name?(' '+s.name):'')+' ends in '+d+' days'):d===1?'Season ends tomorrow':d===0?'Season ends today':'Season'+(s.name?(' '+s.name):'')+' has ended — awaiting archive';
+        return(
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11.5,fontWeight:700,padding:'4px 11px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)',margin:'6px 0 10px'}}>
+            ⛳ {label}
+          </div>
+        );
+      })()}
+      {(()=>{
         const active=safeArray(week?.activeDays);
         const wd=getWeekDates();const curDates=Object.values(wd);
         const raw=Object.values(cancelledDays||{}).filter(c=>c&&c.date&&curDates.includes(c.date)&&!active.includes(c.day));
@@ -4832,7 +4844,8 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 }
 
 // ═══════════════ ATTENDANCE VIEW V2 ════════════════
-function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write }){
+function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overrideRounds }){
+  const archivedView = overrideRounds!=null;
   const [attView, setAttView] = useState('standings');
   const [rounds, setRounds] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -4844,12 +4857,17 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write }){
   const [confirmAttDelete, setConfirmAttDelete] = useState(null); // {index, round}
   const [attDeleteText, setAttDeleteText] = useState('');
   useEffect(()=>{
+    if(archivedView){
+      const arr=Array.isArray(overrideRounds)?overrideRounds:Object.values(overrideRounds||{});
+      setRounds([...arr].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))));
+      return ()=>{};
+    }
     const u = read('attendance/rounds', v=>{
       if(v){ const arr=Array.isArray(v)?v:Object.values(v); setRounds(arr.sort((a,b)=>b.date.localeCompare(a.date))); }
       else setRounds([]);
     });
     return()=>{ if(typeof u==='function') u(); };
-  },[]);
+  },[,overrideRounds]);
   function saveRounds(nr){ const sorted=[...nr].sort((a,b)=>b.date.localeCompare(a.date)); write('attendance/rounds',sorted); setRounds(sorted); }
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null),3000); }
   const standings = useMemo(()=>{
@@ -8984,7 +9002,7 @@ function App(){
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
-      {['history','leaderboard','master'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
+      {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
         <div style={{maxWidth:'var(--maxw, 980px)',margin:'0 auto',padding:'10px 16px 0',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Season</span>
           <select className="form-input" style={{maxWidth:220,padding:'6px 10px',fontSize:12.5}} value={seasonView} onChange={e=>setSeasonView(e.target.value)}>
@@ -9009,7 +9027,7 @@ function App(){
         }
         return null;
       })()}
-      {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 isAdmin={isAdmin} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite}/>}
+      {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 isAdmin={seasonView==='live'?isAdmin:false} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite} overrideRounds={seasonView==='live'?null:(((seasonData&&seasonData.attendance)||{}).rounds||[])}/>}
       {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin} history={history}/>}
       {(tab === 'admin' || tab === 'manage') && <AdminViewV2 viewMode={tab==='manage'?'week':'admin'}
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
