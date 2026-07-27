@@ -2931,6 +2931,7 @@ function SeasonTab(){
   const [typed,setTyped]=React.useState("");
   const [busy,setBusy]=React.useState(false);
   const [log,setLog]=React.useState("");
+  const [backedUp,setBackedUp]=React.useState({});
   React.useEffect(()=>{setNm((season&&season.name)||String(new Date().getFullYear()));setEd((season&&season.endDate)||"");},[season]);
   const liveRounds=Object.keys(history||{}).length;
   const liveFund=Object.values(history||{}).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0);
@@ -3039,15 +3040,29 @@ function SeasonTab(){
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{m.roundCount||0} rounds · fund ${m.fundTotal||0} · archived {m.archivedAt?new Date(m.archivedAt).toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}):""} by {m.by||""}</div>
               </div>
               <button className="btn btn-sm btn-ghost" disabled={busy} onClick={()=>restoreSeason(id,m)}>Restore to live</button>
-              <button className="btn btn-sm btn-ghost" disabled={busy} style={{color:"#f87171"}} onClick={()=>{
+              <button className="btn btn-sm btn-ghost" disabled={busy} onClick={async()=>{
+                try{
+                  const snap=(await db.ref("seasons/"+id).once("value")).val();
+                  if(!snap){window.alert("Could not read archive.");return;}
+                  const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});
+                  const a=document.createElement("a");
+                  a.href=URL.createObjectURL(blob);
+                  a.download="clark-season-"+(m.name||id)+"-backup-"+new Date().toISOString().slice(0,10)+".json";
+                  document.body.appendChild(a);a.click();a.remove();
+                  setBackedUp(b=>({...b,[id]:true}));
+                  setLog("Backup of \""+(m.name||id)+"\" downloaded — keep that file safe. Delete is now enabled for this archive.");
+                }catch(e){window.alert("Backup failed: "+e.message);}
+              }}>💾 Download backup</button>
+              <button className="btn btn-sm btn-ghost" disabled={busy||!backedUp[id]} title={backedUp[id]?"Permanently delete (backup downloaded)":"Download a backup first to enable Delete"} style={{color:backedUp[id]?"#f87171":"rgba(255,255,255,0.25)",cursor:backedUp[id]?"pointer":"not-allowed"}} onClick={()=>{
+                if(!backedUp[id])return;
                 const t=window.prompt("Permanently delete this archive? Type the season name (\""+(m.name||id)+"\") to confirm:");
                 if(t==null)return;
                 if(String(t).trim()!==(m.name||id)){window.alert("Name did not match — nothing deleted.");return;}
-                db.ref("seasons/"+id).remove().then(()=>setLog("Archive \""+(m.name||id)+"\" ("+(m.roundCount||0)+" rounds) permanently deleted."));
+                db.ref("seasons/"+id).remove().then(()=>setLog("Archive \""+(m.name||id)+"\" ("+(m.roundCount||0)+" rounds) permanently deleted. Your downloaded backup file is now the only copy."));
               }}>Delete</button>
             </div>
           );})}
-        <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>Restore is blocked unless live history is empty. Delete requires typing the season name — it is permanent.</div>
+        <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>Restore is blocked unless live history is empty. Delete is disabled until you download that archive’s backup file — then requires typing the season name. A season can never be erased without a copy existing on your computer first.</div>
       </div>
     </div>
 
