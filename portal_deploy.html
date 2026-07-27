@@ -2920,47 +2920,134 @@ function LoginCardsTab(){
 }
 
 function SeasonTab(){
-  const FEATURES=[
-    {icon:"📅",title:"Season End Date",desc:"Set and display the official end date of the current season. Automatically highlights when the season is approaching its end. All players and admins can see the countdown in the main app."},
-    {icon:"🗄️",title:"Archive Season",desc:"Snapshot the entire season — all rounds, scores, standings, and tournament fund — into a permanent archive. Start fresh for the next season without losing any historical data."},
-    {icon:"📊",title:"Stats by Season",desc:"Break down attendance, winnings, and handicap trends by season. Players will eventually see season-specific stats in the Standings tab of the main app, with a season selector dropdown."},
-    {icon:"💰",title:"Reset Tournament Fund",desc:"Safely zero out the tournament fund at season start after the payout. Keeps a full audit trail — previous fund total is recorded before reset. Requires master confirmation."},
-    {icon:"🏆",title:"Season Awards",desc:"Generate end-of-season award summaries: most rounds played, most skins won, best net score average, biggest single-round winner, most improved handicap. Shareable as a formatted email."},
-  ];
+  const season=useDB("settings/season");
+  const history=useDB("history");
+  const attendance=useDB("attendance");
+  const seasons=useDB("seasons");
+  const isMaster=(()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch(e){return false;}})();
+  const me=(()=>{try{return JSON.parse(sessionStorage.getItem("portal_user")||"{}").name||"master";}catch(e){return "master";}})();
+  const [nm,setNm]=React.useState("");
+  const [ed,setEd]=React.useState("");
+  const [typed,setTyped]=React.useState("");
+  const [busy,setBusy]=React.useState(false);
+  const [log,setLog]=React.useState("");
+  React.useEffect(()=>{setNm((season&&season.name)||String(new Date().getFullYear()));setEd((season&&season.endDate)||"");},[season]);
+  const liveRounds=Object.keys(history||{}).length;
+  const liveFund=Object.values(history||{}).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0);
+  const attCount=(attendance&&attendance.rounds)?(Array.isArray(attendance.rounds)?attendance.rounds.length:Object.keys(attendance.rounds).length):0;
+  const daysLeft=(()=>{if(!ed)return null;const d=Math.ceil((new Date(ed+"T23:59:59")-new Date())/86400000);return d;})();
+
+  async function archiveSeason(){
+    if(typed.trim().toUpperCase()!=="ARCHIVE"||busy)return;
+    setBusy(true);setLog("Snapshotting live season\u2026");
+    try{
+      const dbr=db;
+      const hist=(await dbr.ref("history").once("value")).val()||{};
+      const att=(await dbr.ref("attendance").once("value")).val()||null;
+      const rc=Object.keys(hist).length;
+      if(!rc){setLog("Nothing to archive \u2014 live history is empty.");setBusy(false);return;}
+      const fund=Math.round(Object.values(hist).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0));
+      const sname=(season&&season.name)||String(new Date().getFullYear());
+      const id=(sname+"_"+Date.now()).replace(/[^A-Za-z0-9_-]/g,"_");
+      await dbr.ref("seasons/"+id).set({meta:{name:sname,endDate:(season&&season.endDate)||null,startedAt:(season&&season.startedAt)||null,archivedAt:Date.now(),by:me,roundCount:rc,attRounds:att&&att.rounds?(Array.isArray(att.rounds)?att.rounds.length:Object.keys(att.rounds).length):0,fundTotal:fund},history:hist,attendance:att});
+      setLog("Verifying snapshot\u2026");
+      const back=(await dbr.ref("seasons/"+id+"/history").once("value")).val()||{};
+      if(Object.keys(back).length!==rc){setLog("\u26a0 VERIFY FAILED \u2014 live data NOT touched. Snapshot kept at seasons/"+id+" \u2014 tell Claude.");setBusy(false);return;}
+      await dbr.ref("fundAudit").push({action:"season_archive",season:sname,fundTotalAtArchive:fund,rounds:rc,by:me,ts:Date.now()});
+      setLog("Snapshot verified ("+rc+" rounds). Clearing live season\u2026");
+      await dbr.ref("history").set(null);
+      await dbr.ref("attendance").set(null);
+      const nextName=String((parseInt(sname,10)||new Date().getFullYear())+1);
+      await dbr.ref("settings/season").set({name:nextName,startedAt:Date.now()});
+      setTyped("");
+      setLog("\u2705 Season "+sname+" archived \u2014 "+rc+" rounds, $"+fund+" fund recorded. Live data is fresh for "+nextName+". Roster, PINs, settings and game templates untouched.");
+    }catch(e){setLog("\u26a0 Error: "+e.message+" \u2014 live data was not cleared unless the log above says so.");}
+    setBusy(false);
+  }
+
+  async function restoreSeason(id,meta){
+    if(busy)return;
+    if(liveRounds>0){window.alert("Live history is not empty ("+liveRounds+" rounds) \u2014 restore is blocked to avoid overwriting. Archive or clear the live season first.");return;}
+    if(!window.confirm("Restore season \""+(meta&&meta.name)+"\" ("+(meta&&meta.roundCount)+" rounds) back to LIVE?"))return;
+    setBusy(true);setLog("Restoring\u2026");
+    try{
+      const snap=(await db.ref("seasons/"+id).once("value")).val();
+      if(!snap||!snap.history){setLog("Archive unreadable.");setBusy(false);return;}
+      await db.ref("history").set(snap.history);
+      if(snap.attendance)await db.ref("attendance").set(snap.attendance);
+      if(snap.meta&&snap.meta.name)await db.ref("settings/season").set({name:snap.meta.name,endDate:snap.meta.endDate||null,startedAt:snap.meta.startedAt||Date.now()});
+      setLog("\u2705 Restored \""+(snap.meta&&snap.meta.name)+"\" to live ("+Object.keys(snap.history).length+" rounds). The archive copy is kept.");
+    }catch(e){setLog("\u26a0 Restore error: "+e.message);}
+    setBusy(false);
+  }
+
+  if(!isMaster)return(<div><div className="pg-eyebrow">Master Only</div><div className="pg-title">Season Management</div><div className="info-box">Only the master account can manage seasons.</div></div>);
+
+  const archList=Object.entries(seasons||{}).sort((a,b)=>((b[1].meta&&b[1].meta.archivedAt)||0)-((a[1].meta&&a[1].meta.archivedAt)||0));
+  const inp={width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"9px 11px",color:"#e2e8f0",fontFamily:"inherit",fontSize:13,outline:"none"};
+  const lbl={fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.07em",color:"rgba(255,255,255,0.35)",marginBottom:5};
 
   return(<div>
     <div className="pg-eyebrow">Master Only</div>
     <div className="pg-title">Season Management</div>
-    <div className="pg-sub">Planned features for end-of-season and multi-season tools</div>
-    <div className="info-box">
-      <strong>These features are coming soon.</strong> Building these in the portal means we can manage seasons without touching the main application. Nothing here is live yet.
-    </div>
-    {FEATURES.map((f,i)=>(
-      <div key={i} className="card">
-        <div className="card-hdr">
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>{f.icon}</span>
-            <span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{f.title}</span>
-          </div>
-          <span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.15)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Coming Soon</span>
-        </div>
-        <div className="card-body">
-          <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>{f.desc}</div>
-        </div>
+    <div className="pg-sub">End the season safely \u2014 archive everything, start fresh, restore if needed</div>
+
+    {/* CURRENT SEASON */}
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>\ud83d\udcc5</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Current Season</span></div>
+        {daysLeft!=null&&<span style={{fontSize:10,fontWeight:800,padding:"3px 9px",borderRadius:20,background:daysLeft<=35?"rgba(245,158,11,0.12)":"rgba(255,255,255,0.06)",color:daysLeft<=35?"#fbbf24":"rgba(255,255,255,0.4)"}}>{daysLeft>=0?(daysLeft+" days left"):"ended "+(-daysLeft)+"d ago"}</span>}
       </div>
+      <div className="card-body">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <div><div style={lbl}>Season name</div><input style={inp} value={nm} onChange={e=>setNm(e.target.value)}/></div>
+          <div><div style={lbl}>End date</div><input style={inp} type="date" value={ed} onChange={e=>setEd(e.target.value)}/></div>
+        </div>
+        <button className="btn btn-sm" onClick={()=>{wr("settings/season",{name:nm.trim()||String(new Date().getFullYear()),endDate:ed||null,startedAt:(season&&season.startedAt)||Date.now()});setLog("Season settings saved.");}}>Save season settings</button>
+      </div>
+    </div>
+
+    {/* ARCHIVE */}
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>\ud83d\uddc4\ufe0f</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archive Season &amp; Start Fresh</span></div></div>
+      <div className="card-body">
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:10}}>
+          Live right now: <b style={{color:"#e2e8f0"}}>{liveRounds} rounds</b> \u00b7 <b style={{color:"#e2e8f0"}}>{attCount} attendance rounds</b> \u00b7 tournament fund <b style={{color:"#e2e8f0"}}>${Math.round(liveFund)}</b>.<br/>
+          Archiving copies ALL of it into a permanent snapshot first, <b>verifies the copy</b>, logs the fund total to the audit trail, and only then clears live history + attendance and rolls the season name. Roster, PINs, settings and game templates are never touched.
+        </div>
+        <div style={lbl}>Type ARCHIVE to confirm</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <input style={{...inp,maxWidth:160,letterSpacing:"0.15em",fontWeight:700}} value={typed} onChange={e=>setTyped(e.target.value)}/>
+          <button className="btn btn-sm" disabled={typed.trim().toUpperCase()!=="ARCHIVE"||busy} style={{background:typed.trim().toUpperCase()==="ARCHIVE"?"#b91c1c":"rgba(255,255,255,0.08)",color:"#fff",opacity:busy?0.6:1}} onClick={archiveSeason}>{busy?"Working\u2026":"Archive season"}</button>
+        </div>
+        {log&&<div style={{marginTop:10,fontSize:12.5,color:"#fbbf24",lineHeight:1.6}}>{log}</div>}
+      </div>
+    </div>
+
+    {/* ARCHIVED SEASONS */}
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>\ud83d\udcda</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archived Seasons</span></div></div>
+      <div className="card-body">
+        {archList.length===0?<div style={{fontSize:13,color:"rgba(255,255,255,0.35)"}}>No archived seasons yet.</div>:
+          archList.map(([id,s])=>{const m=s.meta||{};return(
+            <div key={id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:180}}>
+                <div style={{fontSize:13.5,fontWeight:700,color:"#e2e8f0"}}>{m.name||id}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{m.roundCount||0} rounds \u00b7 fund ${m.fundTotal||0} \u00b7 archived {m.archivedAt?new Date(m.archivedAt).toLocaleDateString():""} by {m.by||""}</div>
+              </div>
+              <button className="btn btn-sm btn-ghost" disabled={busy} onClick={()=>restoreSeason(id,m)}>Restore to live</button>
+            </div>
+          );})}
+        <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>Restore is blocked unless live history is empty \u2014 archives are never deleted from here.</div>
+      </div>
+    </div>
+
+    {/* STILL COMING */}
+    {[{icon:"\ud83d\udcca",title:"Stats by Season",desc:"Season selector in the app's Standings/Stats \u2014 coming right after launch (reads these archives)."},{icon:"\ud83c\udfc6",title:"Season Awards",desc:"Auto-generated award summaries from an archived season \u2014 most rounds, most skins, best net average, biggest win."}].map((f,i)=>(
+      <div key={i} className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>{f.icon}</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{f.title}</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.15)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Coming Soon</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>{f.desc}</div></div></div>
     ))}
-    <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management · Master Only</div>
+    <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management \u00b7 Master Only \u00b7 Fund reset is handled by Archive (audit-logged)</div>
   </div>);
 }
-
-// ── ANNOUNCEMENTS TAB ────────────────────────────────────────────────────────
-const ANNOUNCEMENT_CATEGORIES=[
-  {id:"tournament",label:"Tournament",icon:"🏆",color:"#fbbf24",soft:"rgba(251,191,36,0.12)",border:"rgba(251,191,36,0.35)"},
-  {id:"feature",   label:"New Feature",icon:"🎉",color:"#10b981",soft:"rgba(16,185,129,0.12)",border:"rgba(16,185,129,0.35)"},
-  {id:"schedule",  label:"Schedule",icon:"📅",color:"#60a5fa",soft:"rgba(96,165,250,0.12)",border:"rgba(96,165,250,0.35)"},
-  {id:"important", label:"Important",icon:"⚠️",color:"#f87171",soft:"rgba(248,113,113,0.12)",border:"rgba(248,113,113,0.35)"},
-  {id:"general",   label:"General",icon:"💬",color:"#94a3b8",soft:"rgba(148,163,184,0.12)",border:"rgba(148,163,184,0.35)"},
-];
 function getAnnCategory(id){return ANNOUNCEMENT_CATEGORIES.find(c=>c.id===id)||ANNOUNCEMENT_CATEGORIES[4];}
 
 function AnnounceTab({user}){
