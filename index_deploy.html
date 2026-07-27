@@ -1953,6 +1953,22 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       })()}
       <div className="page-eyebrow">This week</div>
       <div className="page-title">Sign-ups</div>
+      {(()=>{
+        const active=safeArray(week?.activeDays);
+        const cutoff=Date.now()-7*86400000;
+        const items=Object.values(cancelledDays||{}).filter(c=>c&&c.ts>=cutoff&&!active.includes(c.day)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+        if(!items.length)return null;
+        return items.map((c,i)=>(
+          <div key={i} style={{border:'1.5px dashed var(--hairline)',borderRadius:14,padding:'14px 16px',marginBottom:14,background:'var(--surface-sunken)',opacity:0.85}}>
+            <div style={{display:'flex',alignItems:'center',gap:9,flexWrap:'wrap'}}>
+              <span style={{fontSize:16}}>🌧</span>
+              <span style={{fontSize:13.5,fontWeight:700,color:'var(--ink-70)'}}>{c.day} {c.date?('· '+c.date.slice(5).replace('-','/')) : ''} — cancelled</span>
+              {c.reason&&<span style={{fontSize:11,fontWeight:600,color:'var(--money-neg)',background:'#fee2e2',padding:'1px 8px',borderRadius:8}}>{c.reason}</span>}
+            </div>
+            {c.signups&&c.signups.length>0&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:3}}>{c.signups.length} were signed up — see Admin → Cancelled Days for the list</div>}
+          </div>
+        ));
+      })()}
       <div className="page-sub">
         {activeDays.length === 0 ? (
           <span>No active days yet. Check back when admin sets up the week.</span>
@@ -1996,22 +2012,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           onToggleLock={(dayName, locked) => { write('week/locked/'+dayName, locked); }}
         />
       ))}
-      {(()=>{
-        const active=safeArray(week?.activeDays);
-        const cutoff=Date.now()-7*86400000;
-        const items=Object.values(cancelledDays||{}).filter(c=>c&&c.ts>=cutoff&&!active.includes(c.day)).sort((a,b)=>(b.ts||0)-(a.ts||0));
-        if(!items.length)return null;
-        return items.map((c,i)=>(
-          <div key={i} style={{border:'1.5px dashed var(--hairline)',borderRadius:14,padding:'14px 16px',marginBottom:14,background:'var(--surface-sunken)',opacity:0.85}}>
-            <div style={{display:'flex',alignItems:'center',gap:9,flexWrap:'wrap'}}>
-              <span style={{fontSize:16}}>🌧</span>
-              <span style={{fontSize:13.5,fontWeight:700,color:'var(--ink-70)'}}>{c.day} {c.date?('· '+c.date.slice(5).replace('-','/')) : ''} — cancelled</span>
-              {c.reason&&<span style={{fontSize:11,fontWeight:600,color:'var(--money-neg)',background:'#fee2e2',padding:'1px 8px',borderRadius:8}}>{c.reason}</span>}
-            </div>
-            {c.signups&&c.signups.length>0&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:3}}>{c.signups.length} were signed up — see Admin → Cancelled Days for the list</div>}
-          </div>
-        ));
-      })()}
+
 
       {/* Note-only day cards */}
       {noteOnlyDays.map(d => {
