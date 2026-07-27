@@ -3014,6 +3014,10 @@ function SeasonTab(){
           Live right now: <b style={{color:"#e2e8f0"}}>{liveRounds} rounds</b> · <b style={{color:"#e2e8f0"}}>{attCount} attendance rounds</b> · tournament fund <b style={{color:"#e2e8f0"}}>${Math.round(liveFund)}</b>.<br/>
           Archiving copies ALL of it into a permanent snapshot first, <b>verifies the copy</b>, logs the fund total to the audit trail, and only then clears live history + attendance and rolls the season name. Roster, PINs, settings and game templates are never touched.
         </div>
+        {(()=>{if(!season||!season.endDate)return null;const d=Math.ceil((new Date(season.endDate+"T23:59:59")-new Date())/86400000);if(d<=0)return null;return(
+          <div style={{fontSize:12.5,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"8px 11px",marginBottom:10,lineHeight:1.6}}>
+            ⚠ The season end date is <b>{season.endDate}</b> — <b>{d} day{d!==1?"s":""} away</b>. Archiving now ends the season early. That’s allowed (weather happens), just make sure it’s intentional.
+          </div>);})()}
         <div style={lbl}>Type ARCHIVE to confirm</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <input style={{...inp,maxWidth:160,letterSpacing:"0.15em",fontWeight:700}} value={typed} onChange={e=>setTyped(e.target.value)}/>
