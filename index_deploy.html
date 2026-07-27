@@ -5761,6 +5761,8 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [editRosterTarget, setEditRosterTarget] = useState('');
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
+  const [noteEditDay, setNoteEditDay] = useState(null);
+  const [noteEditDraft, setNoteEditDraft] = useState('');
   const [approveModal, setApproveModal] = useState(null); // {key, req}
   const [apr, setApr] = useState({tee:'Whites',hcp:'',pin:'',email:''});
   const [editRosterTee, setEditRosterTee] = useState('Whites');
@@ -5920,16 +5922,31 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     </div>
                     <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                       {!isActive&&(
-                        <button onClick={()=>onToggleNoteOnly(day,!week?.showNoteOnly?.[day])}
+                        <button onClick={()=>{const on=!week?.showNoteOnly?.[day];onToggleNoteOnly(day,on);if(on){setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}else{if(noteEditDay===day)setNoteEditDay(null);}}}
                           style={{padding:'4px 10px',borderRadius:20,border:'1.5px solid',borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':'var(--hairline)',background:week?.showNoteOnly?.[day]?'var(--warn-soft)':'transparent',cursor:'pointer',fontFamily:'inherit',fontSize:11,fontWeight:600,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
                           {week?.showNoteOnly?.[day]?'📌 Showing note on Week tab':'Show note on Week tab'}
                         </button>
+                      )}
+                      {!isActive&&week?.showNoteOnly?.[day]&&noteEditDay!==day&&(
+                        <button className="btn btn-ghost btn-sm" onClick={()=>{setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}}>✏️ Edit note</button>
                       )}
                       {isActive&&<button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>handleToggleDay(day)}>Remove</button>}
                       <button className="btn btn-primary btn-sm" onClick={()=>handleSetupDay(day)}>
                         {wizDay===day?'Close':teeInfo||locked?'Continue setup':'Set up '+day}
                       </button>
                     </div>
+                    {noteEditDay===day&&(
+                      <div style={{width:'100%',marginTop:8,padding:'10px 12px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:10}}>
+                        <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:6}}>📌 Note shown on the Week tab for {day}</div>
+                        <textarea value={noteEditDraft} maxLength={1000} onChange={e=>setNoteEditDraft(e.target.value)}
+                          placeholder={'e.g. No golf '+day+' — course closed for outing'}
+                          style={{width:'100%',boxSizing:'border-box',border:'1px solid var(--warn-border)',borderRadius:8,outline:'none',padding:'8px 10px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',resize:'vertical',minHeight:64,lineHeight:1.5,background:'var(--surface)'}}/>
+                        <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:6}}>
+                          <button className="btn btn-ghost btn-sm" onClick={()=>setNoteEditDay(null)}>Close</button>
+                          <button className="btn btn-primary btn-sm" onClick={()=>{write('week/emailNotes/'+day,noteEditDraft.trim()||null);setNoteEditDay(null);}}>Save note</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {/* Inline checklist */}
                   {showChk&&isActive&&(
@@ -6674,6 +6691,9 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
   const [teeOpen, setTeeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [teeInfoOpen, setTeeInfoOpen] = useState(false);
+  const [addTeePick, setAddTeePick] = useState('9:00 AM');
+  const [genCount, setGenCount] = useState(4);
+  const [genGap, setGenGap] = useState(10);
   const [teeInfoDraft, setTeeInfoDraft] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
   const [gameModal, setGameModal] = useState(null); // null | 'list' | 'custom'
@@ -6753,18 +6773,49 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
         tone={ti?'var(--ink)':'var(--ink-40)'}
         action={teeInfoOpen?'Close':(ti?'Change ›':'Add ›')}
         onAction={()=>{setTeeInfoDraft(ti);setTeeInfoOpen(o=>!o);}}/>
-      {teeInfoOpen&&(
-        <div style={{...rowStyle,flexDirection:'column',alignItems:'stretch',gap:8}}>
-          <input value={teeInfoDraft} onChange={e=>setTeeInfoDraft(e.target.value)}
-            placeholder="Comma-separated, in tee-off order — e.g. 9:00, 9:10, 9:20"
-            style={{width:'100%',border:'1px solid var(--hairline)',borderRadius:8,outline:'none',padding:'9px 11px',fontFamily:'inherit',fontSize:13,color:'var(--ink)',boxSizing:'border-box',background:'var(--surface)'}}/>
+      {teeInfoOpen&&(()=>{
+        const opts=[];for(let m=6*60;m<=16*60;m+=10){const h=Math.floor(m/60),mi=m%60;const h12=h>12?h-12:h;const ap=h>=12?'PM':'AM';opts.push(h12+':'+String(mi).padStart(2,'0')+' '+ap);}
+        const toMin=s=>{const mm=/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(s).trim());if(!mm)return null;let h=parseInt(mm[1])%12;if(/pm/i.test(mm[3]))h+=12;return h*60+parseInt(mm[2]);};
+        const toStr=m=>{const h=Math.floor(m/60),mi=m%60;const h12=(h%12)||12;return h12+':'+String(mi).padStart(2,'0')+' '+(h>=12?'PM':'AM');};
+        const times=teeInfoDraft?teeInfoDraft.split(',').map(s=>s.trim()).filter(Boolean):[];
+        const rawTee=week?.teeTimes&&week.teeTimes[day];
+        const mainTee=(typeof rawTee==='string'?rawTee:(rawTee&&rawTee.time))||'9:00 AM';
+        return(
+        <div style={{...rowStyle,flexDirection:'column',alignItems:'stretch',gap:10}}>
+          {times.length>0&&(
+            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+              {times.map((t,i)=>(
+                <span key={i} style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:12,fontWeight:700,padding:'4px 6px 4px 10px',borderRadius:14,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',color:'var(--brand)'}}>
+                  🕐 {t}
+                  <button onClick={()=>{const u=times.filter((_,j)=>j!==i);setTeeInfoDraft(u.join(', '));}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--brand)',fontSize:12,padding:'0 2px',lineHeight:1}}>✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+            <select className="form-input" style={{flex:'1 1 110px',maxWidth:140}} value={addTeePick} onChange={e=>setAddTeePick(e.target.value)}>
+              {opts.map(o=><option key={o} value={o}>{o}</option>)}
+            </select>
+            <button className="btn btn-ghost btn-sm" onClick={()=>{if(!times.includes(addTeePick))setTeeInfoDraft([...times,addTeePick].sort((x,y)=>toMin(x)-toMin(y)).join(', '));}}>+ Add time</button>
+          </div>
+          <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap',padding:'8px 10px',background:'var(--surface-sunken)',borderRadius:8}}>
+            <span style={{fontSize:11,fontWeight:700,color:'var(--ink-50)'}}>Quick fill:</span>
+            <select className="form-input" style={{width:76}} value={genCount} onChange={e=>setGenCount(parseInt(e.target.value))}>
+              {[2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+            <span style={{fontSize:11.5,color:'var(--ink-50)'}}>consecutive, every</span>
+            <select className="form-input" style={{width:70}} value={genGap} onChange={e=>setGenGap(parseInt(e.target.value))}>
+              {[8,9,10,11,12,15].map(n=><option key={n} value={n}>{n} min</option>)}
+            </select>
+            <button className="btn btn-primary btn-sm" onClick={()=>{const start=toMin(times[0]||addTeePick||mainTee)??toMin(mainTee)??540;const u=[];for(let i=0;i<genCount;i++)u.push(toStr(start+i*genGap));setTeeInfoDraft(u.join(', '));}}>Fill from {times[0]||addTeePick||mainTee}</button>
+          </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <span style={{fontSize:10,color:'var(--ink-40)',flex:1}}>First time = Group 1, second = Group 2, and so on.</span>
-            {ti&&<button className="btn btn-ghost btn-sm" onClick={()=>{write&&write('week/teeTimesInfo/'+day,null);setTeeInfoOpen(false);}}>Clear</button>}
+            <span style={{fontSize:10,color:'var(--ink-40)',flex:1}}>In tee-off order — first time = Group 1, and so on.</span>
+            {ti&&<button className="btn btn-ghost btn-sm" onClick={()=>{write&&write('week/teeTimesInfo/'+day,null);setTeeInfoOpen(false);}}>Clear all</button>}
             <button className="btn btn-primary btn-sm" onClick={()=>{write&&write('week/teeTimesInfo/'+day,teeInfoDraft.trim()||null);setTeeInfoOpen(false);}}>Save</button>
           </div>
         </div>
-      )}
+        );})()}
       </>);})()}
       {teeOpen&&(
         <div style={{...rowStyle,flexWrap:'wrap',background:'var(--surface)'}}>
