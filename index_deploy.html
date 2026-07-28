@@ -6011,7 +6011,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                       {!isActive&&(
                         <button className="btn btn-ghost btn-sm" onClick={()=>{const on=!week?.showNoteOnly?.[day];onToggleNoteOnly(day,on);if(on){setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}else{if(noteEditDay===day)setNoteEditDay(null);}}}
-                          style={{borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':undefined,background:week?.showNoteOnly?.[day]?'var(--warn-soft)':undefined,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
+                          style={{width:190,justifyContent:'center',textAlign:'center',borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':undefined,background:week?.showNoteOnly?.[day]?'var(--warn-soft)':undefined,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
                           {week?.showNoteOnly?.[day]?'📌 Showing note on Week tab':'Show note on Week tab'}
                         </button>
                       )}
@@ -6020,7 +6020,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                       )}
                       {isActive&&<button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)'}} onClick={()=>{setCancelDay(day);setCancelTyped('');setCancelReason('');}}>🌧 Cancel</button>}
                       {isActive&&<button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>handleToggleDay(day)}>Remove</button>}
-                      <button className="btn btn-primary btn-sm" onClick={()=>handleSetupDay(day)}>
+                      <button className="btn btn-primary btn-sm" style={{width:150,justifyContent:'center',textAlign:'center'}} onClick={()=>handleSetupDay(day)}>
                         {wizDay===day?'Close':teeInfo||locked?'Continue setup':'Set up '+day}
                       </button>
                     </div>
