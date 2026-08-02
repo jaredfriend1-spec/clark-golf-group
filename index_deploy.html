@@ -165,6 +165,9 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 .btn-cancel:hover{background:var(--hairline-soft);color:var(--ink)}
 .btn-full{flex:1;min-width:0}
 .btn-sm{padding:5px 12px;font-size:11.5px;font-weight:600;border-radius:8px;line-height:1.35}
+.md-day-actions{display:flex;gap:6px;align-items:center}
+@media(min-width:640px){.md-col-note{width:190px;justify-content:center;text-align:center}.md-col-setup{width:150px;justify-content:center;text-align:center}}
+@media(max-width:639px){.md-day-actions{width:100%;margin-top:8px}.md-day-actions .btn{flex:1 1 auto;justify-content:center;text-align:center;white-space:nowrap}}
 
 /* ═══════════════ MODAL ═══════════════ */
 .modal-bg{position:fixed;inset:0;z-index:9000;background:rgba(15,15,15,0.5);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.15s ease-out}
@@ -5988,7 +5991,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
               const showChk=wizDay==='chk_'+day;
               return(
                 <div key={day} style={{padding:'10px 0',borderTop:di>0?'1px solid var(--hairline-soft)':'none'}}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:700,color:isActive?'var(--ink)':'var(--ink-40)'}}>{day}</div>
                       <div style={{fontSize:11,color:'var(--ink-40)',marginTop:1}}>{fmtDFull(effectiveDates[day])}</div>
@@ -5997,7 +6000,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                         let g=null;
                         if(mid==='__custom__'){const c=week?.modeConfig?.[day];g=c?{name:c.name||('Custom '+(c.type==='individual'?'Individual':'Team')+' Game'),type:c.type}:null;}
                         else{const id=mid||gr?.defaultModeId;const mo=id&&gr?.modes&&gr.modes[id];g=mo?{name:mo.name,type:mo.type}:null;}
-                        const chip=(txt,tone)=><span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,background:tone==='blue'?'var(--info-soft)':tone==='green'?'var(--brand-soft)':tone==='warn'?'var(--warn-soft)':'var(--surface)',color:tone==='blue'?'var(--info)':tone==='green'?'var(--brand)':tone==='warn'?'var(--warn-ink)':'var(--ink-40)',border:'1px solid '+(tone==='blue'?'var(--info-border)':tone==='green'?'var(--brand-border)':tone==='warn'?'var(--warn-border)':'var(--hairline)')}}>{txt}</span>;
+                        const chip=(txt,tone)=><span style={{whiteSpace:'nowrap',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,background:tone==='blue'?'var(--info-soft)':tone==='green'?'var(--brand-soft)':tone==='warn'?'var(--warn-soft)':'var(--surface)',color:tone==='blue'?'var(--info)':tone==='green'?'var(--brand)':tone==='warn'?'var(--warn-ink)':'var(--ink-40)',border:'1px solid '+(tone==='blue'?'var(--info-border)':tone==='green'?'var(--brand-border)':tone==='warn'?'var(--warn-border)':'var(--hairline)')}}>{txt}</span>;
                         return(
                           <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:4}}>
                             {chip(g?g.name:'No game set',g?(g.type==='individual'?'blue':'green'):'gray')}
@@ -6008,10 +6011,10 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                         );
                       })()}
                     </div>
-                    <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                    <div className="md-day-actions" style={{display:'flex',gap:5,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                       {!isActive&&(
-                        <button className="btn btn-ghost btn-sm" onClick={()=>{const on=!week?.showNoteOnly?.[day];onToggleNoteOnly(day,on);if(on){setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}else{if(noteEditDay===day)setNoteEditDay(null);}}}
-                          style={{width:190,justifyContent:'center',textAlign:'center',borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':undefined,background:week?.showNoteOnly?.[day]?'var(--warn-soft)':undefined,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
+                        <button className="btn btn-ghost btn-sm md-col-note" onClick={()=>{const on=!week?.showNoteOnly?.[day];onToggleNoteOnly(day,on);if(on){setNoteEditDay(day);setNoteEditDraft((week?.emailNotes&&week.emailNotes[day])||'');}else{if(noteEditDay===day)setNoteEditDay(null);}}}
+                          style={{borderColor:week?.showNoteOnly?.[day]?'var(--warn-border)':undefined,background:week?.showNoteOnly?.[day]?'var(--warn-soft)':undefined,color:week?.showNoteOnly?.[day]?'var(--warn-ink)':'var(--ink-40)'}}>
                           {week?.showNoteOnly?.[day]?'📌 Showing note on Week tab':'Show note on Week tab'}
                         </button>
                       )}
@@ -6020,7 +6023,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                       )}
                       {isActive&&<button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)'}} onClick={()=>{setCancelDay(day);setCancelTyped('');setCancelReason('');}}>🌧 Cancel</button>}
                       {isActive&&<button className="btn btn-ghost btn-sm" style={{color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>handleToggleDay(day)}>Remove</button>}
-                      <button className="btn btn-primary btn-sm" style={{width:150,justifyContent:'center',textAlign:'center'}} onClick={()=>handleSetupDay(day)}>
+                      <button className="btn btn-primary btn-sm md-col-setup" onClick={()=>handleSetupDay(day)}>
                         {wizDay===day?'Close':teeInfo||locked?'Continue setup':'Set up '+day}
                       </button>
                     </div>
