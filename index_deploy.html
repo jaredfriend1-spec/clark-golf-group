@@ -8705,18 +8705,19 @@ function App(){
     const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
     const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
-    const newRef=push('history',roundData);
-    const newKey=newRef&&newRef.key?newRef.key:null;
     sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day});
-    // Replace, never duplicate: AFTER the new entry is safely written, delete
-    // (1) the entry being edited (editingKeys), and (2) any OTHER entries for
-    // the same day+date. Sweeps from a FRESH one-shot DB read — component state
-    // proved stale-able (July 24 dup bug). New copy always lands first (atomic).
+    // Replace, never duplicate: the push wrapper resolves to the NEW entry's key
+    // (it returns a Promise<string>, NOT a ref — treating it as a ref nulled the
+    // key and made the sweep delete its own round; July 31 near-disaster).
+    // The sweep only runs once the real key is known, and never without one.
     const oldKey=week.editingKeys&&week.editingKeys[day];
-    if(oldKey)del('history/'+oldKey);
-    readOnce('history',(h)=>{
-      Object.entries(h||{}).forEach(([k,r])=>{
-        if(k!==newKey&&k!==oldKey&&r&&r.day===day&&r.date===dayDate)del('history/'+k);
+    Promise.resolve(push('history',roundData)).then((newKey)=>{
+      if(oldKey)del('history/'+oldKey);
+      if(!newKey||typeof newKey!=='string'||newKey==='blocked'){console.warn('[guard] no history key — dup sweep skipped for safety');return;}
+      readOnce('history',(h)=>{
+        Object.entries(h||{}).forEach(([k,r])=>{
+          if(k!==newKey&&k!==oldKey&&r&&r.day===day&&r.date===dayDate)del('history/'+k);
+        });
       });
     });
     pushToAttendance(day);
