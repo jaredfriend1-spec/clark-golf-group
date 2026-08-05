@@ -262,7 +262,12 @@ select.inp option:checked{background:#10b981;color:#fff}
 <script type="text/babel">
 const {useState,useEffect,useRef,useMemo,useCallback}=React;
 
-const FB={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
+// ── ENVIRONMENT SWITCH: production hostname → production Firebase; any other host (previews, localhost) → test DB. Safe to merge. ──
+const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
+const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
+const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
+const FB=IS_PROD_HOST?FB_PROD:FB_TEST;
+if(!IS_PROD_HOST){try{document.title="[TEST] "+document.title;window.addEventListener("DOMContentLoaded",()=>{const b=document.createElement("div");b.textContent="TEST DB";b.style.cssText="position:fixed;bottom:10px;left:10px;z-index:99999;background:#b45309;color:#fff;font:700 11px/1 sans-serif;padding:5px 10px;border-radius:6px;letter-spacing:0.08em;opacity:0.9;pointer-events:none;";document.body.appendChild(b);});}catch(e){}}
 let db,auth;
 try{const app=firebase.apps.length?firebase.apps[0]:firebase.initializeApp(FB);db=firebase.database(app);auth=firebase.auth(app);}catch(e){console.error(e);}
 
@@ -270,7 +275,7 @@ const f$=n=>"$"+Math.round(parseFloat(n||0)).toLocaleString();
 const normName=n=>n?n.trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" "):"";
 const fmtD=d=>{if(!d)return"";try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}catch{return d;}};
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const GOLF_DAYS=["Friday","Saturday","Sunday","Monday"];
+const GOLF_DAYS=["Friday","Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday"];
 const TEES=["Blends","Whites","Golds","SGA"];
 const safeArr=v=>Array.isArray(v)?v:v?Object.values(v):[];
 
@@ -697,6 +702,7 @@ function DashTab({user}){
 // ── WEEK TAB ──────────────────────────────────────────────────────────────────
 function WeekTab({user}){
   const week=useDB("week");
+  const gameRules=useDB("settings/gameRules");
   const extra=useDB("extraPlayers");
   const rosterEdits=useDB("rosterEdits");
   // Default: all days expanded. Track CLOSED days instead.
@@ -867,6 +873,7 @@ function WeekTab({user}){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
                   <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:20,fontWeight:800,color:"#10b981"}}>{sups.length}</span>
+                  {(()=>{const mid=week?.modes?.[day]||gameRules?.defaultModeId;const m=mid&&gameRules?.modes&&gameRules.modes[mid];return m?<span className={m.type==="individual"?"b b-b":"b b-g"}>{m.name}</span>:null;})()}
                   {locked&&<span className="b b-a">🔒 Locked</span>}
                   {teeInfo&&<span className="b b-b">{teeInfo.lottery?"Lottery":teeInfo.time}</span>}
                   {complete&&<span className="b b-g">Complete</span>}
@@ -966,6 +973,12 @@ function WeekTab({user}){
                 </div>
                 {active?(
                   <>
+                    {(()=>{const modes=Object.entries(gameRules?.modes||{}).map(([id,m])=>({id,...m}));if(!modes.length)return null;const dayHasScores=!!(week?.scores&&week.scores[day]);const cur=week?.modes?.[day]||gameRules?.defaultModeId||"";return(
+                      <select className="inp" style={{width:"auto",fontSize:11,padding:"6px 8px",opacity:dayHasScores?0.5:1}} disabled={dayHasScores} title={dayHasScores?"Mode locked — scores exist for this day":"Game mode for "+day} value={cur} onChange={e=>{wr("week/modes/"+day,e.target.value);wr("week/teams/"+day,null);wr("week/teamsPublished/"+day,null);showToast(day+" mode set ✓ (built teams cleared)");}}>
+                        {!cur&&<option value="">— mode —</option>}
+                        {modes.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                    );})()}
                     <span className="b b-g">✓ Active</span>
                     <button className="btn btn-gh btn-sm" onClick={()=>toggleDay(day)}>Remove</button>
                   </>
@@ -1207,6 +1220,9 @@ function EmailTab(){
 // ── ROSTER TAB (segmented + full PIN management) ──────────────────────────────
 function RosterTab(){
   const extra=useDB("extraPlayers");
+  const joinRequests=useDB("joinRequests");
+  const [aprModal,setAprModal]=React.useState(null);
+  const [apr,setApr]=React.useState({tee:"Whites",hcp:"",pin:"",email:""});
   const portalUser=useDB("_portalSession"); // not real — use localStorage
   const isMasterUser=()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch{return false;}};
   const rosterEdits=useDB("rosterEdits");
@@ -1315,6 +1331,47 @@ function RosterTab(){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
+    {(()=>{const pend=Object.entries(joinRequests||{}).filter(([,r])=>r&&r.status==="pending");if(!pend.length)return null;return(
+      <div className="card" style={{marginBottom:14,border:"1.5px solid #fca5a5"}}>
+        <div style={{fontSize:13,fontWeight:800,color:"#b91c1c",marginBottom:8}}>Join Requests ({pend.length})</div>
+        {pend.map(([k2,r])=>(
+          <div key={k2} style={{padding:"8px 0",borderTop:"1px solid #eee"}}>
+            <div style={{fontSize:13.5,fontWeight:700}}>{r.name}</div>
+            <div style={{fontSize:11.5,color:"#64748b",margin:"2px 0 6px"}}>{r.phone||""}{r.email?(" · "+r.email):""}{r.referredBy?(" · knows "+r.referredBy):""}</div>
+            <div style={{display:"flex",gap:6}}>
+              <button className="btn btn-sm" onClick={()=>{setApr({tee:"Whites",hcp:"",pin:"",email:r.email||""});setAprModal({key:k2,req:r});}}>Approve…</button>
+              <button className="btn btn-sm btn-ghost" style={{color:"#b91c1c"}} onClick={()=>{if(window.confirm("Decline "+r.name+"?")){wr("joinRequests/"+k2+"/status","declined");wr("joinRequests/"+k2+"/handledAt",Date.now());showToast("Declined");}}}>Decline</button>
+            </div>
+          </div>
+        ))}
+      </div>);})()}
+    {aprModal&&(
+      <div onClick={e=>{if(e.target===e.currentTarget)setAprModal(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:"#fff",borderRadius:14,padding:18,width:"100%",maxWidth:340}}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:8}}>Approve {aprModal.req.name}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+            <select className="input" value={apr.tee} onChange={e=>setApr({...apr,tee:e.target.value})}>{["Whites","Blues","Golds","Reds"].map(t=><option key={t}>{t}</option>)}</select>
+            <input className="input" type="number" placeholder="HCP" value={apr.hcp} onChange={e=>setApr({...apr,hcp:e.target.value})}/>
+          </div>
+          <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="4-digit PIN" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,4)})}/>
+          <input className="input" style={{marginBottom:12,width:"100%",boxSizing:"border-box"}} placeholder="Email" value={apr.email} onChange={e=>setApr({...apr,email:e.target.value})}/>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-sm btn-ghost" onClick={()=>setAprModal(null)}>Cancel</button>
+            <button className="btn btn-sm" style={{flex:1}} onClick={()=>{
+              const newId=Date.now();
+              wr("extraPlayers",(Array.isArray(extra)?extra:extra?Object.values(extra):[]).concat([{id:newId,name:aprModal.req.name,handicap:parseFloat(apr.hcp)||0,tee:apr.tee}]));
+              if(apr.pin.trim())wr("rosterPins/"+newId,apr.pin.trim());
+              if(apr.email.trim())wr("rosterEmails/"+newId,apr.email.trim());
+              wr("joinRequests/"+aprModal.key+"/status","approved");
+              wr("joinRequests/"+aprModal.key+"/handledAt",Date.now());
+              wr("joinRequests/"+aprModal.key+"/rosterId",newId);
+              showToast("Approved \u2713");
+              setAprModal(null);
+            }}>Approve &amp; add</button>
+          </div>
+        </div>
+      </div>
+    )}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:8}}>
       <div>
         <div className="pg-eyebrow">Members</div>
@@ -2106,6 +2163,249 @@ function AttendTab({user}){
   </div>);
 }
 
+// ── APP SETTINGS TAB (global app behavior) ──────────────────────────────
+function AppSettingsTab({user}){
+  const gameRules=useDB("settings/gameRules");
+  const settings=useDB("settings");
+  const [toast,showToast]=useToast();
+  const sr=gameRules?.signupRules||{};
+  const maxGuests=settings?.maxGuests??3;
+  function toggleRule(key){
+    const cur=sr[key]!==false;
+    wr("settings/gameRules/signupRules/"+key,!cur);
+    showToast(!cur?"Enabled ✓":"Disabled ✓");
+  }
+  return(<div>
+    <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Configuration</div>
+    <div className="pg-title">App Settings</div>
+    <div className="pg-sub">Global settings that apply to every day and every week. More settings will land here as the app grows.</div>
+    <div className="card">
+      <div className="card-hdr"><span className="card-title">Sign-up Rules</span></div>
+
+      <div className="info-box"><strong>Turn request types on or off for the whole group.</strong> When off, the option disappears from the sign-up form. Existing sign-ups are unaffected.</div>
+      <div className="card">
+        {[
+          {key:"allowGuests",label:"Allow guests",sub:"Members can bring up to 3 guests"},
+          {key:"allowPairings",label:"Allow guest pairing requests",sub:"“Pair with me on a team” toggle on guests"},
+          {key:"allowMatches",label:"Allow match play requests",sub:"Formal head-to-head match sign-ups"},
+          {key:"allowTeePrefs",label:"Allow tee time preferences",sub:"First tee / last tee requests"},
+        ].map(({key,label,sub})=>{
+          const on=sr[key]!==false;
+          return(
+            <div key={key} className="s-row" style={{gap:12}}>
+              <div onClick={()=>toggleRule(key)} style={{width:36,height:20,borderRadius:20,background:on?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0,transition:"background 0.2s"}}>
+                <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:on?"#e2e8f0":"rgba(255,255,255,0.4)"}}>{label}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:1}}>{sub}</div>
+              </div>
+              <span style={{fontSize:10,fontWeight:700,color:on?"#10b981":"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{on?"On":"Off"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+    <div className="card">
+      <div className="card-hdr"><span className="card-title">Guests per member</span></div>
+      <div className="card-body">
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:8}}>Maximum guests one member can bring (0–3). Ignored when guests are disabled above.</div>
+        <select className="inp" value={maxGuests} onChange={e=>{wr("settings/maxGuests",parseInt(e.target.value));showToast("Saved ✓");}} style={{maxWidth:120}}>
+          {[0,1,2,3].map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+    </div>
+  </div>);
+}
+
+// ── GAME RULES TAB (mode templates + sign-up rules) ──────────────────────────
+function GameRulesTab({user}){
+  const gameRules=useDB("settings/gameRules");
+
+  const [toast,showToast]=useToast();
+  const [editing,setEditing]=useState(null); // null | {id?, draft}
+  const [confirmDel,setConfirmDel]=useState(null);
+
+  const modes=Object.entries(gameRules?.modes||{}).map(([id,m])=>({id,...m}));
+  const defaultModeId=gameRules?.defaultModeId||null;
+  const sr=gameRules?.signupRules||{};
+
+  const BLANK_TEAM={name:"",type:"team",buyIn:25,fundEnabled:true,fundPerPlayer:1,potFront:5,potBack:5,potOverall:5,potSkins:9,skinsMode:"team",skinsSource:"buyin",roundDown:true};
+  const BLANK_IND={name:"",type:"individual",buyIn:25,fundEnabled:true,fundPerPlayer:1,ranking:"net",paidSpots:3,tieRule:"split",skinsEnabled:false,skinsMode:"individual",skinsPerPlayer:0,roundDown:true};
+
+  // ── Money-in = money-out engine (per-player dollars) ──
+  function balance(d){
+    const buyIn=parseFloat(d.buyIn)||0;
+    const fund=d.fundEnabled?(parseFloat(d.fundPerPlayer)||0):0;
+    if(d.type==="team"){
+      const pots=(parseFloat(d.potFront)||0)+(parseFloat(d.potBack)||0)+(parseFloat(d.potOverall)||0)+(parseFloat(d.potSkins)||0);
+      return {allocated:fund+pots,buyIn,diff:buyIn-(fund+pots)};
+    }
+    // individual: skins (if separate per-player carve) + fund allocated; remainder feeds the paid-spots pool set at scoring
+    const skins=d.skinsEnabled?(parseFloat(d.skinsPerPlayer)||0):0;
+    const allocated=fund+skins;
+    return {allocated,buyIn,diff:buyIn-allocated,poolPerPlayer:buyIn-allocated};
+  }
+
+  function openNew(type){setEditing({id:null,draft:type==="team"?{...BLANK_TEAM}:{...BLANK_IND}});}
+  function openEdit(m){const{id,...rest}=m;setEditing({id,draft:{...rest}});}
+
+  function save(){
+    const d=editing.draft;
+    if(!d.name||!d.name.trim()){showToast("Name the mode","err");return;}
+    const b=balance(d);
+    if(d.type==="team"&&Math.abs(b.diff)>0.001){showToast("Money in must equal money out","err");return;}
+    if(d.type==="individual"&&b.diff<-0.001){showToast("Fund + skins exceed the buy-in","err");return;}
+    if(d.type==="individual"&&(parseInt(d.paidSpots)||0)<1){showToast("At least 1 paid spot","err");return;}
+    const clean={...d,name:d.name.trim(),buyIn:parseFloat(d.buyIn)||0,fundPerPlayer:parseFloat(d.fundPerPlayer)||0,updatedAt:Date.now(),updatedBy:user?.name||user?.email||"admin"};
+    if(editing.id){wr("settings/gameRules/modes/"+editing.id,clean);}
+    else{ps("settings/gameRules/modes",{...clean,createdAt:Date.now()});}
+    setEditing(null);showToast("Mode saved ✓");
+  }
+  function removeMode(m){
+    dl("settings/gameRules/modes/"+m.id);
+    if(defaultModeId===m.id)dl("settings/gameRules/defaultModeId");
+    setConfirmDel(null);showToast("Mode deleted ✓");
+  }
+  function setDefault(id){wr("settings/gameRules/defaultModeId",id);showToast("Default mode set ✓");}
+  function toggleRule(key){
+    const cur=sr[key]!==false; // default true
+    wr("settings/gameRules/signupRules/"+key,!cur);
+    showToast(!cur?"Enabled ✓":"Disabled ✓");
+  }
+
+  const num=(v,cb)=>e=>cb(e.target.value);
+  const upd_=(patch)=>setEditing(ed=>({...ed,draft:{...ed.draft,...patch}}));
+
+  return(<div>
+    <Toast msg={toast.msg} type={toast.type}/>
+    <div className="pg-eyebrow">Configuration</div>
+    <div className="pg-title">Game Modes</div>
+    <div className="pg-sub">Templates for how rounds are played and paid. Each day picks its own mode at day setup — Friday can be team while Saturday runs individual. Config applies to FUTURE rounds only — finalized history is never rewritten.</div>
+
+    {(<div>
+      {!editing&&(<div style={{display:"flex",gap:8,marginBottom:14}}>
+        <button className="btn btn-g btn-sm" onClick={()=>openNew("team")}>+ Team mode</button>
+        <button className="btn btn-b btn-sm" onClick={()=>openNew("individual")}>+ Individual mode</button>
+      </div>)}
+
+      {editing&&(()=>{
+        const d=editing.draft;const b=balance(d);
+        const balanced=d.type==="team"?Math.abs(b.diff)<0.001:b.diff>=-0.001;
+        return(
+        <div className="card" style={{marginBottom:16,borderColor:"rgba(16,185,129,0.3)"}}>
+          <div className="card-hdr">
+            <span className="card-title">{editing.id?"Edit Mode":"New "+(d.type==="team"?"Team":"Individual")+" Mode"}</span>
+            <button className="btn btn-gh btn-xs" onClick={()=>setEditing(null)}>Cancel</button>
+          </div>
+          <div className="card-body">
+            <div className="lbl">Mode name</div>
+            <input className="inp" placeholder={d.type==="team"?"e.g. Saturday Best Ball":"e.g. Individual Stableford"} value={d.name} onChange={num(0,v=>upd_({name:v}))} style={{marginBottom:12}}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+              <div><div className="lbl">Buy-in ($/player)</div><input className="inp" type="number" value={d.buyIn} onChange={num(0,v=>upd_({buyIn:v}))}/></div>
+              <div><div className="lbl">Tournament fund</div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <div onClick={()=>upd_({fundEnabled:!d.fundEnabled})} style={{width:36,height:20,borderRadius:20,background:d.fundEnabled?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}><div style={{position:"absolute",top:2,left:d.fundEnabled?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/></div>
+                  <input className="inp" type="number" disabled={!d.fundEnabled} value={d.fundPerPlayer} onChange={num(0,v=>upd_({fundPerPlayer:v}))} style={{opacity:d.fundEnabled?1:0.4}}/>
+                </div>
+              </div>
+            </div>
+
+            {d.type==="team"&&(<div>
+              <div className="lbl">Pots ($/player — must total the buy-in with fund)</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
+                {[["potFront","Front 9"],["potBack","Back 9"],["potOverall","Overall"],["potSkins","Skins"]].map(([k,l])=>(
+                  <div key={k}><div className="lbl" style={{fontSize:9}}>{l}</div><input className="inp" type="number" value={d[k]} onChange={num(0,v=>upd_({[k]:v}))}/></div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                <div><div className="lbl">Skins mode</div>
+                  <select className="inp" value={d.skinsMode} onChange={num(0,v=>upd_({skinsMode:v}))}><option value="team">Team skins</option><option value="individual">Individual skins</option></select>
+                </div>
+                <div><div className="lbl">Skins money source</div>
+                  <select className="inp" value={d.skinsSource} onChange={num(0,v=>upd_({skinsSource:v}))}><option value="buyin">From buy-in</option><option value="separate">Separate pot</option></select>
+                </div>
+              </div>
+            </div>)}
+
+            {d.type==="individual"&&(<div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <div><div className="lbl">Ranking</div>
+                  <select className="inp" value={d.ranking} onChange={num(0,v=>upd_({ranking:v}))}><option value="net">Net to target (points − target)</option><option value="raw">Raw Stableford total</option></select>
+                </div>
+                <div><div className="lbl">Paid spots</div><input className="inp" type="number" min="1" max="20" value={d.paidSpots} onChange={num(0,v=>upd_({paidSpots:v}))}/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <div><div className="lbl">Tie for a paid spot</div>
+                  <select className="inp" value={d.tieRule} onChange={num(0,v=>upd_({tieRule:v}))}><option value="split">Split pooled $ evenly</option><option value="admin">Admin resolves</option></select>
+                </div>
+                <div><div className="lbl">Individual skins</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <div onClick={()=>upd_({skinsEnabled:!d.skinsEnabled})} style={{width:36,height:20,borderRadius:20,background:d.skinsEnabled?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}><div style={{position:"absolute",top:2,left:d.skinsEnabled?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/></div>
+                    <input className="inp" type="number" disabled={!d.skinsEnabled} placeholder="$/player" value={d.skinsPerPlayer} onChange={num(0,v=>upd_({skinsPerPlayer:v}))} style={{opacity:d.skinsEnabled?1:0.4}}/>
+                  </div>
+                </div>
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginBottom:10,lineHeight:1.6}}>Per-spot dollar amounts are set at scoring time from the collected pool ({b.poolPerPlayer>=0?("$"+b.poolPerPlayer.toFixed(0)+"/player after fund"+(d.skinsEnabled?" + skins":"")):"—"}) with a true-up to $0 before finalize.</div>
+            </div>)}
+
+            {/* Money balance strip */}
+            <div style={{padding:"10px 14px",borderRadius:8,marginBottom:12,background:balanced?"rgba(16,185,129,0.08)":"rgba(239,68,68,0.08)",border:"1px solid "+(balanced?"rgba(16,185,129,0.25)":"rgba(239,68,68,0.25)")}}>
+              <span style={{fontSize:12,fontWeight:700,color:balanced?"#34d399":"#f87171"}}>
+                {d.type==="team"
+                  ?(balanced?"✓ Balanced: $"+b.buyIn+" in = $"+b.allocated+" out":"✗ Off by $"+Math.abs(b.diff).toFixed(2)+" — pots + fund must equal the buy-in")
+                  :(balanced?"✓ $"+b.buyIn+" in — $"+b.allocated+" reserved, $"+(b.poolPerPlayer||0).toFixed(0)+"/player to the payout pool":"✗ Fund + skins exceed the buy-in")}
+              </span>
+            </div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginBottom:12}}>All payouts round down to whole dollars; surplus goes to the tournament fund.</div>
+            <button className="btn btn-g btn-full" onClick={save} disabled={!balanced}>{editing.id?"Save changes":"Create mode"}</button>
+          </div>
+        </div>);})()}
+
+      {!editing&&modes.length===0&&(
+        <div className="info-box"><strong>No modes yet.</strong> Create a Team mode matching today’s game ($25: $1 fund, $5/$5/$5 pots, $9 skins) and an Individual Stableford mode. Day setup will pick from these.</div>
+      )}
+      {!editing&&modes.map(m=>{
+        const b=balance(m);
+        return(
+        <div key={m.id} className="card" style={{marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px"}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{m.name}</span>
+                <span className={m.type==="team"?"b b-g":"b b-b"}>{m.type==="team"?"Team":"Individual"}</span>
+                {defaultModeId===m.id&&<span className="b b-a">★ Default</span>}
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginTop:3}}>
+                ${m.buyIn}/player{m.fundEnabled?" · $"+m.fundPerPlayer+" fund":" · no fund"}
+                {m.type==="team"
+                  ?" · F$"+m.potFront+" B$"+m.potBack+" O$"+m.potOverall+" Sk$"+m.potSkins+" · "+(m.skinsMode==="individual"?"ind.":"team")+" skins"
+                  :" · "+(m.ranking==="raw"?"raw total":"net-to-target")+" · "+m.paidSpots+" spots · "+(m.tieRule==="admin"?"admin ties":"split ties")+(m.skinsEnabled?" · skins $"+m.skinsPerPlayer:"")}
+              </div>
+            </div>
+            {defaultModeId!==m.id&&<button className="btn btn-gh btn-xs" onClick={()=>setDefault(m.id)}>Set default</button>}
+            <button className="btn btn-gh btn-xs" onClick={()=>openEdit(m)}>Edit</button>
+            <button className="btn btn-r btn-xs" onClick={()=>setConfirmDel(m)}>Del</button>
+          </div>
+        </div>);})}
+    </div>)}
+
+    {confirmDel&&(
+      <div className="overlay">
+        <div className="modal">
+          <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#f87171"}}>Delete mode “{confirmDel.name}”?</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>Future day setups can’t pick it. Already-finalized rounds are untouched — they snapshot their rules at finalize.</div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn btn-r" style={{flex:1}} onClick={()=>removeMode(confirmDel)}>Delete</button>
+            <button className="btn btn-gh" style={{flex:1}} onClick={()=>setConfirmDel(null)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>);
+}
+
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
 
 function ClarkEmailTab(){
@@ -2620,40 +2920,159 @@ function LoginCardsTab(){
 }
 
 function SeasonTab(){
-  const FEATURES=[
-    {icon:"📅",title:"Season End Date",desc:"Set and display the official end date of the current season. Automatically highlights when the season is approaching its end. All players and admins can see the countdown in the main app."},
-    {icon:"🗄️",title:"Archive Season",desc:"Snapshot the entire season — all rounds, scores, standings, and tournament fund — into a permanent archive. Start fresh for the next season without losing any historical data."},
-    {icon:"📊",title:"Stats by Season",desc:"Break down attendance, winnings, and handicap trends by season. Players will eventually see season-specific stats in the Standings tab of the main app, with a season selector dropdown."},
-    {icon:"💰",title:"Reset Tournament Fund",desc:"Safely zero out the tournament fund at season start after the payout. Keeps a full audit trail — previous fund total is recorded before reset. Requires master confirmation."},
-    {icon:"🏆",title:"Season Awards",desc:"Generate end-of-season award summaries: most rounds played, most skins won, best net score average, biggest single-round winner, most improved handicap. Shareable as a formatted email."},
-  ];
+  const season=useDB("settings/season");
+  const history=useDB("history");
+  const attendance=useDB("attendance");
+  const seasons=useDB("seasons");
+  const isMaster=(()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch(e){return false;}})();
+  const me=(()=>{try{return JSON.parse(sessionStorage.getItem("portal_user")||"{}").name||"master";}catch(e){return "master";}})();
+  const [nm,setNm]=React.useState("");
+  const [ed,setEd]=React.useState("");
+  const [typed,setTyped]=React.useState("");
+  const [busy,setBusy]=React.useState(false);
+  const [log,setLog]=React.useState("");
+  const [backedUp,setBackedUp]=React.useState({});
+  React.useEffect(()=>{setNm((season&&season.name)||String(new Date().getFullYear()));setEd((season&&season.endDate)||"");},[season]);
+  const liveRounds=Object.keys(history||{}).length;
+  const liveFund=Object.values(history||{}).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0);
+  const attCount=(attendance&&attendance.rounds)?(Array.isArray(attendance.rounds)?attendance.rounds.length:Object.keys(attendance.rounds).length):0;
+  const daysLeft=(()=>{if(!ed)return null;const d=Math.ceil((new Date(ed+"T23:59:59")-new Date())/86400000);return d;})();
+
+  async function archiveSeason(){
+    if(typed.trim().toUpperCase()!=="ARCHIVE"||busy)return;
+    setBusy(true);setLog("Snapshotting live season…");
+    try{
+      const dbr=db;
+      const hist=(await dbr.ref("history").once("value")).val()||{};
+      const att=(await dbr.ref("attendance").once("value")).val()||null;
+      const rc=Object.keys(hist).length;
+      if(!rc){setLog("Nothing to archive — live history is empty.");setBusy(false);return;}
+      const fund=Math.round(Object.values(hist).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0));
+      const sname=(season&&season.name)||String(new Date().getFullYear());
+      const id=(sname+"_"+Date.now()).replace(/[^A-Za-z0-9_-]/g,"_");
+      await dbr.ref("seasons/"+id).set({meta:{name:sname,endDate:(season&&season.endDate)||null,startedAt:(season&&season.startedAt)||null,archivedAt:Date.now(),by:me,roundCount:rc,attRounds:att&&att.rounds?(Array.isArray(att.rounds)?att.rounds.length:Object.keys(att.rounds).length):0,fundTotal:fund},history:hist,attendance:att});
+      setLog("Verifying snapshot…");
+      const back=(await dbr.ref("seasons/"+id+"/history").once("value")).val()||{};
+      if(Object.keys(back).length!==rc){setLog("⚠ VERIFY FAILED — live data NOT touched. Snapshot kept at seasons/"+id+" — tell Claude.");setBusy(false);return;}
+      await dbr.ref("fundAudit").push({action:"season_archive",season:sname,fundTotalAtArchive:fund,rounds:rc,by:me,ts:Date.now()});
+      setLog("Snapshot verified ("+rc+" rounds). Clearing live season…");
+      await dbr.ref("history").set(null);
+      await dbr.ref("attendance").set(null);
+      const nextName=String((parseInt(sname,10)||new Date().getFullYear())+1);
+      await dbr.ref("settings/season").set({name:nextName,startedAt:Date.now()});
+      setTyped("");
+      setLog("✅ Season "+sname+" archived — "+rc+" rounds, $"+fund+" fund recorded. Live data is fresh for "+nextName+". Roster, PINs, settings and game templates untouched.");
+    }catch(e){setLog("⚠ Error: "+e.message+" — live data was not cleared unless the log above says so.");}
+    setBusy(false);
+  }
+
+  async function restoreSeason(id,meta){
+    if(busy)return;
+    if(liveRounds>0){window.alert("Live history is not empty ("+liveRounds+" rounds) — restore is blocked to avoid overwriting. Archive or clear the live season first.");return;}
+    if(!window.confirm("Restore season \""+(meta&&meta.name)+"\" ("+(meta&&meta.roundCount)+" rounds) back to LIVE?"))return;
+    setBusy(true);setLog("Restoring…");
+    try{
+      const snap=(await db.ref("seasons/"+id).once("value")).val();
+      if(!snap||!snap.history){setLog("Archive unreadable.");setBusy(false);return;}
+      await db.ref("history").set(snap.history);
+      if(snap.attendance)await db.ref("attendance").set(snap.attendance);
+      if(snap.meta&&snap.meta.name)await db.ref("settings/season").set({name:snap.meta.name,endDate:snap.meta.endDate||null,startedAt:snap.meta.startedAt||Date.now()});
+      setLog("✅ Restored \""+(snap.meta&&snap.meta.name)+"\" to live ("+Object.keys(snap.history).length+" rounds). The archive copy is kept.");
+    }catch(e){setLog("⚠ Restore error: "+e.message);}
+    setBusy(false);
+  }
+
+  if(!isMaster)return(<div><div className="pg-eyebrow">Master Only</div><div className="pg-title">Season Management</div><div className="info-box">Only the master account can manage seasons.</div></div>);
+
+  const archList=Object.entries(seasons||{}).sort((a,b)=>((b[1].meta&&b[1].meta.archivedAt)||0)-((a[1].meta&&a[1].meta.archivedAt)||0));
+  const inp={width:"100%",boxSizing:"border-box",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"9px 11px",color:"#e2e8f0",fontFamily:"inherit",fontSize:13,outline:"none"};
+  const lbl={fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.07em",color:"rgba(255,255,255,0.35)",marginBottom:5};
 
   return(<div>
     <div className="pg-eyebrow">Master Only</div>
     <div className="pg-title">Season Management</div>
-    <div className="pg-sub">Planned features for end-of-season and multi-season tools</div>
-    <div className="info-box">
-      <strong>These features are coming soon.</strong> Building these in the portal means we can manage seasons without touching the main application. Nothing here is live yet.
-    </div>
-    {FEATURES.map((f,i)=>(
-      <div key={i} className="card">
-        <div className="card-hdr">
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>{f.icon}</span>
-            <span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{f.title}</span>
-          </div>
-          <span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.15)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Coming Soon</span>
-        </div>
-        <div className="card-body">
-          <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>{f.desc}</div>
-        </div>
+    <div className="pg-sub">End the season safely — archive everything, start fresh, restore if needed</div>
+
+    {/* CURRENT SEASON */}
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📅</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Current Season</span></div>
+        {daysLeft!=null&&<span style={{fontSize:10,fontWeight:800,padding:"3px 9px",borderRadius:20,background:daysLeft<=35?"rgba(245,158,11,0.12)":"rgba(255,255,255,0.06)",color:daysLeft<=35?"#fbbf24":"rgba(255,255,255,0.4)"}}>{daysLeft>=0?(daysLeft+" days left"):"ended "+(-daysLeft)+"d ago"}</span>}
       </div>
-    ))}
-    <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management · Master Only</div>
+      <div className="card-body">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <div><div style={lbl}>Season name</div><input style={inp} value={nm} onChange={e=>setNm(e.target.value)}/></div>
+          <div><div style={lbl}>End date</div><input style={inp} type="date" value={ed} onChange={e=>setEd(e.target.value)}/></div>
+        </div>
+        <button className="btn btn-sm" onClick={()=>{wr("settings/season",{name:nm.trim()||String(new Date().getFullYear()),endDate:ed||null,startedAt:(season&&season.startedAt)||Date.now()});setLog("Season settings saved.");}}>Save season settings</button>
+      </div>
+    </div>
+
+    {/* ARCHIVE */}
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>🗄️</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archive Season &amp; Start Fresh</span></div></div>
+      <div className="card-body">
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:10}}>
+          Live right now: <b style={{color:"#e2e8f0"}}>{liveRounds} rounds</b> · <b style={{color:"#e2e8f0"}}>{attCount} attendance rounds</b> · tournament fund <b style={{color:"#e2e8f0"}}>${Math.round(liveFund)}</b>.<br/>
+          Archiving copies ALL of it into a permanent snapshot first, <b>verifies the copy</b>, logs the fund total to the audit trail, and only then clears live history + attendance and rolls the season name. Roster, PINs, settings and game templates are never touched.
+        </div>
+        {(()=>{if(!season||!season.endDate)return null;const d=Math.ceil((new Date(season.endDate+"T23:59:59")-new Date())/86400000);if(d<=0)return null;return(
+          <div style={{fontSize:12.5,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"8px 11px",marginBottom:10,lineHeight:1.6}}>
+            ⚠ The season end date is <b>{season.endDate}</b> — <b>{d} day{d!==1?"s":""} away</b>. Archiving now ends the season early. That’s allowed (weather happens), just make sure it’s intentional.
+          </div>);})()}
+        <div style={lbl}>Type ARCHIVE to confirm</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <input style={{...inp,maxWidth:160,letterSpacing:"0.15em",fontWeight:700}} value={typed} onChange={e=>setTyped(e.target.value)}/>
+          <button className="btn btn-sm" disabled={typed.trim().toUpperCase()!=="ARCHIVE"||busy} style={{background:typed.trim().toUpperCase()==="ARCHIVE"?"#b91c1c":"rgba(255,255,255,0.08)",color:"#fff",opacity:busy?0.6:1}} onClick={archiveSeason}>{busy?"Working…":"Archive season"}</button>
+        </div>
+        {log&&<div style={{marginTop:10,fontSize:12.5,color:"#fbbf24",lineHeight:1.6}}>{log}</div>}
+      </div>
+    </div>
+
+    {/* ARCHIVED SEASONS */}
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📚</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Archived Seasons</span></div></div>
+      <div className="card-body">
+        {archList.length===0?<div style={{fontSize:13,color:"rgba(255,255,255,0.35)"}}>No archived seasons yet.</div>:
+          archList.map(([id,s])=>{const m=s.meta||{};return(
+            <div key={id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderTop:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:180}}>
+                <div style={{fontSize:13.5,fontWeight:700,color:"#e2e8f0"}}>{m.name||id}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{m.roundCount||0} rounds · fund ${m.fundTotal||0} · archived {m.archivedAt?new Date(m.archivedAt).toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}):""} by {m.by||""}</div>
+              </div>
+              <button className="btn btn-sm btn-ghost" disabled={busy} onClick={()=>restoreSeason(id,m)}>Restore to live</button>
+              <button className="btn btn-sm btn-ghost" disabled={busy} onClick={async()=>{
+                try{
+                  const snap=(await db.ref("seasons/"+id).once("value")).val();
+                  if(!snap){window.alert("Could not read archive.");return;}
+                  const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});
+                  const a=document.createElement("a");
+                  a.href=URL.createObjectURL(blob);
+                  a.download="clark-season-"+(m.name||id)+"-backup-"+new Date().toISOString().slice(0,10)+".json";
+                  document.body.appendChild(a);a.click();a.remove();
+                  setBackedUp(b=>({...b,[id]:true}));
+                  setLog("Backup of \""+(m.name||id)+"\" downloaded — keep that file safe. Delete is now enabled for this archive.");
+                }catch(e){window.alert("Backup failed: "+e.message);}
+              }}>💾 Download backup</button>
+              <button className="btn btn-sm btn-ghost" disabled={busy||!backedUp[id]} title={backedUp[id]?"Permanently delete (backup downloaded)":"Download a backup first to enable Delete"} style={{color:backedUp[id]?"#f87171":"rgba(255,255,255,0.25)",cursor:backedUp[id]?"pointer":"not-allowed"}} onClick={()=>{
+                if(!backedUp[id])return;
+                const t=window.prompt("Permanently delete this archive? Type the season name (\""+(m.name||id)+"\") to confirm:");
+                if(t==null)return;
+                if(String(t).trim()!==(m.name||id)){window.alert("Name did not match — nothing deleted.");return;}
+                db.ref("seasons/"+id).remove().then(()=>setLog("Archive \""+(m.name||id)+"\" ("+(m.roundCount||0)+" rounds) permanently deleted. Your downloaded backup file is now the only copy."));
+              }}>Delete</button>
+            </div>
+          );})}
+        <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>Restore is blocked unless live history is empty. Delete is disabled until you download that archive’s backup file — then requires typing the season name. A season can never be erased without a copy existing on your computer first.</div>
+      </div>
+    </div>
+
+    {/* STILL COMING */}
+    {/* Stats by Season — LIVE in the app */}
+    <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📊</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Stats by Season</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(54,165,111,0.12)",color:"#4ade80",border:"1px solid rgba(54,165,111,0.2)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Live</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Done — in the main app, the History, Standings and Stats tabs have a <b style={{color:"#e2e8f0"}}>Season selector</b>. Everyone can browse any archived season’s rounds, money and analytics exactly like the current one.</div></div></div>
+    <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>🏆</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Season Awards</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.15)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Coming Soon</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Auto-generated award summaries from an archived season — most rounds, most skins, best net average, biggest single-round win — shareable as a formatted email. Next up after launch.</div></div></div>
+    <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management · Master Only · Fund reset is handled by Archive (audit-logged)</div>
   </div>);
 }
-
-// ── ANNOUNCEMENTS TAB ────────────────────────────────────────────────────────
 const ANNOUNCEMENT_CATEGORIES=[
   {id:"tournament",label:"Tournament",icon:"🏆",color:"#fbbf24",soft:"rgba(251,191,36,0.12)",border:"rgba(251,191,36,0.35)"},
   {id:"feature",   label:"New Feature",icon:"🎉",color:"#10b981",soft:"rgba(16,185,129,0.12)",border:"rgba(16,185,129,0.35)"},
@@ -3154,6 +3573,8 @@ function SettingsTab({user,onSignOut}){
 const ALL_NAV_ITEMS=[
   {id:"dash",label:"Dashboard",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>},
   {id:"access",label:"Access",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>},
+  {id:"gamerules",label:"Game Modes",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/><path d="M5.5 5.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2M18.5 18.5l-2-2"/></svg>},
+  {id:"appsettings",label:"App Settings",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>},
   {id:"week",label:"Week",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
   {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
@@ -3236,6 +3657,8 @@ function Portal(){
         </div>
         <div className="main">
           {tab==="dash"&&<DashTab user={user}/>}
+          {tab==="gamerules"&&<GameRulesTab user={user}/>}
+          {tab==="appsettings"&&<AppSettingsTab user={user}/>}
           {tab==="week"&&<WeekTab user={user}/>}
           {tab==="email"&&<EmailTab/>}
           {tab==="roster"&&<RosterTab/>}
