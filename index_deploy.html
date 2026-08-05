@@ -6949,6 +6949,12 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
       <div style={{fontSize:10,color:'var(--ink-40)',padding:'2px 4px 8px',fontStyle:'italic'}}>
         Game can change any time — here or the Week page — until scores are entered.
       </div>
+      <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',textAlign:'center',padding:'11px',fontWeight:700,marginTop:2}} onClick={onClose}>
+        ✓ Save & Close {day}
+      </button>
+      <div style={{fontSize:10,color:'var(--ink-40)',textAlign:'center',padding:'6px 0 2px'}}>
+        Every change saves automatically as you go — this just wraps up the day.
+      </div>
 
       {gameModal&&(
         <div onClick={()=>setGameModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
