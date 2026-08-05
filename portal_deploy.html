@@ -2169,6 +2169,7 @@ function AppSettingsTab({user}){
   const settings=useDB("settings");
   const [toast,showToast]=useToast();
   const sr=gameRules?.signupRules||{};
+  const pushTrig=useDB("settings/pushTriggers")||{};
   const maxGuests=settings?.maxGuests??3;
   function toggleRule(key){
     const cur=sr[key]!==false;
@@ -2180,6 +2181,40 @@ function AppSettingsTab({user}){
     <div className="pg-eyebrow">Configuration</div>
     <div className="pg-title">App Settings</div>
     <div className="pg-sub">Global settings that apply to every day and every week. More settings will land here as the app grows.</div>
+    <div className="card">
+      <div className="card-hdr"><span className="card-title">🔔 Automatic Push Notifications</span></div>
+      <div className="info-box"><strong>Control which events buzz phones automatically.</strong> Applies to everyone with notifications on. Manual pushes and checked announcements always send.</div>
+      <div className="card">
+        {(()=>{const pt=pushTrig;return [
+          {key:"publish",label:"Teams / groups published",sub:"Sent to everyone"},
+          {key:"results",label:"Results posted",sub:"Sent to everyone"},
+          {key:"cancel",label:"Day cancelled",sub:"Sent to everyone"},
+          {key:"join",label:"New join request",sub:"Sent to admins"},
+          {key:"drops",label:"Post-publish drop-out",sub:"Sent to admins"},
+        ].map(({key,label,sub})=>{
+          const on=pt[key]!==false;
+          return(
+            <div key={key} className="s-row" style={{gap:12}}>
+              <div onClick={()=>wr("settings/pushTriggers/"+key,on?false:null)} style={{width:36,height:20,borderRadius:20,background:on?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0,transition:"background 0.2s"}}>
+                <div style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13.5,fontWeight:600,color:"#e2e8f0"}}>{label}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{sub}</div>
+              </div>
+              {on&&(
+                <select value={(pt[key]==="all"||pt[key]==="admins")?pt[key]:""} onChange={e=>wr("settings/pushTriggers/"+key,e.target.value||null)}
+                  style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"5px 8px",color:"#e2e8f0",fontFamily:"inherit",fontSize:11,outline:"none"}}>
+                  <option value="">Default</option>
+                  <option value="all">Everyone</option>
+                  <option value="admins">Admins only</option>
+                </select>
+              )}
+            </div>
+          );
+        });})()}
+      </div>
+    </div>
     <div className="card">
       <div className="card-hdr"><span className="card-title">Sign-up Rules</span></div>
 

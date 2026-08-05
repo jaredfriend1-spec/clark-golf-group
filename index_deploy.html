@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.04-b';
+const APP_BUILD='2026.08.04-d';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -677,7 +677,15 @@ const PUSH_VAPID_TEST = "BMBC1cQ86-DiV8kuVCVB7h4SQ0hYYqGujUMg_lZNzh2f3ET0Vzr2po7
 const PUSH_VAPID = IS_PROD_HOST ? PUSH_VAPID_PROD : PUSH_VAPID_TEST;
 const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
 const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
+let PUSH_TRIGGERS_CACHE=null;
+function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';return null;}
 function sendPushNotify(p){
+  const k=pushTriggerKey(p&&p.tag);
+  if(k&&PUSH_TRIGGERS_CACHE){
+    const v=PUSH_TRIGGERS_CACHE[k];
+    if(v===false){console.log('[push] auto push "'+k+'" is toggled off — skipped');return;}
+    if(v==='all'||v==='admins')p={...p,audience:v};
+  }
   try{
     fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({key:NOTIFY_KEY,project:IS_PROD_HOST?'prod':'test',audience:p.audience||'admins',title:p.title,body:p.body||'',url:p.url||'/',tag:p.tag||''})
@@ -6621,6 +6629,33 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     {dbBuild!==APP_BUILD&&<button className="btn btn-primary btn-sm" onClick={()=>{write('settings/appBuild',APP_BUILD);}}>🔄 Tell all devices to update</button>}
                   </div>
                   <div style={{marginTop:12,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--ink-70)',marginBottom:8}}>⚙ Automatic pushes <span style={{fontWeight:500,color:'var(--ink-40)'}}>(what fires on its own)</span></div>
+                    {[['publish','Teams / groups published','everyone'],['results','Results posted','everyone'],['cancel','Day cancelled','everyone'],['join','New join request','admins'],['drops','Post-publish drop-out','admins']].map(([k,label,aud])=>{
+                      const on=!(settings&&settings.pushTriggers&&settings.pushTriggers[k]===false);
+                      return(
+                        <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:12.5,fontWeight:600,color:'var(--ink)'}}>{label}</div>
+                            <div style={{fontSize:10.5,color:'var(--ink-40)'}}>Sent to {aud}</div>
+                          </div>
+                          {on&&(
+                            <select className="form-input" style={{maxWidth:130,padding:'4px 8px',fontSize:11}}
+                              value={(settings&&settings.pushTriggers&&(settings.pushTriggers[k]==='all'||settings.pushTriggers[k]==='admins'))?settings.pushTriggers[k]:''}
+                              onChange={e=>write('settings/pushTriggers/'+k,e.target.value||null)}>
+                              <option value="">Default ({aud})</option>
+                              <option value="all">Everyone</option>
+                              <option value="admins">Admins only</option>
+                            </select>
+                          )}
+                          <button className="btn btn-sm" onClick={()=>write('settings/pushTriggers/'+k,!on?null:false)}
+                            style={{width:64,justifyContent:'center',textAlign:'center',fontWeight:700,border:'1px solid',borderColor:on?'var(--brand-border)':'var(--hairline)',background:on?'var(--brand-soft)':'transparent',color:on?'var(--brand)':'var(--ink-40)',borderRadius:8,padding:'4px 0'}}>
+                            {on?'On':'Off'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{marginTop:12,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
                     <div style={{fontSize:11,fontWeight:700,color:'var(--ink-70)',marginBottom:8}}>📤 Send a push-only message <span style={{fontWeight:500,color:'var(--ink-40)'}}>(no in-app banner — great for testing)</span></div>
                     <input className="form-input" placeholder="Title (short!)" value={poTitle} maxLength={50} onChange={e=>{setPoTitle(e.target.value);setPoSent('');}} style={{marginBottom:6}}/>
                     <input className="form-input" placeholder="Message" value={poBody} maxLength={140} onChange={e=>{setPoBody(e.target.value);setPoSent('');}} style={{marginBottom:8}}/>
@@ -8564,6 +8599,7 @@ function App(){
     u.push(read('cancelledDays', v=>setCancelledDays(v||{})));
     u.push(read('fcmTokens', v=>setFcmTokens(v||{})));
     u.push(read('settings/appBuild', v=>setDbBuild(v||null)));
+    u.push(read('settings/pushTriggers', v=>{PUSH_TRIGGERS_CACHE=v||{};}));
     u.push(read('seasons', v=>{const m={};Object.entries(v||{}).forEach(([id,s])=>{m[id]=(s&&s.meta)||{};});setSeasonsMeta(m);}));
     u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
