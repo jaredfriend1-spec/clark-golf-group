@@ -2362,14 +2362,6 @@ function GameRulesTab({user}){
                   <select className="inp" value={d.skinsSource} onChange={num(0,v=>upd_({skinsSource:v}))}><option value="buyin">From buy-in</option><option value="separate">Separate pot</option></select>
                 </div>
               </div>
-              <div style={{marginTop:12}}>
-                <div className="lbl">Stableford points (optional — shown to players as a note)</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginTop:6}}>
-                  {[["alb","Albatross"],["hio","Hole-in-1"],["eag","Eagle"],["bird","Birdie"],["par","Par"],["bog","Bogey"],["dbl","Double+"]].map(([k,l])=>(
-                    <div key={k}><div className="lbl" style={{fontSize:9}}>{l}</div><input className="inp" inputMode="decimal" value={(d.pointsTable&&d.pointsTable[k])||""} onChange={e=>upd_({pointsTable:{...(d.pointsTable||{}),[k]:e.target.value}})}/></div>
-                  ))}
-                </div>
-              </div>
             </div>)}
 
             {d.type==="individual"&&(<div>
@@ -2401,6 +2393,16 @@ function GameRulesTab({user}){
                   :(balanced?"✓ $"+b.buyIn+" in — $"+b.allocated+" reserved, $"+(b.poolPerPlayer||0).toFixed(0)+"/player to the payout pool":"✗ Fund + skins exceed the buy-in")}
               </span>
             </div>
+            {d.type==="individual"&&(<>
+              <div style={{marginTop:12}}>
+                <div className="lbl">Stableford points (optional — shown to players as a note)</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginTop:6}}>
+                  {[["alb","Albatross"],["hio","Hole-in-1"],["eag","Eagle"],["bird","Birdie"],["par","Par"],["bog","Bogey"],["dbl","Double+"]].map(([k,l])=>(
+                    <div key={k}><div className="lbl" style={{fontSize:9}}>{l}</div><input className="inp" inputMode="decimal" value={(d.pointsTable&&d.pointsTable[k])||""} onChange={e=>upd_({pointsTable:{...(d.pointsTable||{}),[k]:e.target.value}})}/></div>
+                  ))}
+                </div>
+              </div>
+            </>)}
             <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginBottom:12}}>All payouts round down to whole dollars; surplus goes to the tournament fund.</div>
             <button className="btn btn-g btn-full" onClick={save} disabled={!balanced}>{editing.id?"Save changes":"Create mode"}</button>
           </div>
