@@ -5788,7 +5788,7 @@ function EmailViewV2({ week, isAdmin, history }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, fcmTokens, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -5818,6 +5818,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [editRosterTarget, setEditRosterTarget] = useState('');
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
+  const [showPushSubs, setShowPushSubs] = useState(false);
   const [cancelDay, setCancelDay] = useState(null);
   const [cancelTyped, setCancelTyped] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -6585,6 +6586,36 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
         </div>
 
 
+        {/* ── PUSH SUBSCRIBERS ── */}
+        {(()=>{
+          const byName={};
+          Object.values(fcmTokens||{}).forEach(t=>{if(!t)return;const n=t.name||'Unknown';if(!byName[n])byName[n]={devices:0,latest:0};byName[n].devices++;byName[n].latest=Math.max(byName[n].latest,t.ts||0);});
+          const names=Object.entries(byName).sort((a,b)=>b[1].latest-a[1].latest);
+          return(
+            <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+              <SectionHeader
+                icon={<span style={{fontSize:13}}>🔔</span>}
+                title="Push Subscribers"
+                count={names.length}
+                open={showPushSubs}
+                onToggle={()=>setShowPushSubs(s=>!s)}
+              />
+              {showPushSubs&&(
+                <div style={{borderTop:'1px solid var(--hairline)',padding:'4px 16px 12px'}}>
+                  {names.length===0&&<div style={{fontSize:12.5,color:'var(--ink-40)',padding:'10px 0'}}>No one has turned on notifications yet.</div>}
+                  {names.map(([n,d])=>(
+                    <div key={n} style={{display:'flex',alignItems:'baseline',gap:8,padding:'8px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                      <span style={{fontSize:13,fontWeight:600,color:'var(--ink)',flex:1}}>{n}</span>
+                      <span style={{fontSize:11,color:'var(--ink-50)'}}>{d.devices} device{d.devices!==1?'s':''}</span>
+                      <span style={{fontSize:11,color:'var(--ink-40)'}}>{d.latest?new Date(d.latest).toLocaleDateString([], {month:'short',day:'numeric'}):''}</span>
+                    </div>
+                  ))}
+                  <div style={{fontSize:10.5,color:'var(--ink-40)',marginTop:8}}>Everyone listed gets pushes for teams, results, cancellations, and checked announcements. Not listed = hasn't tapped the bell yet.</div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {/* ── CANCELLED DAYS LOG ── */}
         {cancelledDays&&Object.keys(cancelledDays).length>0&&(
           <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
@@ -8442,6 +8473,7 @@ function App(){
   const [pushOn, setPushOn] = useState(()=>{try{return localStorage.getItem('cgPushOn')==='1'&&('Notification' in window)&&Notification.permission==='granted';}catch(e){return false;}});
   const [joinRequests, setJoinRequests] = useState({});
   const [cancelledDays, setCancelledDays] = useState({});
+  const [fcmTokens, setFcmTokens] = useState({});
   const [seasonsMeta, setSeasonsMeta] = useState({});
   const [seasonView, setSeasonView] = useState('live');
   const [seasonData, setSeasonData] = useState(null);
@@ -8496,6 +8528,7 @@ function App(){
     u.push(read('rosterTargets', v=>setRosterTargets(v||{})));
     u.push(read('joinRequests', v=>setJoinRequests(v||{})));
     u.push(read('cancelledDays', v=>setCancelledDays(v||{})));
+    u.push(read('fcmTokens', v=>setFcmTokens(v||{})));
     u.push(read('seasons', v=>{const m={};Object.entries(v||{}).forEach(([id,s])=>{m[id]=(s&&s.meta)||{};});setSeasonsMeta(m);}));
     u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
@@ -9045,7 +9078,7 @@ function App(){
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
-        joinRequests={joinRequests} alertsDrops={alertsDrops} cancelledDays={cancelledDays} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
+        joinRequests={joinRequests} alertsDrops={alertsDrops} fcmTokens={fcmTokens} cancelledDays={cancelledDays} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
         rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterTargets={rosterTargets} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}
         rosterEmails={rosterEmails} rosterPins={rosterPins}
         rosterAdmins={rosterAdmins} activityLog={activityLog}
