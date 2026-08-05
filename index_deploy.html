@@ -385,6 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
+const APP_BUILD='2026.08.04-a';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5819,6 +5820,10 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
   const [showPushSubs, setShowPushSubs] = useState(false);
+  const [poTitle,setPoTitle]=useState('');
+  const [poBody,setPoBody]=useState('');
+  const [poAud,setPoAud]=useState('admins');
+  const [poSent,setPoSent]=useState('');
   const [cancelDay, setCancelDay] = useState(null);
   const [cancelTyped, setCancelTyped] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -6611,6 +6616,23 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     </div>
                   ))}
                   <div style={{fontSize:10.5,color:'var(--ink-40)',marginTop:8}}>Everyone listed gets pushes for teams, results, cancellations, and checked announcements. Not listed = hasn't tapped the bell yet.</div>
+                  <div style={{marginTop:10,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',fontSize:11,color:'var(--ink-50)'}}>
+                    <span>App build <b style={{color:'var(--ink)'}}>{APP_BUILD}</b>{dbBuild===APP_BUILD?' — everyone is being told this is current':''}</span>
+                    {dbBuild!==APP_BUILD&&<button className="btn btn-primary btn-sm" onClick={()=>{write('settings/appBuild',APP_BUILD);}}>🔄 Tell all devices to update</button>}
+                  </div>
+                  <div style={{marginTop:12,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--ink-70)',marginBottom:8}}>📤 Send a push-only message <span style={{fontWeight:500,color:'var(--ink-40)'}}>(no in-app banner — great for testing)</span></div>
+                    <input className="form-input" placeholder="Title (short!)" value={poTitle} maxLength={50} onChange={e=>{setPoTitle(e.target.value);setPoSent('');}} style={{marginBottom:6}}/>
+                    <input className="form-input" placeholder="Message" value={poBody} maxLength={140} onChange={e=>{setPoBody(e.target.value);setPoSent('');}} style={{marginBottom:8}}/>
+                    <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                      <select className="form-input" style={{maxWidth:150,padding:'6px 10px',fontSize:12}} value={poAud} onChange={e=>setPoAud(e.target.value)}>
+                        <option value="admins">Admins only (test)</option>
+                        <option value="all">Everyone</option>
+                      </select>
+                      <button className="btn btn-primary btn-sm" disabled={!poTitle.trim()||!poBody.trim()} onClick={()=>{sendPushNotify({audience:poAud,title:poTitle.trim(),body:poBody.trim(),url:'/',tag:'manual-'+Date.now()});setPoSent('Sent to '+(poAud==='admins'?'admins':'everyone')+' with notifications on — nothing appears in the app.');setPoTitle('');setPoBody('');}}>Send push</button>
+                      {poSent&&<span style={{fontSize:11,color:'var(--brand)',fontWeight:600}}>{poSent}</span>}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -8474,6 +8496,18 @@ function App(){
   const [joinRequests, setJoinRequests] = useState({});
   const [cancelledDays, setCancelledDays] = useState({});
   const [fcmTokens, setFcmTokens] = useState({});
+  const [dbBuild, setDbBuild] = useState(null);
+  useEffect(()=>{
+    if(!dbBuild||dbBuild===APP_BUILD)return;
+    const flag='cgAutoReload_'+dbBuild;
+    try{
+      if(!sessionStorage.getItem(flag)){
+        sessionStorage.setItem(flag,'1');
+        if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update()));
+        setTimeout(()=>window.location.reload(),800);
+      }
+    }catch(e){}
+  },[dbBuild]);
   const [seasonsMeta, setSeasonsMeta] = useState({});
   const [seasonView, setSeasonView] = useState('live');
   const [seasonData, setSeasonData] = useState(null);
@@ -8529,6 +8563,7 @@ function App(){
     u.push(read('joinRequests', v=>setJoinRequests(v||{})));
     u.push(read('cancelledDays', v=>setCancelledDays(v||{})));
     u.push(read('fcmTokens', v=>setFcmTokens(v||{})));
+    u.push(read('settings/appBuild', v=>setDbBuild(v||null)));
     u.push(read('seasons', v=>{const m={};Object.entries(v||{}).forEach(([id,s])=>{m[id]=(s&&s.meta)||{};});setSeasonsMeta(m);}));
     u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
@@ -9044,6 +9079,12 @@ function App(){
         return <AnnouncementBanner announcement={active} onDismiss={onDismiss}/>;
       })()}
 
+      {dbBuild&&dbBuild!==APP_BUILD&&(
+        <div onClick={()=>{try{if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update()));}catch(e){};window.location.reload();}}
+          style={{cursor:'pointer',background:'var(--warn-soft)',borderBottom:'1px solid var(--warn-border)',color:'var(--warn-ink)',fontSize:12.5,fontWeight:700,textAlign:'center',padding:'9px 14px'}}>
+          🔄 A new version of the app is available — tap here to update
+        </div>
+      )}
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
