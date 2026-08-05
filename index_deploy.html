@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.04-a';
+const APP_BUILD='2026.08.04-b';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5789,7 +5789,7 @@ function EmailViewV2({ week, isAdmin, history }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
-function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, fcmTokens, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, fcmTokens, dbBuild, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -9119,7 +9119,7 @@ function App(){
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
         currentUser={currentUser} fullRoster={activeFullRoster}
         effectiveRoster={activeRoster} extra={extra}
-        joinRequests={joinRequests} alertsDrops={alertsDrops} fcmTokens={fcmTokens} cancelledDays={cancelledDays} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
+        joinRequests={joinRequests} alertsDrops={alertsDrops} dbBuild={dbBuild} fcmTokens={fcmTokens} cancelledDays={cancelledDays} onApproveJoin={approveJoinRequest} onDeclineJoin={declineJoinRequest} onDismissDrop={dismissDropAlert}
         rosterEdits={rosterEdits} rosterHidden={rosterHidden} rosterTargets={rosterTargets} rosterHcpOverrides={rosterHcp} rosterTeeOverrides={rosterTee}
         rosterEmails={rosterEmails} rosterPins={rosterPins}
         rosterAdmins={rosterAdmins} activityLog={activityLog}
