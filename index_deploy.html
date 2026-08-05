@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.04-g';
+const APP_BUILD='2026.08.05-a';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -2222,6 +2222,12 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, on
                 })}
               </div>
             )}
+            {(()=>{const pt=modeInfo&&modeInfo.cfg&&modeInfo.cfg.pointsTable;if(!pt)return null;const items=[['alb','Albatross'],['hio','Hole-in-1'],['eag','Eagle'],['bird','Birdie'],['par','Par'],['bog','Bogey'],['dbl','Double+']].filter(([k])=>pt[k]!==undefined&&String(pt[k]).trim()!=='');if(!items.length)return null;return(
+              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:4,alignItems:'center'}}>
+                <span style={{fontSize:9.5,fontWeight:800,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Points</span>
+                {items.map(([k,l])=><span key={k} style={{fontSize:10.5,fontWeight:700,padding:'2px 8px',borderRadius:12,background:'var(--info-soft)',border:'1px solid var(--info-border)',color:'var(--info)',whiteSpace:'nowrap'}}>{l} {pt[k]}</span>)}
+              </div>
+            );})()}
           </div>
           <div className="day-count">
             <div className={'day-count-num' + (count === 0 ? ' zero' : '')}>{count}</div>
@@ -2889,6 +2895,12 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
           </div>
         )}
 
+        {(()=>{const m=resolveDayMode(week,settings,activeDay);const pt=m&&m.pointsTable;if(!pt)return null;const items=[['alb','Albatross'],['hio','Hole-in-1'],['eag','Eagle'],['bird','Birdie'],['par','Par'],['bog','Bogey'],['dbl','Double+']].filter(([k])=>pt[k]!==undefined&&String(pt[k]).trim()!=='');if(!items.length)return null;return(
+          <div style={{display:'flex',flexWrap:'wrap',gap:4,margin:'0 0 12px',alignItems:'center'}}>
+            <span style={{fontSize:10,fontWeight:800,color:'var(--info)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Points</span>
+            {items.map(([k,l])=><span key={k} style={{fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:12,background:'var(--info-soft)',border:'1px solid var(--info-border)',color:'var(--info)',whiteSpace:'nowrap'}}>{l} {pt[k]}</span>)}
+          </div>
+        );})()}
         {/* ── ADMIN: POT CALCULATOR ── */}
         {isAdmin && (
           <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
@@ -7157,6 +7169,19 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
                 <div style={{fontSize:10,color:'var(--ink-40)',marginBottom:10,fontStyle:'italic'}}>One-day setup only — clears at End Week. Reusable templates live in the Admin Portal.</div>
                 <div style={{display:'flex',gap:8}}>
                   <button className="btn btn-ghost btn-sm" onClick={()=>setGameModal('list')}>‹ Back</button>
+                {cd.type==='individual'&&(
+                  <div style={{marginTop:10,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--ink-70)'}}>Stableford points <span style={{fontWeight:500,color:'var(--ink-40)'}}>(optional — shown to players as a note)</span></div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:8}}>
+                      {[['alb','Albatross'],['hio','Hole-in-1'],['eag','Eagle'],['bird','Birdie'],['par','Par'],['bog','Bogey'],['dbl','Double+']].map(([k,l])=>(
+                        <div key={k}>
+                          <div style={{fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:2}}>{l}</div>
+                          <input className="form-input" inputMode="decimal" value={(cd.pointsTable&&cd.pointsTable[k])||''} onChange={e=>setCd({...cd,pointsTable:{...(cd.pointsTable||{}),[k]:e.target.value}})} style={{padding:'6px 8px',fontSize:12}}/>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                   <button className="btn btn-primary btn-sm" style={{flex:1}} onClick={saveCustom} disabled={!cBalanced}>Use for {day}</button>
                 </div>
               </div>
