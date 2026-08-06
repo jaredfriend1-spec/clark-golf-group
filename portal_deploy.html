@@ -3111,6 +3111,22 @@ function SeasonTab(){
       </div>
     </div>
 
+    <div className="card">
+      <div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>💾</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Full Database Backup</span></div></div>
+      <div className="card-body">
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.7,marginBottom:10}}>Downloads <b style={{color:"#e2e8f0"}}>everything</b> — roster, history, attendance, settings, archived seasons, the works — as one JSON file to your computer. Do this every few weeks (and before anything big). If the database were ever damaged, this file is the way back.</div>
+        <button className="btn btn-sm" onClick={async()=>{
+          try{
+            const snap=(await db.ref("/").once("value")).val();
+            const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});
+            const a=document.createElement("a");
+            a.href=URL.createObjectURL(blob);
+            a.download="clark-golf-FULL-backup-"+new Date().toISOString().slice(0,10)+".json";
+            document.body.appendChild(a);a.click();a.remove();
+          }catch(e){window.alert("Backup failed: "+e.message);}
+        }}>💾 Download full backup</button>
+      </div>
+    </div>
     {/* STILL COMING */}
     {/* Stats by Season — LIVE in the app */}
     <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📊</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Stats by Season</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(54,165,111,0.12)",color:"#4ade80",border:"1px solid rgba(54,165,111,0.2)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Live</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Done — in the main app, the History, Standings and Stats tabs have a <b style={{color:"#e2e8f0"}}>Season selector</b>. Everyone can browse any archived season’s rounds, money and analytics exactly like the current one.</div></div></div>
