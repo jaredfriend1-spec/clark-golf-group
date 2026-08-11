@@ -1245,7 +1245,7 @@ function RosterTab(){
   const [editing,setEditing]=useState(null);
   const [adding,setAdding]=useState(false);
   const [revealPin,setRevealPin]=useState(null); // player id whose PIN is shown
-  const [newP,setNewP]=useState({name:"",tee:"Whites",hcp:"",phone:""});
+  const [newP,setNewP]=useState({name:"",tee:"Whites",hcp:"",phone:"",email:""});
   const [confirmDel,setConfirmDel]=useState(null);
   const [confirmHide,setConfirmHide]=useState(null);
   const [confirmResetPin,setConfirmResetPin]=useState(null);
@@ -1287,16 +1287,18 @@ function RosterTab(){
     if(!newP.name.trim()){showToast("Name required","err");return;}
     const newId=Date.now();
     ps("extraPlayers",{id:newId,name:normName(newP.name),tee:newP.tee,hcp:parseFloat(newP.hcp)||0});
-    // Save phone as email for reference, and last 4 digits as PIN
+    // Phone → collision-aware PIN (last 4/5/6); email saved separately below
     if(newP.phone.trim()){
       const digits=newP.phone.replace(/\D/g,"");
       if(digits.length>=4){
         const pin=derivePin(digits,rosterPins,null).pin;
         wr("rosterPins/"+newId,pin);
       }
-      wr("rosterEmails/"+newId,newP.phone.trim()); // store full phone in email field for reference
     }
-    setNewP({name:"",tee:"Whites",hcp:"",phone:""});setAdding(false);
+    if(newP.email&&newP.email.trim()&&newP.email.indexOf("@")>0){
+      wr("rosterEmails/"+newId,newP.email.trim());
+    }
+    setNewP({name:"",tee:"Whites",hcp:"",phone:"",email:""});setAdding(false);
     showToast(newP.phone.trim()?"Player added with PIN ✓":"Player added ✓");
   }
 
@@ -1418,6 +1420,7 @@ function RosterTab(){
         if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:"#4ade80",background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.18)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u2713 Last 4 is taken \u2014 the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
         if(r.collides)return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u26a0 "{r.pin}" is already in use \u2014 pick different digits.</div>);
         return null;})()}
+        <input className="inp" type="email" placeholder="Email (optional — for the weekly email list)" value={newP.email} onChange={e=>setNewP(p=>({...p,email:e.target.value}))} style={{marginTop:8}}/>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
