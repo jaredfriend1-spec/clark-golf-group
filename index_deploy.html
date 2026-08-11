@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-g';
+const APP_BUILD='2026.08.05-j';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -894,7 +894,7 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
   const [masterAttempts,setMasterAttempts]=useState(0);
   function dismissBanner(){try{localStorage.setItem('cgRegistered','1');}catch{}setShowRegBanner(false);}
   function mkIni(n){return(n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
-  function addDigit(d){if(pin.length>=4)return;setPinShake(false);setPin(p=>p+d);}
+  function addDigit(d){if(pin.length>=5)return;setPinShake(false);setPin(p=>p+d);}
   function tryLogin(){
     if(pin.length<4)return;
     const matches=Object.entries(rosterPins||{}).filter(([,v])=>String(v)===String(pin));
@@ -1041,7 +1041,7 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
           <div style={{fontSize:13,color:'#94a3b8',marginTop:2}}>Enter the last 4 digits of your phone number</div>
         </div>
         <div style={{display:'flex',justifyContent:'center',gap:12,padding:'18px 24px 4px',animation:pinShake?'shake 0.5s ease':'none'}}>
-          {[0,1,2,3].map(i=><div key={i} style={{width:13,height:13,borderRadius:'50%',background:i<pin.length?'#0f172a':'#e2e8f0',transition:'background 0.1s'}}></div>)}
+          {Array.from({length:Math.max(4,pin.length)},(_,i)=>i).map(i=><div key={i} style={{width:13,height:13,borderRadius:'50%',background:i<pin.length?'#0f172a':'#e2e8f0',transition:'background 0.1s'}}></div>)}
         </div>
         {pinShake&&(
           <div style={{margin:'8px 20px 4px'}}>
@@ -6376,7 +6376,8 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
               </div>
               <div className="form-group" style={{marginBottom:8}}>
                 <label className="form-label">4-digit PIN (for their sign-in)</label>
-                <input className="form-input" type="number" inputMode="numeric" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,4)})}/>
+                <input className="form-input" type="number" inputMode="numeric" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,5)})}/>
+                {(()=>{const v=String(apr.pin||'').replace(/\D/g,'');if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===v);if(!hit)return null;const who=(fullRoster||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>⚠ Same PIN as <b>{who?who.name:'another member'}</b> — use the <b>last 5 of their phone</b> instead.</div>);})()}
               </div>
               <div className="form-group" style={{marginBottom:12}}>
                 <label className="form-label">Email</label>
@@ -6516,7 +6517,8 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                           </div>
                           <div className="form-group" style={{marginBottom:8}}>
                             <label className="form-label">Phone # (PIN)</label>
-                            <input className="form-input" placeholder="Full number — last 4 stored as PIN" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/>
+                            <input className="form-input" placeholder="Phone (last 4 kept) — or type a 4\u20135 digit PIN" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/>
+                            {(()=>{const digits=String(editRosterPinVal||'').replace(/\D/g,'');if(!digits||digits.length<4)return null;const stored=digits.length<=5?digits:digits.slice(-4);const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(p.id)&&String(pv)===stored);if(!hit)return null;const who=(fullRoster||[]).find(x=>String(x.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>⚠ "{stored}" is already <b>{who?who.name:'another member'}</b>'s PIN — type the <b>last 5 of the phone</b> instead.</div>);})()}
                           </div>
                           {editRosterRole==='master' ? (
                             <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',marginBottom:8,borderRadius:8,border:'1.5px solid #fbbf24',background:'rgba(245,158,11,0.08)'}}>
@@ -6579,7 +6581,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                             </div>
                             <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>
                               {p.handicap?'HCP '+p.handicap:'No HCP'} · {p.tee||'Whites'}{email?' · '+email:''}
-                              {hasPin&&<span style={{marginLeft:5,fontSize:10,color:'var(--brand)',fontWeight:600}}>✓ PIN</span>}
+                              {hasPin&&<span style={{marginLeft:5,fontSize:10,color:'var(--brand)',fontWeight:600}}>✓ PIN{String(rosterPins[p.id]).length===5?' · 5-digit':''}</span>}
                             </div>
                           </div>
                           <div style={{display:'flex',gap:5,alignItems:'center',flexShrink:0}}>
@@ -8817,7 +8819,7 @@ function App(){
   function hidePlayer(id){ update({['rosterHidden/'+id]:true}); }
   function unhidePlayer(id){ update({['rosterHidden/'+id]:null}); }
   function editRosterEmail(id,email){ update({['rosterEmails/'+id]:email||null}); }
-  function saveMemberPin(id,pin){ const last4=pin?String(pin).replace(/\D/g,'').slice(-4):'';update({['rosterPins/'+id]:last4||null}); }
+  function saveMemberPin(id,pin){ const digits=pin?String(pin).replace(/\D/g,''):''; const stored=digits.length<=5?digits:digits.slice(-4); update({['rosterPins/'+id]:stored||null}); }
   function saveAdminFlag(id,isAdminFlag){ update({['rosterAdmins/'+id]:isAdminFlag||null}); }
   function saveNotes(notes){ write('week/emailNotes',notes); }
   function saveEvents(val){ write('week/emailEvents',val); }

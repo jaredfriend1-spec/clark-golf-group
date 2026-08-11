@@ -1353,7 +1353,8 @@ function RosterTab(){
             <select className="input" value={apr.tee} onChange={e=>setApr({...apr,tee:e.target.value})}>{["Whites","Blues","Golds","Reds"].map(t=><option key={t}>{t}</option>)}</select>
             <input className="input" type="number" placeholder="HCP" value={apr.hcp} onChange={e=>setApr({...apr,hcp:e.target.value})}/>
           </div>
-          <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="4-digit PIN" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,4)})}/>
+          <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="PIN (4\u20135 digits)" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,5)})}/>
+          {(()=>{const v=String(apr.pin||"").replace(/\D/g,"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:8}}>\u26a0 Same PIN as <b>{who?who.name:"another member"}</b> \u2014 use the last 5 of their phone instead.</div>);})()}
           <input className="input" style={{marginBottom:12,width:"100%",boxSizing:"border-box"}} placeholder="Email" value={apr.email} onChange={e=>setApr({...apr,email:e.target.value})}/>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-sm btn-ghost" onClick={()=>setAprModal(null)}>Cancel</button>
@@ -1567,7 +1568,8 @@ function RosterTab(){
         <div className="modal">
           <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Set PIN for {confirmSetPin.name}</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:14,lineHeight:1.6}}>Enter a new PIN (4+ digits). The player can then log into the main app with it.</div>
-          <input className="inp" type="text" inputMode="numeric" value={newPinVal} onChange={e=>setNewPinVal(e.target.value.replace(/[^0-9]/g,""))} placeholder="New PIN" autoFocus style={{marginBottom:14,fontSize:18,textAlign:"center",letterSpacing:"0.2em"}}/>
+          <input className="inp" type="text" inputMode="numeric" value={newPinVal} onChange={e=>setNewPinVal(e.target.value.replace(/[^0-9]/g,""))} placeholder="New PIN (4\u20135 digits)" autoFocus style={{marginBottom:6,fontSize:18,textAlign:"center",letterSpacing:"0.2em"}}/>
+          {(()=>{const v=String(newPinVal||"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(confirmResetPin&&confirmResetPin.id)&&String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:10}}>\u26a0 Already <b>{who?who.name:"another member"}</b>\u2019s PIN \u2014 try the last 5 of the phone.</div>);})()}
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-g" style={{flex:1}} onClick={()=>setPin(confirmSetPin.id,newPinVal)} disabled={!newPinVal||newPinVal.length<4}>Set PIN</button>
             <button className="btn btn-gh" style={{flex:1}} onClick={()=>{setConfirmSetPin(null);setNewPinVal("");}}>Cancel</button>
