@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-b';
+const APP_BUILD='2026.08.05-d';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -678,13 +678,20 @@ const PUSH_VAPID = IS_PROD_HOST ? PUSH_VAPID_PROD : PUSH_VAPID_TEST;
 const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
 const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
 let PUSH_TRIGGERS_CACHE=null;
-function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';return null;}
+function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';if(t==='waitlist')return 'waitlist';return null;}
+let PUSH_TEMPLATES_CACHE=null;
 function sendPushNotify(p){
   const k=pushTriggerKey(p&&p.tag);
   if(k&&PUSH_TRIGGERS_CACHE){
     const v=PUSH_TRIGGERS_CACHE[k];
     if(v===false){console.log('[push] auto push "'+k+'" is toggled off — skipped');return;}
     if(v==='all'||v==='admins')p={...p,audience:v};
+  }
+  if(k&&PUSH_TEMPLATES_CACHE&&PUSH_TEMPLATES_CACHE[k]){
+    const t=PUSH_TEMPLATES_CACHE[k];const vars=p.vars||{};
+    const sub=s=>String(s).replace(/\{day\}/g,vars.day||'').replace(/\{name\}/g,vars.name||'').replace(/\{reason\}/g,vars.reason||'');
+    if(t.title&&String(t.title).trim())p={...p,title:sub(t.title)};
+    if(t.body&&String(t.body).trim())p={...p,body:sub(t.body)};
   }
   try{
     fetch('/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1096,7 +1103,7 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
                     <input key={k} value={jr[k]} onChange={e=>setJr({...jr,[k]:e.target.value})} placeholder={ph}
                       style={{width:'100%',boxSizing:'border-box',padding:'11px 12px',marginBottom:8,border:'1.5px solid #e2e8f0',borderRadius:10,fontFamily:'inherit',fontSize:13,outline:'none'}}/>
                   ))}
-                  <button disabled={!jr.name.trim()} onClick={()=>{if(!push)return;push('joinRequests',{name:jr.name.trim(),phone:jr.phone.trim(),email:jr.email.trim(),referredBy:jr.referredBy.trim(),createdAt:Date.now(),status:'pending'});sendPushNotify({audience:'admins',title:'New join request',body:jr.name.trim()+' wants to join Clark Golf Group.',url:'/',tag:'join'});setJrSent(true);setJr({name:'',phone:'',email:'',referredBy:''});}}
+                  <button disabled={!jr.name.trim()} onClick={()=>{if(!push)return;push('joinRequests',{name:jr.name.trim(),phone:jr.phone.trim(),email:jr.email.trim(),referredBy:jr.referredBy.trim(),createdAt:Date.now(),status:'pending'});sendPushNotify({audience:'admins',title:'New join request',body:jr.name.trim()+' wants to join Clark Golf Group.',url:'/',tag:'join',vars:{name:jr.name.trim()}});setJrSent(true);setJr({name:'',phone:'',email:'',referredBy:''});}}
                     style={{width:'100%',padding:'12px',borderRadius:10,border:'none',background:jr.name.trim()?'#1F6B47':'#cbd5e1',color:'#fff',fontFamily:'inherit',fontSize:13.5,fontWeight:700,cursor:jr.name.trim()?'pointer':'default',marginTop:2}}>
                     Send request
                   </button>
@@ -1924,7 +1931,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       if(onLogRemove) onLogRemove(signupKey, removedSignup);
       // Post-publish drop → admin alert (teams/groups already out for that day)
       if(week?.teamsPublished&&week.teamsPublished[removedSignup.day]&&push){
-        push('alerts/drops',{name:removedSignup.name,day:removedSignup.day,ts:Date.now(),by:(currentUser&&currentUser.name)||'member',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:removedSignup.name+' dropped '+removedSignup.day+' after teams were published.',url:'/',tag:'drop'});
+        push('alerts/drops',{name:removedSignup.name,day:removedSignup.day,ts:Date.now(),by:(currentUser&&currentUser.name)||'member',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:removedSignup.name+' dropped '+removedSignup.day+' after teams were published.',url:'/',tag:'drop',vars:{name:removedSignup.name,day:removedSignup.day}});
       }
     }
     await del('week/signups/' + signupKey);
@@ -3553,7 +3560,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
     write('week/teams/'+day, teams).then(()=>write('week/teamsPublished/'+day, true));
     update({['week/locked/'+day]:true});
     if(onTeamsPublished) onTeamsPublished(day, teams);
-    sendPushNotify({audience:'all',title:(indMode?'Groups':'Teams')+' for '+day+' are out!',body:indMode?'See your group and tee-off order.':'See your team and slot.',url:'/',tag:'pub-'+day});
+    sendPushNotify({audience:'all',title:(indMode?'Groups':'Teams')+' for '+day+' are out!',body:indMode?'See your group and tee-off order.':'See your team and slot.',url:'/',tag:'pub-'+day,vars:{day:day}});
   }
 
   function unpublishTeams(day){
@@ -5974,7 +5981,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                     push('cancelledDays',{day:d,date:dayDate,reason:cancelReason.trim()||null,by:(currentUser&&currentUser.name)||'admin',ts:Date.now(),signups:sus.map(([,s])=>s.name)});
                     sus.forEach(([k])=>{del('week/signups/'+k);});
                     onDeactivateDay&&onDeactivateDay(d);
-                    if(typeof sendPushNotify==='function')sendPushNotify({audience:'all',title:'🌧 '+d+' is cancelled',body:(cancelReason.trim()?cancelReason.trim()+' — ':'')+'sign-ups for '+d+' have been cleared.',url:'/',tag:'cancel-'+d});
+                    if(typeof sendPushNotify==='function')sendPushNotify({audience:'all',title:'🌧 '+d+' is cancelled',body:(cancelReason.trim()?cancelReason.trim()+' — ':'')+'sign-ups for '+d+' have been cleared.',url:'/',tag:'cancel-'+d,vars:{day:d,reason:cancelReason.trim()}});
                     setCancelDay(null);
                     if(wizDay===d)setWizDay(null);
                   }}>
@@ -6657,7 +6664,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
             <div style={{borderTop:'1px solid var(--hairline)',padding:'4px 16px 12px'}}>
                   <div style={{marginTop:12,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
                     <div style={{fontSize:11,fontWeight:700,color:'var(--ink-70)',marginBottom:8}}>⚙ Automatic pushes <span style={{fontWeight:500,color:'var(--ink-40)'}}>(what fires on its own)</span></div>
-                    {[['publish','Teams / groups published','everyone'],['results','Results posted','everyone'],['cancel','Day cancelled','everyone'],['join','New join request','admins'],['drops','Post-publish drop-out','admins']].map(([k,label,aud])=>{
+                    {[['publish','Teams / groups published','everyone'],['results','Results posted','everyone'],['cancel','Day cancelled','everyone'],['join','New join request','admins'],['drops','Post-publish drop-out','admins'],['waitlist','Waitlist join','admins']].map(([k,label,aud])=>{
                       const on=!(settings&&settings.pushTriggers&&settings.pushTriggers[k]===false);
                       return(
                         <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
@@ -8643,6 +8650,7 @@ function App(){
     u.push(read('fcmTokens', v=>setFcmTokens(v||{})));
     u.push(read('settings/appBuild', v=>setDbBuild(v||null)));
     u.push(read('settings/pushTriggers', v=>{PUSH_TRIGGERS_CACHE=v||{};}));
+    u.push(read('settings/pushTemplates', v=>{PUSH_TEMPLATES_CACHE=v||{};}));
     u.push(read('seasons', v=>{const m={};Object.entries(v||{}).forEach(([id,s])=>{m[id]=(s&&s.meta)||{};});setSeasonsMeta(m);}));
     u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
@@ -8762,7 +8770,7 @@ function App(){
     const rosterMatch=(effectiveRoster||[]).find(p=>norm(p.name)===n);
     if(rosterMatch&&rosterMatch.name!==entry.name)entry={...entry,name:rosterMatch.name};
     logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
-  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop'});}} del('week/signups/'+key); }
+  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop',vars:{name:rs.name,day:rs.day}});}} del('week/signups/'+key); }
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
     write('extraPlayers',safeArray(extra).concat([{id:newId,name:normName(req.name),handicap:parseFloat(opts.hcp)||0,tee:opts.tee||'Whites'}]));
@@ -8858,7 +8866,7 @@ function App(){
     const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
     const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
-    sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day});
+    sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day,vars:{day:day}});
     // Replace, never duplicate: the push wrapper resolves to the NEW entry's key
     // (it returns a Promise<string>, NOT a ref — treating it as a ref nulled the
     // key and made the sweep delete its own round; July 31 near-disaster).
@@ -9164,7 +9172,7 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
-      {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
+      {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(

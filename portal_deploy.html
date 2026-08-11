@@ -2170,6 +2170,15 @@ function AppSettingsTab({user}){
   const [toast,showToast]=useToast();
   const sr=gameRules?.signupRules||{};
   const pushTrig=useDB("settings/pushTriggers")||{};
+  const pushTmpl=useDB("settings/pushTemplates")||{};
+  const [tmplOpen,setTmplOpen]=React.useState(null);
+  const [tmplT,setTmplT]=React.useState("");
+  const [tmplB,setTmplB]=React.useState("");
+  const [msT,setMsT]=React.useState("");
+  const [msB,setMsB]=React.useState("");
+  const [msA,setMsA]=React.useState("admins");
+  const [msSent,setMsSent]=React.useState("");
+  const PUSH_DEFAULTS={publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."}};
   const maxGuests=settings?.maxGuests??3;
   function toggleRule(key){
     const cur=sr[key]!==false;
@@ -2191,6 +2200,7 @@ function AppSettingsTab({user}){
           {key:"cancel",label:"Day cancelled",sub:"Sent to everyone"},
           {key:"join",label:"New join request",sub:"Sent to admins"},
           {key:"drops",label:"Post-publish drop-out",sub:"Sent to admins"},
+          {key:"waitlist",label:"Waitlist join",sub:"Sent to admins"},
         ].map(({key,label,sub})=>{
           const on=pt[key]!==false;
           return(
@@ -2210,9 +2220,40 @@ function AppSettingsTab({user}){
                   <option value="admins">Admins only</option>
                 </select>
               )}
+              <button className="btn btn-sm btn-ghost" style={{fontSize:11}} onClick={()=>{if(tmplOpen===key){setTmplOpen(null);}else{setTmplOpen(key);const t=pushTmpl[key]||{};setTmplT(t.title||"");setTmplB(t.body||"");}}}>{tmplOpen===key?"Close":"\u270f\ufe0f Edit text"}</button>
             </div>
           );
         });})()}
+        {tmplOpen&&(()=>{const def=({publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."}})[tmplOpen]||{};return(
+          <div style={{margin:"10px 0",padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\u270f\ufe0f Custom text \u2014 blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code></div>
+            <div className="lbl">Title</div>
+            <input className="inp" placeholder={def.title} value={tmplT} onChange={e=>setTmplT(e.target.value)} style={{marginBottom:8}}/>
+            <div className="lbl">Message</div>
+            <input className="inp" placeholder={def.body} value={tmplB} onChange={e=>setTmplB(e.target.value)} style={{marginBottom:10}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button className="btn btn-sm btn-ghost" onClick={()=>{wr("settings/pushTemplates/"+tmplOpen,null);setTmplT("");setTmplB("");setTmplOpen(null);}}>Reset to default</button>
+              <button className="btn btn-sm" style={{flex:1}} onClick={()=>{const t=tmplT.trim(),b=tmplB.trim();wr("settings/pushTemplates/"+tmplOpen,(t||b)?{title:t||null,body:b||null}:null);setTmplOpen(null);}}>Save text</button>
+            </div>
+          </div>
+        );})()}
+        {/* portal manual sender */}
+        <div style={{marginTop:14,padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\ud83d\udce4 Send a push-only message <span style={{fontWeight:500,color:"rgba(255,255,255,0.35)"}}>(no in-app banner)</span></div>
+          <input className="inp" placeholder="Title (short!)" maxLength={50} value={msT} onChange={e=>{setMsT(e.target.value);setMsSent("");}} style={{marginBottom:8}}/>
+          <input className="inp" placeholder="Message" maxLength={140} value={msB} onChange={e=>{setMsB(e.target.value);setMsSent("");}} style={{marginBottom:10}}/>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <select className="inp" style={{maxWidth:160}} value={msA} onChange={e=>setMsA(e.target.value)}>
+              <option value="admins">Admins only (test)</option>
+              <option value="all">Everyone</option>
+            </select>
+            <button className="btn btn-sm" disabled={!msT.trim()||!msB.trim()} onClick={()=>{
+              fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:msA,title:msT.trim(),body:msB.trim(),url:"/",tag:"manual-"+Date.now()})}).catch(()=>{});
+              setMsSent("Sent to "+(msA==="admins"?"admins":"everyone")+" with notifications on.");setMsT("");setMsB("");
+            }}>Send push</button>
+            {msSent&&<span style={{fontSize:11,color:"#4ade80",fontWeight:600}}>{msSent}</span>}
+          </div>
+        </div>
       </div>
     </div>
     <div className="card">
