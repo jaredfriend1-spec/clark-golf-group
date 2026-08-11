@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-j';
+const APP_BUILD='2026.08.05-k';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -6463,6 +6463,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                   <div className="form-group" style={{marginBottom:0}}>
                     <label className="form-label">Phone # (PIN)</label>
                     <input className="form-input" placeholder="e.g. 3015551234" value={np.pin} onChange={e=>setNp({...np,pin:e.target.value})}/>
+                    {(()=>{const dg=String(np.pin||'').replace(/\D/g,'');if(dg.length<4)return null;const stored=dg.length<=5?dg:dg.slice(-4);const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===stored);if(!hit)return null;const who=(fullRoster||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>⚠ PIN "{stored}" already belongs to <b>{who?who.name:'another member'}</b> — use the <b>last 5</b> of the phone instead.</div>);})()}
                   </div>
                 </div>
                 <div className="form-group" style={{marginBottom:8}}>

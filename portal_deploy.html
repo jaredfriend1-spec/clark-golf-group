@@ -1283,7 +1283,7 @@ function RosterTab(){
     if(newP.phone.trim()){
       const digits=newP.phone.replace(/\D/g,"");
       if(digits.length>=4){
-        const pin=digits.slice(-4);
+        const pin=digits.length<=5?digits:digits.slice(-4);
         wr("rosterPins/"+newId,pin);
       }
       wr("rosterEmails/"+newId,newP.phone.trim()); // store full phone in email field for reference
@@ -1406,6 +1406,7 @@ function RosterTab(){
             <div>
               <div className="lbl" style={{marginBottom:4}}>Phone # <span style={{color:"rgba(255,255,255,0.3)",fontWeight:400}}>(sets their PIN)</span></div>
               <input className="inp" placeholder="e.g. 301-555-1234" value={newP.phone} onChange={e=>setNewP(p=>({...p,phone:e.target.value}))} type="tel"/>
+        {(()=>{const dg=String(newP.phone||"").replace(/\D/g,"");if(dg.length<4)return null;const stored=dg.length<=5?dg:dg.slice(-4);const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===stored);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u26a0 PIN "{stored}" already belongs to <b>{who?who.name:"another member"}</b> \u2014 enter the <b>last 5</b> of the phone as the PIN instead.</div>);})()}
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
