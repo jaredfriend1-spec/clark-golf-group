@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-k';
+const APP_BUILD='2026.08.05-l';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -679,6 +679,16 @@ const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
 const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
 let PUSH_TRIGGERS_CACHE=null;
 function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';if(t==='waitlist')return 'waitlist';if(t==='weekready')return 'weekready';if(t.indexOf('teetime-')===0)return 'teetime';return null;}
+// Collision-aware PIN derivation. <=5 digits = a chosen PIN (verbatim).
+// Longer = a phone number: store last 4, or last 5/6 if taken by someone else.
+function derivePin(input, pinsMap, excludeId){
+  const d=String(input||'').replace(/\D/g,'');
+  if(!d)return {pin:''};
+  const taken=v=>Object.entries(pinsMap||{}).some(([pid,pv])=>String(pid)!==String(excludeId==null?'':excludeId)&&String(pv)===v);
+  if(d.length<=5)return {pin:d, collides:taken(d), typed:true};
+  for(const n of [4,5,6]){const c=d.slice(-n);if(!taken(c))return {pin:c, n:n, auto:n>4};}
+  return {pin:d.slice(-6), n:6, collides:true};
+}
 let PUSH_TEMPLATES_CACHE=null;
 function sendPushNotify(p){
   const k=pushTriggerKey(p&&p.tag);
@@ -793,7 +803,7 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
   const phonesMatch=phoneRaw.length===10&&confirmRaw.length===10&&phoneRaw===confirmRaw;
   const mismatch=confirmRaw.length===10&&phoneRaw!==confirmRaw;
   const phone4=phoneRaw.slice(-4);
-  function handleConfirm(){if(!phonesMatch)return;onComplete({id:selId,name:selName,last4:phone4});}
+  function handleConfirm(){if(!phonesMatch)return;onComplete({id:selId,name:selName,last4:phone4,phoneDigits:phoneRaw});}
   return(
     <div style={{minHeight:'100vh',background:'#0A1614',backgroundImage:'radial-gradient(ellipse at 20% 0%,rgba(16,185,129,0.15) 0%,transparent 55%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'24px 20px 60px',overflowY:'auto'}}>
       <div style={{width:'100%',maxWidth:400}}>
@@ -929,12 +939,14 @@ function Landing({onPlayer,onMemberLogin,rosterPins,rosterAdmins,fullRoster,save
   if(showSelfReg)return(
     <SelfRegister fullRoster={fullRoster} rosterPins={rosterPins}
       onBack={()=>setShowSelfReg(false)}
-      onComplete={({id,name,last4})=>{
+      onComplete={({id,name,last4,phoneDigits})=>{
+        const derived=derivePin(phoneDigits||last4,rosterPins,id);
+        if(derived.pin&&derived.pin.length>4)window.alert('Heads up: another member shares your last 4 digits, so YOUR sign-in PIN is the LAST '+derived.pin.length+' DIGITS of your phone number: '+derived.pin);
         const adminRole=rosterAdmins&&rosterAdmins[id];
         const isAdm=!!adminRole&&adminRole!=='scoring';
         const isScoringRole=adminRole==='scoring';
         const wd={name,id:String(id),role:isAdm?'admin':isScoringRole?'scoring':'member',ini:mkIni(name)};
-        savePinFn&&savePinFn(id,last4);
+        savePinFn&&savePinFn(id,phoneDigits||last4);
         dismissBanner();
         setShowSelfReg(false);
         setWelcomeData(wd);setShowWelcome(true);
@@ -6463,7 +6475,10 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                   <div className="form-group" style={{marginBottom:0}}>
                     <label className="form-label">Phone # (PIN)</label>
                     <input className="form-input" placeholder="e.g. 3015551234" value={np.pin} onChange={e=>setNp({...np,pin:e.target.value})}/>
-                    {(()=>{const dg=String(np.pin||'').replace(/\D/g,'');if(dg.length<4)return null;const stored=dg.length<=5?dg:dg.slice(-4);const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===stored);if(!hit)return null;const who=(fullRoster||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>⚠ PIN "{stored}" already belongs to <b>{who?who.name:'another member'}</b> — use the <b>last 5</b> of the phone instead.</div>);})()}
+                    {(()=>{const r=derivePin(np.pin,rosterPins,null);if(!r.pin||r.pin.length<4)return null;
+                      if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:'var(--brand)',background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>✓ Last 4 is taken by another member — the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
+                      if(r.collides){const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===r.pin);const who=(fullRoster||[]).find(p=>String(p.id)===String(hit&&hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>⚠ "{r.pin}" already belongs to <b>{who?who.name:'another member'}</b> — pick different digits.</div>);}
+                      return null;})()}
                   </div>
                 </div>
                 <div className="form-group" style={{marginBottom:8}}>
@@ -8804,7 +8819,7 @@ function App(){
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
     write('extraPlayers',safeArray(extra).concat([{id:newId,name:normName(req.name),handicap:parseFloat(opts.hcp)||0,tee:opts.tee||'Whites'}]));
-    if(opts.pin&&String(opts.pin).trim())write('rosterPins/'+newId,String(opts.pin).trim());
+    if(opts.pin&&String(opts.pin).trim()){const r=derivePin(opts.pin,rosterPins,null);write('rosterPins/'+newId,r.pin);}
     if(req.email||opts.email)write('rosterEmails/'+newId,(opts.email||req.email||'').trim());
     update({['joinRequests/'+key+'/status']:'approved',['joinRequests/'+key+'/handledBy']:currentUser?currentUser.name:'admin',['joinRequests/'+key+'/handledAt']:Date.now(),['joinRequests/'+key+'/rosterId']:newId});
     logActivity('join_approved',{name:req.name,by:currentUser?currentUser.name:'admin'});
@@ -8820,7 +8835,7 @@ function App(){
   function hidePlayer(id){ update({['rosterHidden/'+id]:true}); }
   function unhidePlayer(id){ update({['rosterHidden/'+id]:null}); }
   function editRosterEmail(id,email){ update({['rosterEmails/'+id]:email||null}); }
-  function saveMemberPin(id,pin){ const digits=pin?String(pin).replace(/\D/g,''):''; const stored=digits.length<=5?digits:digits.slice(-4); update({['rosterPins/'+id]:stored||null}); }
+  function saveMemberPin(id,pin){ const r=derivePin(pin,rosterPins,id); update({['rosterPins/'+id]:r.pin||null}); return r; }
   function saveAdminFlag(id,isAdminFlag){ update({['rosterAdmins/'+id]:isAdminFlag||null}); }
   function saveNotes(notes){ write('week/emailNotes',notes); }
   function saveEvents(val){ write('week/emailEvents',val); }

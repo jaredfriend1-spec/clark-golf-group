@@ -265,6 +265,14 @@ const {useState,useEffect,useRef,useMemo,useCallback}=React;
 // ── ENVIRONMENT SWITCH: production hostname → production Firebase; any other host (previews, localhost) → test DB. Safe to merge. ──
 const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
+function derivePin(input,pinsMap,excludeId){
+  const d=String(input||"").replace(/\D/g,"");
+  if(!d)return {pin:""};
+  const taken=v=>Object.entries(pinsMap||{}).some(([pid,pv])=>String(pid)!==String(excludeId==null?"":excludeId)&&String(pv)===v);
+  if(d.length<=5)return {pin:d, collides:taken(d), typed:true};
+  for(const n of [4,5,6]){const c=d.slice(-n);if(!taken(c))return {pin:c, n:n, auto:n>4};}
+  return {pin:d.slice(-6), n:6, collides:true};
+}
 const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
 const FB=IS_PROD_HOST?FB_PROD:FB_TEST;
 if(!IS_PROD_HOST){try{document.title="[TEST] "+document.title;window.addEventListener("DOMContentLoaded",()=>{const b=document.createElement("div");b.textContent="TEST DB";b.style.cssText="position:fixed;bottom:10px;left:10px;z-index:99999;background:#b45309;color:#fff;font:700 11px/1 sans-serif;padding:5px 10px;border-radius:6px;letter-spacing:0.08em;opacity:0.9;pointer-events:none;";document.body.appendChild(b);});}catch(e){}}
@@ -1283,7 +1291,7 @@ function RosterTab(){
     if(newP.phone.trim()){
       const digits=newP.phone.replace(/\D/g,"");
       if(digits.length>=4){
-        const pin=digits.length<=5?digits:digits.slice(-4);
+        const pin=derivePin(digits,rosterPins,null).pin;
         wr("rosterPins/"+newId,pin);
       }
       wr("rosterEmails/"+newId,newP.phone.trim()); // store full phone in email field for reference
@@ -1324,7 +1332,7 @@ function RosterTab(){
 
   function setPin(id,pin){
     if(!pin||pin.length<4){showToast("PIN must be at least 4 digits","err");return;}
-    wr("rosterPins/"+id,pin);
+    wr("rosterPins/"+id,derivePin(pin,rosterPins,id).pin);
     setConfirmSetPin(null);setNewPinVal("");
     showToast("PIN set ✓");
   }
@@ -1361,7 +1369,7 @@ function RosterTab(){
             <button className="btn btn-sm" style={{flex:1}} onClick={()=>{
               const newId=Date.now();
               wr("extraPlayers",(Array.isArray(extra)?extra:extra?Object.values(extra):[]).concat([{id:newId,name:aprModal.req.name,handicap:parseFloat(apr.hcp)||0,tee:apr.tee}]));
-              if(apr.pin.trim())wr("rosterPins/"+newId,apr.pin.trim());
+              if(apr.pin.trim())wr("rosterPins/"+newId,derivePin(apr.pin,rosterPins,null).pin);
               if(apr.email.trim())wr("rosterEmails/"+newId,apr.email.trim());
               wr("joinRequests/"+aprModal.key+"/status","approved");
               wr("joinRequests/"+aprModal.key+"/handledAt",Date.now());
@@ -1406,7 +1414,10 @@ function RosterTab(){
             <div>
               <div className="lbl" style={{marginBottom:4}}>Phone # <span style={{color:"rgba(255,255,255,0.3)",fontWeight:400}}>(sets their PIN)</span></div>
               <input className="inp" placeholder="e.g. 301-555-1234" value={newP.phone} onChange={e=>setNewP(p=>({...p,phone:e.target.value}))} type="tel"/>
-        {(()=>{const dg=String(newP.phone||"").replace(/\D/g,"");if(dg.length<4)return null;const stored=dg.length<=5?dg:dg.slice(-4);const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===stored);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u26a0 PIN "{stored}" already belongs to <b>{who?who.name:"another member"}</b> \u2014 enter the <b>last 5</b> of the phone as the PIN instead.</div>);})()}
+        {(()=>{const r=derivePin(newP.phone,rosterPins,null);if(!r.pin||r.pin.length<4)return null;
+        if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:"#4ade80",background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.18)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u2713 Last 4 is taken \u2014 the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
+        if(r.collides)return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u26a0 "{r.pin}" is already in use \u2014 pick different digits.</div>);
+        return null;})()}
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
