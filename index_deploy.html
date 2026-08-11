@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-d';
+const APP_BUILD='2026.08.05-g';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -678,7 +678,7 @@ const PUSH_VAPID = IS_PROD_HOST ? PUSH_VAPID_PROD : PUSH_VAPID_TEST;
 const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
 const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
 let PUSH_TRIGGERS_CACHE=null;
-function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';if(t==='waitlist')return 'waitlist';return null;}
+function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';if(t==='waitlist')return 'waitlist';if(t==='weekready')return 'weekready';if(t.indexOf('teetime-')===0)return 'teetime';return null;}
 let PUSH_TEMPLATES_CACHE=null;
 function sendPushNotify(p){
   const k=pushTriggerKey(p&&p.tag);
@@ -689,7 +689,7 @@ function sendPushNotify(p){
   }
   if(k&&PUSH_TEMPLATES_CACHE&&PUSH_TEMPLATES_CACHE[k]){
     const t=PUSH_TEMPLATES_CACHE[k];const vars=p.vars||{};
-    const sub=s=>String(s).replace(/\{day\}/g,vars.day||'').replace(/\{name\}/g,vars.name||'').replace(/\{reason\}/g,vars.reason||'');
+    const sub=s=>String(s).replace(/\{day\}/g,vars.day||'').replace(/\{name\}/g,vars.name||'').replace(/\{reason\}/g,vars.reason||'').replace(/\{time\}/g,vars.time||'');
     if(t.title&&String(t.title).trim())p={...p,title:sub(t.title)};
     if(t.body&&String(t.body).trim())p={...p,body:sub(t.body)};
   }
@@ -1837,7 +1837,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       .filter(([,s])=>s.day===d)
       .map(([k,s])=>({key:k,...s}));
     const teeData = week?.teeTimes?.[d] || null;
-    const isLottery = teeData?.lottery || !teeData?.time;
+    const isLottery = !!teeData?.lottery && !teeData?.time;
+    const teeState = isLottery ? 'lottery' : (teeData?.time ? 'set' : 'unset');
     const dateStr = week?.dates?.[d] || '';
     const [, mm, dd] = (dateStr || '').split('-');
     const dateNum = dd ? parseInt(dd) : '';
@@ -1854,7 +1855,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     }
     const locked = !!(week?.locked?.[d]);
     const waitlist = Object.entries(week?.waitlist||{}).filter(([,s])=>s.day===d);
-    return { day:d, date:dateNum, month:monthStr, tee:{ time:teeData?.time||null, state:isLottery?'lottery':'set' }, note, signups:daySignups, teamsPublished, teamMap, locked, waitlist };
+    return { day:d, date:dateNum, month:monthStr, tee:{ time:teeData?.time||null, state:teeState }, note, signups:daySignups, teamsPublished, teamMap, locked, waitlist };
   });
 
   const totalSignups = days.reduce((s,d)=>s+d.signups.length,0);
@@ -1938,7 +1939,12 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   }
 
   async function handleSetTeeTime(dayName, time){
+    const prevTee=week?.teeTimes?.[dayName];
+    const wasLottery=!!(prevTee&&typeof prevTee==='object'&&prevTee.lottery&&!prevTee.time);
     await write('week/teeTimes/' + dayName, { time, lottery: false });
+    // Push ONLY on the lottery-result moment: lottery was checked (no time) → actual time set.
+    // Routine sets (Friday's standing time, or a blank non-lottery day getting a time) stay silent.
+    if(wasLottery&&time)sendPushNotify({audience:'all',title:'\ud83d\udd50 '+dayName+' tee time is set!',body:dayName+' tees off at '+time+'.',url:'/',tag:'teetime-'+dayName,vars:{day:dayName,time:time}});
   }
 
   return (
@@ -2118,17 +2124,19 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, on
   const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
+  const isTeeUnset = day.tee.state === 'unset';
+  const needsTime = isLottery || isTeeUnset;
   const mySignup = day.signups.find(p => p.name === currentUser?.name);
   const youSignedUp = !!mySignup;
   const [confirmRemove, setConfirmRemove] = useState(null); // signupKey pending confirm
 
   return (
     <div className="day-card">
-      {isAdmin && isLottery && (
+      {isAdmin && needsTime && (
         <div className="day-lottery-banner">
           <span className="day-lottery-banner-text">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Waiting on lottery
+            {isLottery ? 'Waiting on lottery' : 'Tee time not set'}
           </span>
           <button className="day-lottery-banner-btn" onClick={onSetTeeTime}>Set Time</button>
         </div>
@@ -2211,10 +2219,10 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, on
               <span>{day.month} {day.date}</span>
             </div>
             <div className="day-tee">
-              {isLottery ? (
-                <span style={{color:'var(--ink-50)',fontStyle:'italic',fontWeight:500}}>Tee time TBD</span>
-              ) : (
+              {day.tee.time ? (
                 <span>Tee <strong>{day.tee.time}</strong></span>
+              ) : (
+                <span style={{color:'var(--ink-50)',fontStyle:'italic',fontWeight:500}}>{isLottery?'Tee time TBD — lottery':'Tee time TBD'}</span>
               )}
             </div>
             {teeInfo&&String(teeInfo).trim()&&(
@@ -5848,6 +5856,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [showCancelled, setShowCancelled] = useState(false);
   const [showPushSubs, setShowPushSubs] = useState(false);
   const [showPushCtl, setShowPushCtl] = useState(false);
+  const [weekAnnounced, setWeekAnnounced] = useState(null);
   const [poTitle,setPoTitle]=useState('');
   const [poBody,setPoBody]=useState('');
   const [poAud,setPoAud]=useState('admins');
@@ -6664,7 +6673,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
             <div style={{borderTop:'1px solid var(--hairline)',padding:'4px 16px 12px'}}>
                   <div style={{marginTop:12,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
                     <div style={{fontSize:11,fontWeight:700,color:'var(--ink-70)',marginBottom:8}}>⚙ Automatic pushes <span style={{fontWeight:500,color:'var(--ink-40)'}}>(what fires on its own)</span></div>
-                    {[['publish','Teams / groups published','everyone'],['results','Results posted','everyone'],['cancel','Day cancelled','everyone'],['join','New join request','admins'],['drops','Post-publish drop-out','admins'],['waitlist','Waitlist join','admins']].map(([k,label,aud])=>{
+                    {[['publish','Teams / groups published','everyone'],['results','Results posted','everyone'],['cancel','Day cancelled','everyone'],['join','New join request','admins'],['drops','Post-publish drop-out','admins'],['waitlist','Waitlist join','admins'],['weekready','Week announced (manual button)','everyone'],['teetime','Tee time set (lottery \u2192 actual)','everyone']].map(([k,label,aud])=>{
                       const on=!(settings&&settings.pushTriggers&&settings.pushTriggers[k]===false);
                       return(
                         <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
@@ -6706,6 +6715,24 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
             </div>
           )}
         </div>
+        {viewMode==='week'&&(()=>{
+          const days=sortDays(safeArray(week?.activeDays));
+          if(!days.length)return null;
+          const parts=days.map(d=>{const dt=week?.dates&&week.dates[d];const tRaw=week?.teeTimes&&week.teeTimes[d];const t=tRaw&&(typeof tRaw==='string'?tRaw:tRaw.time);return d.slice(0,3)+(dt?(' '+parseInt(dt.slice(5,7),10)+'/'+parseInt(dt.slice(8,10),10)):'')+(t?(' '+t):'');});
+          return(
+            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',padding:'10px 14px',marginBottom:12,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:12}}>
+              <div style={{flex:1,minWidth:200}}>
+                <div style={{fontSize:12.5,fontWeight:700,color:'var(--brand)'}}>\ud83d\udce3 Announce this week</div>
+                <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' \u00b7 ')} \u2014 sign-ups are open!"</div>
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={()=>{
+                sendPushNotify({audience:'all',title:'\u26f3 New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' \u00b7 ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
+                setWeekAnnounced(new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
+              }}>Send it</button>
+              {weekAnnounced&&<span style={{fontSize:11,fontWeight:600,color:'var(--brand)'}}>Sent {weekAnnounced} \u2713</span>}
+            </div>
+          );
+        })()}
         {/* ── CANCELLED DAYS LOG ── */}
         {cancelledDays&&Object.keys(cancelledDays).length>0&&(
           <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>

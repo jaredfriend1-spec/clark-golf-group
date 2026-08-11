@@ -2178,7 +2178,7 @@ function AppSettingsTab({user}){
   const [msB,setMsB]=React.useState("");
   const [msA,setMsA]=React.useState("admins");
   const [msSent,setMsSent]=React.useState("");
-  const PUSH_DEFAULTS={publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."}};
+  const PUSH_DEFAULTS={publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up \u2014 sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}};
   const maxGuests=settings?.maxGuests??3;
   function toggleRule(key){
     const cur=sr[key]!==false;
@@ -2201,6 +2201,8 @@ function AppSettingsTab({user}){
           {key:"join",label:"New join request",sub:"Sent to admins"},
           {key:"drops",label:"Post-publish drop-out",sub:"Sent to admins"},
           {key:"waitlist",label:"Waitlist join",sub:"Sent to admins"},
+          {key:"weekready",label:"Week announced (manual button in app)",sub:"Sent to everyone"},
+          {key:"teetime",label:"Tee time set (lottery \u2192 actual only)",sub:"Sent to everyone"},
         ].map(({key,label,sub})=>{
           const on=pt[key]!==false;
           return(
@@ -2224,9 +2226,9 @@ function AppSettingsTab({user}){
             </div>
           );
         });})()}
-        {tmplOpen&&(()=>{const def=({publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."}})[tmplOpen]||{};return(
+        {tmplOpen&&(()=>{const def=({publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up \u2014 sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}})[tmplOpen]||{};return(
           <div style={{margin:"10px 0",padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\u270f\ufe0f Custom text \u2014 blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code></div>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\u270f\ufe0f Custom text \u2014 blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code> <code style={{color:"#4ade80"}}>{"{time}"}</code></div>
             <div className="lbl">Title</div>
             <input className="inp" placeholder={def.title} value={tmplT} onChange={e=>setTmplT(e.target.value)} style={{marginBottom:8}}/>
             <div className="lbl">Message</div>
