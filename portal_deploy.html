@@ -351,6 +351,9 @@ function Gate({onAuth}){
   const [method,setMethod]=useState("email");
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
+  const [pw2,setPw2]=useState("");
+  const [info,setInfo]=useState("");
+  const [createMode,setCreateMode]=useState(false);
   const [err,setErr]=useState("");
   const [loading,setLoading]=useState(false);
   const [dbOk,setDbOk]=useState(null);
@@ -361,7 +364,7 @@ function Gate({onAuth}){
   const rosterEdits=useDB("rosterEdits");
 
   useEffect(()=>{
-    fetch("https://clark-group-dd15e-default-rtdb.firebaseio.com/settings/tournFundStartingBalance.json")
+    fetch(FB.databaseURL+"/settings/tournFundStartingBalance.json")
       .then(r=>r.json()).then(()=>setDbOk(true)).catch(()=>setDbOk(false));
   },[]);
 
@@ -369,7 +372,7 @@ function Gate({onAuth}){
     if(!emailAddr)return null;
     const pu=Object.values(portalUsers||{});
     const match=pu.find(u=>u.email&&u.email.toLowerCase()===emailAddr.toLowerCase());
-    return match?match.role:"superadmin";
+    return match?(match.role||"superadmin"):null;
   }
 
   async function signInEmail(){
@@ -377,7 +380,8 @@ function Gate({onAuth}){
     setLoading(true);setErr("");
     try{
       const cred=await auth.signInWithEmailAndPassword(email.trim(),pw);
-      const role=resolveRole(cred.user.email)||"superadmin";
+      const role=resolveRole(cred.user.email);
+      if(!role){await auth.signOut();setErr("This email signed in, but it isn’t authorized for the portal. Ask the master to add it under Settings → Portal Users.");setLoading(false);return;}
       ps("activityLog",{action:"portal_login",name:cred.user.email,role,method:"email",ts:Date.now()});
       onAuth({email:cred.user.email,role,method:"firebase"});
     }catch(e){
@@ -390,6 +394,29 @@ function Gate({onAuth}){
     }
   }
 
+  async function createAccount(){
+    if(!email.trim()||!pw.trim()){setErr("Enter email and a new password");return;}
+    if(pw.length<6){setErr("Password must be at least 6 characters (Firebase minimum).");return;}
+    if(pw!==pw2){setErr("Passwords don’t match.");return;}
+    if(!resolveRole(email.trim())){setErr("That email isn’t on the authorized list — the master must add it under Settings → Portal Users first.");return;}
+    setLoading(true);setErr("");
+    try{
+      const cred=await auth.createUserWithEmailAndPassword(email.trim(),pw);
+      const role=resolveRole(cred.user.email);
+      ps("activityLog",{action:"portal_account_created",name:cred.user.email,role,ts:Date.now()});
+      onAuth({email:cred.user.email,role,method:"firebase"});
+    }catch(e){
+      if(e.code==="auth/email-already-in-use")setErr("An account already exists for that email — use Sign In (or Forgot password).");
+      else if(e.code==="auth/weak-password")setErr("Password too weak — use at least 6 characters.");
+      else setErr("Could not create account: "+e.message);
+      setLoading(false);
+    }
+  }
+  async function forgotPassword(){
+    if(!email.trim()){setErr("Type your email above first, then tap Forgot password.");return;}
+    try{await auth.sendPasswordResetEmail(email.trim());setErr("");setInfo("Reset link sent to "+email.trim()+" — check your inbox (and spam).");}
+    catch(e){setErr("Could not send reset: "+e.message);}
+  }
   function signInPassword(){
     const mp=settings?.masterPassword||"";
     if(pw===mp&&mp){ps("activityLog",{action:"portal_login",name:"Master Admin",role:"master",ts:Date.now()});onAuth({email:"master",role:"master",method:"password"});return;}
@@ -430,14 +457,25 @@ function Gate({onAuth}){
             ))}
           </div>
           {err&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#fca5a5",marginBottom:14,lineHeight:1.5}}>{err}</div>}
+          {info&&<div style={{background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.2)",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#4ade80",marginBottom:14,lineHeight:1.5}}>{info}</div>}
           {method==="email"?(
             <div>
               <div className="gate-lbl">Email</div>
-              <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com" style={{marginBottom:10}} autoFocus/>
-              <div className="gate-lbl">Password</div>
-              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&signInEmail()} placeholder="Password" style={{marginBottom:16}}/>
-              <button className="btn btn-g btn-full" onClick={signInEmail} disabled={loading}>{loading?"Signing in…":"Sign In →"}</button>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",textAlign:"center",marginTop:10,lineHeight:1.7}}>Firebase Console → Authentication → Email/Password → Enable, then add your user.</div>
+              <input className="inp" type="email" value={email} onChange={e=>{setEmail(e.target.value);setInfo("");}} placeholder="your@email.com" style={{marginBottom:10}} autoFocus/>
+              <div className="gate-lbl">{createMode?"Choose a password (6+ chars)":"Password"}</div>
+              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(createMode?null:signInEmail())} placeholder="Password" style={{marginBottom:10}}/>
+              {createMode&&(<React.Fragment>
+                <div className="gate-lbl">Confirm password</div>
+                <input className="inp" type="password" value={pw2} onChange={e=>setPw2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createAccount()} placeholder="Same password again" style={{marginBottom:10}}/>
+              </React.Fragment>)}
+              {createMode
+                ? <button className="btn btn-g btn-full" onClick={createAccount} disabled={loading}>{loading?"Creating…":"Create My Account →"}</button>
+                : <button className="btn btn-g btn-full" onClick={signInEmail} disabled={loading}>{loading?"Signing in…":"Sign In →"}</button>}
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:12}}>
+                <button onClick={()=>{setCreateMode(m=>!m);setErr("");setInfo("");}} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.45)",fontSize:11.5,fontFamily:"inherit",textDecoration:"underline"}}>{createMode?"‹ Back to sign in":"First time? Create your password"}</button>
+                {!createMode&&<button onClick={forgotPassword} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.45)",fontSize:11.5,fontFamily:"inherit",textDecoration:"underline"}}>Forgot password?</button>}
+              </div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",textAlign:"center",marginTop:12,lineHeight:1.7}}>Only emails the master has listed under Settings → Portal Users can create accounts or sign in.</div>
             </div>
           ):(
             <div>
@@ -1651,8 +1689,8 @@ function AccessTab({user}){
     showToast("Added as Scoring Admin — change role above if needed ✓");
   }
   function addPortalUser(){
-    if(!newPU.name||!newPU.password){showToast("Name and password required","err");return;}
-    if(newPU.password.length<4){showToast("Password must be 4+ characters","err");return;}
+    if(!newPU.name||!newPU.email||newPU.email.indexOf("@")<1){showToast("Name and a valid email required","err");return;}
+    if(newPU.password&&newPU.password.length>0&&newPU.password.length<4){showToast("Legacy password must be 4+ characters (or leave blank)","err");return;}
     ps("settings/portalUsers",newPU);
     setNewPU({name:"",email:"",role:"superadmin",password:""});
     setAddingPU(false);
@@ -1800,7 +1838,7 @@ function AccessTab({user}){
               <input className="inp" placeholder="Email (optional)" value={newPU.email} onChange={e=>setNewPU(p=>({...p,email:e.target.value}))}/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8}}>
-              <input className="inp" type="password" placeholder="Portal password (4+ chars)" value={newPU.password} onChange={e=>setNewPU(p=>({...p,password:e.target.value}))}/>
+              <input className="inp" type="password" placeholder="Legacy password (optional — they create their own via Email sign-in)" value={newPU.password} onChange={e=>setNewPU(p=>({...p,password:e.target.value}))}/>
               <select className="inp" style={{width:"auto"}} value={newPU.role} onChange={e=>setNewPU(p=>({...p,role:e.target.value}))}>
                 <option value="superadmin">Super Admin</option>
                 <option value="master">Master</option>
