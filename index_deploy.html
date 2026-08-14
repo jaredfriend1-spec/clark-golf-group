@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-l';
+const APP_BUILD='2026.08.05-m';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1829,7 +1829,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [pushPromptGone,setPushPromptGone]=useState(false);
   const [expanded, setExpanded] = useState({});
   const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
@@ -2060,6 +2060,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           onSetTeeTime={() => setTeeModal(day)}
           onAddToWaitlist={onAddToWaitlist}
           onRemoveFromWaitlist={onRemoveFromWaitlist}
+          onPromoteWaitlist={onPromoteWaitlist}
           onToggleLock={(dayName, locked) => { write('week/locked/'+dayName, locked); }}
         />
       ))}
@@ -2132,7 +2133,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onToggleLock }){
+function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onToggleLock }){
   const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
@@ -2397,6 +2398,9 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, on
                     <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{s.name}</div>
                     <div style={{fontSize:11,color:'#b45309'}}>{s.tee} · HCP {s.handicap}</div>
                   </div>
+                  {isAdmin && onPromoteWaitlist && (
+                    <button onClick={()=>onPromoteWaitlist(k)} style={{background:'#166534',border:'none',borderRadius:6,padding:'3px 10px',fontSize:11,fontWeight:700,color:'#fff',cursor:'pointer',fontFamily:'inherit',marginRight:6}}>↑ Move in</button>
+                  )}
                   {isAdmin && onRemoveFromWaitlist && (
                     <button onClick={()=>onRemoveFromWaitlist(k)} style={{background:'none',border:'1px solid #fca5a5',borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:700,color:'#dc2626',cursor:'pointer',fontFamily:'inherit'}}>Remove</button>
                   )}
@@ -6799,7 +6803,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                 ):(
                   <div>
                     {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
-                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
+                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},waitlist_promote:{label:'Moved in from waitlist',color:'var(--brand)',icon:'⬆'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
                       const cfg=ACFG[e.action]||{label:e.action?.replace(/_/g,' ')||'',color:'var(--ink-50)',icon:'•'};
                       const age=Date.now()-(e.ts||0);
                       const ageStr=age<3600000?Math.round(age/60000)+'m ago':age<86400000?Math.round(age/3600000)+'h ago':Math.round(age/86400000)+'d ago';
@@ -9217,7 +9221,7 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
-      {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}}/>}
+      {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
