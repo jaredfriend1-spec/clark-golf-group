@@ -417,27 +417,6 @@ function Gate({onAuth}){
     try{await auth.sendPasswordResetEmail(email.trim());setErr("");setInfo("Reset link sent to "+email.trim()+" — check your inbox (and spam).");}
     catch(e){setErr("Could not send reset: "+e.message);}
   }
-  function signInPassword(){
-    const mp=settings?.masterPassword||"";
-    if(pw===mp&&mp){ps("activityLog",{action:"portal_login",name:"Master Admin",role:"master",ts:Date.now()});onAuth({email:"master",role:"master",method:"password"});return;}
-    const pu=Object.values(portalUsers||{});
-    const match=pu.find(u=>u.password===pw);
-    if(match){ps("activityLog",{action:"portal_login",name:match.name||match.email,role:match.role,ts:Date.now()});onAuth({email:match.email,name:match.name,role:match.role,method:"password"});return;}
-    // Check Super Admin portal passwords
-    const ppEntries=Object.entries(portalPasswords||{});
-    const ppMatch=ppEntries.find(([,v])=>v===pw);
-    if(ppMatch){
-      const playerId=ppMatch[0];
-      const adminRole=rosterAdmins&&rosterAdmins[playerId];
-      if(adminRole==="admin"||adminRole==="master"){
-        const rosterPlayer=ROSTER.find(p=>String(p.id)===String(playerId));
-        const name=(rosterEdits&&rosterEdits[playerId])||(rosterPlayer&&rosterPlayer.name)||("Admin #"+playerId);
-        onAuth({email:name,name,role:"superadmin",method:"password",playerId});
-        return;
-      }
-    }
-    setErr("Incorrect password.");setPw("");
-  }
 
   return(
     <div className="gate">
@@ -450,15 +429,10 @@ function Gate({onAuth}){
             <span style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{dbOk===null?"Checking database…":dbOk?"Database connected · Main app unaffected":"Database unreachable"}</span>
           </div>
           <div style={{display:"flex",gap:3,background:"rgba(255,255,255,0.04)",borderRadius:9,padding:3,marginBottom:18}}>
-            {[["email","📧 Email"],["password","🔑 Password"]].map(([id,label])=>(
-              <button key={id} className={`mtab${method===id?" on":""}`} onClick={()=>{setMethod(id);setErr("");}}>
-                {label}
-              </button>
-            ))}
           </div>
           {err&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#fca5a5",marginBottom:14,lineHeight:1.5}}>{err}</div>}
           {info&&<div style={{background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.2)",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#4ade80",marginBottom:14,lineHeight:1.5}}>{info}</div>}
-          {method==="email"?(
+          
             <div>
               <div className="gate-lbl">Email</div>
               <input className="inp" type="email" value={email} onChange={e=>{setEmail(e.target.value);setInfo("");}} placeholder="your@email.com" style={{marginBottom:10}} autoFocus/>
@@ -477,13 +451,7 @@ function Gate({onAuth}){
               </div>
               <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",textAlign:"center",marginTop:12,lineHeight:1.7}}>Only emails the master has listed under Settings → Portal Users can create accounts or sign in.</div>
             </div>
-          ):(
-            <div>
-              <div className="gate-lbl">Password</div>
-              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&signInPassword()} placeholder="Master or portal password" style={{marginBottom:16}} autoFocus/>
-              <button className="btn btn-a btn-full" onClick={signInPassword}>Unlock →</button>
-            </div>
-          )}
+
         </div>
         <div style={{textAlign:"center",marginTop:16}}>
           <a href="index.html" style={{display:"inline-block",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.22)",letterSpacing:"0.04em",textDecoration:"none",padding:"6px 14px",borderRadius:20,border:"1px solid rgba(255,255,255,0.1)"}}>← Back to App</a>
