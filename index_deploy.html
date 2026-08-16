@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.05-m';
+const APP_BUILD='2026.08.16-a';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -2004,7 +2004,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       })()}
       {(()=>{
         const active=safeArray(week?.activeDays);
-        const wd=getWeekDates();const curDates=Object.values(wd);
+        // Tombstones belong to the CONFIGURED week, not the calendar week — End Week must clear them.
+        const curDates=(week&&week.dates&&Object.keys(week.dates).length)?Object.values(week.dates):[];
         const raw=Object.values(cancelledDays||{}).filter(c=>c&&c.date&&curDates.includes(c.date)&&!active.includes(c.day));
         const latest={};raw.forEach(c=>{const k=c.day+'|'+c.date;if(!latest[k]||(c.ts||0)>(latest[k].ts||0))latest[k]=c;});
         const items=Object.values(latest).sort((a,b)=>(b.ts||0)-(a.ts||0));
