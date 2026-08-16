@@ -1202,14 +1202,10 @@ function EmailTab(){
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:8}}>
         <div>
           <div className="pg-eyebrow">Communications</div>
-          <div className="pg-title">Email & Announcements</div>
-          <div className="pg-sub">Draft notes, compose the group email</div>
+          <div className="pg-title">Day Notes and Upcoming Events &amp; Announcements</div>
+          <div className="pg-sub">Draft the notes and events members see in the weekly email</div>
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button className="btn btn-gh btn-sm" onClick={()=>setPreview(true)}>👁️ Preview Email</button>
-          <button className="btn btn-b btn-sm" onClick={copyFormatted}>📋 Copy Formatted</button>
-          <button className="btn btn-g btn-sm" onClick={copyPlain}>📄 Copy Plain Text</button>
-        </div>
+
       </div>
 
       {activeDays.length===0&&<div className="info-box"><strong>No active days set up.</strong> Go to Week → Set Up Days to activate days first.</div>}
@@ -1562,8 +1558,8 @@ function RosterTab(){
                 ):(
                   <>
                     <button className="btn btn-gh btn-sm" onClick={()=>setEditing({id:p.id,name:p.name,tee:p.tee||"Whites",hcp:p.hcp||"",email})}>Edit</button>
-                    {!p.isExtra&&<button className="btn btn-gh btn-sm" onClick={()=>setConfirmHide(p)}>Hide</button>}
-                    {p.isExtra&&<button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Del</button>}
+                    {!p.isExtra&&<button className="btn btn-r btn-sm" onClick={()=>setConfirmHide(p)}>Remove</button>}
+                    {p.isExtra&&<button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Remove</button>}
                   </>
                 )}
               </div>
@@ -1835,13 +1831,12 @@ function AccessTab({user}){
           <div style={{padding:"12px 14px",background:"rgba(16,185,129,0.04)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
               <input className="inp" placeholder="Name" value={newPU.name} onChange={e=>setNewPU(p=>({...p,name:e.target.value}))}/>
-              <input className="inp" placeholder="Email (optional)" value={newPU.email} onChange={e=>setNewPU(p=>({...p,email:e.target.value}))}/>
+              <input className="inp" placeholder="Email (required for portal sign-in)" value={newPU.email} onChange={e=>setNewPU(p=>({...p,email:e.target.value}))}/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8}}>
               <input className="inp" type="password" placeholder="Legacy password (optional — they create their own via Email sign-in)" value={newPU.password} onChange={e=>setNewPU(p=>({...p,password:e.target.value}))}/>
               <select className="inp" style={{width:"auto"}} value={newPU.role} onChange={e=>setNewPU(p=>({...p,role:e.target.value}))}>
                 <option value="superadmin">Super Admin</option>
-                <option value="master">Master</option>
               </select>
               <button className="btn btn-g btn-sm" onClick={addPortalUser}>Add</button>
             </div>
@@ -1854,7 +1849,14 @@ function AccessTab({user}){
               <div className="p-name">{pu.name}</div>
               {pu.email&&<div className="p-sub">{pu.email}</div>}
             </div>
-            <span className={pu.role==="master"?"b b-a":"b b-b"}>{pu.role==="master"?"⭐ Master":"Super Admin"}</span>
+            {isMaster(user.role)?(
+              <select className="inp" style={{width:"auto",padding:"4px 8px",fontSize:11}} value={pu.role||"superadmin"} onChange={e=>wr("settings/portalUsers/"+pu._key+"/role",e.target.value)}>
+                <option value="superadmin">Super Admin</option>
+                <option value="master">⭐ Master</option>
+              </select>
+            ):(
+              <span className={pu.role==="master"?"b b-a":"b b-b"}>{pu.role==="master"?"⭐ Master":"Super Admin"}</span>
+            )}
             <button className="btn btn-r btn-sm" onClick={()=>setConfirmRemovePU(pu)}>Remove</button>
           </div>
         ))}
@@ -2296,7 +2298,8 @@ function AppSettingsTab({user}){
         );})()}
         {/* portal manual sender */}
         <div style={{marginTop:14,padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\ud83d\udce4 Send a push-only message <span style={{fontWeight:500,color:"rgba(255,255,255,0.35)"}}>(no in-app banner)</span></div>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>📤 Send a push notification</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.6,marginBottom:8}}>Sends a buzz straight to members’ phones — nothing is posted inside the app. Good for quick heads-ups like frost delays, reminders, or “spots open Saturday.” Pick who receives it below; “Admins only” is your safe test channel.</div>
           <input className="inp" placeholder="Title (short!)" maxLength={50} value={msT} onChange={e=>{setMsT(e.target.value);setMsSent("");}} style={{marginBottom:8}}/>
           <input className="inp" placeholder="Message" maxLength={140} value={msB} onChange={e=>{setMsB(e.target.value);setMsSent("");}} style={{marginBottom:10}}/>
           <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
@@ -2552,6 +2555,9 @@ function GameRulesTab({user}){
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
 
 function ClarkEmailTab(){
+  const rosterEmailsDB=useDB("rosterEmails")||{};
+  const rosterPinsDB=useDB("rosterPins")||{};
+  const registeredEmails=React.useMemo(()=>{const s=new Set();Object.entries(rosterEmailsDB).forEach(([pid,em])=>{if(em&&String(em).indexOf("@")>0&&rosterPinsDB[pid])s.add(String(em).toLowerCase().trim());});return s;},[rosterEmailsDB,rosterPinsDB]);
   const [entries, setEntries] = React.useState([]);
   const [loaded, setLoaded] = React.useState(false);
   const [pasteModal, setPasteModal] = React.useState(false);
@@ -2666,6 +2672,12 @@ function ClarkEmailTab(){
         <button className="btn btn-g" onClick={copySelected} disabled={selCount===0}>
           {copied?'✓ Copied!':`📋 Copy ${selCount} to Gmail`}
         </button>
+        <button className="btn btn-b btn-sm" onClick={()=>{
+          const regs=entries.filter(e=>e.email&&registeredEmails.has(String(e.email).toLowerCase().trim()));
+          if(!regs.length)return;
+          navigator.clipboard.writeText(regs.map(e=>e.email).join(", "));
+          setToast({msg:"Copied "+regs.length+" registered-member emails \u2713"});setTimeout(()=>setToast(null),2500);
+        }}>📱 Copy registered only ({entries.filter(e=>e.email&&registeredEmails.has(String(e.email).toLowerCase().trim())).length})</button>
         <button className="btn btn-gh btn-sm" onClick={()=>setPasteModal(true)}>⬆️ Import</button>
         <button className="btn btn-gh btn-sm" onClick={()=>setAddModal(true)}>+ Add</button>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
