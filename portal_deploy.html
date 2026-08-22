@@ -2522,6 +2522,117 @@ function GameRulesTab({user}){
 
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
 
+function TournamentTab(){
+  const t=useDB("tournament")||{};
+  const cfg=t.config||{};
+  const tp=t.players||{};
+  const attendance=useDB("attendance")||{};
+  const rosterEdits=useDB("rosterEdits");
+  const rosterHidden=useDB("rosterHidden");
+  const extra=useDB("extraPlayers");
+  const rounds=Object.values(attendance.rounds||{});
+  const all=React.useMemo(()=>{
+    const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name,isExtra:false}));
+    const ex=Object.values(extra||{}).map(p=>({...p,isExtra:true}));
+    return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
+  },[extra,rosterEdits,rosterHidden]);
+  const roundCounts=React.useMemo(()=>{
+    const m={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
+  },[rounds]);
+  const cnt=p=>roundCounts[String(p.name).toLowerCase().trim()]||0;
+  const minRounds=cfg.minRounds!=null?cfg.minRounds:10;
+  const autoBar=all.reduce((mx,p)=>Math.max(mx,cnt(p)),0);
+  const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
+  const inPlayers=all.filter(p=>tp[p.id]&&tp[p.id].in);
+  const owedOf=p=>bar-cnt(p);
+  const paidOf=p=>(tp[p.id]&&Number(tp[p.id].paid))||0;
+  const cashOutstanding=inPlayers.reduce((s,p)=>s+Math.max(owedOf(p)-paidOf(p),0),0);
+  const refundsDue=inPlayers.reduce((s,p)=>s+Math.max(-(owedOf(p)-paidOf(p)),0),0);
+  const collected=inPlayers.reduce((s,p)=>s+cnt(p)+paidOf(p),0);
+  const fullPot=inPlayers.length*bar;
+  const setCfg=(k,v)=>wr("tournament/config/"+k,v);
+  const setP=(id,k,v)=>wr("tournament/players/"+id+"/"+k,v);
+  const [copied,setCopied]=React.useState(false);
+  function copyStandings(){
+    const lines=all.slice().sort((a,b)=>cnt(b)-cnt(a)).map(p=>{
+      const r=cnt(p);const el=r>=minRounds?"eligible":"needs "+(minRounds-r)+" more";
+      return p.name+" — "+r+" rounds ("+el+") — entry if playing: $"+Math.max(bar-r,0)+(bar-r<0?" (refund $"+(r-bar)+")":"");
+    });
+    navigator.clipboard.writeText("CLARK TOURNAMENT — STANDINGS AS OF "+new Date().toLocaleDateString()+"\nEntry-fee bar: $"+bar+" (most rounds played)\nEligibility: "+minRounds+"+ rounds\n\n"+lines.join("\n"));
+    setCopied(true);setTimeout(()=>setCopied(false),2000);
+  }
+  return(
+    <div>
+      <div className="pg-head"><div><div className="pg-title">Tournament</div><div className="pg-sub">Plan the Clark tournament with live season data</div></div></div>
+      <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:14}}>📋 DRAFT — planning workspace only. Numbers below are live from real attendance, but nothing here appears in the member app until the tournament build is activated.</div>
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">⚙ Configuration</span></div>
+        <div className="card-body">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,marginBottom:10}}>
+            <div><div className="lbl">Tournament name</div><input className="inp" value={cfg.name||""} placeholder="Clark Group Tournament" onChange={e=>setCfg("name",e.target.value)}/></div>
+            <div><div className="lbl">Day 1 date</div><input className="inp" type="date" value={cfg.date1||"2026-10-24"} onChange={e=>setCfg("date1",e.target.value)}/></div>
+            <div><div className="lbl">Day 2 date (blank = 1-day)</div><input className="inp" type="date" value={cfg.date2||"2026-10-25"} onChange={e=>setCfg("date2",e.target.value)}/></div>
+            <div><div className="lbl">Eligibility: min rounds</div><input className="inp" inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
+            <div><div className="lbl">Entry-fee bar ($ — blank = auto: most rounds = {autoBar})</div><input className="inp" inputMode="numeric" placeholder={"auto ($"+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
+          </div>
+          <div style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:12,color:"rgba(255,255,255,0.55)"}}>
+            {[["separateDays","Days are separate events (pot split equally)"],["redrawTeams","Fresh random A/B/C/D teams each day"],["excludeFund","No $1 fund skim on tournament days"],["excludeStats","Tournament stats kept separate from season"]].map(([k,label])=>(
+              <label key={k} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                <input type="checkbox" checked={cfg[k]!==false} onChange={e=>setCfg(k,e.target.checked)}/>{label}
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">💰 Pot &amp; Pay-In Summary</span></div>
+        <div className="card-body">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+            {[["Players in",inPlayers.length],["Entry-fee bar","$"+bar],["Collected (rounds $ + pay-ins)","$"+collected],["Cash outstanding","$"+cashOutstanding],["Refunds due","$"+refundsDue],["Full pot when settled","$"+fullPot]].map(([l,v])=>(
+              <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0",marginTop:2}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {cfg.date2!==""&&<div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:8}}>Split equally per day: <b style={{color:"#4ade80"}}>${Math.floor(fullPot/2)}</b> Saturday · <b style={{color:"#4ade80"}}>${Math.floor(fullPot/2)}</b> Sunday</div>}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins</span>
+          <div style={{display:"flex",gap:6}}>
+            <button className="btn btn-gh btn-sm" onClick={()=>{all.forEach(p=>{if(cnt(p)>=minRounds)setP(p.id,"in",true);});}}>Select all eligible</button>
+            <button className="btn btn-gh btn-sm" onClick={copyStandings}>{copied?"✓ Copied":"📋 Copy standings for email"}</button>
+          </div>
+        </div>
+        <div className="card-body" style={{maxHeight:520,overflowY:"auto"}}>
+          {all.slice().sort((a,b)=>cnt(b)-cnt(a)).map(p=>{
+            const r=cnt(p);const isIn=!!(tp[p.id]&&tp[p.id].in);const eligible=r>=minRounds;
+            const owed=bar-r;const paid=paidOf(p);const net=owed-paid;
+            return(
+              <div key={p.id} className="s-row" style={{gap:10,opacity:isIn?1:0.55}}>
+                <div onClick={()=>setP(p.id,"in",!isIn)} style={{width:36,height:20,borderRadius:20,background:isIn?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
+                  <div style={{position:"absolute",top:2,left:isIn?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
+                </div>
+                <div style={{flex:1,minWidth:140}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}</div>
+                  <div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>{r} rounds · {eligible?"eligible":"needs "+(minRounds-r)+" more"} · entry ${Math.max(owed,0)}{owed<0?" (refund $"+(-owed)+")":""}</div>
+                </div>
+                {isIn&&(<React.Fragment>
+                  <div style={{width:110}}>
+                    <div className="lbl" style={{fontSize:9}}>Paid in ($)</div>
+                    <input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{padding:"5px 8px",fontSize:12}}/>
+                  </div>
+                  <span style={{fontSize:11,fontWeight:700,minWidth:86,textAlign:"right",color:net>0?"#fbbf24":(net<0?"#60a5fa":"#4ade80")}}>{net>0?"owes $"+net:(net<0?"refund $"+(-net):"settled ✓")}</span>
+                </React.Fragment>)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 function ClarkEmailTab(){
   const rosterEmailsDB=useDB("rosterEmails")||{};
   const rosterPinsDB=useDB("rosterPins")||{};
@@ -3719,6 +3830,7 @@ const ALL_NAV_ITEMS=[
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   {id:"history",label:"History",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   {id:"announce",label:"Announce",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>},
+  {id:"tournament",label:"Tournament",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.5 4 4 4M17 6h3a1 1 0 0 1 1 1c0 2.5-1.5 4-4 4"/></svg>},
   {id:"clarkemail",label:"Clark Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>},
   {id:"attend",label:"Attend",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>},
   {id:"season",label:"Season",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg>},
@@ -3804,6 +3916,7 @@ function Portal(){
           {tab==="access"&&<AccessTab user={user}/>}
           {tab==="history"&&<HistoryTab user={user}/>}
           {tab==="announce"&&<AnnounceTab user={user}/>}
+          {tab==="tournament"&&<TournamentTab/>}
           {tab==="clarkemail"&&<ClarkEmailTab/>}
           {tab==="attend"&&<AttendTab user={user}/>}
           {tab==="logincards"&&isMaster(user.role)&&<LoginCardsTab/>}
