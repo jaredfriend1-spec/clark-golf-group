@@ -1586,7 +1586,7 @@ function RosterTab(){
           <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Set PIN for {confirmSetPin.name}</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:14,lineHeight:1.6}}>Enter a new PIN (4+ digits). The player can then log into the main app with it.</div>
           <input className="inp" type="text" inputMode="numeric" value={newPinVal} onChange={e=>setNewPinVal(e.target.value.replace(/[^0-9]/g,""))} placeholder="New PIN (4\u20135 digits)" autoFocus style={{marginBottom:6,fontSize:18,textAlign:"center",letterSpacing:"0.2em"}}/>
-          {(()=>{const v=String(newPinVal||"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(confirmResetPin&&confirmResetPin.id)&&String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:10}}>\u26a0 Already <b>{who?who.name:"another member"}</b>\u2019s PIN \u2014 try the last 5 of the phone.</div>);})()}
+          {(()=>{const v=String(newPinVal||"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(confirmResetPin&&confirmResetPin.id)&&String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:10}}>\u26a0 Already <b>{who?who.name:"another member"}</b>’s PIN — try the last 5 of the phone.</div>);})()}
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-g" style={{flex:1}} onClick={()=>setPin(confirmSetPin.id,newPinVal)} disabled={!newPinVal||newPinVal.length<4}>Set PIN</button>
             <button className="btn btn-gh" style={{flex:1}} onClick={()=>{setConfirmSetPin(null);setNewPinVal("");}}>Cancel</button>
@@ -2556,6 +2556,8 @@ function TournamentTab(){
   const [copied,setCopied]=React.useState(false);
   const [emailOpen,setEmailOpen]=React.useState(false);
   const [emailCopied,setEmailCopied]=React.useState(false);
+  const [goLiveOpen,setGoLiveOpen]=React.useState(false);
+  const [pushToo,setPushToo]=React.useState(true);
 
   // ── payout config w/ defaults ──
   const payMode=cfg.payMode||(twoDay?"perday":"combined");   // perday | combined
@@ -2619,7 +2621,7 @@ function TournamentTab(){
       });
     });
     L.push("");
-    if(cfg.inviteOpen===true)L.push("SAY YOU\u2019RE IN: open the Clark Golf app \u2192 Week tab \u2192 tap \u201cI\u2019m in\u201d on the tournament card. It shows your exact entry based on your rounds.");
+    if(cfg.inviteOpen===true)L.push("SAY YOU\u2019RE IN: open the Clark Golf app \u2192 Week tab \u2192 tap “I’m in” on the tournament card. It shows your exact entry based on your rounds.");
     L.push("");
     L.push("Questions or think your rounds count is off? Reply and we\u2019ll check the record.");
     return L.join("\n");
@@ -2656,26 +2658,49 @@ function TournamentTab(){
               </label>
             ))}
           </div>
-          <div style={{marginTop:14,padding:"11px 13px",background:"rgba(212,175,55,0.05)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:10,display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-            <div onClick={()=>setCfg("inviteOpen",cfg.inviteOpen!==true)} style={{width:36,height:20,borderRadius:20,background:cfg.inviteOpen===true?"#d4af37":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
-              <div style={{position:"absolute",top:2,left:cfg.inviteOpen===true?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
-            </div>
-            <div style={{flex:1,minWidth:200}}>
-              <div style={{fontSize:12.5,fontWeight:700,color:cfg.inviteOpen===true?"#d4af37":"rgba(255,255,255,0.55)"}}>{cfg.inviteOpen===true?"🏆 Invites OPEN — members see the RSVP card in the app":"Invites closed — tournament invisible to members"}</div>
-              <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)"}}>Members tap I\u2019m in / Can\u2019t make it on the Week tab; answers land in the field list below live.</div>
-            </div>
-            <button className="btn btn-g btn-sm" disabled={cfg.inviteOpen!==true} onClick={()=>{
-              fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Tournament invites are open! Open the app and tap I\u2019m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
-              setCfg("invitePushTs",Date.now());
-            }}>📣 Send invite push</button>
-            {cfg.invitePushTs&&<span style={{fontSize:10.5,color:"#4ade80",fontWeight:600}}>Push sent {new Date(cfg.invitePushTs).toLocaleDateString([], {month:"short",day:"numeric"})} ✓</span>}
-            {cfg.inviteOpen===true&&(
-              <div style={{display:"flex",alignItems:"center",gap:8,flexBasis:"100%",marginTop:6}}>
-                <div onClick={()=>setCfg("rsvpLocked",cfg.rsvpLocked!==true)} style={{width:36,height:20,borderRadius:20,background:cfg.rsvpLocked===true?"#f87171":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
-                  <div style={{position:"absolute",top:2,left:cfg.rsvpLocked===true?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
-                </div>
-                <div style={{fontSize:11.5,fontWeight:700,color:cfg.rsvpLocked===true?"#f87171":"rgba(255,255,255,0.5)"}}>
-                  {cfg.rsvpLocked===true?"🔒 RSVPs LOCKED — members can look but not change; your toggles below still work":"RSVPs open — members can opt in and out freely (lock ~a week out for tee-time counts)"}
+          <div style={{marginTop:14,padding:"13px 15px",background:cfg.inviteOpen===true?"rgba(16,185,129,0.06)":"rgba(212,175,55,0.05)",border:"1px solid "+(cfg.inviteOpen===true?"rgba(16,185,129,0.3)":"rgba(212,175,55,0.2)"),borderRadius:10}}>
+            {cfg.inviteOpen!==true?(
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>🔒 NOT LIVE — members see nothing</div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",margin:"4px 0 10px",lineHeight:1.6}}>Admins already see a dashed-border preview at the top of the app’s Week tab (deploy the latest app file if you don’t see it). Members will see nothing until you press Go Live.</div>
+                {!goLiveOpen?(
+                  <button className="btn btn-g" style={{fontWeight:800,padding:"10px 22px"}} onClick={()=>setGoLiveOpen(true)}>🚀 GO LIVE</button>
+                ):(
+                  <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"11px 13px"}}>
+                    <div style={{fontSize:12.5,fontWeight:700,color:"#e2e8f0",marginBottom:8}}>Go live now? Every member will see the tournament card and can tap I’m in / Can’t make it.</div>
+                    <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>
+                      <input type="checkbox" checked={pushToo} onChange={e=>setPushToo(e.target.checked)}/>Also send a push notification to everyone now
+                    </label>
+                    <div style={{display:"flex",gap:8}}>
+                      <button className="btn btn-g btn-sm" style={{fontWeight:800}} onClick={()=>{
+                        setCfg("inviteOpen",true);
+                        if(pushToo){
+                          fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Tournament invites are open! Open the app and tap I’m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
+                          setCfg("invitePushTs",Date.now());
+                        }
+                        setGoLiveOpen(false);
+                      }}>✓ Yes — go live{pushToo?" + push":""}</button>
+                      <button className="btn btn-gh btn-sm" onClick={()=>setGoLiveOpen(false)}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ):(
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:"#4ade80"}}>🟢 LIVE — members can opt in and out on the Week tab</div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",margin:"4px 0 10px"}}>Answers appear in the field list below with SELF ✓ / DECLINED chips.{cfg.invitePushTs?" Push sent "+new Date(cfg.invitePushTs).toLocaleDateString([], {month:"short",day:"numeric"})+" ✓":""}</div>
+                <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div onClick={()=>setCfg("rsvpLocked",cfg.rsvpLocked!==true)} style={{width:36,height:20,borderRadius:20,background:cfg.rsvpLocked===true?"#f87171":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
+                      <div style={{position:"absolute",top:2,left:cfg.rsvpLocked===true?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
+                    </div>
+                    <span style={{fontSize:11.5,fontWeight:700,color:cfg.rsvpLocked===true?"#f87171":"rgba(255,255,255,0.5)"}}>{cfg.rsvpLocked===true?"🔒 RSVPs locked (members view only — your toggles still work)":"RSVPs open — lock ~a week out for tee times"}</span>
+                  </div>
+                  <button className="btn btn-gh btn-sm" onClick={()=>{
+                    fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Reminder: tournament invites are open — tap I’m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
+                    setCfg("invitePushTs",Date.now());
+                  }}>📣 Send reminder push</button>
+                  <button className="btn btn-gh btn-sm" onClick={()=>{if(window.confirm("Take the tournament card away from members? Their answers are kept."))setCfg("inviteOpen",null);}}>Take offline</button>
                 </div>
               </div>
             )}
