@@ -2562,10 +2562,14 @@ function TournamentTab(){
   const teamSize=cfg.teamSize||4;
   const catF=cfg.catFront!=null?cfg.catFront:25, catB=cfg.catBack!=null?cfg.catBack:25, catO=cfg.catOverall!=null?cfg.catOverall:50;
   const catSum=catF+catB+catO;
-  const p1=cfg.place1!=null?cfg.place1:50, p2=cfg.place2!=null?cfg.place2:30, p3=cfg.place3!=null?cfg.place3:20;
-  const placeSum=p1+p2+p3;
-  const ctp=cfg.ctpPerDay||0;
-  const skins=cfg.skinsSetAside||0;
+  const placesCount=cfg.placesCount||3;
+  const PLACE_DEFAULTS={1:[100],2:[60,40],3:[50,30,20]};
+  const placeVals=[0,1,2].slice(0,placesCount).map(i=>{const v=cfg["place"+(i+1)];return v!=null?v:PLACE_DEFAULTS[placesCount][i];});
+  const placeSum=placeVals.reduce((a,b)=>a+b,0);
+  const ctpOn=cfg.ctpOn===true;
+  const skinsOn=cfg.skinsOn===true;
+  const ctp=ctpOn?(cfg.ctpPerDay||0):0;
+  const skins=skinsOn?(cfg.skinsSetAside||0):0;
   const numDays=twoDay?2:1;
   const setAsides=ctp*numDays+skins;
   const prizePool=Math.max(fullPot-setAsides,0);
@@ -2576,7 +2580,7 @@ function TournamentTab(){
     const cats=[["Front 9",catF],["Back 9",catB],["Overall",catO]];
     return cats.map(([label,pct])=>{
       const cat$=Math.floor(pool*pct/100);
-      const places=[["1st",p1],["2nd",p2],["3rd",p3]].filter(([,pp])=>pp>0).map(([pl,pp])=>{
+      const places=placeVals.map((pp,i)=>[["1st","2nd","3rd"][i],pp]).filter(([,pp])=>pp>0).map(([pl,pp])=>{
         const team$=Math.floor(cat$*pp/100);
         return {pl,team$,per$:teamSize>0?Math.floor(team$/teamSize):team$};
       });
@@ -2591,7 +2595,7 @@ function TournamentTab(){
     L.push("FORMAT");
     L.push("- "+(twoDay?(payMode==="perday"?"Two separate daily events — prize money awarded each day":"Two-day combined event — one set of payouts on 2-day totals"):"One-day event"));
     L.push("- "+(cfg.redrawTeams!==false?"Fresh random A/B/C/D team draw each day":"Same teams both days"));
-    L.push("- Teams of "+teamSize+" — payouts split Front 9 ("+catF+"%), Back 9 ("+catB+"%), Overall ("+catO+"%)");
+    L.push("- Teams of "+teamSize+" — payouts split Front 9 ("+catF+"%), Back 9 ("+catB+"%), Overall ("+catO+"%), paying "+placesCount+" place"+(placesCount>1?"s":"")+" each");
     if(ctp>0)L.push("- Closest to the pin: $"+ctp+" per day");
     if(skins>0)L.push("- Skins set-aside: $"+skins);
     L.push("");
@@ -2645,28 +2649,58 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">🏆 Payout Structure</span></div>
         <div className="card-body">
           {twoDay&&(
-            <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <div style={{display:"flex",gap:8,marginBottom:16}}>
               {[["perday","Separate payouts each day"],["combined","One combined 2-day payout"]].map(([m,label])=>(
                 <button key={m} className="btn btn-sm" onClick={()=>setCfg("payMode",m)} style={{flex:1,fontWeight:700,border:"1px solid",borderColor:payMode===m?"#10b981":"rgba(255,255,255,0.12)",background:payMode===m?"rgba(16,185,129,0.12)":"transparent",color:payMode===m?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
               ))}
             </div>
           )}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,alignItems:"end"}}>
-            <div><div className="lbl" style={lblH}>Team size</div>{numIn(teamSize,e=>setCfg("teamSize",parseInt(e.target.value||"0",10)||null))}</div>
-            <div><div className="lbl" style={lblH}>Front 9 %</div>{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
-            <div><div className="lbl" style={lblH}>Back 9 %</div>{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
-            <div><div className="lbl" style={lblH}>Overall %</div>{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
-            <div><div className="lbl" style={lblH}>1st place %</div>{numIn(p1,e=>setCfg("place1",parseInt(e.target.value||"0",10)))}</div>
-            <div><div className="lbl" style={lblH}>2nd place %</div>{numIn(p2,e=>setCfg("place2",parseInt(e.target.value||"0",10)))}</div>
-            <div><div className="lbl" style={lblH}>3rd place % (0 = pay 2 spots)</div>{numIn(p3,e=>setCfg("place3",parseInt(e.target.value||"0",10)))}</div>
-            <div><div className="lbl" style={lblH}>CTP $ per day (0 = none)</div>{numIn(ctp,e=>setCfg("ctpPerDay",parseInt(e.target.value||"0",10)||0))}</div>
-            <div><div className="lbl" style={lblH}>Skins set-aside $ (0 = none)</div>{numIn(skins,e=>setCfg("skinsSetAside",parseInt(e.target.value||"0",10)||0))}</div>
-          </div>
-          {(catSum!==100||placeSum!==100)&&(
-            <div style={{marginTop:10,fontSize:11.5,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"7px 11px"}}>
-              ⚠ {catSum!==100?"Front/Back/Overall = "+catSum+"% (should be 100%). ":""}{placeSum!==100?"Place splits = "+placeSum+"% (should be 100%).":""}
+          {(()=>{const sect={fontSize:10.5,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.06em",width:110,flexShrink:0,paddingTop:8};
+            const row={display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"};
+            const fld=w=>({width:w||90});
+            const okBadge=ok=>(<span style={{fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:8,alignSelf:"center",background:ok?"rgba(16,185,129,0.12)":"rgba(245,158,11,0.12)",color:ok?"#4ade80":"#fbbf24"}}>{ok?"= 100% ✓":"= must total 100%"}</span>);
+            return(<React.Fragment>
+            <div style={row}>
+              <div style={sect}>Teams</div>
+              <div style={fld(110)}><div className="lbl">Players / team</div>{numIn(teamSize,e=>setCfg("teamSize",parseInt(e.target.value||"0",10)||null))}</div>
+              <div style={{fontSize:11.5,color:"rgba(255,255,255,0.4)",alignSelf:"center"}}>{inPlayers.length} in → <b style={{color:"#e2e8f0"}}>{teams} teams</b>{inPlayers.length%teamSize?" (+"+(inPlayers.length%teamSize)+" extra)":""}</div>
             </div>
-          )}
+            <div style={row}>
+              <div style={sect}>Pot split</div>
+              <div style={fld()}><div className="lbl">Front 9 %</div>{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
+              <div style={fld()}><div className="lbl">Back 9 %</div>{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
+              <div style={fld()}><div className="lbl">Overall %</div>{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
+              {okBadge(catSum===100)}
+            </div>
+            <div style={row}>
+              <div style={sect}>Places paid</div>
+              <div style={{display:"flex",gap:6,alignSelf:"flex-end",paddingBottom:1}}>
+                {[1,2,3].map(n=>(
+                  <button key={n} className="btn btn-sm" onClick={()=>setCfg("placesCount",n)} style={{width:44,fontWeight:800,border:"1px solid",borderColor:placesCount===n?"#10b981":"rgba(255,255,255,0.12)",background:placesCount===n?"rgba(16,185,129,0.12)":"transparent",color:placesCount===n?"#4ade80":"rgba(255,255,255,0.45)"}}>{n}</button>
+                ))}
+              </div>
+              {placeVals.map((v,i)=>(
+                <div key={i} style={fld()}><div className="lbl">{["1st","2nd","3rd"][i]} %</div>{numIn(v,e=>setCfg("place"+(i+1),parseInt(e.target.value||"0",10)))}</div>
+              ))}
+              {okBadge(placeSum===100)}
+            </div>
+            <div style={{...row,borderBottom:"none"}}>
+              <div style={sect}>Extras</div>
+              <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",alignSelf:"center",fontSize:12.5,color:"rgba(255,255,255,0.6)"}}>
+                <input type="checkbox" checked={ctpOn} onChange={e=>setCfg("ctpOn",e.target.checked)}/>Closest to the pin
+              </label>
+              {ctpOn&&<div style={fld(100)}><div className="lbl">$ per day</div>{numIn(cfg.ctpPerDay||"",e=>setCfg("ctpPerDay",parseInt(e.target.value.replace(/\D/g,"")||"0",10)||0),"25")}</div>}
+              <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",alignSelf:"center",fontSize:12.5,color:"rgba(255,255,255,0.6)",marginLeft:10}}>
+                <input type="checkbox" checked={skinsOn} onChange={e=>setCfg("skinsOn",e.target.checked)}/>Skins
+              </label>
+              {skinsOn&&<div style={fld(100)}><div className="lbl">$ set-aside</div>{numIn(cfg.skinsSetAside||"",e=>setCfg("skinsSetAside",parseInt(e.target.value.replace(/\D/g,"")||"0",10)||0),"50")}</div>}
+            </div>
+            </React.Fragment>);})()}
+          {catSum!==100||placeSum!==100?(
+            <div style={{marginTop:10,fontSize:11.5,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"7px 11px"}}>
+              ⚠ Payouts won\u2019t compute cleanly until percentages total 100.
+            </div>
+          ):null}
         </div>
       </div>
 
