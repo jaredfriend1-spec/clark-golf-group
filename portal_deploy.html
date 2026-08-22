@@ -2750,7 +2750,7 @@ function TournamentTab(){
       </div>
 
       <div className="card">
-        <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today\u2019s field</span></div>
+        <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today’s field</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
             {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Entries pot","$"+fullPot],["Extra prize","$"+extraPrize],["CTP total","$"+ctpTotal],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
@@ -2763,7 +2763,7 @@ function TournamentTab(){
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
             {pools.map((pool,i)=>(
               <div key={i} style={{background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:12,padding:"12px 14px"}}>
-                <div style={{fontSize:13,fontWeight:800,color:"#4ade80",marginBottom:8}}>{poolLabel(i)} — ${pool}</div>
+                <div style={{fontSize:13,fontWeight:800,color:"#4ade80",marginBottom:8}}>{poolLabel(i)} — ${pool+(payMode==="perday"?ctpPerDayTotal:ctpTotal)} <span style={{fontWeight:600,color:"rgba(255,255,255,0.4)",fontSize:11}}>(${pool} payouts{(payMode==="perday"?ctpPerDayTotal:ctpTotal)>0?" + $"+(payMode==="perday"?ctpPerDayTotal:ctpTotal)+" CTP":""})</span></div>
                 {simPool(pool).map(c=>(
                   <div key={c.label} style={{marginBottom:8}}>
                     <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.55)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{c.label} · ${c.cat$}</div>
@@ -2790,7 +2790,7 @@ function TournamentTab(){
           {ctpPerDayTotal>0&&(
             <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",marginTop:8}}>CTP: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?"Hole "+h+" $"+ctpAmts[i]:null).filter(Boolean).join(" · ")} per day{numDays>1?" × 2 days = $"+ctpTotal+" total":""}.</div>
           )}
-          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:6}}>All amounts round down; simulation assumes today\u2019s {inPlayers.length}-player field all settled at the ${bar} bar. Toggle players in/out below and watch it recalc.</div>
+          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:6}}>All amounts round down; simulation assumes today’s {inPlayers.length}-player field all settled at the ${bar} bar. Toggle players in/out below and watch it recalc.</div>
         </div>
       </div>
 
