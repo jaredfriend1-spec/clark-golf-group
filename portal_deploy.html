@@ -2644,8 +2644,8 @@ function TournamentTab(){
             return(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
             <div>{CL("Tournament name")}<input className="inp" style={F} value={cfg.name||""} placeholder="Clark Group Tournament" onChange={e=>setCfg("name",e.target.value)}/></div>
-            <div>{CL("Day 1")}<input className="inp" style={F} type="date" value={cfg.date1||"2026-10-24"} onChange={e=>setCfg("date1",e.target.value)}/></div>
-            <div>{CL("Day 2 (blank = 1-day)")}<input className="inp" style={F} type="date" value={cfg.date2!=null?cfg.date2:"2026-10-25"} onChange={e=>setCfg("date2",e.target.value)}/></div>
+            <div>{CL("Day 1")}<input className="inp" style={F} type="date" value={cfg.date1||""} onChange={e=>setCfg("date1",e.target.value||null)}/></div>
+            <div>{CL("Day 2 (blank = 1-day)")}<input className="inp" style={F} type="date" value={cfg.date2||""} onChange={e=>setCfg("date2",e.target.value||null)}/></div>
             <div>{CL("Min rounds")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
             <div>{CL("Entry-fee bar $")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder={"auto ("+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
             <div>{CL("Extra prize $ (optional)")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="0" value={cfg.extraPrize||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("extraPrize",n>0?n:null);}}/></div>

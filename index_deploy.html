@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-i';
+const APP_BUILD='2026.08.16-j';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4903,7 +4903,7 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster }){
   const [showField, setShowField] = useState(false);
   const [collapsed, setCollapsed] = useState(()=>{try{return localStorage.getItem('cgTournCard')==='1';}catch(e){return false;}});
-  const toggleCollapsed=()=>{setCollapsed(c=>{const n=!c;try{localStorage.setItem('cgTournCard',n?'1':'');}catch(e){}return n;});};
+  const toggleCollapsed=()=>{const n=!collapsed;setCollapsed(n);try{localStorage.setItem('cgTournCard',n?'1':'');}catch(e){}};
   const [previewTap, setPreviewTap] = useState(false);
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
