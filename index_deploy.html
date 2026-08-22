@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-j';
+const APP_BUILD='2026.08.16-l';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4900,36 +4900,21 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 }
 
 // ═══════════════ ATTENDANCE VIEW V2 ════════════════
-function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster }){
+function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview }){
   const [showField, setShowField] = useState(false);
-  const [collapsed, setCollapsed] = useState(()=>{try{return localStorage.getItem('cgTournCard')==='1';}catch(e){return false;}});
-  const toggleCollapsed=()=>{const n=!collapsed;setCollapsed(n);try{localStorage.setItem('cgTournCard',n?'1':'');}catch(e){}};
   const [previewTap, setPreviewTap] = useState(false);
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
-    if(collapsed){
-    return (
-      <div onClick={toggleCollapsed} style={{margin:'0 0 14px',padding:'9px 14px',background:'var(--surface)',border:adminPreview?'2px dashed rgba(212,175,55,0.5)':'1px solid rgba(212,175,55,0.35)',borderRadius:12,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
-        <span style={{fontSize:12.5,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Tournament'}</span>
-        {adminPreview&&<span style={{fontSize:9.5,fontWeight:800,color:'var(--warn-ink)'}}>ADMIN PREVIEW</span>}
-        {!adminPreview&&status==='in'&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--brand)'}}>You're in ✓</span>}
-        {!adminPreview&&status==='declined'&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-40)'}}>Not playing</span>}
-        {!adminPreview&&!status&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--warn-ink)'}}>RSVP needed</span>}
-        <span style={{flex:1}}/>
-        <span style={{fontSize:11,color:'var(--ink-40)'}}>Show ▼</span>
-      </div>
-    );
-  }
   return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
   },[]);
   const cfg=t&&t.config;
   if(!cfg||!currentUser||!currentUser.id)return null;
   const invitesLive=cfg.inviteOpen===true;
   const rsvpLocked=cfg.rsvpLocked===true;
-  const adminPreview=!invitesLive&&isAdmin&&!!(cfg.name||cfg.date1||cfg.feeBar);   // any configured tournament shows the admin preview
+  const adminPreview=!invitesLive&&!!forcePreview;   // preview ONLY when opened via the Admin tab button
   if(!invitesLive&&!adminPreview)return null;
   const rounds=Object.values(att||{});
   const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
@@ -4962,10 +4947,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster }){
       {previewTap&&(
         <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:8}}>Preview only — nothing was recorded.</div>
       )}
-      <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
-        <div style={{fontSize:14,fontWeight:800,color:'var(--ink)',flex:1}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
-        <button onClick={toggleCollapsed} style={{background:'none',border:'none',cursor:'pointer',fontSize:11,fontWeight:700,color:'var(--ink-40)',fontFamily:'inherit',padding:'2px 4px',flexShrink:0}}>Hide ▲</button>
-      </div>
+      <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
       <div style={{fontSize:11.5,color:'var(--ink-50)',marginTop:4}}>
         {cfg.date2?'Two separate one-day events — play both days or either one.':'One-day event.'}{cfg.redrawTeams!==false?' New random teams drawn each day.':''}{cfg.teamSize?' Teams of '+cfg.teamSize+'.':''}
       </div>
@@ -6031,6 +6013,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
   const [showCancelled, setShowCancelled] = useState(false);
   const [showPushSubs, setShowPushSubs] = useState(false);
   const [showPushCtl, setShowPushCtl] = useState(false);
+  const [showTournPreview, setShowTournPreview] = useState(false);
   const [weekAnnounced, setWeekAnnounced] = useState(null);
   const [poTitle,setPoTitle]=useState('');
   const [poBody,setPoBody]=useState('');
@@ -6842,6 +6825,23 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
             </div>
           );
         })()}
+        {/* ── TOURNAMENT PREVIEW ── */}
+        <div className="day-card" style={{marginBottom:10,padding:'12px 16px',display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:13}}>🏆</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12.5,fontWeight:700,color:'var(--ink)'}}>Tournament card preview</div>
+            <div style={{fontSize:10.5,color:'var(--ink-40)'}}>See exactly what members will see. Configure and go live in the portal.</div>
+          </div>
+          <button className="btn btn-sm" onClick={()=>setShowTournPreview(true)}>👁 Preview</button>
+        </div>
+        {showTournPreview&&(
+          <div onClick={()=>setShowTournPreview(false)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 14px',overflowY:'auto'}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:16,padding:'16px 16px 12px',maxWidth:520,width:'100%',boxShadow:'0 20px 50px rgba(0,0,0,0.3)'}}>
+              <TournamentRsvpCard currentUser={currentUser} isAdmin={true} read={read} update={update} fullRoster={fullRoster} forcePreview={true}/>
+              <button className="btn btn-sm" style={{width:'100%'}} onClick={()=>setShowTournPreview(false)}>Close preview</button>
+            </div>
+          </div>
+        )}
         {/* ── PUSH CONTROLS ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
