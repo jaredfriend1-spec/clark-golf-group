@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-f';
+const APP_BUILD='2026.08.16-g';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4947,8 +4947,31 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update }){
         <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:8}}>Preview only — nothing was recorded.</div>
       )}
       <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
-      <div style={{fontSize:12,color:'var(--ink-60)',marginTop:4}}>
-        Your entry: <b style={{color:'var(--ink)'}}>${owed}</b> <span style={{color:'var(--ink-40)'}}>(${bar} bar − your {myRounds} rounds{owed===0?' — covered!':''})</span>
+      <div style={{fontSize:11.5,color:'var(--ink-50)',marginTop:4}}>
+        {cfg.date2?'Two separate one-day events — play both days or either one.':'One-day event.'}{cfg.redrawTeams!==false?' New random teams drawn each day.':''}{cfg.teamSize?' Teams of '+cfg.teamSize+'.':''}
+      </div>
+      <div style={{marginTop:9,padding:'9px 11px',background:'var(--surface-sunken)',borderRadius:10}}>
+        <div style={{fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:5}}>How your entry works</div>
+        <div style={{fontSize:11.5,color:'var(--ink-60)',lineHeight:1.65}}>
+          Entry fee is <b style={{color:'var(--ink)'}}>${bar}</b> (set by the most rounds played). Every weekly round you've played already counts $1 toward it.
+        </div>
+        <div style={{display:'flex',gap:6,marginTop:7,flexWrap:'wrap'}}>
+          <div style={{flex:1,minWidth:88,background:'var(--surface)',borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Your rounds</div>
+            <div style={{fontSize:15,fontWeight:800,color:'var(--ink)'}}>{myRounds}</div>
+            <div style={{fontSize:9.5,color:'var(--ink-40)'}}>= ${myRounds} in</div>
+          </div>
+          <div style={{flex:1,minWidth:88,background:'var(--surface)',borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Entry fee</div>
+            <div style={{fontSize:15,fontWeight:800,color:'var(--ink)'}}>${bar}</div>
+            <div style={{fontSize:9.5,color:'var(--ink-40)'}}>covers {cfg.date2?'both days':'the event'}</div>
+          </div>
+          <div style={{flex:1,minWidth:88,background:owed>0?'var(--warn-soft)':'var(--brand-soft)',border:'1px solid '+(owed>0?'var(--warn-border)':'var(--brand-border)'),borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
+            <div style={{fontSize:9,fontWeight:700,color:owed>0?'var(--warn-ink)':'var(--brand)',textTransform:'uppercase'}}>{owed>0?'You still owe':'You\u2019re covered'}</div>
+            <div style={{fontSize:15,fontWeight:800,color:owed>0?'var(--warn-ink)':'var(--brand)'}}>${owed}</div>
+            <div style={{fontSize:9.5,color:'var(--ink-40)'}}>{owed>0?'due at sign-in':(bar-myRounds<0?('$'+(myRounds-bar)+' over the bar'):'all set')}</div>
+          </div>
+        </div>
       </div>
       {!eligible&&(
         <div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',marginTop:4}}>You're at {myRounds} of {minRounds} qualifying rounds — talk to an admin about playing.</div>
