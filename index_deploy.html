@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-c';
+const APP_BUILD='2026.08.16-f';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4900,6 +4900,79 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 }
 
 // ═══════════════ ATTENDANCE VIEW V2 ════════════════
+function TournamentRsvpCard({ currentUser, isAdmin, read, update }){
+  const [previewTap, setPreviewTap] = useState(false);
+  const [t, setT] = useState(null);
+  const [att, setAtt] = useState(null);
+  useEffect(()=>{
+    const u1=read('tournament', v=>setT(v||null));
+    const u2=read('attendance/rounds', v=>setAtt(v||null));
+    return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
+  },[]);
+  const cfg=t&&t.config;
+  if(!cfg||!currentUser||!currentUser.id)return null;
+  const invitesLive=cfg.inviteOpen===true;
+  const rsvpLocked=cfg.rsvpLocked===true;
+  const adminPreview=!invitesLive&&isAdmin&&cfg.name;   // admins see a badged preview once a tournament is configured
+  if(!invitesLive&&!adminPreview)return null;
+  const rounds=Object.values(att||{});
+  const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
+  const myRounds=counts[String(currentUser.name||'').toLowerCase().trim()]||0;
+  const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
+  const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
+  const owed=Math.max(bar-myRounds,0);
+  const minRounds=cfg.minRounds!=null?cfg.minRounds:10;
+  const eligible=myRounds>=minRounds;
+  const me=t.players&&t.players[currentUser.id];
+  const status=me&&me.in===true?'in':(me&&me.in===false&&me.by==='member'?'declined':null);
+  const dates=(cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'')+(cfg.date2?' & '+new Date(cfg.date2+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'');
+  const rsvp=(val)=>{
+    if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
+    if(rsvpLocked)return;
+    update({['tournament/players/'+currentUser.id+'/in']:val,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now()});
+  };
+  return (
+    <div style={{margin:'0 0 14px',padding:'14px 16px',background:'linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03))',border:adminPreview?'2px dashed rgba(212,175,55,0.6)':'1px solid rgba(212,175,55,0.35)',borderRadius:14}}>
+      {adminPreview&&(
+        <div style={{margin:'-14px -16px 10px',padding:'6px 16px',background:'var(--warn-soft)',borderBottom:'1px solid rgba(212,175,55,0.3)',borderRadius:'14px 14px 0 0',fontSize:10.5,fontWeight:800,color:'var(--warn-ink)',letterSpacing:'0.03em'}}>
+          👁 ADMIN-ONLY PREVIEW · NO MEMBER CAN SEE THIS YET
+        </div>
+      )}
+      {adminPreview&&(
+        <div style={{fontSize:10.5,color:'var(--ink-50)',margin:'-4px 0 10px',lineHeight:1.5}}>
+          This is <b>exactly what members will see</b> once you open invites in the portal. Until then it's invisible to them — and buttons here record nothing.
+        </div>
+      )}
+      {previewTap&&(
+        <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:8}}>Preview only — nothing was recorded.</div>
+      )}
+      <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
+      <div style={{fontSize:12,color:'var(--ink-60)',marginTop:4}}>
+        Your entry: <b style={{color:'var(--ink)'}}>${owed}</b> <span style={{color:'var(--ink-40)'}}>(${bar} bar − your {myRounds} rounds{owed===0?' — covered!':''})</span>
+      </div>
+      {!eligible&&(
+        <div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',marginTop:4}}>You're at {myRounds} of {minRounds} qualifying rounds — talk to an admin about playing.</div>
+      )}
+      {rsvpLocked&&!adminPreview&&(
+        <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:8}}>
+          🔒 RSVPs are locked while we set tee times — need a change? Contact an admin.
+        </div>
+      )}
+      <div style={{display:'flex',gap:8,marginTop:10,opacity:(rsvpLocked&&!adminPreview)?0.45:1,pointerEvents:(rsvpLocked&&!adminPreview)?'none':'auto'}}>
+        <button className="btn btn-sm" onClick={()=>rsvp(true)}
+          style={{flex:1,fontWeight:800,padding:'9px 0',border:'1px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand-soft)':'transparent',color:status==='in'?'var(--brand)':'var(--ink-50)'}}>
+          {status==='in'?"🙌 You're in ✓":"I'm in"}
+        </button>
+        <button className="btn btn-sm" onClick={()=>rsvp(false)}
+          style={{flex:1,fontWeight:700,padding:'9px 0',border:'1px solid',borderColor:status==='declined'?'var(--hairline)':'var(--hairline-soft)',background:status==='declined'?'var(--surface-sunken)':'transparent',color:'var(--ink-40)'}}>
+          {status==='declined'?"Not playing ✗":"Can't make it"}
+        </button>
+      </div>
+      {status==='in'&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>See you out there — admins can see you're in.</div>}
+      {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
+    </div>
+  );
+}
 function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overrideRounds }){
   const archivedView = overrideRounds!=null;
   const [attView, setAttView] = useState('standings');
@@ -9248,6 +9321,7 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
+      {tab === 'home' && <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update}/>}
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}

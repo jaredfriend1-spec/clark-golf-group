@@ -2566,13 +2566,15 @@ function TournamentTab(){
   const PLACE_DEFAULTS={1:[100],2:[60,40],3:[50,30,20]};
   const placeVals=[0,1,2].slice(0,placesCount).map(i=>{const v=cfg["place"+(i+1)];return v!=null?v:PLACE_DEFAULTS[placesCount][i];});
   const placeSum=placeVals.reduce((a,b)=>a+b,0);
-  const ctpOn=cfg.ctpOn===true;
   const skinsOn=cfg.skinsOn===true;
-  const ctp=ctpOn?(cfg.ctpPerDay||0):0;
-  const skins=skinsOn?(cfg.skinsSetAside||0):0;
+  const CTP_HOLES=[3,6,11,14];
+  const ctpAmts=CTP_HOLES.map(h=>Number((cfg.ctpHoles&&cfg.ctpHoles["h"+h])||0));
+  const ctpPerDayTotal=ctpAmts.reduce((a,b)=>a+b,0);
+  const extraPrize=Number(cfg.extraPrize||0);
   const numDays=twoDay?2:1;
-  const setAsides=ctp*numDays+skins;
-  const prizePool=Math.max(fullPot-setAsides,0);
+  const ctpTotal=ctpPerDayTotal*numDays;
+  const available=fullPot+extraPrize;
+  const prizePool=Math.max(available-ctpTotal,0);
   const teams=teamSize>0?Math.floor(inPlayers.length/teamSize):0;
   const pools=payMode==="perday"?Array.from({length:numDays},()=>Math.floor(prizePool/numDays)):[prizePool];
   const poolLabel=i=>payMode==="perday"?(i===0?"Saturday":"Sunday"):"Combined 2-Day";
@@ -2587,6 +2589,10 @@ function TournamentTab(){
       return {label,cat$,places};
     });
   }
+  const teamPayoutTotal=pools.reduce((s,pool)=>s+simPool(pool).reduce((s2,c)=>s2+c.places.reduce((s3,pl)=>s3+pl.team$,0),0),0);
+  const leftover=available-ctpTotal-teamPayoutTotal;
+  const skinsPot=skinsOn?Math.max(leftover,0):0;
+  const overAllocated=leftover<0?-leftover:0;
   function buildEmail(){
     const L=[];
     L.push((cfg.name||"Clark Group Tournament").toUpperCase());
@@ -2596,8 +2602,8 @@ function TournamentTab(){
     L.push("- "+(twoDay?(payMode==="perday"?"Two separate daily events — prize money awarded each day":"Two-day combined event — one set of payouts on 2-day totals"):"One-day event"));
     L.push("- "+(cfg.redrawTeams!==false?"Fresh random A/B/C/D team draw each day":"Same teams both days"));
     L.push("- Teams of "+teamSize+" — payouts split Front 9 ("+catF+"%), Back 9 ("+catB+"%), Overall ("+catO+"%), paying "+placesCount+" place"+(placesCount>1?"s":"")+" each");
-    if(ctp>0)L.push("- Closest to the pin: $"+ctp+" per day");
-    if(skins>0)L.push("- Skins set-aside: $"+skins);
+    if(ctpPerDayTotal>0)L.push("- Closest to the pin"+(numDays>1?" (each day)":"")+": "+CTP_HOLES.map((h,i)=>ctpAmts[i]>0?"Hole "+h+" $"+ctpAmts[i]:null).filter(Boolean).join(", "));
+    if(skinsOn)L.push("- Skins pot: $"+skinsPot+" (whatever remains after team payouts and CTP)");
     L.push("");
     L.push("ENTRY & ELIGIBILITY");
     L.push("- Eligibility: "+minRounds+"+ rounds with the group this season");
@@ -2605,13 +2611,15 @@ function TournamentTab(){
     L.push("- Entry covers "+(twoDay?"both days; play both or either day":"the event"));
     L.push("");
     L.push("THE MONEY (as configured today, "+inPlayers.length+" players in)");
-    L.push("- Full pot when settled: $"+fullPot+(setAsides>0?" — $"+setAsides+" set aside → $"+prizePool+" prize pool":""));
+    L.push("- Entries pot: $"+fullPot+(extraPrize>0?" + $"+extraPrize+" added prize money = $"+available:"")+(ctpTotal>0?" — $"+ctpTotal+" to CTP":""));
     pools.forEach((pool,i)=>{
       L.push("- "+poolLabel(i)+" pool: $"+pool);
       simPool(pool).forEach(c=>{
         L.push("    "+c.label+" ($"+c.cat$+"): "+c.places.map(pl=>pl.pl+" $"+pl.team$+" team ($"+pl.per$+"/player)").join(" · "));
       });
     });
+    L.push("");
+    if(cfg.inviteOpen===true)L.push("SAY YOU\u2019RE IN: open the Clark Golf app \u2192 Week tab \u2192 tap \u201cI\u2019m in\u201d on the tournament card. It shows your exact entry based on your rounds.");
     L.push("");
     L.push("Questions or think your rounds count is off? Reply and we\u2019ll check the record.");
     return L.join("\n");
@@ -2628,19 +2636,49 @@ function TournamentTab(){
       <div className="card">
         <div className="card-hdr"><span className="card-title">⚙ Configuration</span></div>
         <div className="card-body">
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,alignItems:"end",marginBottom:12}}>
-            <div><div className="lbl" style={lblH}>Tournament name</div><input className="inp" value={cfg.name||""} placeholder="Clark Group Tournament" onChange={e=>setCfg("name",e.target.value)}/></div>
-            <div><div className="lbl" style={lblH}>Day 1 date</div><input className="inp" type="date" value={cfg.date1||"2026-10-24"} onChange={e=>setCfg("date1",e.target.value)}/></div>
-            <div><div className="lbl" style={lblH}>Day 2 (blank = 1-day)</div><input className="inp" type="date" value={cfg.date2!=null?cfg.date2:"2026-10-25"} onChange={e=>setCfg("date2",e.target.value)}/></div>
-            <div><div className="lbl" style={lblH}>Min rounds to qualify</div>{numIn(cfg.minRounds!=null?cfg.minRounds:10,e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0))}</div>
-            <div><div className="lbl" style={lblH}>Entry-fee bar $ (blank = auto: {autoBar})</div>{numIn(cfg.feeBar||"",e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);},"auto ("+autoBar+")")}</div>
+          {(()=>{
+            const F={height:42,boxSizing:"border-box",width:"100%",minWidth:0,padding:"0 12px",fontSize:13.5};
+            const CL=t=>(<div className="lbl" style={{height:16,fontSize:9.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t}</div>);
+            return(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+            <div>{CL("Tournament name")}<input className="inp" style={F} value={cfg.name||""} placeholder="Clark Group Tournament" onChange={e=>setCfg("name",e.target.value)}/></div>
+            <div>{CL("Day 1")}<input className="inp" style={F} type="date" value={cfg.date1||"2026-10-24"} onChange={e=>setCfg("date1",e.target.value)}/></div>
+            <div>{CL("Day 2 (blank = 1-day)")}<input className="inp" style={F} type="date" value={cfg.date2!=null?cfg.date2:"2026-10-25"} onChange={e=>setCfg("date2",e.target.value)}/></div>
+            <div>{CL("Min rounds")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
+            <div>{CL("Entry-fee bar $")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder={"auto ("+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
+            <div>{CL("Extra prize $ (optional)")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="0" value={cfg.extraPrize||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("extraPrize",n>0?n:null);}}/></div>
           </div>
+            );})()}
           <div style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:12,color:"rgba(255,255,255,0.55)"}}>
             {[["redrawTeams","Fresh random A/B/C/D teams each day"],["excludeFund","No $1 fund skim on tournament days"],["excludeStats","Tournament stats kept separate from season"]].map(([k,label])=>(
               <label key={k} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
                 <input type="checkbox" checked={cfg[k]!==false} onChange={e=>setCfg(k,e.target.checked)}/>{label}
               </label>
             ))}
+          </div>
+          <div style={{marginTop:14,padding:"11px 13px",background:"rgba(212,175,55,0.05)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:10,display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+            <div onClick={()=>setCfg("inviteOpen",cfg.inviteOpen!==true)} style={{width:36,height:20,borderRadius:20,background:cfg.inviteOpen===true?"#d4af37":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
+              <div style={{position:"absolute",top:2,left:cfg.inviteOpen===true?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
+            </div>
+            <div style={{flex:1,minWidth:200}}>
+              <div style={{fontSize:12.5,fontWeight:700,color:cfg.inviteOpen===true?"#d4af37":"rgba(255,255,255,0.55)"}}>{cfg.inviteOpen===true?"🏆 Invites OPEN — members see the RSVP card in the app":"Invites closed — tournament invisible to members"}</div>
+              <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)"}}>Members tap I\u2019m in / Can\u2019t make it on the Week tab; answers land in the field list below live.</div>
+            </div>
+            <button className="btn btn-g btn-sm" disabled={cfg.inviteOpen!==true} onClick={()=>{
+              fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Tournament invites are open! Open the app and tap I\u2019m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
+              setCfg("invitePushTs",Date.now());
+            }}>📣 Send invite push</button>
+            {cfg.invitePushTs&&<span style={{fontSize:10.5,color:"#4ade80",fontWeight:600}}>Push sent {new Date(cfg.invitePushTs).toLocaleDateString([], {month:"short",day:"numeric"})} ✓</span>}
+            {cfg.inviteOpen===true&&(
+              <div style={{display:"flex",alignItems:"center",gap:8,flexBasis:"100%",marginTop:6}}>
+                <div onClick={()=>setCfg("rsvpLocked",cfg.rsvpLocked!==true)} style={{width:36,height:20,borderRadius:20,background:cfg.rsvpLocked===true?"#f87171":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
+                  <div style={{position:"absolute",top:2,left:cfg.rsvpLocked===true?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
+                </div>
+                <div style={{fontSize:11.5,fontWeight:700,color:cfg.rsvpLocked===true?"#f87171":"rgba(255,255,255,0.5)"}}>
+                  {cfg.rsvpLocked===true?"🔒 RSVPs LOCKED — members can look but not change; your toggles below still work":"RSVPs open — members can opt in and out freely (lock ~a week out for tee-time counts)"}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -2659,7 +2697,7 @@ function TournamentTab(){
             const row={display:"flex",gap:10,alignItems:"flex-start",padding:"12px 0",borderBottom:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"};
             const col=w=>({width:w||84,flexShrink:0});
             const L=t=>(<div className="lbl" style={{height:16,fontSize:9.5,whiteSpace:"nowrap"}}>{t}</div>);
-            const okBadge=ok=>(<div style={col(110)}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:10,fontWeight:800,padding:"4px 9px",borderRadius:8,background:ok?"rgba(16,185,129,0.12)":"rgba(245,158,11,0.12)",color:ok?"#4ade80":"#fbbf24",whiteSpace:"nowrap"}}>{ok?"100% \u2713":"\u2260 100%"}</span></div></div>);
+            const okBadge=(sum,allowUnder)=>(<div style={col(120)}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:10,fontWeight:800,padding:"4px 9px",borderRadius:8,background:sum===100?"rgba(16,185,129,0.12)":(sum<100&&allowUnder?"rgba(96,165,250,0.12)":"rgba(245,158,11,0.12)"),color:sum===100?"#4ade80":(sum<100&&allowUnder?"#60a5fa":"#fbbf24"),whiteSpace:"nowrap"}}>{sum===100?"100% \u2713":(sum<100&&allowUnder?sum+"% \u2192 rest to skins":sum+"% \u2014 over!")}</span></div></div>);
             const chk=(label,checked,onCh)=>(<div style={{flexShrink:0}}>{L("\u00a0")}<label style={{height:38,display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12.5,color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap"}}><input type="checkbox" checked={checked} onChange={onCh}/>{label}</label></div>);
             return(<React.Fragment>
             <div style={row}>
@@ -2672,7 +2710,7 @@ function TournamentTab(){
               <div style={col()}>{L("Front 9 %")}{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
               <div style={col()}>{L("Back 9 %")}{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
               <div style={col()}>{L("Overall %")}{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
-              {okBadge(catSum===100)}
+              {okBadge(catSum,skinsOn)}
             </div>
             <div style={row}>
               <div style={sect}>Places paid</div>
@@ -2684,15 +2722,23 @@ function TournamentTab(){
               {placeVals.map((v,i)=>(
                 <div key={i} style={col()}>{L(["1st %","2nd %","3rd %"][i])}{numIn(v,e=>setCfg("place"+(i+1),parseInt(e.target.value||"0",10)))}</div>
               ))}
-              {okBadge(placeSum===100)}
+              {okBadge(placeSum,false)}
             </div>
             <div style={{...row,borderBottom:"none"}}>
               <div style={sect}>Extras</div>
-              {chk("Closest to the pin",ctpOn,e=>setCfg("ctpOn",e.target.checked))}
-              {ctpOn&&<div style={col()}>{L("$ per day")}{numIn(cfg.ctpPerDay||"",e=>setCfg("ctpPerDay",parseInt(e.target.value.replace(/\D/g,"")||"0",10)||0),"25")}</div>}
-              <div style={{width:14}}/>
+              <div style={{flexShrink:0}}>{L("Closest to the pin \u2014 $ per hole, per day (blank = skip)")}
+                <div style={{display:"flex",gap:6}}>
+                  {CTP_HOLES.map((h,i)=>(
+                    <div key={h} style={{width:64}}>
+                      <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.35)",textAlign:"center",marginBottom:2}}>Hole {h}</div>
+                      {numIn((cfg.ctpHoles&&cfg.ctpHoles["h"+h])||"",e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);wr("tournament/config/ctpHoles/h"+h,n>0?n:null);},"\u2014")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{width:16}}/>
               {chk("Skins",skinsOn,e=>setCfg("skinsOn",e.target.checked))}
-              {skinsOn&&<div style={col()}>{L("$ set-aside")}{numIn(cfg.skinsSetAside||"",e=>setCfg("skinsSetAside",parseInt(e.target.value.replace(/\D/g,"")||"0",10)||0),"50")}</div>}
+              {skinsOn&&<div style={{flexShrink:0}}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:800,padding:"5px 11px",borderRadius:8,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",color:"#60a5fa",whiteSpace:"nowrap"}}>pot = leftover: ${skinsPot}</span></div></div>}
             </div>
             </React.Fragment>);})()}
           {catSum!==100||placeSum!==100?(
@@ -2707,7 +2753,7 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today\u2019s field</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
-            {[["Players in",inPlayers.length],["Teams of "+teamSize,teams+(inPlayers.length%teamSize?" (+"+(inPlayers.length%teamSize)+" extra)":"")],["Full pot","$"+fullPot],["Set-asides","$"+setAsides],["Prize pool","$"+prizePool]].map(([l,v])=>(
+            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Entries pot","$"+fullPot],["Extra prize","$"+extraPrize],["CTP total","$"+ctpTotal],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",minHeight:24}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>
@@ -2732,11 +2778,19 @@ function TournamentTab(){
                     </div>
                   </div>
                 ))}
-                {ctp>0&&<div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>+ CTP ${payMode==="perday"?ctp:ctp*numDays}{payMode==="perday"?" this day":" total"}</div>}
+                {ctpPerDayTotal>0&&<div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>+ CTP ${ctpPerDayTotal} this day</div>}
               </div>
             ))}
           </div>
-          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:10}}>All amounts round down; simulation assumes today\u2019s {inPlayers.length}-player field all settled at the ${bar} bar. Toggle players in/out below and watch it recalc.</div>
+          {overAllocated>0&&(
+            <div style={{marginTop:10,fontSize:12,fontWeight:700,color:"#f87171",background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.25)",borderRadius:10,padding:"9px 13px"}}>
+              🚨 Over-allocated by ${overAllocated} — payouts + CTP exceed the money in. Lower percentages, trim CTP, or add extra prize money.
+            </div>
+          )}
+          {ctpPerDayTotal>0&&(
+            <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",marginTop:8}}>CTP: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?"Hole "+h+" $"+ctpAmts[i]:null).filter(Boolean).join(" · ")} per day{numDays>1?" × 2 days = $"+ctpTotal+" total":""}.</div>
+          )}
+          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:6}}>All amounts round down; simulation assumes today\u2019s {inPlayers.length}-player field all settled at the ${bar} bar. Toggle players in/out below and watch it recalc.</div>
         </div>
       </div>
 
@@ -2753,7 +2807,7 @@ function TournamentTab(){
       </div>
 
       <div className="card">
-        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins</span>
+        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.35)",marginLeft:8}}>{inPlayers.filter(p=>(bar-cnt(p))-paidOf(p)<=0).length} / {inPlayers.length} settled</span></span>
           <div style={{display:"flex",gap:6}}>
             <button className="btn btn-gh btn-sm" onClick={()=>{all.forEach(p=>{if(cnt(p)>=minRounds)setP(p.id,"in",true);});}}>Select all eligible</button>
             <button className="btn btn-gh btn-sm" onClick={()=>{Object.keys(tp).forEach(id=>{if(tp[id]&&tp[id].in)setP(id,"in",false);});}}>Clear all</button>
@@ -2770,10 +2824,18 @@ function TournamentTab(){
                   <div style={{position:"absolute",top:2,left:isIn?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
                 </div>
                 <div style={{flex:1,minWidth:140}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>SELF ✓</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===false&&<span style={{fontSize:9.5,fontWeight:700,color:"#f87171",border:"1px solid rgba(248,113,113,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>DECLINED</span>}</div>
                   <div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>{r} rounds · {eligible?"eligible":"needs "+(minRounds-r)+" more"} · entry ${Math.max(owed,0)}{owed<0?" (refund $"+(-owed)+")":""}</div>
                 </div>
                 {isIn&&(<React.Fragment>
+                  {owed>0&&(
+                    <div style={{flexShrink:0}}>
+                      <div className="lbl" style={{fontSize:9}}>Paid ✓</div>
+                      <div style={{height:31,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <input type="checkbox" checked={net<=0} onChange={e=>setP(p.id,"paid",e.target.checked?owed:null)} style={{width:17,height:17,cursor:"pointer"}}/>
+                      </div>
+                    </div>
+                  )}
                   <div style={{width:110}}>
                     <div className="lbl" style={{fontSize:9}}>Paid in ($)</div>
                     <input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{padding:"5px 8px",fontSize:12}}/>
