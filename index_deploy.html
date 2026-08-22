@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-a';
+const APP_BUILD='2026.08.16-c';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1867,7 +1867,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     }
     const locked = !!(week?.locked?.[d]);
     const waitlist = Object.entries(week?.waitlist||{}).filter(([,s])=>s.day===d);
-    return { day:d, date:dateNum, month:monthStr, tee:{ time:teeData?.time||null, state:teeState }, note, signups:daySignups, teamsPublished, teamMap, locked, waitlist };
+    return { day:d, date:dateNum, month:monthStr, tee:{ time:teeData?.time||null, state:teeState }, cap:(week?.caps&&week.caps[d])||null, note, signups:daySignups, teamsPublished, teamMap, locked, waitlist };
   });
 
   const totalSignups = days.reduce((s,d)=>s+d.signups.length,0);
@@ -2259,7 +2259,7 @@ function DayCardV2({ day, modeInfo, modesList, dayCustom, teeInfo, pubGroups, on
             );})()}
           </div>
           <div className="day-count">
-            <div className={'day-count-num' + (count === 0 ? ' zero' : '')}>{count}</div>
+            <div className={'day-count-num' + (count === 0 ? ' zero' : '')}>{count}{day.cap?<span style={{fontSize:12,fontWeight:600,color:'var(--ink-40)'}}>/{day.cap}</span>:null}</div>
             <div className="day-count-label">In</div>
           </div>
           <span className={'day-chev' + (expanded ? ' open' : '')}>
@@ -6804,7 +6804,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                 ):(
                   <div>
                     {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
-                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},waitlist_promote:{label:'Moved in from waitlist',color:'var(--brand)',icon:'⬆'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
+                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},waitlist_promote:{label:'Moved in from waitlist',color:'var(--brand)',icon:'⬆'},auto_lock:{label:'Day auto-locked (cap reached)',color:'var(--warn-ink)',icon:'🔒'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
                       const cfg=ACFG[e.action]||{label:e.action?.replace(/_/g,' ')||'',color:'var(--ink-50)',icon:'•'};
                       const age=Date.now()-(e.ts||0);
                       const ageStr=age<3600000?Math.round(age/60000)+'m ago':age<86400000?Math.round(age/3600000)+'h ago':Math.round(age/86400000)+'d ago';
@@ -6953,6 +6953,8 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
   const [isLottery, setIsLottery] = useState(false);
   const [teeOpen, setTeeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [capOpen, setCapOpen] = useState(false);
+  const [capDraft, setCapDraft] = useState('');
   const [teeInfoOpen, setTeeInfoOpen] = useState(false);
   const [addTeePick, setAddTeePick] = useState('9:00 AM');
   const [genCount, setGenCount] = useState(4);
@@ -7111,6 +7113,24 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
         </div>
       )}
       </>);})()}
+
+      {(()=>{const capVal=week?.caps&&week.caps[day];return(
+      <Row icon="👥" label="Player cap"
+        value={capVal?String(capVal)+' players':'No cap'}
+        sub={capVal?'Sign-ups auto-lock at '+capVal+' — extras go to the waitlist':'Optional — auto-locks the day when full'}
+        tone={capVal?'var(--ink)':'var(--ink-40)'}
+        action={capOpen?'Close':(capVal?'Change ›':'Set ›')}
+        onAction={()=>{setCapDraft(capVal?String(capVal):'');setCapOpen(o=>!o);}}/>
+      );})()}
+      {capOpen&&(
+        <div style={{padding:'8px 12px',background:'var(--surface-sunken)',borderRadius:10,marginBottom:8,display:'flex',gap:8,alignItems:'center'}}>
+          <input className="form-input" inputMode="numeric" placeholder="e.g. 16" value={capDraft} onChange={e=>setCapDraft(e.target.value.replace(/\D/g,'').slice(0,3))} style={{maxWidth:110}}/>
+          <button className="btn btn-primary btn-sm" onClick={()=>{const n=parseInt(capDraft,10);write('week/caps/'+day,(n&&n>0)?n:null);
+            if(n&&n>0&&!week?.locked?.[day]){const cnt=Object.values(week?.signups||{}).filter(s=>s.day===day).length;if(cnt>=n){write('week/locked/'+day,true);push('activityLog',{action:'auto_lock',day:day,by:'system',name:String(n)+' player cap reached',ts:Date.now()});}}
+            setCapOpen(false);}}>Save</button>
+          {week?.caps&&week.caps[day]&&<button className="btn btn-sm" onClick={()=>{write('week/caps/'+day,null);setCapOpen(false);}}>Remove cap</button>}
+        </div>
+      )}
       <Row icon={dayLocked?'🔒':'🔓'} label="Sign-ups"
         value={(dayLocked?'Locked':'Open')+' · '+suCount+' signed up'}
         tone={dayLocked?'var(--warn-ink)':'var(--ink)'}
@@ -8819,7 +8839,13 @@ function App(){
     if(dupe){window.alert(entry.name+' is already signed up for '+entry.day+'.');return;}
     const rosterMatch=(effectiveRoster||[]).find(p=>norm(p.name)===n);
     if(rosterMatch&&rosterMatch.name!==entry.name)entry={...entry,name:rosterMatch.name};
-    logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry); }
+    logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry);
+    // Player cap: auto-lock the day when it fills; further members flow to the waitlist.
+    const cap=week?.caps?.[entry.day];
+    if(cap&&!week?.locked?.[entry.day]){
+      const cnt=Object.values(week?.signups||{}).filter(s=>s.day===entry.day).length+1;
+      if(cnt>=cap){write('week/locked/'+entry.day,true);logActivity('auto_lock',{day:entry.day,by:'system',name:String(cap)+' player cap reached'});}
+    } }
   function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop',vars:{name:rs.name,day:rs.day}});}} del('week/signups/'+key); }
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
