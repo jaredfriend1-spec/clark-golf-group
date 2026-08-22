@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-g';
+const APP_BUILD='2026.08.16-i';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4900,20 +4900,36 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 }
 
 // ═══════════════ ATTENDANCE VIEW V2 ════════════════
-function TournamentRsvpCard({ currentUser, isAdmin, read, update }){
+function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster }){
+  const [showField, setShowField] = useState(false);
+  const [collapsed, setCollapsed] = useState(()=>{try{return localStorage.getItem('cgTournCard')==='1';}catch(e){return false;}});
+  const toggleCollapsed=()=>{setCollapsed(c=>{const n=!c;try{localStorage.setItem('cgTournCard',n?'1':'');}catch(e){}return n;});};
   const [previewTap, setPreviewTap] = useState(false);
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
-    return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
+    if(collapsed){
+    return (
+      <div onClick={toggleCollapsed} style={{margin:'0 0 14px',padding:'9px 14px',background:'var(--surface)',border:adminPreview?'2px dashed rgba(212,175,55,0.5)':'1px solid rgba(212,175,55,0.35)',borderRadius:12,display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+        <span style={{fontSize:12.5,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Tournament'}</span>
+        {adminPreview&&<span style={{fontSize:9.5,fontWeight:800,color:'var(--warn-ink)'}}>ADMIN PREVIEW</span>}
+        {!adminPreview&&status==='in'&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--brand)'}}>You're in ✓</span>}
+        {!adminPreview&&status==='declined'&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-40)'}}>Not playing</span>}
+        {!adminPreview&&!status&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--warn-ink)'}}>RSVP needed</span>}
+        <span style={{flex:1}}/>
+        <span style={{fontSize:11,color:'var(--ink-40)'}}>Show ▼</span>
+      </div>
+    );
+  }
+  return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
   },[]);
   const cfg=t&&t.config;
   if(!cfg||!currentUser||!currentUser.id)return null;
   const invitesLive=cfg.inviteOpen===true;
   const rsvpLocked=cfg.rsvpLocked===true;
-  const adminPreview=!invitesLive&&isAdmin&&cfg.name;   // admins see a badged preview once a tournament is configured
+  const adminPreview=!invitesLive&&isAdmin&&!!(cfg.name||cfg.date1||cfg.feeBar);   // any configured tournament shows the admin preview
   if(!invitesLive&&!adminPreview)return null;
   const rounds=Object.values(att||{});
   const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
@@ -4946,7 +4962,10 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update }){
       {previewTap&&(
         <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:8}}>Preview only — nothing was recorded.</div>
       )}
-      <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
+      <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
+        <div style={{fontSize:14,fontWeight:800,color:'var(--ink)',flex:1}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
+        <button onClick={toggleCollapsed} style={{background:'none',border:'none',cursor:'pointer',fontSize:11,fontWeight:700,color:'var(--ink-40)',fontFamily:'inherit',padding:'2px 4px',flexShrink:0}}>Hide ▲</button>
+      </div>
       <div style={{fontSize:11.5,color:'var(--ink-50)',marginTop:4}}>
         {cfg.date2?'Two separate one-day events — play both days or either one.':'One-day event.'}{cfg.redrawTeams!==false?' New random teams drawn each day.':''}{cfg.teamSize?' Teams of '+cfg.teamSize+'.':''}
       </div>
@@ -4993,6 +5012,49 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update }){
       </div>
       {status==='in'&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>See you out there — admins can see you're in.</div>}
       {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
+      {isAdmin&&invitesLive&&(()=>{
+        const entries=Object.entries(t.players||{});
+        const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:('#'+id);};
+        const inL=entries.filter(([,v])=>v&&v.in===true).map(([id,v])=>{
+          const nm=nameOf(id);const r=counts[String(nm).toLowerCase().trim()]||0;
+          const owedP=Math.max(bar-r,0);const paid=Number(v.paid)||0;
+          return {id,nm,r,owedP,paid,settled:paid>=owedP};
+        }).sort((a,b)=>a.nm.localeCompare(b.nm));
+        const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
+        const outstanding=inL.reduce((s,p)=>s+Math.max(p.owedP-p.paid,0),0);
+        const settledN=inL.filter(p=>p.settled).length;
+        return (
+          <div style={{marginTop:12,borderTop:'1px dashed var(--hairline)',paddingTop:9}}>
+            <div onClick={()=>setShowField(s=>!s)} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+              <span style={{fontSize:11,fontWeight:800,color:'var(--ink-60)'}}>👥 Field & pay-ins <span style={{fontWeight:600,color:'var(--ink-40)'}}>(admins)</span></span>
+              <span style={{fontSize:10.5,color:'var(--ink-40)',flex:1}}>{inL.length} in · {settledN} settled · ${outstanding} outstanding{declinedN?(' · '+declinedN+' declined'):''}</span>
+              <span style={{fontSize:11,color:'var(--ink-40)'}}>{showField?'▲':'▼'}</span>
+            </div>
+            {showField&&(
+              <div style={{marginTop:8}}>
+                {inL.length===0&&<div style={{fontSize:11,color:'var(--ink-40)'}}>Nobody has opted in yet.</div>}
+                {inL.map(p=>(
+                  <div key={p.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <span style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>{p.nm}</span>
+                      <span style={{fontSize:10,color:'var(--ink-40)',marginLeft:6}}>{p.r} rds · owes ${Math.max(p.owedP-p.paid,0)}</span>
+                    </div>
+                    {p.owedP>0?(
+                      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:10.5,fontWeight:700,color:p.settled?'var(--brand)':'var(--ink-40)',cursor:'pointer'}}>
+                        <input type="checkbox" checked={p.settled} onChange={e=>update({['tournament/players/'+p.id+'/paid']:e.target.checked?p.owedP:null})} style={{width:15,height:15}}/>
+                        {p.settled?'Paid ✓':'Paid?'}
+                      </label>
+                    ):(
+                      <span style={{fontSize:10.5,fontWeight:700,color:'var(--brand)'}}>covered ✓</span>
+                    )}
+                  </div>
+                ))}
+                <div style={{fontSize:10,color:'var(--ink-40)',marginTop:7}}>Full control — exceptions, amounts, pot math — lives in the portal's Tournament tab.</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -9344,7 +9406,7 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
-      {tab === 'home' && <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update}/>}
+      {tab === 'home' && <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/>}
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
