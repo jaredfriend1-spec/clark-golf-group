@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-n';
+const APP_BUILD='2026.08.16-o';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -3496,6 +3496,8 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
   const [pickingTeam, setPickingTeam] = useState(null);
   const [pickQ, setPickQ] = useState('');
   const [blindModal, setBlindModal] = useState(null);
+  const [dropTeamModal, setDropTeamModal] = useState(null);
+  const [dropTeamTyped, setDropTeamTyped] = useState('');
   const [showBalance, setShowBalance] = useState(false);
   const [buildInfo, setBuildInfo] = useState(null);  // {teams meta + match pairs, day}, set by gen()
   const [showTeamInfo, setShowTeamInfo] = useState(false);
@@ -4251,6 +4253,37 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
           </div>
         )}
 
+        {dropTeamModal&&ReactDOM.createPortal((()=>{
+          const names=safeArray(dropTeamModal.team.players).map(p=>p.name).concat(dropTeamModal.team.blindDraw?[dropTeamModal.team.blindDraw.name]:[]);
+          const label=(indMode?'Group ':'Team ')+(dropTeamModal.ti+1);
+          return (
+            <div onClick={()=>setDropTeamModal(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 14px'}}>
+              <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:16,padding:'18px 18px 14px',maxWidth:440,width:'100%',boxShadow:'0 20px 50px rgba(0,0,0,0.3)'}}>
+                <div style={{fontSize:14,fontWeight:800,color:'var(--money-neg)'}}>✕ Drop {label} from {activeDay}?</div>
+                <div style={{fontSize:12,color:'var(--ink-60)',margin:'8px 0',lineHeight:1.6}}>
+                  <b>{names.join(', ')}</b> will be removed from {activeDay}'s sign-ups. Every other {indMode?'group':'team'} keeps its exact players — they just renumber, and tee times follow position. Admins get one push; no per-player drop alerts fire.
+                </div>
+                <input className="form-input" placeholder='Type DROP to confirm' value={dropTeamTyped} onChange={e=>setDropTeamTyped(e.target.value)} style={{marginBottom:10}}/>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="btn btn-sm" style={{flex:1}} onClick={()=>setDropTeamModal(null)}>Cancel</button>
+                  <button className="btn btn-sm" disabled={dropTeamTyped.trim().toUpperCase()!=='DROP'} onClick={()=>{
+                    const u=currentDisplay.filter((_,i)=>i!==dropTeamModal.ti).map(t=>({...t,players:[...safeArray(t.players).map(p=>({...p}))]}));
+                    reSlot(u);
+                    saveTeams(activeDay,u);
+                    const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+                    Object.entries(week?.signups||{}).forEach(([k,s])=>{
+                      if(s.day===activeDay&&names.some(n=>norm(n)===norm(s.name)))del('week/signups/'+k);
+                    });
+                    push('activityLog',{action:'team_drop',day:activeDay,name:label+': '+names.join(', '),by:currentUser?currentUser.name:'admin',ts:Date.now()});
+                    sendPushNotify({audience:'admins',title:'✕ '+label+' dropped',body:label+' ('+names.join(', ')+') removed from '+activeDay+'. Other '+(indMode?'groups':'teams')+' unchanged.',url:'/',tag:'drop',vars:{name:label,day:activeDay}});
+                    setDropTeamModal(null);
+                  }} 
+                  {...(dropTeamTyped.trim().toUpperCase()==='DROP'?{style:{flex:1,background:'var(--money-neg)',color:'#fff',border:'none',fontWeight:800}}:{style:{flex:1,opacity:0.5}})}>Drop {label}</button>
+                </div>
+              </div>
+            </div>
+          );
+        })(),document.body)}
         {/* ── TEAM CARDS ── */}
         {currentDisplay.length === 0 && !isAdmin && (
           <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-50)'}}>
@@ -4270,6 +4303,9 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
             <div key={team.id||ti} className="day-card" style={{marginBottom:12}}>
               {/* Team header */}
               <div style={{background:indMode?'#122B45':'#0A1614',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                {isAdmin&&published&&(
+                  <button onClick={()=>{setDropTeamTyped('');setDropTeamModal({ti,team});}} style={{order:99,marginLeft:8,padding:'4px 9px',borderRadius:6,border:'1.5px solid rgba(248,113,113,0.5)',background:'transparent',color:'#f87171',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>✕ Drop</button>
+                )}
                 <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
                   {isAdmin && !published && (
                     <div style={{display:'flex',alignItems:'center',gap:5,flexShrink:0}}>
@@ -7045,7 +7081,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
                 ):(
                   <div>
                     {activityLog.filter(e=>!['login','self_register','portal_login'].includes(e.action)).slice(0,100).map((e,i,arr)=>{
-                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},waitlist_promote:{label:'Moved in from waitlist',color:'var(--brand)',icon:'⬆'},auto_lock:{label:'Day auto-locked (cap reached)',color:'var(--warn-ink)',icon:'🔒'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
+                      const ACFG={signup:{label:'Signed up',color:'var(--brand)',icon:'👤'},remove_signup:{label:'Removed',color:'var(--money-neg)',icon:'✕'},teams_published:{label:'Teams published',color:'var(--info)',icon:'✓'},day_setup:{label:'Day activated',color:'#7c3aed',icon:'📅'},week_started:{label:'New week started',color:'var(--ink)',icon:'🗓'},roster_add:{label:'Roster add',color:'var(--brand)',icon:'➕'},roster_remove:{label:'Roster remove',color:'var(--money-neg)',icon:'−'},match_request:{label:'Match play',color:'var(--info)',icon:'⚡'},waitlist_join:{label:'Joined waitlist',color:'var(--highlight)',icon:'⏳'},waitlist_remove:{label:'Left waitlist',color:'var(--ink-40)',icon:'↩'},waitlist_promote:{label:'Moved in from waitlist',color:'var(--brand)',icon:'⬆'},auto_lock:{label:'Day auto-locked (cap reached)',color:'var(--warn-ink)',icon:'🔒'},team_drop:{label:'Whole team dropped',color:'var(--money-neg)',icon:'✕'},profile_edit:{label:'Profile updated',color:'#8b5cf6',icon:'👤'}};
                       const cfg=ACFG[e.action]||{label:e.action?.replace(/_/g,' ')||'',color:'var(--ink-50)',icon:'•'};
                       const age=Date.now()-(e.ts||0);
                       const ageStr=age<3600000?Math.round(age/60000)+'m ago':age<86400000?Math.round(age/3600000)+'h ago':Math.round(age/86400000)+'d ago';
