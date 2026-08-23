@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-o';
+const APP_BUILD='2026.08.16-p';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4939,6 +4939,9 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 function TournamentScoringPreview({ read, fullRoster }){
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
+  const [demoScores, setDemoScores] = useState(null);   // [{f,b}] per team
+  const [demoSkins, setDemoSkins] = useState(null);     // [int] per team
+  const [ctpPicks, setCtpPicks] = useState({});         // {h3:'Name'}
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
@@ -4951,60 +4954,93 @@ function TournamentScoringPreview({ read, fullRoster }){
   const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
   const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:('Player '+id);};
   let field=Object.entries((t&&t.players)||{}).filter(([,v])=>v&&v.in===true).map(([id])=>nameOf(id));
-  if(field.length<8)field=(fullRoster||[]).slice(0,12).map(p=>p.name);
+  const usingLive=field.length>=8;
+  if(!usingLive)field=(fullRoster||[]).slice(0,12).map(p=>p.name);
   const teamSize=cfg.teamSize||4;
   const nTeams=Math.max(2,Math.floor(field.length/teamSize));
-  const teams=Array.from({length:nTeams},(_,i)=>({label:'Team '+String.fromCharCode(65+i),players:field.slice(i*teamSize,(i+1)*teamSize)}));
-  const demo=[[34,36],[36,33],[35,35],[33,38],[37,34],[36,36],[35,37]];
-  const scored=teams.map((tm,i)=>({...tm,f:demo[i%demo.length][0],b:demo[i%demo.length][1]})).map(tm=>({...tm,tot:tm.f+tm.b}));
+  const teams=Array.from({length:nTeams},(_,i)=>({label:(cfg.redrawTeams!==false?'Team ':'Team ')+String.fromCharCode(65+i),players:field.slice(i*teamSize,(i+1)*teamSize)}));
+  const seed=[[34,36],[36,33],[35,35],[33,38],[37,34],[36,36],[35,37],[34,35]];
+  const scores=demoScores||teams.map((_,i)=>({f:seed[i%seed.length][0],b:seed[i%seed.length][1]}));
+  const skins=demoSkins||teams.map(()=>0);
+  const bump=(i,key,d)=>{const u=scores.map(s=>({...s}));u[i][key]=Math.max(20,Math.min(60,(u[i][key]||0)+d));setDemoScores(u);};
+  const bumpSkin=(i,d)=>{const u=[...skins];u[i]=Math.max(0,(u[i]||0)+d);setDemoSkins(u);};
   const CTP_HOLES=[3,6,11,14];
   const ctpAmts=CTP_HOLES.map(h=>Number((cfg.ctpHoles&&cfg.ctpHoles['h'+h])||0));
   const inN=field.length;
   const numDays=cfg.date2?2:1;
   const ctpTotal=ctpAmts.reduce((a,b)=>a+b,0)*numDays;
   const available=inN*bar+Number(cfg.extraPrize||0);
-  const pool=Math.floor(Math.max(available-ctpTotal,0)/((cfg.payMode||'perday')==='perday'?numDays:1));
+  const teamPool=Math.floor(Math.max(available-ctpTotal,0)/(((cfg.payMode||'perday')==='perday')?numDays:1));
   const catF=cfg.catFront!=null?cfg.catFront:25, catB=cfg.catBack!=null?cfg.catBack:25, catO=cfg.catOverall!=null?cfg.catOverall:50;
-  const rank=(key)=>scored.slice().sort((a,b)=>a[key]-b[key]);
-  const sect={fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',margin:'12px 0 6px'};
+  const rows=teams.map((tm,i)=>({...tm,f:scores[i].f,b:scores[i].b,tot:scores[i].f+scores[i].b,sk:skins[i]||0}));
+  const lead=key=>rows.slice().sort((x,y)=>x[key]-y[key])[0];
+  const skinCount=rows.reduce((s,r)=>s+r.sk,0);
+  const catTotal=Math.floor(teamPool*catF/100)+Math.floor(teamPool*catB/100)+Math.floor(teamPool*catO/100);
+  const skinsPot=cfg.skinsOn===true?Math.max(teamPool-catTotal,0)+ (available-ctpTotal- teamPool*(((cfg.payMode||'perday')==='perday')?numDays:1) >0?0:0):0;
+  const perSkin=skinCount>0&&skinsPot>0?Math.floor(skinsPot/skinCount):0;
+  const stBtn={width:26,height:26,borderRadius:7,border:'1.5px solid var(--hairline)',background:'var(--surface)',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit',color:'var(--ink)',lineHeight:1};
+  const sect={fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',margin:'13px 0 6px'};
   return (
     <div>
       <div style={{fontSize:10.5,fontWeight:800,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginBottom:10}}>
-        🧮 DESIGN PREVIEW — this is what tournament-day scoring will look like. Nothing here is recorded; the working version ships in the October build.
+        🧮 DESIGN PREVIEW — fully tappable demo, records nothing. The working version ships in the October build.
       </div>
       <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>🏆 Tournament Scoring <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'}):'Day 1'}</span></div>
-      <div style={sect}>Random draw — teams of {teamSize} {field===((fullRoster||[]).slice(0,12).map(p=>p.name))?'':'(your live field)'}</div>
-      {scored.map(tm=>(
-        <div key={tm.label} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
-          <span style={{fontSize:11,fontWeight:800,color:'var(--brand)',width:56}}>{tm.label}</span>
-          <span style={{flex:1,fontSize:11,color:'var(--ink-60)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tm.players.join(', ')}</span>
-          <span style={{fontSize:11,color:'var(--ink-40)'}}>F <b style={{color:'var(--ink)'}}>{tm.f}</b></span>
-          <span style={{fontSize:11,color:'var(--ink-40)'}}>B <b style={{color:'var(--ink)'}}>{tm.b}</b></span>
-          <span style={{fontSize:11.5,fontWeight:800,color:'var(--ink)'}}>{tm.tot}</span>
+      <div style={sect}>{usingLive?'Your live field — sample draw':'Sample field'} · teams of {teamSize} · tap +/− to play with scores</div>
+      {rows.map((tm,i)=>(
+        <div key={tm.label} style={{padding:'8px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:11.5,fontWeight:800,color:'var(--brand)',width:58,flexShrink:0}}>{tm.label}</span>
+            <span style={{flex:1,fontSize:10.5,color:'var(--ink-50)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tm.players.join(', ')}</span>
+            <span style={{fontSize:13.5,fontWeight:800,color:'var(--ink)',width:34,textAlign:'right'}}>{tm.tot}</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginTop:6,flexWrap:'wrap'}}>
+            {[['F',tm.f,'f'],['B',tm.b,'b']].map(([lbl,val,key])=>(
+              <div key={lbl} style={{display:'flex',alignItems:'center',gap:5}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--ink-40)'}}>{lbl}</span>
+                <button style={stBtn} onClick={()=>bump(i,key,-1)}>−</button>
+                <span style={{fontSize:13,fontWeight:800,color:'var(--ink)',width:24,textAlign:'center'}}>{val}</span>
+                <button style={stBtn} onClick={()=>bump(i,key,1)}>+</button>
+              </div>
+            ))}
+            {cfg.skinsOn===true&&(
+              <div style={{display:'flex',alignItems:'center',gap:5,marginLeft:'auto'}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--ink-40)'}}>SKINS</span>
+                <button style={stBtn} onClick={()=>bumpSkin(i,-1)}>−</button>
+                <span style={{fontSize:13,fontWeight:800,color:'var(--brand)',width:20,textAlign:'center'}}>{tm.sk}</span>
+                <button style={stBtn} onClick={()=>bumpSkin(i,1)}>+</button>
+              </div>
+            )}
+          </div>
         </div>
       ))}
-      <div style={sect}>Team results this day — ${pool} pool ({catF}/{catB}/{catO}%)</div>
+      <div style={sect}>Running results — ${teamPool} pool this day</div>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        {[['Front 9',rank('f')[0],Math.floor(pool*catF/100)],['Back 9',rank('b')[0],Math.floor(pool*catB/100)],['Overall',rank('tot')[0],Math.floor(pool*catO/100)]].map(([label,win,cat$])=>(
-          <div key={label} style={{flex:1,minWidth:120,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'8px 10px'}}>
+        {[['Front 9',lead('f'),Math.floor(teamPool*catF/100),r=>r.f],['Back 9',lead('b'),Math.floor(teamPool*catB/100),r=>r.b],['Overall',lead('tot'),Math.floor(teamPool*catO/100),r=>r.tot]].map(([label,win,cat$,get])=>(
+          <div key={label} style={{flex:1,minWidth:118,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'8px 10px'}}>
             <div style={{fontSize:9.5,fontWeight:800,color:'var(--brand)',textTransform:'uppercase'}}>{label} · ${cat$}</div>
-            <div style={{fontSize:12,fontWeight:700,color:'var(--ink)'}}>{win.label} <span style={{fontWeight:600,color:'var(--ink-50)'}}>({label==='Front 9'?win.f:label==='Back 9'?win.b:win.tot})</span></div>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--ink)'}}>{win.label} <span style={{fontWeight:600,color:'var(--ink-50)'}}>({get(win)})</span></div>
           </div>
         ))}
       </div>
+      {cfg.skinsOn===true&&(
+        <div style={{marginTop:8,fontSize:11.5,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:10,padding:'8px 11px'}}>
+          Team skins pot <b style={{color:'var(--ink)'}}>${skinsPot}</b>{skinCount>0?<span> ÷ <b style={{color:'var(--ink)'}}>{skinCount}</b> skins = <b style={{color:'var(--brand)'}}>${perSkin} each</b></span>:<span style={{color:'var(--ink-40)'}} > — tap team SKINS +/− above to see the split</span>}
+        </div>
+      )}
       {ctpAmts.some(a=>a>0)&&(<React.Fragment>
-        <div style={sect}>Closest to the pin — individual winners</div>
+        <div style={sect}>Closest to the pin — individual winners (name picker)</div>
         {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?(
           <div key={h} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
-            <span style={{fontSize:11.5,fontWeight:700,color:'var(--ink)',width:64}}>Hole {h}</span>
-            <span style={{fontSize:11,fontWeight:700,color:'var(--money-pos,#166534)',width:40}}>${ctpAmts[i]}</span>
-            <span style={{flex:1,fontSize:11,color:'var(--ink-40)',fontStyle:'italic'}}>tap to pick the winner (October build)</span>
+            <span style={{fontSize:11.5,fontWeight:700,color:'var(--ink)',width:58,flexShrink:0}}>Hole {h}</span>
+            <span style={{fontSize:11,fontWeight:800,color:'var(--brand)',width:36}}>${ctpAmts[i]}</span>
+            <select className="form-input" value={ctpPicks['h'+h]||''} onChange={e=>setCtpPicks({...ctpPicks,['h'+h]:e.target.value})} style={{flex:1,padding:'6px 9px',fontSize:12}}>
+              <option value=''>— pick the winner —</option>
+              {field.map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+            {ctpPicks['h'+h]&&<span style={{fontSize:11,fontWeight:700,color:'var(--brand)'}}>✓</span>}
           </div>
         ):null)}
-      </React.Fragment>)}
-      {cfg.skinsOn===true&&(<React.Fragment>
-        <div style={sect}>Team skins</div>
-        <div style={{fontSize:11.5,color:'var(--ink-60)',lineHeight:1.6}}>Skins pot = the leftover after payouts and CTP. At scoring time you'll mark each skin won; the pot divides by the number of skins. <span style={{fontStyle:'italic',color:'var(--ink-40)'}}>(October build)</span></div>
       </React.Fragment>)}
     </div>
   );
