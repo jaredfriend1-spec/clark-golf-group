@@ -2651,7 +2651,7 @@ function TournamentTab(){
             <div>{CL("Extra prize $ (optional)")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="0" value={cfg.extraPrize||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("extraPrize",n>0?n:null);}}/></div>
           </div>
             );})()}
-          <div style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:12,color:"rgba(255,255,255,0.55)"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"8px 18px",fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:4}}>
             {[["redrawTeams","Fresh random A/B/C/D teams each day"],["excludeFund","No $1 fund skim on tournament days"],["excludeStats","Tournament stats kept separate from season"]].map(([k,label])=>(
               <label key={k} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
                 <input type="checkbox" checked={cfg[k]!==false} onChange={e=>setCfg(k,e.target.checked)}/>{label}
@@ -2665,11 +2665,13 @@ function TournamentTab(){
             {cfg.inviteOpen!==true?(
               <div>
                 <div style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>🔒 NOT LIVE — members see nothing</div>
-                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",margin:"4px 0 10px",lineHeight:1.6}}>Members see nothing until you press Go Live. Use the app-tab stager below to preview the tournament tab in the app.</div>
+                <div style={{margin:"12px 0 0",padding:"10px 12px",background:"rgba(255,255,255,0.03)",borderRadius:10,border:"1px solid rgba(255,255,255,0.07)"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:"#60a5fa",textTransform:"uppercase",letterSpacing:"0.05em"}}>Step 1 · Preview safely (records nothing)</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",margin:"3px 0 2px"}}>Choose who gets the Tourney tab in the app. It wears a PREVIEW badge and records nothing until you go live.</div>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em"}}>📱 App tournament tab:</span>
                   {[["off","Hidden"],["only","One person"],["admins","Admins only"],["all","Everyone"]].map(([v,label])=>(
-                    <button key={v} className="btn btn-sm" onClick={()=>setCfg("appTab",v)} style={{fontWeight:700,fontSize:11,padding:"5px 12px",border:"1px solid",borderColor:(cfg.appTab||"off")===v?"#10b981":"rgba(255,255,255,0.12)",background:(cfg.appTab||"off")===v?"rgba(16,185,129,0.12)":"transparent",color:(cfg.appTab||"off")===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
+                    <button key={v} className="btn btn-sm" onClick={()=>setCfg("appTab",v)} style={{fontWeight:700,fontSize:11,height:32,padding:"0 13px",border:"1px solid",borderColor:(cfg.appTab||"off")===v?"#10b981":"rgba(255,255,255,0.12)",background:(cfg.appTab||"off")===v?"rgba(16,185,129,0.12)":"transparent",color:(cfg.appTab||"off")===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
                   ))}
                   {(cfg.appTab||"off")==="only"&&(
                     <select className="inp" style={{height:32,fontSize:12,padding:"0 10px",width:"auto"}} value={cfg.appTabOnlyId||""} onChange={e=>setCfg("appTabOnlyId",e.target.value||null)}>
@@ -2679,6 +2681,9 @@ function TournamentTab(){
                   )}
                   <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",flexBasis:"100%"}}>Stage it: One person (you) → Admins only → Everyone at launch. Independent of the GO LIVE switch.</span>
                 </div>
+                </div>
+                <div style={{margin:"10px 0 0",padding:"10px 12px",background:"rgba(255,255,255,0.03)",borderRadius:10,border:"1px solid rgba(255,255,255,0.07)"}}>
+                <div style={{fontSize:11,fontWeight:800,color:"#4ade80",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Step 2 · The real launch</div>
                 {!goLiveOpen?(
                   <button className="btn btn-g" style={{fontWeight:800,padding:"10px 22px"}} onClick={()=>setGoLiveOpen(true)}>🚀 GO LIVE</button>
                 ):(
@@ -2700,6 +2705,7 @@ function TournamentTab(){
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             ):(
               <div>
@@ -2721,7 +2727,7 @@ function TournamentTab(){
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em"}}>📱 App tournament tab:</span>
                   {[["off","Hidden"],["only","One person"],["admins","Admins only"],["all","Everyone"]].map(([v,label])=>(
-                    <button key={v} className="btn btn-sm" onClick={()=>setCfg("appTab",v)} style={{fontWeight:700,fontSize:11,padding:"5px 12px",border:"1px solid",borderColor:(cfg.appTab||"off")===v?"#10b981":"rgba(255,255,255,0.12)",background:(cfg.appTab||"off")===v?"rgba(16,185,129,0.12)":"transparent",color:(cfg.appTab||"off")===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
+                    <button key={v} className="btn btn-sm" onClick={()=>setCfg("appTab",v)} style={{fontWeight:700,fontSize:11,height:32,padding:"0 13px",border:"1px solid",borderColor:(cfg.appTab||"off")===v?"#10b981":"rgba(255,255,255,0.12)",background:(cfg.appTab||"off")===v?"rgba(16,185,129,0.12)":"transparent",color:(cfg.appTab||"off")===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
                   ))}
                   {(cfg.appTab||"off")==="only"&&(
                     <select className="inp" style={{height:32,fontSize:12,padding:"0 10px",width:"auto"}} value={cfg.appTabOnlyId||""} onChange={e=>setCfg("appTabOnlyId",e.target.value||null)}>
