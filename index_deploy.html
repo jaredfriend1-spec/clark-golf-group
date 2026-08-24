@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-a';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-c';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4974,10 +4974,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const sc=(t&&t.scores&&t.scores[day])||{};
   const ctpPicks=(t&&t.ctp&&t.ctp[day])||{};
   const fmtRel=v=>v==null?'—':(v===0?'E':(v>0?'+'+v:String(v)));
-  const setPath=(p,v)=>update({['tournament/'+p]:v});
+  const wsafe=(obj)=>{try{const r=update(obj);if(r&&r.catch)r.catch(e=>alert('Save failed — check connection: '+((e&&e.message)||e)));}catch(e){alert('Save failed: '+((e&&e.message)||e));}};
+  const setPath=(p,v)=>wsafe({['tournament/'+p]:v});
   const card={background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:14,padding:'13px 15px',marginBottom:12};
   const hdr={fontSize:11.5,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:7};
-  const stBtn={width:30,height:30,borderRadius:8,border:'1.5px solid var(--hairline)',background:'var(--surface)',fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'inherit',color:'var(--ink)',lineHeight:1};
+  const stBtn={width:36,height:36,borderRadius:9,border:'1.5px solid var(--hairline)',background:'var(--surface)',fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'inherit',color:'var(--ink)',lineHeight:1};
   const pill=(id,label)=>(
     <button key={id} onClick={()=>setSub(id)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'1px solid',borderColor:sub===id?'var(--brand)':'var(--hairline)',background:sub===id?'var(--brand-soft)':'transparent',color:sub===id?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
   );
@@ -5009,7 +5010,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   return (
     <div>
       <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
-        {pill('board','🏆 Board')}{pill('teams','👥 Teams')}{pill('scores','⛳ Scores')}{isAdmin&&pill('field','💵 Field')}{isAdmin&&pill('config','⚙')}
+        {isAdmin&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('teams','👥 Teams')}{pill('scores','⛳ Scores')}{isAdmin&&pill('field','💵 Field')}
       </div>
 
       {sub==='board'&&(
@@ -5220,7 +5221,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         const outstanding=inRows.reduce((s,x)=>s+x.net,0);
         const chip=(txt,color,border)=>(<span style={{fontSize:9.5,fontWeight:800,color,border:'1px solid '+border,borderRadius:6,padding:'1px 6px',marginLeft:5,whiteSpace:'nowrap'}}>{txt}</span>);
         const toggle=(row)=>{
-          update({['tournament/players/'+row.id+'/in']:!row.isIn,['tournament/players/'+row.id+'/by']:'admin',['tournament/players/'+row.id+'/ts']:Date.now()});
+          wsafe({['tournament/players/'+row.id+'/in']:!row.isIn,['tournament/players/'+row.id+'/by']:'admin',['tournament/players/'+row.id+'/ts']:Date.now()});
         };
         return (
           <div>
@@ -5229,30 +5230,33 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Tap Paid ✓ when the cash lands.</div>
               {rows.map(row=>(
                 <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&row.rec&&row.rec.in===false)?0.6:1}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <span style={{fontSize:13.5,fontWeight:600,color:'var(--ink)'}}>{row.name}</span>
+                      <span style={{fontSize:14,fontWeight:600,color:'var(--ink)'}}>{row.name}</span>
                       {row.isIn&&!row.eligible&&chip('EXCEPTION','var(--warn-ink)','var(--warn-border)')}
                       {row.rec&&row.rec.by==='member'&&row.rec.in===true&&chip('SELF ✓','var(--brand)','var(--brand-border)')}
                       {row.rec&&row.rec.by==='member'&&row.rec.in===false&&chip('DECLINED','var(--money-neg)','var(--money-neg)')}
-                      <div style={{fontSize:11,color:'var(--ink-40)',marginTop:1}}>{row.r} rounds{row.isIn?(row.owed>0?(' · owes $'+row.net+(row.paid>0?' ($'+row.paid+' in)':'')):' · covered ✓'):''}</div>
+                      <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:2}}>{row.r} rounds{row.isIn?(row.owed>0?(' · owes $'+row.net+(row.paid>0?' ($'+row.paid+' in)':'')):' · covered ✓'):''}</div>
                     </div>
-                    {row.isIn&&(
-                      <div style={{display:'flex',gap:5,flexShrink:0,alignItems:'center'}}>
-                        <input className="form-input" inputMode="decimal" title="Handicap" placeholder="hcp" value={row.rec&&row.rec.handicap!=null?row.rec.handicap:''} onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,'');update({['tournament/players/'+row.id+'/handicap']:v===''?null:parseFloat(v)});}} style={{width:52,height:32,textAlign:'center',fontSize:12.5,fontWeight:700,padding:0}}/>
-                        <select className="form-input" title="Tees" value={(row.rec&&row.rec.tee)||'Whites'} onChange={e=>update({['tournament/players/'+row.id+'/tee']:e.target.value})} style={{width:'auto',height:32,fontSize:11.5,padding:'0 5px'}}>
-                          {['Whites','Blues','Golds','Reds'].map(x=><option key={x} value={x}>{x}</option>)}
-                        </select>
-                      </div>
-                    )}
-                    {row.isIn&&row.owed>0&&(
-                      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,fontWeight:700,color:row.net<=0?'var(--brand)':'var(--ink-40)',cursor:'pointer',flexShrink:0}}>
-                        <input type="checkbox" checked={row.net<=0} onChange={e=>update({['tournament/players/'+row.id+'/paid']:e.target.checked?row.owed:null})} style={{width:17,height:17}}/>
-                        Paid
-                      </label>
-                    )}
-                    <button onClick={()=>toggle(row)} style={{flexShrink:0,width:58,height:32,borderRadius:9,border:'1.5px solid',borderColor:row.isIn?'var(--brand)':'var(--hairline)',background:row.isIn?'var(--brand-soft)':'transparent',color:row.isIn?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{row.isIn?'In ✓':'Out'}</button>
+                    <button onClick={()=>toggle(row)} style={{flexShrink:0,width:64,height:38,borderRadius:10,border:'1.5px solid',borderColor:row.isIn?'var(--brand)':'var(--hairline)',background:row.isIn?'var(--brand-soft)':'transparent',color:row.isIn?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{row.isIn?'In ✓':'Out'}</button>
                   </div>
+                  {row.isIn&&(
+                    <div style={{display:'flex',gap:7,alignItems:'center',marginTop:7,flexWrap:'wrap'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:5}}>
+                        <span style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Hcp</span>
+                        <input className="form-input" inputMode="decimal" value={row.rec&&row.rec.handicap!=null?row.rec.handicap:''} placeholder="—" onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,'');wsafe({['tournament/players/'+row.id+'/handicap']:v===''?null:parseFloat(v)});}} style={{width:58,height:36,textAlign:'center',fontSize:13.5,fontWeight:700,padding:0}}/>
+                      </div>
+                      <select className="form-input" value={(row.rec&&row.rec.tee)||'Whites'} onChange={e=>wsafe({['tournament/players/'+row.id+'/tee']:e.target.value})} style={{width:'auto',height:36,fontSize:12.5,padding:'0 8px'}}>
+                        {['Whites','Blues','Golds','Reds'].map(x=><option key={x} value={x}>{x}</option>)}
+                      </select>
+                      {row.owed>0&&(
+                        <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12.5,fontWeight:700,color:row.net<=0?'var(--brand)':'var(--ink-40)',cursor:'pointer',marginLeft:'auto'}}>
+                          <input type="checkbox" checked={row.net<=0} onChange={e=>wsafe({['tournament/players/'+row.id+'/paid']:e.target.checked?row.owed:null})} style={{width:19,height:19}}/>
+                          Paid ✓
+                        </label>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -9659,6 +9663,8 @@ function App(){
 
   const statsTabEntry = { id:'master', label:'Stats', icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
 
+  const tournTabVisible=((tournCfg&&tournCfg.appTab)==='all'||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&((rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master')||(tournCfg&&tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId)))));
+  const TOURN_TAB_ENTRY={ id:'tournament', label:'Tourney', icon:<svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> };
   const MEMBER_TABS_ROW1 = [
     { id:'home',        label:'Week',      icon:<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
     { id:'teams',       label:'Teams',     icon:<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> },
@@ -9669,7 +9675,7 @@ function App(){
     { id:'leaderboard', label:'Standings', icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
     ...(!isGuest ? [{ id:'attendance', label:'Attend', icon:<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg> }] : []),
     ...(canSeeMemberStats ? [statsTabEntry] : []),
-    ...(((tournCfg&&tournCfg.appTab)==='all'||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&((rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master')||(tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId))))) ? [{ id:'tournament', label:'Tourney', icon:<svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> }] : []),
+    ...((tournTabVisible&&!isAdmin) ? [TOURN_TAB_ENTRY] : []),
   ];
   const MEMBER_TABS = [...MEMBER_TABS_ROW1, ...MEMBER_TABS_ROW2];
 
@@ -9677,6 +9683,7 @@ function App(){
     { id:'manage', label:'Manage', icon:<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><path d="M3 10h18"/><path d="M9 16l2 2 4-4"/></svg> },
     { id:'email', label:'Email', icon:<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg> },
     { id:'admin', label:'Admin', icon:<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> },
+    ...(tournTabVisible?[TOURN_TAB_ENTRY]:[]),
     { id:'master',  label:'Stats',  icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   ] : (isScoring ? [{ id:'master', label:'Stats', icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> }] : []);
 
@@ -9799,12 +9806,13 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
-      {tab === 'home' && <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/>}
+      {tab === 'home' && <div style={{padding:'0 16px'}}><TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
       {tab === 'tournament' && (
         <div>
           <div className="page-title">Tournament</div>
-          <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster}/>
-          {isAdmin&&<div style={{fontSize:11,color:'var(--ink-40)',margin:'4px 2px'}}>Admins: scoring &amp; member-card previews are in the Admin tab; full setup in the portal.</div>}
+          <div style={{padding:'14px 16px 0'}}>
+            <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster}/>
+          </div>
         </div>
       )}
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
