@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-c';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-e';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4953,7 +4953,12 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
   const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
   const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:null;};
-  const entries=Object.entries((t&&t.players)||{});
+  const tpNorm=(raw=>{if(Array.isArray(raw)){const m={};raw.forEach((v,i)=>{if(v)m[String(i)]=v;});return m;}return raw||{};})(t&&t.players);
+  const entries=Object.entries(tpNorm);
+  const me=currentUser?(tpNorm[String(currentUser.id)]||null):null;
+  const myRounds=currentUser?(counts[String(currentUser.name||'').toLowerCase().trim()]||0):0;
+  const myOwed=Math.max(bar-myRounds,0);
+  const myPaid=me?Number(me.paid)||0:0;
   const inField=entries.filter(([,v])=>v&&v.in===true).map(([id])=>({id,name:nameOf(id)})).filter(p=>p.name);
   const inNames=inField.map(p=>p.name).sort();
   const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
@@ -4992,7 +4997,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   function drawTeams(){
     if(inField.length<teamSize){alert('Need at least '+teamSize+' opted-in players to draw.');return;}
     if(teams.length&&!window.confirm('Redraw '+ (day==='day1'?'Day 1':'Day 2') +' teams? The current draw is replaced.'))return;
-    const players=inField.map(p=>{const rec=(t&&t.players&&t.players[p.id])||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
+    const players=inField.map(p=>{const rec=tpNorm[String(p.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
     const built=buildTeams(players,teamSize,[],{}, [],[]);
     const drawn=built.map(tm=>({players:(tm.players||[]).map(p=>({name:p.name,handicap:parseFloat(p.handicap)||0})),totalHcp:Math.round(((tm.players||[]).reduce((s,p)=>s+(parseFloat(p.handicap)||0),0))*10)/10}));
     setPath('teams/'+day,drawn);
@@ -5041,6 +5046,19 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             )}
             {cfg.skinsOn===true&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins: the leftover after payouts and CTP, split by skins won.</div>}
           </div>
+          {currentUser&&me&&me.in===true&&(
+            <div style={{...card,borderColor:(myOwed-myPaid<=0)?'var(--brand-border)':'var(--warn-border)'}}>
+              <div style={hdr}>🎟 Your entry</div>
+              {myOwed<=0?(
+                <div style={{fontSize:13.5,fontWeight:700,color:'var(--brand)'}}>Covered by your {myRounds} rounds — nothing due. ✓</div>
+              ):myPaid>=myOwed?(
+                <div style={{fontSize:13.5,fontWeight:700,color:'var(--brand)'}}>Paid ✓ — ${myPaid} received. You're all set.</div>
+              ):(
+                <div style={{fontSize:13.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.</div>
+              )}
+              {me.handicap!=null&&<div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>Playing off {me.handicap} · {me.tee||'Whites'} tees.</div>}
+            </div>
+          )}
           {(live||isAdmin)&&(()=>{
             const stillDeciding=Math.max((fullRoster||[]).length-inField.length-declinedN,0);
             const entriesPot=inField.length*bar;
@@ -5207,7 +5225,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
       )}
 
       {sub==='field'&&isAdmin&&(()=>{
-        const tp=(t&&t.players)||{};
+        const tp=tpNorm;
         const rows=(fullRoster||[]).map(p=>{
           const r=counts[String(p.name||'').toLowerCase().trim()]||0;
           const rec=tp[p.id]||null;
@@ -5342,7 +5360,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const owed=Math.max(bar-myRounds,0);
   const minRounds=cfg.minRounds!=null?cfg.minRounds:10;
   const eligible=myRounds>=minRounds;
-  const me=t.players&&t.players[currentUser.id];
+  const me=(raw=>{if(Array.isArray(raw))return raw[Number(currentUser.id)]||null;return (raw||{})[String(currentUser.id)]||null;})(t.players);
   const status=me&&me.in===true?'in':(me&&me.in===false&&me.by==='member'?'declined':null);
   const dates=(cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'')+(cfg.date2?' & '+new Date(cfg.date2+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'');
   const rosterMe=(fullRoster||[]).find(x=>String(x.id)===String(currentUser.id));
