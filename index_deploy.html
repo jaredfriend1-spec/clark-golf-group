@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-u';
+const APP_BUILD='2026.08.16-v';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4936,6 +4936,93 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 }
 
 // ═══════════════ ATTENDANCE VIEW V2 ════════════════
+function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
+  const [t, setT] = useState(null);
+  const [att, setAtt] = useState(null);
+  useEffect(()=>{
+    const u1=read('tournament', v=>setT(v||null));
+    const u2=read('attendance/rounds', v=>setAtt(v||null));
+    return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
+  },[]);
+  const cfg=(t&&t.config)||{};
+  const live=cfg.inviteOpen===true;
+  const rounds=Object.values(att||{});
+  const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
+  const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
+  const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
+  const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:null;};
+  const entries=Object.entries((t&&t.players)||{});
+  const inNames=entries.filter(([,v])=>v&&v.in===true).map(([id])=>nameOf(id)).filter(Boolean).sort();
+  const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
+  const me=currentUser&&t&&t.players&&t.players[currentUser.id];
+  const myRounds=currentUser?(counts[String(currentUser.name||'').toLowerCase().trim()]||0):0;
+  const myOwed=Math.max(bar-myRounds,0);
+  const myPaid=me?Number(me.paid)||0:0;
+  const fd=d=>d?new Date(d+'T12:00').toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'}):null;
+  const CTP_HOLES=[3,6,11,14];
+  const ctpAmts=CTP_HOLES.map(h=>Number((cfg.ctpHoles&&cfg.ctpHoles['h'+h])||0));
+  const placesCount=cfg.placesCount||3;
+  const card={background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:14,padding:'13px 15px',marginBottom:12};
+  const hdr={fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:7};
+  if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
+  return (
+    <div>
+      <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={fullRoster} forcePreview={!live}/>
+      <div style={card}>
+        <div style={hdr}>📅 The days</div>
+        {[cfg.date1,cfg.date2].filter(Boolean).map((d,i)=>(
+          <div key={i} style={{display:'flex',gap:8,alignItems:'baseline',padding:'3px 0'}}>
+            <span style={{fontSize:11,fontWeight:800,color:'var(--brand)'}}>Day {i+1}</span>
+            <span style={{fontSize:12.5,fontWeight:600,color:'var(--ink)'}}>{fd(d)}</span>
+          </div>
+        ))}
+        <div style={{fontSize:11,color:'var(--ink-40)',marginTop:4}}>{cfg.date2?'Two separate one-day events — play both or either.':'One-day event.'}{cfg.redrawTeams!==false?' Fresh random teams each day.':''}</div>
+      </div>
+      <div style={card}>
+        <div style={hdr}>💰 Entry &amp; payouts</div>
+        <div style={{fontSize:12,color:'var(--ink-60)',lineHeight:1.7}}>
+          Entry: <b style={{color:'var(--ink)'}}>${bar}</b> minus $1 per round you've played this season.{Number(cfg.extraPrize||0)>0?<span> An extra <b style={{color:'var(--ink)'}}>${cfg.extraPrize}</b> in prize money has been added to the pot.</span>:null}
+        </div>
+        <div style={{fontSize:12,color:'var(--ink-60)',lineHeight:1.7,marginTop:4}}>
+          Payouts{cfg.payMode==='combined'?' (one combined 2-day payout)':' each day'}: Front 9 ({cfg.catFront!=null?cfg.catFront:25}%), Back 9 ({cfg.catBack!=null?cfg.catBack:25}%), Overall ({cfg.catOverall!=null?cfg.catOverall:50}%) — paying {placesCount} place{placesCount>1?'s':''} per category, team prizes split among the {cfg.teamSize||4} players.
+        </div>
+        {ctpAmts.some(a=>a>0)&&(
+          <div style={{fontSize:12,color:'var(--ink-60)',lineHeight:1.7,marginTop:4}}>
+            Closest to the pin{cfg.date2?' each day':''}: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?('Hole '+h+' — $'+ctpAmts[i]):null).filter(Boolean).join(' · ')} <span style={{color:'var(--ink-40)'}}>(individual winners)</span>
+          </div>
+        )}
+        {cfg.skinsOn===true&&(
+          <div style={{fontSize:12,color:'var(--ink-60)',lineHeight:1.7,marginTop:4}}>
+            Team skins: whatever remains after payouts and CTP becomes the skins pot, split by skins won.
+          </div>
+        )}
+      </div>
+      {currentUser&&me&&me.in===true&&(
+        <div style={{...card,borderColor:myPaid>=myOwed?'var(--brand-border)':'var(--warn-border)'}}>
+          <div style={hdr}>🎟 Your entry</div>
+          {myOwed<=0?(
+            <div style={{fontSize:12.5,fontWeight:700,color:'var(--brand)'}}>Covered by your {myRounds} rounds — nothing due. ✓</div>
+          ):myPaid>=myOwed?(
+            <div style={{fontSize:12.5,fontWeight:700,color:'var(--brand)'}}>Paid ✓ — ${myPaid} received. You're all set.</div>
+          ):(
+            <div style={{fontSize:12.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.</div>
+          )}
+        </div>
+      )}
+      {(live||isAdmin)&&inNames.length>0&&(
+        <div style={card}>
+          <div style={hdr}>👥 The field — {inNames.length} in{declinedN?(' · '+declinedN+' can\u2019t make it'):''}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+            {inNames.map(n=>(
+              <span key={n} style={{fontSize:11,fontWeight:600,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:7,padding:'3px 9px'}}>{n}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TournamentScoringPreview({ read, fullRoster }){
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
@@ -4959,10 +5046,11 @@ function TournamentScoringPreview({ read, fullRoster }){
   const teamSize=cfg.teamSize||4;
   const nTeams=Math.max(2,Math.floor(field.length/teamSize));
   const teams=Array.from({length:nTeams},(_,i)=>({label:(cfg.redrawTeams!==false?'Team ':'Team ')+String.fromCharCode(65+i),players:field.slice(i*teamSize,(i+1)*teamSize)}));
-  const seed=[[34,36],[36,33],[35,35],[33,38],[37,34],[36,36],[35,37],[34,35]];
+  const seed=[[-2,1],[1,-3],[0,0],[-4,2],[3,-1],[1,1],[-1,2],[0,-2]];
+  const fmtRel=v=>v===0?'E':(v>0?'+'+v:String(v));
   const scores=demoScores||teams.map((_,i)=>({f:seed[i%seed.length][0],b:seed[i%seed.length][1]}));
   const skins=demoSkins||teams.map(()=>0);
-  const bump=(i,key,d)=>{const u=scores.map(s=>({...s}));u[i][key]=Math.max(20,Math.min(60,(u[i][key]||0)+d));setDemoScores(u);};
+  const bump=(i,key,d)=>{const u=scores.map(s=>({...s}));u[i][key]=Math.max(-15,Math.min(15,(u[i][key]||0)+d));setDemoScores(u);};
   const bumpSkin=(i,d)=>{const u=[...skins];u[i]=Math.max(0,(u[i]||0)+d);setDemoSkins(u);};
   const CTP_HOLES=[3,6,11,14];
   const ctpAmts=CTP_HOLES.map(h=>Number((cfg.ctpHoles&&cfg.ctpHoles['h'+h])||0));
@@ -4992,14 +5080,14 @@ function TournamentScoringPreview({ read, fullRoster }){
           <div style={{display:'flex',alignItems:'center',gap:6}}>
             <span style={{fontSize:11.5,fontWeight:800,color:'var(--brand)',width:58,flexShrink:0}}>{tm.label}</span>
             <span style={{flex:1,fontSize:10.5,color:'var(--ink-50)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tm.players.join(', ')}</span>
-            <span style={{fontSize:13.5,fontWeight:800,color:'var(--ink)',width:34,textAlign:'right'}}>{tm.tot}</span>
+            <span style={{fontSize:13.5,fontWeight:800,color:tm.tot<0?'var(--money-neg)':'var(--ink)',width:38,textAlign:'right'}}>{fmtRel(tm.tot)}</span>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10,marginTop:6,flexWrap:'wrap'}}>
             {[['F',tm.f,'f'],['B',tm.b,'b']].map(([lbl,val,key])=>(
               <div key={lbl} style={{display:'flex',alignItems:'center',gap:5}}>
                 <span style={{fontSize:10,fontWeight:700,color:'var(--ink-40)'}}>{lbl}</span>
                 <button style={stBtn} onClick={()=>bump(i,key,-1)}>−</button>
-                <span style={{fontSize:13,fontWeight:800,color:'var(--ink)',width:24,textAlign:'center'}}>{val}</span>
+                <span style={{fontSize:13,fontWeight:800,color:'var(--ink)',width:28,textAlign:'center'}}>{fmtRel(val)}</span>
                 <button style={stBtn} onClick={()=>bump(i,key,1)}>+</button>
               </div>
             ))}
@@ -5019,7 +5107,7 @@ function TournamentScoringPreview({ read, fullRoster }){
         {[['Front 9',lead('f'),Math.floor(teamPool*catF/100),r=>r.f],['Back 9',lead('b'),Math.floor(teamPool*catB/100),r=>r.b],['Overall',lead('tot'),Math.floor(teamPool*catO/100),r=>r.tot]].map(([label,win,cat$,get])=>(
           <div key={label} style={{flex:1,minWidth:118,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'8px 10px'}}>
             <div style={{fontSize:9.5,fontWeight:800,color:'var(--brand)',textTransform:'uppercase'}}>{label} · ${cat$}</div>
-            <div style={{fontSize:12,fontWeight:700,color:'var(--ink)'}}>{win.label} <span style={{fontWeight:600,color:'var(--ink-50)'}}>({get(win)})</span></div>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--ink)'}}>{win.label} <span style={{fontWeight:600,color:'var(--ink-50)'}}>({fmtRel(get(win))})</span></div>
           </div>
         ))}
       </div>
@@ -9569,8 +9657,8 @@ function App(){
       {tab === 'tournament' && (
         <div>
           <div className="page-title">Tournament</div>
-          <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} forcePreview={!(tournCfg&&tournCfg.inviteOpen===true)}/>
-          {isAdmin&&<div style={{fontSize:11,color:'var(--ink-40)',margin:'4px 2px'}}>Admins: the scoring preview and member-card preview live in the Admin tab; full setup is in the portal's Tournament tab.</div>}
+          <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster}/>
+          {isAdmin&&<div style={{fontSize:11,color:'var(--ink-40)',margin:'4px 2px'}}>Admins: scoring &amp; member-card previews are in the Admin tab; full setup in the portal.</div>}
         </div>
       )}
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
