@@ -1369,7 +1369,7 @@ function RosterTab(){
             <input className="input" type="number" placeholder="HCP" value={apr.hcp} onChange={e=>setApr({...apr,hcp:e.target.value})}/>
           </div>
           <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="PIN (4\u20135 digits)" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,5)})}/>
-          {(()=>{const v=String(apr.pin||"").replace(/\D/g,"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:8}}>\u26a0 Same PIN as <b>{who?who.name:"another member"}</b> \u2014 use the last 5 of their phone instead.</div>);})()}
+          {(()=>{const v=String(apr.pin||"").replace(/\D/g,"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:8}}>⚠ Same PIN as <b>{who?who.name:"another member"}</b> — use the last 5 of their phone instead.</div>);})()}
           <input className="input" style={{marginBottom:12,width:"100%",boxSizing:"border-box"}} placeholder="Email" value={apr.email} onChange={e=>setApr({...apr,email:e.target.value})}/>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-sm btn-ghost" onClick={()=>setAprModal(null)}>Cancel</button>
@@ -1420,12 +1420,17 @@ function RosterTab(){
           const clEm=[...clSet];
           return (
             <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",margin:"0 0 12px"}}>
-              <button className="btn btn-sm" onClick={()=>copy(allEm,"all roster")}>📋 Copy all ({allEm.length})</button>
-              <button className="btn btn-sm" onClick={()=>copy(regEm,"registered")}>📱 Registered only ({regEm.length})</button>
-              <button className="btn btn-sm" onClick={()=>copy(clEm,"Clark\u2019s list")}>📨 Clark\u2019s list only ({clEm.length})</button>
-              <div style={{display:"flex",gap:5,marginLeft:"auto"}}>
-                {[["all","All"],["on","On Clark\u2019s"],["off","Not on his"]].map(([v,label])=>(
-                  <button key={v} className="btn btn-sm" onClick={()=>setClFilter(v)} style={{fontWeight:700,fontSize:11,border:"1px solid",borderColor:clFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:clFilter===v?"rgba(16,185,129,0.12)":"transparent",color:clFilter===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
+              <button className="btn btn-sm" onClick={()=>copy(allEm,"all roster")}>📋 Copy ALL roster emails ({allEm.length})</button>
+              <button className="btn btn-sm" onClick={()=>copy(regEm,"registered")}>📱 Copy REGISTERED only — has PIN ({regEm.length})</button>
+              <button className="btn btn-sm" onClick={()=>copy(clEm,"Clark’s list")}>📨 Copy CLARK’S LIST only ({clEm.length})</button>
+              <div style={{display:"flex",gap:5,marginLeft:"auto",alignItems:"center"}}>
+                <span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Filter</span>
+                {(()=>{
+                  const base=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
+                  const nOn=base.filter(p=>onClarkList(p)).length;
+                  return [["all","All",base.length],["on","On Clark’s",nOn],["off","Not on his",base.length-nOn]];
+                })().map(([v,label,n])=>(
+                  <button key={v} className="btn btn-sm" onClick={()=>setClFilter(v)} style={{fontWeight:700,fontSize:11,border:"1px solid",borderColor:clFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:clFilter===v?"rgba(16,185,129,0.12)":"transparent",color:clFilter===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label} ({n})</button>
                 ))}
               </div>
             </div>
@@ -1461,8 +1466,8 @@ function RosterTab(){
               <div className="lbl" style={{marginBottom:4}}>Phone # <span style={{color:"rgba(255,255,255,0.3)",fontWeight:400}}>(sets their PIN)</span></div>
               <input className="inp" placeholder="e.g. 301-555-1234" value={newP.phone} onChange={e=>setNewP(p=>({...p,phone:e.target.value}))} type="tel"/>
         {(()=>{const r=derivePin(newP.phone,rosterPins,null);if(!r.pin||r.pin.length<4)return null;
-        if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:"#4ade80",background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.18)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u2713 Last 4 is taken \u2014 the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
-        if(r.collides)return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u26a0 "{r.pin}" is already in use \u2014 pick different digits.</div>);
+        if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:"#4ade80",background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.18)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u2713 Last 4 is taken — the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
+        if(r.collides)return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>⚠ "{r.pin}" is already in use — pick different digits.</div>);
         return null;})()}
         <input className="inp" type="email" placeholder="Email (optional — for the weekly email list)" value={newP.email} onChange={e=>setNewP(p=>({...p,email:e.target.value}))} style={{marginTop:8}}/>
             </div>
@@ -1551,7 +1556,7 @@ function RosterTab(){
           return(
             <div key={p.id} className="p-row">
               <div style={{flex:1}}>
-                <div className="p-name">{p.name} {onClarkList(p)&&<span title="On Clark\u2019s email list" style={{fontSize:9,fontWeight:800,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4,verticalAlign:"middle"}}>CL ✓</span>}</div>
+                <div className="p-name">{p.name} {onClarkList(p)&&<span title="On Clark’s email list" style={{fontSize:9,fontWeight:800,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4,verticalAlign:"middle"}}>CL ✓</span>}</div>
                 <div style={{fontSize:11,color:email?"rgba(255,255,255,0.45)":"rgba(255,255,255,0.25)",marginTop:1}}>{email||"no email"}</div>
                 <div style={{marginTop:3}}>
                   <span className="b b-b">{p.tee}</span>
@@ -1629,7 +1634,7 @@ function RosterTab(){
           <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Set PIN for {confirmSetPin.name}</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:14,lineHeight:1.6}}>Enter a new PIN (4+ digits). The player can then log into the main app with it.</div>
           <input className="inp" type="text" inputMode="numeric" value={newPinVal} onChange={e=>setNewPinVal(e.target.value.replace(/[^0-9]/g,""))} placeholder="New PIN (4\u20135 digits)" autoFocus style={{marginBottom:6,fontSize:18,textAlign:"center",letterSpacing:"0.2em"}}/>
-          {(()=>{const v=String(newPinVal||"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(confirmResetPin&&confirmResetPin.id)&&String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:10}}>\u26a0 Already <b>{who?who.name:"another member"}</b>’s PIN — try the last 5 of the phone.</div>);})()}
+          {(()=>{const v=String(newPinVal||"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(confirmResetPin&&confirmResetPin.id)&&String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:10}}>⚠ Already <b>{who?who.name:"another member"}</b>’s PIN — try the last 5 of the phone.</div>);})()}
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-g" style={{flex:1}} onClick={()=>setPin(confirmSetPin.id,newPinVal)} disabled={!newPinVal||newPinVal.length<4}>Set PIN</button>
             <button className="btn btn-gh" style={{flex:1}} onClick={()=>{setConfirmSetPin(null);setNewPinVal("");}}>Cancel</button>
@@ -2246,7 +2251,7 @@ function AppSettingsTab({user}){
   const [msB,setMsB]=React.useState("");
   const [msA,setMsA]=React.useState("admins");
   const [msSent,setMsSent]=React.useState("");
-  const PUSH_DEFAULTS={publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up \u2014 sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}};
+  const PUSH_DEFAULTS={publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted — tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} — sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"⚠ Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up — sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}};
   const maxGuests=settings?.maxGuests??3;
   function toggleRule(key){
     const cur=sr[key]!==false;
@@ -2294,9 +2299,9 @@ function AppSettingsTab({user}){
             </div>
           );
         });})()}
-        {tmplOpen&&(()=>{const def=({publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted \u2014 tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} \u2014 sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"\u26a0 Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up \u2014 sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}})[tmplOpen]||{};return(
+        {tmplOpen&&(()=>{const def=({publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted — tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} — sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"⚠ Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up — sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}})[tmplOpen]||{};return(
           <div style={{margin:"10px 0",padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\u270f\ufe0f Custom text \u2014 blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code> <code style={{color:"#4ade80"}}>{"{time}"}</code></div>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\u270f\ufe0f Custom text — blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code> <code style={{color:"#4ade80"}}>{"{time}"}</code></div>
             <div className="lbl">Title</div>
             <input className="inp" placeholder={def.title} value={tmplT} onChange={e=>setTmplT(e.target.value)} style={{marginBottom:8}}/>
             <div className="lbl">Message</div>
@@ -2667,9 +2672,9 @@ function TournamentTab(){
       });
     });
     L.push("");
-    if(cfg.inviteOpen===true)L.push("SAY YOU\u2019RE IN: open the Clark Golf app \u2192 Week tab \u2192 tap “I’m in” on the tournament card. It shows your exact entry based on your rounds.");
+    if(cfg.inviteOpen===true)L.push("SAY YOU’RE IN: open the Clark Golf app \u2192 Week tab \u2192 tap “I’m in” on the tournament card. It shows your exact entry based on your rounds.");
     L.push("");
-    L.push("Questions or think your rounds count is off? Reply and we\u2019ll check the record.");
+    L.push("Questions or think your rounds count is off? Reply and we’ll check the record.");
     return L.join("\n");
   }
 
@@ -2807,7 +2812,7 @@ function TournamentTab(){
             const row={display:"flex",gap:10,alignItems:"flex-start",padding:"12px 0",borderBottom:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"};
             const col=w=>({width:w||84,flexShrink:0});
             const L=t=>(<div className="lbl" style={{height:16,fontSize:9.5,whiteSpace:"nowrap"}}>{t}</div>);
-            const okBadge=(sum,allowUnder)=>(<div style={col(120)}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:10,fontWeight:800,padding:"4px 9px",borderRadius:8,background:sum===100?"rgba(16,185,129,0.12)":(sum<100&&allowUnder?"rgba(96,165,250,0.12)":"rgba(245,158,11,0.12)"),color:sum===100?"#4ade80":(sum<100&&allowUnder?"#60a5fa":"#fbbf24"),whiteSpace:"nowrap"}}>{sum===100?"100% \u2713":(sum<100&&allowUnder?sum+"% \u2192 rest to skins":sum+"% \u2014 over!")}</span></div></div>);
+            const okBadge=(sum,allowUnder)=>(<div style={col(120)}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:10,fontWeight:800,padding:"4px 9px",borderRadius:8,background:sum===100?"rgba(16,185,129,0.12)":(sum<100&&allowUnder?"rgba(96,165,250,0.12)":"rgba(245,158,11,0.12)"),color:sum===100?"#4ade80":(sum<100&&allowUnder?"#60a5fa":"#fbbf24"),whiteSpace:"nowrap"}}>{sum===100?"100% \u2713":(sum<100&&allowUnder?sum+"% \u2192 rest to skins":sum+"% — over!")}</span></div></div>);
             const chk=(label,checked,onCh)=>(<div style={{flexShrink:0}}>{L("\u00a0")}<label style={{height:38,display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12.5,color:"rgba(255,255,255,0.6)",whiteSpace:"nowrap"}}><input type="checkbox" checked={checked} onChange={onCh}/>{label}</label></div>);
             return(<React.Fragment>
             <div style={row}>
@@ -2836,12 +2841,12 @@ function TournamentTab(){
             </div>
             <div style={{...row,borderBottom:"none"}}>
               <div style={sect}>Extras</div>
-              <div style={{flexShrink:0}}>{L("Closest to the pin \u2014 $ per hole, per day (blank = skip)")}
+              <div style={{flexShrink:0}}>{L("Closest to the pin — $ per hole, per day (blank = skip)")}
                 <div style={{display:"flex",gap:6}}>
                   {CTP_HOLES.map((h,i)=>(
                     <div key={h} style={{width:64}}>
                       <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.35)",textAlign:"center",marginBottom:2}}>Hole {h}</div>
-                      {numIn((cfg.ctpHoles&&cfg.ctpHoles["h"+h])||"",e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);wr("tournament/config/ctpHoles/h"+h,n>0?n:null);},"\u2014")}
+                      {numIn((cfg.ctpHoles&&cfg.ctpHoles["h"+h])||"",e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);wr("tournament/config/ctpHoles/h"+h,n>0?n:null);},"—")}
                     </div>
                   ))}
                 </div>
@@ -2853,7 +2858,7 @@ function TournamentTab(){
             </React.Fragment>);})()}
           {catSum!==100||placeSum!==100?(
             <div style={{marginTop:10,fontSize:11.5,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"7px 11px"}}>
-              ⚠ Payouts won\u2019t compute cleanly until percentages total 100.
+              ⚠ Payouts won’t compute cleanly until percentages total 100.
             </div>
           ):null}
         </div>
@@ -3115,10 +3120,10 @@ function ClarkEmailTab(){
                 if(matchedL.has(i))return;
                 const p=tryMatch(i,mode);
                 if(p){matchedL.add(i);matchedR.add(p.id);
-                  if(mode===3)flags.push('Name reversed: list \u201c'+l.name+'\u201d = roster \u201c'+p.name+'\u201d');
-                  else if(mode===2&&norm(l.name)!==norm(p.name))flags.push('Fuzzy: list \u201c'+l.name+'\u201d \u21c6 roster \u201c'+p.name+'\u201d \u2014 verify');
+                  if(mode===3)flags.push('Name reversed: list “'+l.name+'” = roster “'+p.name+'”');
+                  else if(mode===2&&norm(l.name)!==norm(p.name))flags.push('Fuzzy: list “'+l.name+'” ⇆ roster “'+p.name+'” — verify');
                   if(l.email&&p.email&&l.email!==p.email)flags.push('Email differs for '+p.name+': roster has '+p.email+', list has '+l.email);
-                  if(l.email&&!p.email)flags.push(p.name+' has no email in the app \u2014 list has '+l.email);
+                  if(l.email&&!p.email)flags.push(p.name+' has no email in the app — list has '+l.email);
                 }
               });
             }
@@ -3141,24 +3146,24 @@ function ClarkEmailTab(){
             const sect={fontSize:10.5,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em",margin:"14px 0 6px"};
             return (
               <div>
-                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginBottom:8,lineHeight:1.6}}>Paste the raw To/CC block from any email. Matches by email first, then name (nicknames + reversed names handled). Compares against the live roster and the app\u2019s email list \u2014 nothing is changed; this is a report.</div>
-                <textarea className="inp" value={txt} onChange={e=>setTxt(e.target.value)} placeholder='Paste like: Name <email@x.com>, "Other Name" <o@y.com>, bare@z.com \u2026' style={{width:"100%",minHeight:110,fontSize:12,fontFamily:"monospace",lineHeight:1.5,padding:"10px 12px",boxSizing:"border-box"}}/>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginBottom:8,lineHeight:1.6}}>Paste the raw To/CC block from any email. Matches by email first, then name (nicknames + reversed names handled). Compares against the live roster and the app’s email list — nothing is changed; this is a report.</div>
+                <textarea className="inp" value={txt} onChange={e=>setTxt(e.target.value)} placeholder='Paste like: Name <email@x.com>, "Other Name" <o@y.com>, bare@z.com …' style={{width:"100%",minHeight:110,fontSize:12,fontFamily:"monospace",lineHeight:1.5,padding:"10px 12px",boxSizing:"border-box"}}/>
                 {list.length>0&&(
                   <div>
-                    <div style={{fontSize:12,fontWeight:700,color:"#4ade80",marginTop:8}}>{list.length} parsed \u00b7 {matchedR.size} matched \u00b7 {onlyRoster.length} roster-only \u00b7 {onlyList.length} list-only</div>
-                    {flags.length>0&&(<div><div style={sect}>\u26a0 Verify</div>{flags.map((f,i)=><div key={i} style={{fontSize:11.5,color:"#fbbf24",padding:"2px 0"}}>{f}</div>)}</div>)}
-                    <div style={sect}>On the roster, NOT on the pasted list \u2014 removal candidates ({onlyRoster.length}) \u00b7 check rounds before hiding</div>
-                    {onlyRoster.map(p=><div key={p.id} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{p.name}{p.email?<span style={{color:"rgba(255,255,255,0.3)"}}> \u00b7 {p.email}</span>:<span style={{color:"rgba(255,255,255,0.25)"}}> \u00b7 no email in app</span>}</div>)}
-                    <div style={sect}>In YOUR Clark Email listing, NOT on the pasted list \u2014 remove candidates ({listingOrphans.length})</div>
-                    {listingOrphans.length===0&&<div style={{fontSize:11.5,color:"rgba(255,255,255,0.3)"}}>None \u2014 the listing matches Clark\u2019s list.</div>}
+                    <div style={{fontSize:12,fontWeight:700,color:"#4ade80",marginTop:8}}>{list.length} parsed · {matchedR.size} matched · {onlyRoster.length} roster-only · {onlyList.length} list-only</div>
+                    {flags.length>0&&(<div><div style={sect}>⚠ Verify</div>{flags.map((f,i)=><div key={i} style={{fontSize:11.5,color:"#fbbf24",padding:"2px 0"}}>{f}</div>)}</div>)}
+                    <div style={sect}>On the roster, NOT on the pasted list — removal candidates ({onlyRoster.length}) · check rounds before hiding</div>
+                    {onlyRoster.map(p=><div key={p.id} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{p.name}{p.email?<span style={{color:"rgba(255,255,255,0.3)"}}> · {p.email}</span>:<span style={{color:"rgba(255,255,255,0.25)"}}> · no email in app</span>}</div>)}
+                    <div style={sect}>In YOUR Clark Email listing, NOT on the pasted list — remove candidates ({listingOrphans.length})</div>
+                    {listingOrphans.length===0&&<div style={{fontSize:11.5,color:"rgba(255,255,255,0.3)"}}>None — the listing matches Clark’s list.</div>}
                     {listingOrphans.map(e=>(
                       <div key={e._key} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
-                        <span style={{flex:1,fontSize:12,color:"rgba(255,255,255,0.75)"}}>{e.name} <span style={{color:"rgba(255,255,255,0.35)"}}>\u00b7 {e.email}</span></span>
+                        <span style={{flex:1,fontSize:12,color:"rgba(255,255,255,0.75)"}}>{e.name} <span style={{color:"rgba(255,255,255,0.35)"}}>· {e.email}</span></span>
                         <button className="btn btn-sm" style={{color:"#f87171",borderColor:"rgba(248,113,113,0.4)",background:"transparent",fontWeight:700,fontSize:11}} onClick={()=>{if(window.confirm("Remove "+e.name+" from the Clark Email listing?")){firebase.database().ref("clarkEmailList/"+e._key).remove();}}}>Remove</button>
                       </div>
                     ))}
-                    <div style={sect}>On the pasted list, NOT on the roster \u2014 add candidates ({onlyList.length})</div>
-                    {onlyList.map((l,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{l.name||"(no name)"} <span style={{color:"rgba(255,255,255,0.35)"}}>\u00b7 {l.email}</span></div>)}
+                    <div style={sect}>On the pasted list, NOT on the roster — add candidates ({onlyList.length})</div>
+                    {onlyList.map((l,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{l.name||"(no name)"} <span style={{color:"rgba(255,255,255,0.35)"}}>· {l.email}</span></div>)}
                   </div>
                 )}
               </div>
