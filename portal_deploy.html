@@ -1244,6 +1244,9 @@ function RosterTab(){
   const rosterTee=useDB("rosterTee");
   const [seg,setSeg]=useState("active"); // active | inactive | hidden
   const [q,setQ]=useState("");
+  const [clFilter,setClFilter]=useState("all");
+  const clarkList=useDB("clarkEmailList");
+  const onClarkList=p=>{const e=String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();if(!e)return false;return Object.values(clarkList||{}).some(x=>String(x.email||"").toLowerCase().trim()===e);};
   const [editing,setEditing]=useState(null);
   const [adding,setAdding]=useState(false);
   const [revealPin,setRevealPin]=useState(null); // player id whose PIN is shown
@@ -1267,7 +1270,7 @@ function RosterTab(){
   const inactiveList=visible.filter(p=>!(rosterPins&&rosterPins[p.id]));
 
   const currentList=seg==="active"?activeList:seg==="inactive"?inactiveList:hiddenList;
-  const filtered=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
+  const filtered=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).filter(p=>clFilter==="all"?true:(clFilter==="on"?onClarkList(p):!onClarkList(p))).sort((a,b)=>a.name.localeCompare(b.name));
 
   function saveEdit(){
     if(!editing)return;
@@ -1408,6 +1411,26 @@ function RosterTab(){
           </div>
         );
       })()}
+        {(()=>{
+          const clSet=new Set(Object.values(clarkList||{}).map(e=>String(e.email||"").toLowerCase().trim()).filter(Boolean));
+          const emOf=p=>String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
+          const copy=(arr,label)=>{const s=arr.join(", ");navigator.clipboard.writeText(s).then(()=>alert("Copied "+arr.length+" emails ("+label+") — paste into Gmail."));};
+          const allEm=visible.map(emOf).filter(e=>e.indexOf("@")>0);
+          const regEm=visible.filter(p=>rosterPins&&rosterPins[p.id]).map(emOf).filter(e=>e.indexOf("@")>0);
+          const clEm=[...clSet];
+          return (
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",margin:"0 0 12px"}}>
+              <button className="btn btn-sm" onClick={()=>copy(allEm,"all roster")}>📋 Copy all ({allEm.length})</button>
+              <button className="btn btn-sm" onClick={()=>copy(regEm,"registered")}>📱 Registered only ({regEm.length})</button>
+              <button className="btn btn-sm" onClick={()=>copy(clEm,"Clark\u2019s list")}>📨 Clark\u2019s list only ({clEm.length})</button>
+              <div style={{display:"flex",gap:5,marginLeft:"auto"}}>
+                {[["all","All"],["on","On Clark\u2019s"],["off","Not on his"]].map(([v,label])=>(
+                  <button key={v} className="btn btn-sm" onClick={()=>setClFilter(v)} style={{fontWeight:700,fontSize:11,border:"1px solid",borderColor:clFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:clFilter===v?"rgba(16,185,129,0.12)":"transparent",color:clFilter===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         <div className="pg-sub">{activeList.length} active · {inactiveList.length} inactive · {hiddenList.length} hidden</div>
       </div>
       <button className="btn btn-g btn-sm" onClick={()=>setAdding(v=>!v)}>{adding?"Cancel":"+ Add Player"}</button>
@@ -1528,7 +1551,8 @@ function RosterTab(){
           return(
             <div key={p.id} className="p-row">
               <div style={{flex:1}}>
-                <div className="p-name">{p.name}</div>
+                <div className="p-name">{p.name} {onClarkList(p)&&<span title="On Clark\u2019s email list" style={{fontSize:9,fontWeight:800,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4,verticalAlign:"middle"}}>CL ✓</span>}</div>
+                <div style={{fontSize:11,color:email?"rgba(255,255,255,0.45)":"rgba(255,255,255,0.25)",marginTop:1}}>{email||"no email"}</div>
                 <div style={{marginTop:3}}>
                   <span className="b b-b">{p.tee}</span>
                   <span className="b b-gray">HCP {p.hcp}</span>
@@ -4225,7 +4249,7 @@ const ALL_NAV_ITEMS=[
   {id:"gamerules",label:"Game Modes",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/><path d="M5.5 5.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2M18.5 18.5l-2-2"/></svg>},
   {id:"appsettings",label:"App Settings",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>},
   {id:"week",label:"Week",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
-  {id:"email",label:"Email",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
+  {id:"email",label:"Communications",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   {id:"history",label:"History",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   {id:"announce",label:"Announce",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>},

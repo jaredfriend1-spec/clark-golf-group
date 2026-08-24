@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-i';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-j';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -6426,6 +6426,8 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   const [showAnnouncementsAdmin, setShowAnnouncementsAdmin] = useState(false);
   const [showSignups, setShowSignups] = useState(false);
   const [showRoster, setShowRoster] = useState(false);
+  const [showRosterSearch, setShowRosterSearch] = useState(false);
+  const [showRosterAdd, setShowRosterAdd] = useState(false);
   const [showExports, setShowExports] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [showLoginLog, setShowLoginLog] = useState(false);
@@ -7047,6 +7049,13 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                   </div>
                 );
               })()}
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <button className="btn btn-sm" style={{flex:1,minWidth:150,fontWeight:800,padding:'11px 0'}} onClick={()=>setShowRosterSearch(true)}>🔍 Search &amp; manage roster</button>
+                <button className="btn btn-sm" style={{flex:1,minWidth:150,fontWeight:800,padding:'11px 0'}} onClick={()=>setShowRosterAdd(true)}>➕ Add player</button>
+              </div>
+              {showRosterAdd&&ReactDOM.createPortal(
+                <div onClick={()=>setShowRosterAdd(false)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 14px',overflowY:'auto'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:16,padding:'16px',maxWidth:520,width:'100%',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 50px rgba(0,0,0,0.3)'}}>
               {/* Add new player */}
               <div style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:10,padding:12,marginBottom:14}}>
                 <div style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Add New Player</div>
@@ -7100,6 +7109,14 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                   {addingPlayer?'Adding…':'Add to Roster'}
                 </button>
               </div>
+                    <button className="btn btn-sm" style={{width:'100%',marginTop:10}} onClick={()=>setShowRosterAdd(false)}>Close</button>
+                  </div>
+                </div>
+              ,document.body)}
+              {showRosterSearch&&ReactDOM.createPortal(
+                <div onClick={()=>setShowRosterSearch(false)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:9999,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'24px 14px',overflowY:'auto'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:16,padding:'16px',maxWidth:560,width:'100%',maxHeight:'92vh',overflowY:'auto',boxShadow:'0 20px 50px rgba(0,0,0,0.3)'}}>
+                    <div style={{fontSize:14,fontWeight:800,color:'var(--ink)',marginBottom:10}}>🔍 Roster — search &amp; manage</div>
               {/* Search */}
               <input className="form-input" style={{marginBottom:10}} placeholder="Search roster..." value={rosterQ} onChange={e=>setRosterQ(e.target.value)}/>
               {/* Roster list */}
@@ -7236,6 +7253,10 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                   )}
                 </div>
               )}
+                    <button className="btn btn-sm" style={{width:'100%',marginTop:10}} onClick={()=>setShowRosterSearch(false)}>Close</button>
+                  </div>
+                </div>
+              ,document.body)}
             </div>
           )}
         </div>
