@@ -2692,9 +2692,13 @@ function TournamentTab(){
                     <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>
                       <input type="checkbox" checked={pushToo} onChange={e=>setPushToo(e.target.checked)}/>Also send a push notification to everyone now
                     </label>
+                    <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>
+                      <input type="checkbox" checked={(cfg.appTab||"off")!=="all"} disabled={(cfg.appTab||"off")==="all"} onChange={()=>{}} readOnly/>Open the Tourney tab to everyone {(cfg.appTab||"off")==="all"?"(already open)":"(recommended)"}
+                    </label>
                     <div style={{display:"flex",gap:8}}>
                       <button className="btn btn-g btn-sm" style={{fontWeight:800}} onClick={()=>{
                         setCfg("inviteOpen",true);
+                        if((cfg.appTab||"off")!=="all")setCfg("appTab","all");
                         if(pushToo){
                           fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Tournament invites are open! Open the app and tap I’m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
                           setCfg("invitePushTs",Date.now());
