@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-z';
+const APP_BUILD='2026.08.16-ab';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4991,11 +4991,9 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   function drawTeams(){
     if(inField.length<teamSize){alert('Need at least '+teamSize+' opted-in players to draw.');return;}
     if(teams.length&&!window.confirm('Redraw '+ (day==='day1'?'Day 1':'Day 2') +' teams? The current draw is replaced.'))return;
-    const pool2=[...inField];
-    for(let i=pool2.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool2[i],pool2[j]]=[pool2[j],pool2[i]];}
-    const n=Math.floor(pool2.length/teamSize);
-    const drawn=Array.from({length:n},(_,i)=>({players:pool2.slice(i*teamSize,(i+1)*teamSize).map(p=>({name:p.name}))}));
-    pool2.slice(n*teamSize).forEach((p,i)=>{drawn[i%n].players.push({name:p.name});});
+    const players=inField.map(p=>{const rec=(t&&t.players&&t.players[p.id])||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
+    const built=buildTeams(players,teamSize,[],{}, [],[]);
+    const drawn=built.map(tm=>({players:(tm.players||[]).map(p=>({name:p.name,handicap:parseFloat(p.handicap)||0})),totalHcp:Math.round(((tm.players||[]).reduce((s,p)=>s+(parseFloat(p.handicap)||0),0))*10)/10}));
     setPath('teams/'+day,drawn);
     setPath('teamsPublished/'+day,null);
     setPath('scores/'+day,null);
@@ -5004,13 +5002,14 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
     const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
     const [p]=u[fromTi].players.splice(pi,1);
     u[toTi].players.push(p);
+    u.forEach(tm=>{tm.totalHcp=Math.round((tm.players.reduce((s,q)=>s+(parseFloat(q.handicap)||0),0))*10)/10;});
     setPath('teams/'+day,u);
   }
   if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
   return (
     <div>
       <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
-        {pill('board','🏆 Board')}{pill('teams','👥 Teams')}{pill('scores','⛳ Scores')}{isAdmin&&pill('config','⚙')}
+        {pill('board','🏆 Board')}{pill('teams','👥 Teams')}{pill('scores','⛳ Scores')}{isAdmin&&pill('field','💵 Field')}{isAdmin&&pill('config','⚙')}
       </div>
 
       {sub==='board'&&(
@@ -5085,7 +5084,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               )}
               {teams.map((tm,ti)=>(
                 <div key={ti} style={{...card,padding:'11px 14px'}}>
-                  <div style={{fontSize:12.5,fontWeight:800,color:'var(--brand)',marginBottom:6}}>Team {String.fromCharCode(65+ti)}</div>
+                  <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:12.5,fontWeight:800,color:'var(--brand)'}}>Team {String.fromCharCode(65+ti)}</span>
+                    {tm.totalHcp!=null&&<span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>HCP {tm.totalHcp}</span>}
+                  </div>
                   {(tm.players||[]).map((p,pi)=>(
                     <div key={pi} style={{display:'flex',alignItems:'center',gap:8,padding:'3px 0'}}>
                       <span style={{flex:1,fontSize:13.5,color:'var(--ink)'}}>{p.name}</span>
@@ -5203,6 +5205,61 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         </div>
       )}
 
+      {sub==='field'&&isAdmin&&(()=>{
+        const tp=(t&&t.players)||{};
+        const rows=(fullRoster||[]).map(p=>{
+          const r=counts[String(p.name||'').toLowerCase().trim()]||0;
+          const rec=tp[p.id]||null;
+          const isIn=!!(rec&&rec.in===true);
+          const owed=Math.max(bar-r,0);
+          const paid=Number(rec&&rec.paid)||0;
+          return {id:p.id,name:p.name,r,rec,isIn,owed,paid,net:Math.max(owed-paid,0),eligible:r>=(cfg.minRounds!=null?cfg.minRounds:10)};
+        }).sort((x,y)=>y.r-x.r||x.name.localeCompare(y.name));
+        const inRows=rows.filter(x=>x.isIn);
+        const settledN=inRows.filter(x=>x.net<=0).length;
+        const outstanding=inRows.reduce((s,x)=>s+x.net,0);
+        const chip=(txt,color,border)=>(<span style={{fontSize:9.5,fontWeight:800,color,border:'1px solid '+border,borderRadius:6,padding:'1px 6px',marginLeft:5,whiteSpace:'nowrap'}}>{txt}</span>);
+        const toggle=(row)=>{
+          update({['tournament/players/'+row.id+'/in']:!row.isIn,['tournament/players/'+row.id+'/by']:'admin',['tournament/players/'+row.id+'/ts']:Date.now()});
+        };
+        return (
+          <div>
+            <div style={{...card,padding:'11px 14px'}}>
+              <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
+              <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Tap Paid ✓ when the cash lands.</div>
+              {rows.map(row=>(
+                <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&row.rec&&row.rec.in===false)?0.6:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <span style={{fontSize:13.5,fontWeight:600,color:'var(--ink)'}}>{row.name}</span>
+                      {row.isIn&&!row.eligible&&chip('EXCEPTION','var(--warn-ink)','var(--warn-border)')}
+                      {row.rec&&row.rec.by==='member'&&row.rec.in===true&&chip('SELF ✓','var(--brand)','var(--brand-border)')}
+                      {row.rec&&row.rec.by==='member'&&row.rec.in===false&&chip('DECLINED','var(--money-neg)','var(--money-neg)')}
+                      <div style={{fontSize:11,color:'var(--ink-40)',marginTop:1}}>{row.r} rounds{row.isIn?(row.owed>0?(' · owes $'+row.net+(row.paid>0?' ($'+row.paid+' in)':'')):' · covered ✓'):''}</div>
+                    </div>
+                    {row.isIn&&(
+                      <div style={{display:'flex',gap:5,flexShrink:0,alignItems:'center'}}>
+                        <input className="form-input" inputMode="decimal" title="Handicap" placeholder="hcp" value={row.rec&&row.rec.handicap!=null?row.rec.handicap:''} onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,'');update({['tournament/players/'+row.id+'/handicap']:v===''?null:parseFloat(v)});}} style={{width:52,height:32,textAlign:'center',fontSize:12.5,fontWeight:700,padding:0}}/>
+                        <select className="form-input" title="Tees" value={(row.rec&&row.rec.tee)||'Whites'} onChange={e=>update({['tournament/players/'+row.id+'/tee']:e.target.value})} style={{width:'auto',height:32,fontSize:11.5,padding:'0 5px'}}>
+                          {['Whites','Blues','Golds','Reds'].map(x=><option key={x} value={x}>{x}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {row.isIn&&row.owed>0&&(
+                      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:11,fontWeight:700,color:row.net<=0?'var(--brand)':'var(--ink-40)',cursor:'pointer',flexShrink:0}}>
+                        <input type="checkbox" checked={row.net<=0} onChange={e=>update({['tournament/players/'+row.id+'/paid']:e.target.checked?row.owed:null})} style={{width:17,height:17}}/>
+                        Paid
+                      </label>
+                    )}
+                    <button onClick={()=>toggle(row)} style={{flexShrink:0,width:58,height:32,borderRadius:9,border:'1.5px solid',borderColor:row.isIn?'var(--brand)':'var(--hairline)',background:row.isIn?'var(--brand-soft)':'transparent',color:row.isIn?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{row.isIn?'In ✓':'Out'}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {sub==='config'&&isAdmin&&(()=>{
         const setC=(k,v)=>setPath('config/'+k,v);
         const F={height:40,boxSizing:'border-box',width:'100%',padding:'0 10px',fontSize:13,textAlign:'center'};
@@ -5254,14 +5311,18 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
 }
 
 function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview }){
-  const [showField, setShowField] = useState(false);
   const [previewTap, setPreviewTap] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [hcpDraft, setHcpDraft] = useState('');
+  const [teeDraft, setTeeDraft] = useState('');
+  const [rTee, setRTee] = useState({});
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
-  return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
+    const u3=read('rosterTee', v=>setRTee(v||{}));
+  return ()=>{try{u1&&u1();u2&&u2();u3&&u3();}catch(e){}};
   },[]);
   const cfg=t&&t.config;
   if(!cfg||!currentUser||!currentUser.id)return null;
@@ -5280,10 +5341,26 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const me=t.players&&t.players[currentUser.id];
   const status=me&&me.in===true?'in':(me&&me.in===false&&me.by==='member'?'declined':null);
   const dates=(cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'')+(cfg.date2?' & '+new Date(cfg.date2+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'');
-  const rsvp=(val)=>{
+  const rosterMe=(fullRoster||[]).find(x=>String(x.id)===String(currentUser.id));
+  const startOptIn=()=>{
     if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
     if(rsvpLocked)return;
-    update({['tournament/players/'+currentUser.id+'/in']:val,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now()});
+    setHcpDraft(String((me&&me.handicap!=null)?me.handicap:((rosterMe&&rosterMe.handicap!=null&&rosterMe.handicap!=='')?rosterMe.handicap:'')));
+    setTeeDraft((me&&me.tee)||(rTee&&rTee[currentUser.id])||'Whites');
+    setConfirming(true);
+  };
+  const confirmIn=()=>{
+    const h=parseFloat(hcpDraft);
+    if(isNaN(h)){alert('Enter your handicap so the teams draw fair.');return;}
+    update({['tournament/players/'+currentUser.id+'/in']:true,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now(),['tournament/players/'+currentUser.id+'/handicap']:h,['tournament/players/'+currentUser.id+'/tee']:teeDraft||'Whites'});
+    setConfirming(false);
+  };
+  const rsvp=(val)=>{
+    if(val===true){startOptIn();return;}
+    if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
+    if(rsvpLocked)return;
+    setConfirming(false);
+    update({['tournament/players/'+currentUser.id+'/in']:false,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now()});
   };
   return (
     <div style={{margin:'0 0 14px',padding:'14px 16px',background:'linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03))',border:adminPreview?'2px dashed rgba(212,175,55,0.6)':'1px solid rgba(212,175,55,0.35)',borderRadius:14}}>
@@ -5345,51 +5422,28 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           {status==='declined'?"Not playing ✗":"Can't make it"}
         </button>
       </div>
-      {status==='in'&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>See you out there — admins can see you're in.</div>}
-      {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
-      {isAdmin&&invitesLive&&(()=>{
-        const entries=Object.entries(t.players||{});
-        const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:('#'+id);};
-        const inL=entries.filter(([,v])=>v&&v.in===true).map(([id,v])=>{
-          const nm=nameOf(id);const r=counts[String(nm).toLowerCase().trim()]||0;
-          const owedP=Math.max(bar-r,0);const paid=Number(v.paid)||0;
-          return {id,nm,r,owedP,paid,settled:paid>=owedP};
-        }).sort((a,b)=>a.nm.localeCompare(b.nm));
-        const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
-        const outstanding=inL.reduce((s,p)=>s+Math.max(p.owedP-p.paid,0),0);
-        const settledN=inL.filter(p=>p.settled).length;
-        return (
-          <div style={{marginTop:12,borderTop:'1px dashed var(--hairline)',paddingTop:9}}>
-            <div onClick={()=>setShowField(s=>!s)} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
-              <span style={{fontSize:11,fontWeight:800,color:'var(--ink-60)'}}>👥 Field & pay-ins <span style={{fontWeight:600,color:'var(--ink-40)'}}>(admins)</span></span>
-              <span style={{fontSize:10.5,color:'var(--ink-40)',flex:1}}>{inL.length} in · {settledN} settled · ${outstanding} outstanding{declinedN?(' · '+declinedN+' declined'):''}</span>
-              <span style={{fontSize:11,color:'var(--ink-40)'}}>{showField?'▲':'▼'}</span>
+      {confirming&&(
+        <div style={{marginTop:10,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
+          <div style={{fontSize:11.5,fontWeight:800,color:'var(--ink)',marginBottom:7}}>Confirm your sign-up — teams draw off these:</div>
+          <div style={{display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
+            <div style={{width:92}}>
+              <div style={{fontSize:9.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Handicap</div>
+              <input className="form-input" inputMode="decimal" value={hcpDraft} onChange={e=>setHcpDraft(e.target.value.replace(/[^0-9.]/g,''))} style={{height:38,textAlign:'center',fontSize:14,fontWeight:700}}/>
             </div>
-            {showField&&(
-              <div style={{marginTop:8}}>
-                {inL.length===0&&<div style={{fontSize:11,color:'var(--ink-40)'}}>Nobody has opted in yet.</div>}
-                {inL.map(p=>(
-                  <div key={p.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <span style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>{p.nm}</span>
-                      <span style={{fontSize:10,color:'var(--ink-40)',marginLeft:6}}>{p.r} rds · owes ${Math.max(p.owedP-p.paid,0)}</span>
-                    </div>
-                    {p.owedP>0?(
-                      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:10.5,fontWeight:700,color:p.settled?'var(--brand)':'var(--ink-40)',cursor:'pointer'}}>
-                        <input type="checkbox" checked={p.settled} onChange={e=>update({['tournament/players/'+p.id+'/paid']:e.target.checked?p.owedP:null})} style={{width:15,height:15}}/>
-                        {p.settled?'Paid ✓':'Paid?'}
-                      </label>
-                    ):(
-                      <span style={{fontSize:10.5,fontWeight:700,color:'var(--brand)'}}>covered ✓</span>
-                    )}
-                  </div>
-                ))}
-                <div style={{fontSize:10,color:'var(--ink-40)',marginTop:7}}>Full control — exceptions, amounts, pot math — lives in the portal's Tournament tab.</div>
-              </div>
-            )}
+            <div style={{width:110}}>
+              <div style={{fontSize:9.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Tees</div>
+              <select className="form-input" value={teeDraft} onChange={e=>setTeeDraft(e.target.value)} style={{height:38,fontSize:13}}>
+                {['Whites','Blues','Golds','Reds'].map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-sm" style={{height:38,flex:1,minWidth:110,fontWeight:800}} onClick={confirmIn}>✓ Confirm — I'm in</button>
+            <button className="btn btn-sm btn-secondary" style={{height:38}} onClick={()=>setConfirming(false)}>Cancel</button>
           </div>
-        );
-      })()}
+        </div>
+      )}
+      {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in with handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap I'm in to update either.</div>}
+      {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
+
     </div>
   );
 }
