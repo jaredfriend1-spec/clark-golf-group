@@ -2550,7 +2550,10 @@ function TournamentTab(){
   const cashOutstanding=inPlayers.reduce((s,p)=>s+Math.max(owedOf(p)-paidOf(p),0),0);
   const refundsDue=inPlayers.reduce((s,p)=>s+Math.max(-(owedOf(p)-paidOf(p)),0),0);
   const collected=inPlayers.reduce((s,p)=>s+cnt(p)+paidOf(p),0);
-  const fullPot=inPlayers.length*bar;
+  const fundTotal=Object.values(counts||{}).reduce((s,v)=>s+v,0);
+  const payinsDue=inPlayers.reduce((s,p)=>s+Math.max(bar-cnt(p),0),0);
+  const refundsOut=cfg.refundOverpaid===true?inPlayers.reduce((s,p)=>s+Math.max(cnt(p)-bar,0),0):0;
+  const fullPot=fundTotal+payinsDue-refundsOut;
   const setCfg=(k,v)=>wr("tournament/config/"+k,v);
   const setP=(id,k,v)=>wr("tournament/players/"+id+"/"+k,v);
   const [copied,setCopied]=React.useState(false);
@@ -2613,7 +2616,7 @@ function TournamentTab(){
     L.push("- Entry covers "+(twoDay?"both days; play both or either day":"the event"));
     L.push("");
     L.push("THE MONEY (as configured today, "+inPlayers.length+" players in)");
-    L.push("- Entries pot: $"+fullPot+(extraPrize>0?" + $"+extraPrize+" added prize money = $"+available:"")+(ctpTotal>0?" — $"+ctpTotal+" to CTP":""));
+    L.push("- The pot: $"+fundTotal+" already banked in the tournament fund + $"+payinsDue+" in opt-in entries"+(extraPrize>0?" + $"+extraPrize+" added prize money":"")+" = $"+available+(ctpTotal>0?" — $"+ctpTotal+" to CTP":""));
     pools.forEach((pool,i)=>{
       L.push("- "+poolLabel(i)+" pool: $"+pool);
       simPool(pool).forEach(c=>{
@@ -2817,7 +2820,7 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today’s field</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
-            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Entries pot","$"+fullPot],["Extra prize","$"+extraPrize],["CTP total","$"+ctpTotal],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
+            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Fund (banked)","$"+fundTotal],["Opt-in cash","$"+payinsDue],["Extra prize","$"+extraPrize],["CTP total","$"+ctpTotal],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",minHeight:24}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>

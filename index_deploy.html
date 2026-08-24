@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-f';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-g';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4970,7 +4970,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const numDays=dayKeys.length||1;
   const ctpTotal=ctpAmts.reduce((x,y)=>x+y,0)*numDays;
   const extraPrize=Number(cfg.extraPrize||0);
-  const availableNow=inField.length*bar+extraPrize;
+  const fundTotal=Object.values(counts).reduce((s,v)=>s+v,0);
+  const payinsDue=inField.reduce((s,p)=>s+Math.max(bar-(counts[String(p.name).toLowerCase().trim()]||0),0),0);
+  const refundsOut=cfg.refundOverpaid===true?inField.reduce((s,p)=>s+Math.max((counts[String(p.name).toLowerCase().trim()]||0)-bar,0),0):0;
+  const availableNow=fundTotal+payinsDue+extraPrize-refundsOut;
   const pool=Math.floor(Math.max(availableNow-ctpTotal,0)/(((cfg.payMode||'perday')==='perday')?numDays:1));
   const catF=cfg.catFront!=null?cfg.catFront:25, catB=cfg.catBack!=null?cfg.catBack:25, catO=cfg.catOverall!=null?cfg.catOverall:50;
   const teamSize=cfg.teamSize||4;
@@ -5061,18 +5064,17 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           )}
           {(live||isAdmin)&&(()=>{
             const stillDeciding=Math.max((fullRoster||[]).length-inField.length-declinedN,0);
-            const entriesPot=inField.length*bar;
-            const prizePool=Math.max(entriesPot+extraPrize-ctpTotal,0);
+            const prizePool=Math.max(availableNow-ctpTotal,0);
             const paidTotal=entries.filter(([,v])=>v&&v.in===true).reduce((s,[,v])=>s+(Number(v.paid)||0),0);
-            const roundsCredit=inField.reduce((s,p)=>s+Math.min(counts[String(p.name).toLowerCase().trim()]||0,bar),0);
-            const outstanding=Math.max(entriesPot-roundsCredit-paidTotal,0);
+            const outstanding=Math.max(payinsDue-paidTotal,0);
             const tile=(l,v,acc)=>(<div style={{flex:1,minWidth:96,background:acc?'var(--brand-soft)':'var(--surface-sunken)',border:acc?'1px solid var(--brand-border)':'1px solid transparent',borderRadius:10,padding:'8px 10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>{l}</div><div style={{fontSize:17,fontWeight:800,color:acc?'var(--brand)':'var(--ink)'}}>{v}</div></div>);
             return (
               <div style={card}>
                 <div style={hdr}>💰 The pot — live reconciliation</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{tile('Players in',inField.length)}{tile("Can't make it",declinedN)}{tile('Still deciding',stillDeciding)}</div>
-                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Entries','$'+entriesPot)}{extraPrize>0?tile('Added prize','$'+extraPrize):null}{ctpTotal>0?tile('To CTP','$'+ctpTotal):null}{tile('Prize pool','$'+prizePool,true)}</div>
-                {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${roundsCredit} covered by rounds · ${paidTotal} cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
+                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Fund (banked)','$'+fundTotal)}{tile('Opt-in cash','$'+payinsDue)}{extraPrize>0?tile('Added prize','$'+extraPrize):null}{ctpTotal>0?tile('To CTP','$'+ctpTotal):null}{refundsOut>0?tile('Refunds','−$'+refundsOut):null}{tile('Prize pool','$'+prizePool,true)}</div>
+                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>The fund is already collected — $1 from every round all season — and grows every week. Opt-in cash lands as guys sign up.</div>
+                {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${fundTotal} banked in the fund · ${paidTotal} of ${payinsDue} opt-in cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
                 <div style={{fontSize:12,color:'var(--ink-40)',marginTop:6,lineHeight:1.6}}>Eligibility: {cfg.minRounds!=null?cfg.minRounds:10}+ qualifying rounds (exceptions by the admins).{cfg.refundOverpaid===true?' Players over the bar are refunded.':' Anything over the bar stays in the pot.'} Pot assumes every entry settles.</div>
               </div>
             );
