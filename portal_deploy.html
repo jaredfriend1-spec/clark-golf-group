@@ -2550,7 +2550,7 @@ function TournamentTab(){
   const cashOutstanding=inPlayers.reduce((s,p)=>s+Math.max(owedOf(p)-paidOf(p),0),0);
   const refundsDue=inPlayers.reduce((s,p)=>s+Math.max(-(owedOf(p)-paidOf(p)),0),0);
   const collected=inPlayers.reduce((s,p)=>s+cnt(p)+paidOf(p),0);
-  const fundTotal=Object.values(counts||{}).reduce((s,v)=>s+v,0);
+  const fundTotal=Object.values(roundCounts||{}).reduce((s,v)=>s+v,0);
   const payinsDue=inPlayers.reduce((s,p)=>s+Math.max(bar-cnt(p),0),0);
   const refundsOut=cfg.refundOverpaid===true?inPlayers.reduce((s,p)=>s+Math.max(cnt(p)-bar,0),0):0;
   const fullPot=fundTotal+payinsDue-refundsOut;
@@ -3027,6 +3027,80 @@ function ClarkEmailTab(){
 
   return(
     <div className="main">
+      <div className="card">
+        <div className="card-hdr"><span className="card-title">🔍 Compare a pasted email list</span></div>
+        <div className="card-body">
+          {(()=>{
+            const [txt,setTxt]=React.useState('');
+            const rosterEdits=useDB("rosterEdits")||{};
+            const extraP=useDB("extraPlayers")||{};
+            const rosterHidden=useDB("rosterHidden")||{};
+            const rosterEmails=rosterEmailsDB;
+            const all=[...ROSTER.map(p=>({id:p.id,name:(rosterEdits[p.id])||p.name})),...Object.values(extraP).map(p=>({id:p.id,name:p.name}))].filter(p=>!rosterHidden[p.id]);
+            const NICK={bob:'robert',rob:'robert',robert:'robert',bill:'william',billy:'william',will:'william',jim:'james',jimmy:'james',james:'james',mike:'michael',michael:'michael',tom:'thomas',thomas:'thomas',tommy:'thomas',jeff:'jeffrey',dave:'david',matt:'matthew',pete:'peter',ken:'kenneth',rick:'richard',greg:'gregory',joey:'joseph',joe:'joseph',steve:'steven'};
+            const norm=s=>String(s||'').toLowerCase().replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
+            const cf=f=>NICK[f]||f;
+            const parse=(raw)=>{
+              const out=[];const seen=new Set();
+              const re=/(?:"?([^"<>,]{2,60}?)"?\s*)?<([^<>\s]+@[^<>\s]+)>|(^|[\s,;])([^\s,;<>"]+@[^\s,;<>"]+)/g;
+              let m;while((m=re.exec(raw))){const email=(m[2]||m[4]||'').trim().toLowerCase();if(!email||seen.has(email))continue;seen.add(email);out.push({name:(m[1]||'').trim(),email});}
+              return out;
+            };
+            const list=parse(txt);
+            const emailsByName={};Object.entries(rosterEmails||{}).forEach(([id,e])=>{emailsByName[String(id)]=String(e||'').toLowerCase();});
+            const rosterList=all.map(p=>({id:p.id,name:p.name,email:emailsByName[String(p.id)]||''}));
+            const matchedR=new Set(), matchedL=new Set(), flags=[];
+            const tryMatch=(li,mode)=>{
+              const l=list[li];const ln=norm(l.name);
+              for(const p of rosterList){
+                if(matchedR.has(p.id))continue;
+                const rn=norm(p.name);
+                if(mode===0&&l.email&&p.email&&l.email===p.email)return p;
+                if(mode===1&&ln&&rn===ln)return p;
+                if(mode>=2&&ln){
+                  const lt=ln.split(' ');const rt=rn.split(' ');
+                  if(!lt.length||!rt.length)continue;
+                  const ll=lt[lt.length-1],lf=cf(lt[0]),rl=rt[rt.length-1],rf=cf(rt[0]);
+                  if(mode===2&&rl===ll&&(rf===lf||rf[0]===lf[0]))return p;
+                  if(mode===3&&rn===lt.slice().reverse().join(' '))return p;   // reversed names
+                }
+              }
+              return null;
+            };
+            for(let mode=0;mode<=3;mode++){
+              list.forEach((l,i)=>{
+                if(matchedL.has(i))return;
+                const p=tryMatch(i,mode);
+                if(p){matchedL.add(i);matchedR.add(p.id);
+                  if(mode===3)flags.push('Name reversed: list \u201c'+l.name+'\u201d = roster \u201c'+p.name+'\u201d');
+                  else if(mode===2&&norm(l.name)!==norm(p.name))flags.push('Fuzzy: list \u201c'+l.name+'\u201d \u21c6 roster \u201c'+p.name+'\u201d \u2014 verify');
+                  if(l.email&&p.email&&l.email!==p.email)flags.push('Email differs for '+p.name+': roster has '+p.email+', list has '+l.email);
+                  if(l.email&&!p.email)flags.push(p.name+' has no email in the app \u2014 list has '+l.email);
+                }
+              });
+            }
+            const onlyRoster=rosterList.filter(p=>!matchedR.has(p.id));
+            const onlyList=list.filter((_,i)=>!matchedL.has(i));
+            const sect={fontSize:10.5,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em",margin:"14px 0 6px"};
+            return (
+              <div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginBottom:8,lineHeight:1.6}}>Paste the raw To/CC block from any email. Matches by email first, then name (nicknames + reversed names handled). Compares against the live roster and the app\u2019s email list \u2014 nothing is changed; this is a report.</div>
+                <textarea className="inp" value={txt} onChange={e=>setTxt(e.target.value)} placeholder='Paste like: Name <email@x.com>, "Other Name" <o@y.com>, bare@z.com \u2026' style={{width:"100%",minHeight:110,fontSize:12,fontFamily:"monospace",lineHeight:1.5,padding:"10px 12px",boxSizing:"border-box"}}/>
+                {list.length>0&&(
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#4ade80",marginTop:8}}>{list.length} parsed \u00b7 {matchedR.size} matched \u00b7 {onlyRoster.length} roster-only \u00b7 {onlyList.length} list-only</div>
+                    {flags.length>0&&(<div><div style={sect}>\u26a0 Verify</div>{flags.map((f,i)=><div key={i} style={{fontSize:11.5,color:"#fbbf24",padding:"2px 0"}}>{f}</div>)}</div>)}
+                    <div style={sect}>On the roster, NOT on the pasted list \u2014 removal candidates ({onlyRoster.length}) \u00b7 check rounds before hiding</div>
+                    {onlyRoster.map(p=><div key={p.id} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{p.name}{p.email?<span style={{color:"rgba(255,255,255,0.3)"}}> \u00b7 {p.email}</span>:<span style={{color:"rgba(255,255,255,0.25)"}}> \u00b7 no email in app</span>}</div>)}
+                    <div style={sect}>On the pasted list, NOT on the roster \u2014 add candidates ({onlyList.length})</div>
+                    {onlyList.map((l,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{l.name||"(no name)"} <span style={{color:"rgba(255,255,255,0.35)"}}>\u00b7 {l.email}</span></div>)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
       <div className="pg-eyebrow">Communications</div>
       <div className="pg-title">Clark Email List</div>
       <div className="pg-sub">Manage recipients for Clark's group emails. Check who to include, then copy all in Gmail format.</div>
