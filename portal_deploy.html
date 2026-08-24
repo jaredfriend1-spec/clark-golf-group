@@ -1287,6 +1287,7 @@ function RosterTab(){
 
   function addPlayer(){
     if(!newP.name.trim()){showToast("Name required","err");return;}
+    if(!newP.email||!newP.email.trim()||newP.email.indexOf("@")<1){showToast("Email required — keeps the email list in sync","err");return;}
     const newId=Date.now();
     ps("extraPlayers",{id:newId,name:normName(newP.name),tee:newP.tee,hcp:parseFloat(newP.hcp)||0});
     // Phone → collision-aware PIN (last 4/5/6); email saved separately below
@@ -1297,9 +1298,8 @@ function RosterTab(){
         wr("rosterPins/"+newId,pin);
       }
     }
-    if(newP.email&&newP.email.trim()&&newP.email.indexOf("@")>0){
-      wr("rosterEmails/"+newId,newP.email.trim());
-    }
+    wr("rosterEmails/"+newId,newP.email.trim());
+    firebase.database().ref("clarkEmailList").push({name:normName(newP.name),email:newP.email.trim()});
     setNewP({name:"",tee:"Whites",hcp:"",phone:"",email:""});setAdding(false);
     showToast(newP.phone.trim()?"Player added with PIN ✓":"Player added ✓");
   }
@@ -1389,6 +1389,25 @@ function RosterTab(){
       <div>
         <div className="pg-eyebrow">Members</div>
     <div className="pg-title">Roster</div>
+      {(()=>{
+        const [showMissing,setShowMissing]=React.useState(false);
+        const hasEm=p=>{const e=rosterEmails&&rosterEmails[p.id];return !!(e&&String(e).indexOf("@")>0);};
+        const withEm=visible.filter(hasEm);
+        const missing=visible.filter(p=>!hasEm(p)).sort((a,b)=>a.name.localeCompare(b.name));
+        return (
+          <div style={{margin:"6px 0 14px",padding:"10px 13px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
+            <div onClick={()=>setShowMissing(s=>!s)} style={{display:"flex",alignItems:"center",gap:10,cursor:missing.length?"pointer":"default"}}>
+              <span style={{fontSize:12.5,fontWeight:800,color:missing.length?"#fbbf24":"#4ade80"}}>✉ Emails: {withEm.length} of {visible.length} recorded{missing.length?" — "+missing.length+" missing":" ✓"}</span>
+              {missing.length>0&&<span style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginLeft:"auto"}}>{showMissing?"hide ▲":"show who ▼"}</span>}
+            </div>
+            {showMissing&&missing.length>0&&(
+              <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:9}}>
+                {missing.map(p=><span key={p.id} style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.65)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:7,padding:"3px 9px"}}>{p.name}{p.isExtra?" (extra)":""}</span>)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
         <div className="pg-sub">{activeList.length} active · {inactiveList.length} inactive · {hiddenList.length} hidden</div>
       </div>
       <button className="btn btn-g btn-sm" onClick={()=>setAdding(v=>!v)}>{adding?"Cancel":"+ Add Player"}</button>
@@ -3081,6 +3100,20 @@ function ClarkEmailTab(){
             }
             const onlyRoster=rosterList.filter(p=>!matchedR.has(p.id));
             const onlyList=list.filter((_,i)=>!matchedL.has(i));
+            const pastedEmails=new Set(list.map(l=>l.email));
+            const pastedByName={};list.forEach(l=>{if(l.name)pastedByName[norm(l.name)]=l;});
+            const listingOrphans=(entries||[]).filter(e=>{
+              const em=String(e.email||'').toLowerCase().trim();
+              if(em&&pastedEmails.has(em))return false;
+              const pn=pastedByName[norm(e.name)];
+              if(pn)return false;
+              return true;
+            });
+            (entries||[]).forEach(e=>{
+              const pn=pastedByName[norm(e.name)];
+              const em=String(e.email||'').toLowerCase().trim();
+              if(pn&&pn.email&&em&&pn.email!==em)flags.push('Listing email differs for '+e.name+': listing has '+em+', Clark has '+pn.email);
+            });
             const sect={fontSize:10.5,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em",margin:"14px 0 6px"};
             return (
               <div>
@@ -3092,6 +3125,14 @@ function ClarkEmailTab(){
                     {flags.length>0&&(<div><div style={sect}>\u26a0 Verify</div>{flags.map((f,i)=><div key={i} style={{fontSize:11.5,color:"#fbbf24",padding:"2px 0"}}>{f}</div>)}</div>)}
                     <div style={sect}>On the roster, NOT on the pasted list \u2014 removal candidates ({onlyRoster.length}) \u00b7 check rounds before hiding</div>
                     {onlyRoster.map(p=><div key={p.id} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{p.name}{p.email?<span style={{color:"rgba(255,255,255,0.3)"}}> \u00b7 {p.email}</span>:<span style={{color:"rgba(255,255,255,0.25)"}}> \u00b7 no email in app</span>}</div>)}
+                    <div style={sect}>In YOUR Clark Email listing, NOT on the pasted list \u2014 remove candidates ({listingOrphans.length})</div>
+                    {listingOrphans.length===0&&<div style={{fontSize:11.5,color:"rgba(255,255,255,0.3)"}}>None \u2014 the listing matches Clark\u2019s list.</div>}
+                    {listingOrphans.map(e=>(
+                      <div key={e._key} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
+                        <span style={{flex:1,fontSize:12,color:"rgba(255,255,255,0.75)"}}>{e.name} <span style={{color:"rgba(255,255,255,0.35)"}}>\u00b7 {e.email}</span></span>
+                        <button className="btn btn-sm" style={{color:"#f87171",borderColor:"rgba(248,113,113,0.4)",background:"transparent",fontWeight:700,fontSize:11}} onClick={()=>{if(window.confirm("Remove "+e.name+" from the Clark Email listing?")){firebase.database().ref("clarkEmailList/"+e._key).remove();}}}>Remove</button>
+                      </div>
+                    ))}
                     <div style={sect}>On the pasted list, NOT on the roster \u2014 add candidates ({onlyList.length})</div>
                     {onlyList.map((l,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{l.name||"(no name)"} <span style={{color:"rgba(255,255,255,0.35)"}}>\u00b7 {l.email}</span></div>)}
                   </div>

@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-g';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-i';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5497,11 +5497,12 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
   },[,overrideRounds]);
   function saveRounds(nr){ const sorted=[...nr].sort((a,b)=>b.date.localeCompare(a.date)); write('attendance/rounds',sorted); setRounds(sorted); }
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null),3000); }
+  const [sortAZ, setSortAZ] = useState(false);
   const standings = useMemo(()=>{
     const p={};
     rounds.forEach(r=>{ (r.players||[]).forEach(raw=>{ const name=normName(raw); if(!p[name])p[name]={name,rounds:0,dates:[]}; p[name].rounds++; p[name].dates.push(r.date); }); });
-    return Object.values(p).sort((a,b)=>b.rounds-a.rounds);
-  },[rounds]);
+    return Object.values(p).sort(sortAZ?((a,b)=>a.name.localeCompare(b.name)):((a,b)=>b.rounds-a.rounds));
+  },[rounds,sortAZ]);
   const totalEntries = rounds.reduce((s,r)=>s+(r.players||[]).length,0);
   const maxR = standings.length>0?standings[0].rounds:1;
   const filteredStandings = standings.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
@@ -5589,7 +5590,12 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
           <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)'}}><div style={{fontSize:14,fontWeight:600,marginBottom:6}}>No attendance data yet</div><div style={{fontSize:12}}>Rounds are added automatically when weeks close out.</div></div>
         ):(
           <>
-            <input className="form-input" style={{marginBottom:10}} placeholder="Search players..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <input className="form-input" style={{flex:1,marginBottom:0}} placeholder="Search players..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              {[['rounds',false,'By rounds'],['az',true,'A–Z']].map(([k,val,label])=>(
+                <button key={k} onClick={()=>setSortAZ(val)} style={{flexShrink:0,padding:'0 14px',height:44,borderRadius:10,border:'1.5px solid',borderColor:sortAZ===val?'var(--brand)':'var(--hairline)',background:sortAZ===val?'var(--brand-soft)':'transparent',color:sortAZ===val?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+              ))}
+            </div>
             <div className="day-card" style={{overflow:'hidden'}}>
               <div style={{padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid var(--hairline)'}}>
                 <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Season Standings</div>
@@ -7029,6 +7035,18 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
           />
           {showRoster&&(
             <div style={{borderTop:'1px solid var(--hairline)',padding:'12px 16px'}}>
+              {(()=>{
+                const withEm=allRoster.filter(p=>!(rosterHidden&&rosterHidden[p.id])).map(p=>({p,em:(rosterEmails&&rosterEmails[p.id])||''})).filter(x=>x.em&&String(x.em).indexOf('@')>0);
+                return (
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                    <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
+                      const s=withEm.map(x=>String(x.em).trim()).join(', ');
+                      navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+withEm.length+' emails — paste into Gmail.');setTimeout(()=>setAddPlayerToast(''),3000);});
+                    }}>📋 Copy all emails ({withEm.length})</button>
+                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{allRoster.length-withEm.length>0?(allRoster.length-withEm.length)+' players have no email — see the portal Roster counter.':'Every player has an email ✓'}</span>
+                  </div>
+                );
+              })()}
               {/* Add new player */}
               <div style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:10,padding:12,marginBottom:14}}>
                 <div style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Add New Player</div>
@@ -7476,10 +7494,12 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
 
   function doAddPlayer(){
     if(!np.name||addingPlayer)return;
+    if(!np.email||!np.email.trim()||np.email.indexOf('@')<1){setAddPlayerToast('Email required — it keeps the email list in sync.');setTimeout(()=>setAddPlayerToast(''),3500);return;}
     setAddingPlayer(true);
     const newId=Date.now();
     onAddPlayer({name:np.name,tee:np.tee,handicap:parseFloat(np.hcp)||0,id:newId});
-    if(np.email)onEditRosterEmail(newId,np.email.trim());
+    onEditRosterEmail(newId,np.email.trim());
+    push('clarkEmailList',{name:np.name,email:np.email.trim()});
     if(np.pin)onSaveMemberPin(newId,np.pin.trim());
     const savedName=np.name;
     setNp({name:'',tee:'Whites',hcp:'',email:'',pin:''});
