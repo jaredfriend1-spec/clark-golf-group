@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-s';
+const APP_BUILD='2026.08.16-t';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -6977,6 +6977,7 @@ function AdminViewV2({ viewMode='admin', settings, week, history, isAdmin, curre
           <div style={{flex:1}}>
             <div style={{fontSize:12.5,fontWeight:700,color:'var(--ink)'}}>Tournament card preview</div>
             <div style={{fontSize:10.5,color:'var(--ink-40)'}}>See exactly what members will see. Configure and go live in the portal.</div>
+            <div style={{fontSize:9.5,color:'var(--ink-30,#9ca3af)',marginTop:2,fontFamily:'monospace'}}>tab stage: {tournCfg?String(tournCfg.appTab||'off'):'(config not loaded)'}{tournCfg&&tournCfg.appTab==='only'?(' → id '+String(tournCfg.appTabOnlyId||'?')): ''} · you: id {String((currentUser&&currentUser.id)||'?')}{rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master'?' (master)':''} · build {APP_BUILD}</div>
           </div>
           <button className="btn btn-sm" onClick={()=>setShowTournPreview(true)}>👁 Member card</button>
           <button className="btn btn-sm" onClick={()=>setShowTournScoring(true)}>🧮 Scoring</button>
@@ -9434,7 +9435,7 @@ function App(){
     { id:'leaderboard', label:'Standings', icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
     ...(!isGuest ? [{ id:'attendance', label:'Attend', icon:<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg> }] : []),
     ...(canSeeMemberStats ? [statsTabEntry] : []),
-    ...(((tournCfg&&tournCfg.appTab)==='all'||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&((currentUser&&currentUser.role==='master')||(tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId))))) ? [{ id:'tournament', label:'Tourney', icon:<svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> }] : []),
+    ...(((tournCfg&&tournCfg.appTab)==='all'||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&((rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master')||(tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId))))) ? [{ id:'tournament', label:'Tourney', icon:<svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> }] : []),
   ];
   const MEMBER_TABS = [...MEMBER_TABS_ROW1, ...MEMBER_TABS_ROW2];
 
