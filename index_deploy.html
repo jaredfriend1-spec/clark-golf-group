@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-e';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-f';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -765,7 +765,7 @@ function useDB(){
     try{if(!firebase.apps.length)firebase.initializeApp(FB_CONFIG);setDb(firebase.database());setReady(true);}
     catch(e){setReady(true);}
   },[]);
-  const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);r.on('value',s=>cb(s.val()));return()=>r.off();},[db]);
+  const read=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return()=>{};}const r=db.ref(p);const h=s=>cb(s.val());r.on('value',h);return()=>r.off('value',h);},[db]);
   const readOnce=useCallback((p,cb)=>{if(!db){cb(JSON.parse(localStorage.getItem(p)||'null'));return;}db.ref(p).once('value').then(s=>cb(s.val()));},[db]);
   // ALL WRITES BLOCKED IN V2 — logs a warning and no-ops
   const write=useCallback((p,v)=>{if(V2_WRITES_BLOCKED){console.warn('[V2 BLOCKED] write:',p);return Promise.resolve();}if(!db){localStorage.setItem(p,JSON.stringify(v));return Promise.resolve();}return db.ref(p).set(v);},[db]);
