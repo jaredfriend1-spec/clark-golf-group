@@ -2657,12 +2657,28 @@ function TournamentTab(){
                 <input type="checkbox" checked={cfg[k]!==false} onChange={e=>setCfg(k,e.target.checked)}/>{label}
               </label>
             ))}
+            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+              <input type="checkbox" checked={cfg.refundOverpaid===true} onChange={e=>setCfg("refundOverpaid",e.target.checked)}/>Refund players over the entry bar <span style={{color:"rgba(255,255,255,0.3)"}}>(off = extra stays in the pot)</span>
+            </label>
           </div>
           <div style={{marginTop:14,padding:"13px 15px",background:cfg.inviteOpen===true?"rgba(16,185,129,0.06)":"rgba(212,175,55,0.05)",border:"1px solid "+(cfg.inviteOpen===true?"rgba(16,185,129,0.3)":"rgba(212,175,55,0.2)"),borderRadius:10}}>
             {cfg.inviteOpen!==true?(
               <div>
                 <div style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>🔒 NOT LIVE — members see nothing</div>
-                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",margin:"4px 0 10px",lineHeight:1.6}}>Admins already see a dashed-border preview at the top of the app’s Week tab (deploy the latest app file if you don’t see it). Members will see nothing until you press Go Live.</div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",margin:"4px 0 10px",lineHeight:1.6}}>Members see nothing until you press Go Live. Use the app-tab stager below to preview the tournament tab in the app.</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em"}}>📱 App tournament tab:</span>
+                  {[["off","Hidden"],["only","One person"],["admins","Admins only"],["all","Everyone"]].map(([v,label])=>(
+                    <button key={v} className="btn btn-sm" onClick={()=>setCfg("appTab",v)} style={{fontWeight:700,fontSize:11,padding:"5px 12px",border:"1px solid",borderColor:(cfg.appTab||"off")===v?"#10b981":"rgba(255,255,255,0.12)",background:(cfg.appTab||"off")===v?"rgba(16,185,129,0.12)":"transparent",color:(cfg.appTab||"off")===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
+                  ))}
+                  {(cfg.appTab||"off")==="only"&&(
+                    <select className="inp" style={{height:32,fontSize:12,padding:"0 10px",width:"auto"}} value={cfg.appTabOnlyId||""} onChange={e=>setCfg("appTabOnlyId",e.target.value||null)}>
+                      <option value="">— pick who —</option>
+                      {all.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=><option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                    </select>
+                  )}
+                  <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",flexBasis:"100%"}}>Stage it: One person (you) → Admins only → Everyone at launch. Independent of the GO LIVE switch.</span>
+                </div>
                 {!goLiveOpen?(
                   <button className="btn btn-g" style={{fontWeight:800,padding:"10px 22px"}} onClick={()=>setGoLiveOpen(true)}>🚀 GO LIVE</button>
                 ):(
@@ -2702,6 +2718,19 @@ function TournamentTab(){
                   }}>📣 Send reminder push</button>
                   <button className="btn btn-gh btn-sm" onClick={()=>{if(window.confirm("Take the tournament card away from members? Their answers are kept."))setCfg("inviteOpen",null);}}>Take offline</button>
                 </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em"}}>📱 App tournament tab:</span>
+                  {[["off","Hidden"],["only","One person"],["admins","Admins only"],["all","Everyone"]].map(([v,label])=>(
+                    <button key={v} className="btn btn-sm" onClick={()=>setCfg("appTab",v)} style={{fontWeight:700,fontSize:11,padding:"5px 12px",border:"1px solid",borderColor:(cfg.appTab||"off")===v?"#10b981":"rgba(255,255,255,0.12)",background:(cfg.appTab||"off")===v?"rgba(16,185,129,0.12)":"transparent",color:(cfg.appTab||"off")===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label}</button>
+                  ))}
+                  {(cfg.appTab||"off")==="only"&&(
+                    <select className="inp" style={{height:32,fontSize:12,padding:"0 10px",width:"auto"}} value={cfg.appTabOnlyId||""} onChange={e=>setCfg("appTabOnlyId",e.target.value||null)}>
+                      <option value="">— pick who —</option>
+                      {all.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=><option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                    </select>
+                  )}
+                  <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",flexBasis:"100%"}}>Stage it: One person (you) → Admins only → Everyone at launch. Independent of the GO LIVE switch.</span>
+                </div>
               </div>
             )}
           </div>
@@ -2728,7 +2757,7 @@ function TournamentTab(){
             <div style={row}>
               <div style={sect}>Teams</div>
               <div style={col()}>{L("Players / team")}{numIn(teamSize,e=>setCfg("teamSize",parseInt(e.target.value||"0",10)||null))}</div>
-              <div style={{flexShrink:0}}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center",fontSize:11.5,color:"rgba(255,255,255,0.4)"}}>{inPlayers.length} in \u2192\u00a0<b style={{color:"#e2e8f0"}}>{teams} teams</b>{inPlayers.length%teamSize?"\u00a0(+"+(inPlayers.length%teamSize)+" extra)":""}</div></div>
+              <div style={{flexShrink:0}}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center",fontSize:11.5,color:"rgba(255,255,255,0.4)"}}>{inPlayers.length} in → <b style={{color:"#e2e8f0"}}>{teams} teams</b>{inPlayers.length%teamSize?" (+"+(inPlayers.length%teamSize)+" extra)":""}</div></div>
             </div>
             <div style={row}>
               <div style={sect}>Pot split</div>
@@ -2836,7 +2865,7 @@ function TournamentTab(){
           <div style={{display:"flex",gap:6}}>
             <button className="btn btn-gh btn-sm" onClick={()=>{all.forEach(p=>{if(cnt(p)>=minRounds)setP(p.id,"in",true);});}}>Select all eligible</button>
             <button className="btn btn-gh btn-sm" onClick={()=>{Object.keys(tp).forEach(id=>{if(tp[id]&&tp[id].in)setP(id,"in",false);});}}>Clear all</button>
-            <button className="btn btn-gh btn-sm" onClick={()=>{const lines=all.slice().sort((a,b)=>cnt(b)-cnt(a)).map(p=>{const r=cnt(p);return p.name+" — "+r+" rounds ("+(r>=minRounds?"eligible":"needs "+(minRounds-r)+" more")+") — entry if playing: $"+Math.max(bar-r,0)+(bar-r<0?" (refund $"+(r-bar)+")":"");});navigator.clipboard.writeText("CLARK TOURNAMENT — STANDINGS AS OF "+new Date().toLocaleDateString()+"\nEntry-fee bar: $"+bar+"\nEligibility: "+minRounds+"+ rounds\n\n"+lines.join("\n"));setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?"✓ Copied":"📋 Copy standings"}</button>
+            <button className="btn btn-gh btn-sm" onClick={()=>{const lines=all.slice().sort((a,b)=>cnt(b)-cnt(a)).map(p=>{const r=cnt(p);return p.name+" — "+r+" rounds ("+(r>=minRounds?"eligible":"needs "+(minRounds-r)+" more")+") — entry if playing: $"+Math.max(bar-r,0)+(cfg.refundOverpaid===true&&bar-r<0?" (refund $"+(r-bar)+")":"");});navigator.clipboard.writeText("CLARK TOURNAMENT — STANDINGS AS OF "+new Date().toLocaleDateString()+"\nEntry-fee bar: $"+bar+"\nEligibility: "+minRounds+"+ rounds\n\n"+lines.join("\n"));setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?"✓ Copied":"📋 Copy standings"}</button>
           </div>
         </div>
         <div className="card-body" style={{maxHeight:520,overflowY:"auto"}}>
@@ -2865,7 +2894,7 @@ function TournamentTab(){
                     <div className="lbl" style={{fontSize:9}}>Paid in ($)</div>
                     <input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{padding:"5px 8px",fontSize:12}}/>
                   </div>
-                  <span style={{fontSize:11,fontWeight:700,minWidth:86,textAlign:"right",color:net>0?"#fbbf24":(net<0?"#60a5fa":"#4ade80")}}>{net>0?"owes $"+net:(net<0?"refund $"+(-net):"settled ✓")}</span>
+                  <span style={{fontSize:11,fontWeight:700,minWidth:86,textAlign:"right",color:net>0?"#fbbf24":(net<0?"#60a5fa":"#4ade80")}}>{net>0?"owes $"+net:(net<0?(cfg.refundOverpaid===true?"refund $"+(-net):"covered ✓"):"settled ✓")}</span>
                 </React.Fragment>)}
               </div>
             );

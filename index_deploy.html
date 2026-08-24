@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.16-p';
+const APP_BUILD='2026.08.16-r';
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5115,7 +5115,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           <div style={{flex:1,minWidth:88,background:owed>0?'var(--warn-soft)':'var(--brand-soft)',border:'1px solid '+(owed>0?'var(--warn-border)':'var(--brand-border)'),borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
             <div style={{fontSize:9,fontWeight:700,color:owed>0?'var(--warn-ink)':'var(--brand)',textTransform:'uppercase'}}>{owed>0?'You still owe':'You\u2019re covered'}</div>
             <div style={{fontSize:15,fontWeight:800,color:owed>0?'var(--warn-ink)':'var(--brand)'}}>${owed}</div>
-            <div style={{fontSize:9.5,color:'var(--ink-40)'}}>{owed>0?'due at sign-in':(bar-myRounds<0?('$'+(myRounds-bar)+' over the bar'):'all set')}</div>
+            <div style={{fontSize:9.5,color:'var(--ink-40)'}}>{owed>0?'due at sign-in':(cfg.refundOverpaid===true&&bar-myRounds<0?('$'+(myRounds-bar)+' over — refunded'):'all set')}</div>
           </div>
         </div>
       </div>
@@ -8994,6 +8994,8 @@ function App(){
   const [showProfile, setShowProfile] = useState(false);
   // Announcements
   const [announcements, setAnnouncements] = useState({});
+  const [tournCfg, setTournCfg] = useState(null);
+  useEffect(()=>{const u=read('tournament/config',v=>setTournCfg(v||null));return ()=>{try{u&&u();}catch(e){}};},[]);
   const [myDismissals, setMyDismissals] = useState({});
   const [myJoinedAt, setMyJoinedAt] = useState(null);
   const [editingAnn, setEditingAnn] = useState(null); // {key, ...ann} when editing, or true for new
@@ -9432,6 +9434,7 @@ function App(){
     { id:'leaderboard', label:'Standings', icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
     ...(!isGuest ? [{ id:'attendance', label:'Attend', icon:<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg> }] : []),
     ...(canSeeMemberStats ? [statsTabEntry] : []),
+    ...(((tournCfg&&tournCfg.appTab)==='all'||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId))) ? [{ id:'tournament', label:'Tourney', icon:<svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> }] : []),
   ];
   const MEMBER_TABS = [...MEMBER_TABS_ROW1, ...MEMBER_TABS_ROW2];
 
@@ -9562,6 +9565,13 @@ function App(){
         </div>
       )}
       {tab === 'home' && <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/>}
+      {tab === 'tournament' && (
+        <div>
+          <div className="page-title">Tournament</div>
+          <TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} forcePreview={!(tournCfg&&tournCfg.inviteOpen===true)}/>
+          {isAdmin&&<div style={{fontSize:11,color:'var(--ink-40)',margin:'4px 2px'}}>Admins: the scoring preview and member-card preview live in the Admin tab; full setup is in the portal's Tournament tab.</div>}
+        </div>
+      )}
       {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
       {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
