@@ -4261,6 +4261,7 @@ const ALL_NAV_ITEMS=[
   {id:"settings",label:"Settings",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
 ];
 
+const MASTER_EMAILS=["jaredfriend1@gmail.com"];
 function Portal(){
   const [user,setUser]=useState(()=>{try{const s=sessionStorage.getItem("portal_user");return s?JSON.parse(s):null;}catch{return null;}});
   const [tab,setTab]=useState("dash");
@@ -4268,7 +4269,17 @@ function Portal(){
   useEffect(()=>{
     if(!auth)return;
     const unsub=auth.onAuthStateChanged(u=>{
-      if(u&&!user){const ud={email:u.email,role:"superadmin",method:"firebase"};sessionStorage.setItem("portal_user",JSON.stringify(ud));setUser(ud);}
+      if(!u)return;
+      const em=String(u.email||"").toLowerCase().trim();
+      firebase.database().ref("settings/portalUsers").once("value").then(snap=>{
+        const reg=snap.val()||{};
+        let role="superadmin";
+        Object.values(reg).forEach(v=>{if(v&&String(v.email||"").toLowerCase().trim()===em&&v.role)role=v.role;});
+        if(MASTER_EMAILS.indexOf(em)>=0)role="master";
+        const ud={email:u.email,role,method:"firebase"};
+        sessionStorage.setItem("portal_user",JSON.stringify(ud));
+        setUser(prev=>(!prev||prev.role!==role||prev.email!==u.email)?ud:prev);
+      });
     });
     return()=>unsub();
   },[]);
