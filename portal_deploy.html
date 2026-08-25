@@ -1794,11 +1794,27 @@ function AccessTab({user}){
   }
   function addPortalUser(){
     if(!newPU.name||!newPU.email||newPU.email.indexOf("@")<1){showToast("Name and a valid email required","err");return;}
-    if(newPU.password&&newPU.password.length>0&&newPU.password.length<4){showToast("Legacy password must be 4+ characters (or leave blank)","err");return;}
-    ps("settings/portalUsers",newPU);
-    setNewPU({name:"",email:"",role:"superadmin",password:""});
-    setAddingPU(false);
-    showToast("Portal user added ✓");
+    if(!newPU.password||newPU.password.length<6){showToast("Password required — 6+ characters (Firebase minimum)","err");return;}
+    const em=newPU.email.trim();
+    let sec;
+    try{sec=firebase.app("pwmgr");}catch(e){sec=firebase.initializeApp(FB,"pwmgr");}
+    sec.auth().createUserWithEmailAndPassword(em,newPU.password).then(()=>{
+      return sec.auth().signOut();
+    }).then(()=>{
+      ps("settings/portalUsers",{name:newPU.name,email:em,role:newPU.role||"superadmin"});
+      setNewPU({name:"",email:"",role:"superadmin",password:""});
+      setAddingPU(false);
+      showToast("Portal account created ✓ — they can sign in now");
+    }).catch(err=>{
+      if(err&&err.code==="auth/email-already-in-use"){
+        ps("settings/portalUsers",{name:newPU.name,email:em,role:newPU.role||"superadmin"});
+        setNewPU({name:"",email:"",role:"superadmin",password:""});
+        setAddingPU(false);
+        showToast("Account already existed — registered here with the chosen role ✓");
+      } else {
+        showToast("Couldn't create account: "+((err&&err.message)||err),"err");
+      }
+    });
   }
   function removePortalUser(pu){
     dl("settings/portalUsers/"+pu._key);
@@ -1932,7 +1948,7 @@ function AccessTab({user}){
       <div className="info-box"><strong>Portal Users</strong> can sign into this portal with a password. Master has full access; Super Admins manage games and rosters.</div>
       <div className="card">
         <div className="card-hdr">
-          <span className="card-title">Portal Users ({portalUserList.length})</span>
+          <span className="card-title">Portal Users ({portalUserList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>You set the first password · changes go by reset email</span>
           <button className="btn btn-g btn-sm" onClick={()=>setAddingPU(v=>!v)}>{addingPU?"Cancel":"+ Add User"}</button>
         </div>
         {addingPU&&(
@@ -1942,7 +1958,7 @@ function AccessTab({user}){
               <input className="inp" placeholder="Email (required for portal sign-in)" value={newPU.email} onChange={e=>setNewPU(p=>({...p,email:e.target.value}))}/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8}}>
-              <input className="inp" type="password" placeholder="Legacy password (optional — they create their own via Email sign-in)" value={newPU.password} onChange={e=>setNewPU(p=>({...p,password:e.target.value}))}/>
+              <input className="inp" type="password" placeholder="Password (6+ chars — you set it, they can change it later)" value={newPU.password} onChange={e=>setNewPU(p=>({...p,password:e.target.value}))}/>
               <select className="inp" style={{width:"auto"}} value={newPU.role} onChange={e=>setNewPU(p=>({...p,role:e.target.value}))}>
                 <option value="superadmin">Super Admin</option>
               </select>
@@ -1957,6 +1973,11 @@ function AccessTab({user}){
               <div className="p-name">{pu.name}</div>
               {pu.email&&<div className="p-sub">{pu.email}</div>}
             </div>
+            {isMaster(user.role)&&pu.email&&(
+              <button className="btn btn-sm" style={{fontSize:10.5,color:"#60a5fa",borderColor:"rgba(59,130,246,0.3)",marginRight:6}} onClick={()=>{
+                auth.sendPasswordResetEmail(pu.email).then(()=>showToast("Reset email sent to "+pu.email+" ✓")).catch(err=>showToast("Reset failed: "+((err&&err.message)||err),"err"));
+              }}>🔑 Send password reset</button>
+            )}
             {isMaster(user.role)?(
               <select className="inp" style={{width:"auto",padding:"4px 8px",fontSize:11}} value={pu.role||"superadmin"} onChange={e=>wr("settings/portalUsers/"+pu._key+"/role",e.target.value)}>
                 <option value="superadmin">Super Admin</option>
