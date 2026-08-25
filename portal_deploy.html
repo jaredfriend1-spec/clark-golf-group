@@ -1855,7 +1855,8 @@ function AccessTab({user}){
       <div className="card" style={{marginBottom:14}}>
         <div className="card-hdr"><span className="card-title">👁 What Super Admins can see</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only — visibility, never control: roles, adds &amp; removals stay yours</span></div>
         <div style={{padding:"10px 14px"}}>
-          {[["portalUsers","Portal user accounts — view the list &amp; send password resets"]].map(([k,label])=>(
+          <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Menu items (the Master Only group)</div>
+          {[...ALL_NAV_ITEMS.filter(n=>n.master).map(n=>[n.id,"Menu: "+n.label]),["portalUsers","Access tab: portal user accounts &amp; password resets"]].map(([k,label])=>(
             <label key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",cursor:"pointer",fontSize:12.5,color:"rgba(255,255,255,0.75)"}}>
               <input type="checkbox" checked={(portalPerms&&portalPerms[k])===true} onChange={e=>wr("settings/portalPerms/"+k,e.target.checked?true:null)} style={{width:17,height:17}}/>
               <span dangerouslySetInnerHTML={{__html:label}}/>
@@ -4323,7 +4324,7 @@ function Portal(){
 
   // Redirect if non-master lands on master-only tab
   useEffect(()=>{
-    if(user&&!isMaster(user.role)&&(tab==="settings"||tab==="season")){setTab("dash");}
+    if(user&&!tabAllowed(tab)){setTab("dash");}
   },[user,tab]);
 
   function onAuth(u){sessionStorage.setItem("portal_user",JSON.stringify(u));setUser(u);}
@@ -4331,8 +4332,10 @@ function Portal(){
 
   if(!user)return<Gate onAuth={onAuth}/>;
 
-  // Filter nav based on role
-  const NAV_ITEMS=ALL_NAV_ITEMS.filter(n=>!n.master||isMaster(user.role));
+  // Filter nav based on role + Master-granted menu permissions
+  const navPerms=useDB("settings/portalPerms");
+  const tabAllowed=id=>{const n=ALL_NAV_ITEMS.find(x=>x.id===id);if(!n||!n.master)return true;return isMaster(user.role)||((navPerms&&navPerms[id])===true);};
+  const NAV_ITEMS=ALL_NAV_ITEMS.filter(n=>!n.master||isMaster(user.role)||((navPerms&&navPerms[n.id])===true));
 
   const ini=(user.email&&user.email!=="master")?user.email.charAt(0).toUpperCase():(user.name?user.name.charAt(0).toUpperCase():"J");
 
@@ -4363,9 +4366,9 @@ function Portal(){
           {NAV_ITEMS.filter(n=>!n.master).map(n=>(
             <button key={n.id} className={`ni${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}{n.label}</button>
           ))}
-          {isMaster(user.role)&&NAV_ITEMS.some(n=>n.master)&&(
+          {NAV_ITEMS.some(n=>n.master)&&(
             <>
-              <div className="nav-sep">Master Only</div>
+              <div className="nav-sep">{isMaster(user.role)?"Master Only":"Granted by Master"}</div>
               {NAV_ITEMS.filter(n=>n.master).map(n=>(
                 <button key={n.id} className={`ni${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}{n.label}</button>
               ))}
@@ -4390,9 +4393,9 @@ function Portal(){
           {tab==="tournament"&&<TournamentTab/>}
           {tab==="clarkemail"&&<ClarkEmailTab/>}
           {tab==="attend"&&<AttendTab user={user}/>}
-          {tab==="logincards"&&isMaster(user.role)&&<LoginCardsTab/>}
-          {tab==="season"&&isMaster(user.role)&&<SeasonTab/>}
-          {tab==="settings"&&isMaster(user.role)&&<SettingsTab user={user} onSignOut={signOut}/>}
+          {tab==="logincards"&&tabAllowed("logincards")&&<LoginCardsTab/>}
+          {tab==="season"&&tabAllowed("season")&&<SeasonTab/>}
+          {tab==="settings"&&tabAllowed("settings")&&<SettingsTab user={user} onSignOut={signOut}/>}
         </div>
       </div>
     </div>
