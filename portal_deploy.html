@@ -1642,6 +1642,98 @@ function RosterTab(){
         </div>
       </div>
     )}
+    <div className="card">
+        <div className="card-hdr"><span className="card-title">🔍 Compare a pasted email list</span></div>
+        <div className="card-body">
+          {(()=>{
+            const [txt,setTxt]=React.useState('');
+            const entries=Object.entries(clarkList||{}).map(([k,v])=>({...(v||{}),_key:k}));
+            const NICK={bob:'robert',rob:'robert',robert:'robert',bill:'william',billy:'william',will:'william',jim:'james',jimmy:'james',james:'james',mike:'michael',michael:'michael',tom:'thomas',thomas:'thomas',tommy:'thomas',jeff:'jeffrey',dave:'david',matt:'matthew',pete:'peter',ken:'kenneth',rick:'richard',greg:'gregory',joey:'joseph',joe:'joseph',steve:'steven'};
+            const norm=s=>String(s||'').toLowerCase().replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
+            const cf=f=>NICK[f]||f;
+            const parse=(raw)=>{
+              const out=[];const seen=new Set();
+              const re=/(?:"?([^"<>,]{2,60}?)"?\s*)?<([^<>\s]+@[^<>\s]+)>|(^|[\s,;])([^\s,;<>"]+@[^\s,;<>"]+)/g;
+              let m;while((m=re.exec(raw))){const email=(m[2]||m[4]||'').trim().toLowerCase();if(!email||seen.has(email))continue;seen.add(email);out.push({name:(m[1]||'').trim(),email});}
+              return out;
+            };
+            const list=parse(txt);
+            const emailsByName={};Object.entries(rosterEmails||{}).forEach(([id,e])=>{emailsByName[String(id)]=String(e||'').toLowerCase();});
+            const rosterList=visible.map(p=>({id:p.id,name:p.name,email:emailsByName[String(p.id)]||''}));
+            const matchedR=new Set(), matchedL=new Set(), flags=[];
+            const tryMatch=(li,mode)=>{
+              const l=list[li];const ln=norm(l.name);
+              for(const p of rosterList){
+                if(matchedR.has(p.id))continue;
+                const rn=norm(p.name);
+                if(mode===0&&l.email&&p.email&&l.email===p.email)return p;
+                if(mode===1&&ln&&rn===ln)return p;
+                if(mode>=2&&ln){
+                  const lt=ln.split(' ');const rt=rn.split(' ');
+                  if(!lt.length||!rt.length)continue;
+                  const ll=lt[lt.length-1],lf=cf(lt[0]),rl=rt[rt.length-1],rf=cf(rt[0]);
+                  if(mode===2&&rl===ll&&(rf===lf||rf[0]===lf[0]))return p;
+                  if(mode===3&&rn===lt.slice().reverse().join(' '))return p;   // reversed names
+                }
+              }
+              return null;
+            };
+            for(let mode=0;mode<=3;mode++){
+              list.forEach((l,i)=>{
+                if(matchedL.has(i))return;
+                const p=tryMatch(i,mode);
+                if(p){matchedL.add(i);matchedR.add(p.id);
+                  if(mode===3)flags.push('Name reversed: list “'+l.name+'” = roster “'+p.name+'”');
+                  else if(mode===2&&norm(l.name)!==norm(p.name))flags.push('Fuzzy: list “'+l.name+'” ⇆ roster “'+p.name+'” — verify');
+                  if(l.email&&p.email&&l.email!==p.email)flags.push('Email differs for '+p.name+': roster has '+p.email+', list has '+l.email);
+                  if(l.email&&!p.email)flags.push(p.name+' has no email in the app — list has '+l.email);
+                }
+              });
+            }
+            const onlyRoster=rosterList.filter(p=>!matchedR.has(p.id));
+            const onlyList=list.filter((_,i)=>!matchedL.has(i));
+            const pastedEmails=new Set(list.map(l=>l.email));
+            const pastedByName={};list.forEach(l=>{if(l.name)pastedByName[norm(l.name)]=l;});
+            const listingOrphans=(entries||[]).filter(e=>{
+              const em=String(e.email||'').toLowerCase().trim();
+              if(em&&pastedEmails.has(em))return false;
+              const pn=pastedByName[norm(e.name)];
+              if(pn)return false;
+              return true;
+            });
+            (entries||[]).forEach(e=>{
+              const pn=pastedByName[norm(e.name)];
+              const em=String(e.email||'').toLowerCase().trim();
+              if(pn&&pn.email&&em&&pn.email!==em)flags.push('Listing email differs for '+e.name+': listing has '+em+', Clark has '+pn.email);
+            });
+            const sect={fontSize:10.5,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em",margin:"14px 0 6px"};
+            return (
+              <div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginBottom:8,lineHeight:1.6}}>Paste the raw To/CC block from any email. Matches by email first, then name (nicknames + reversed names handled). Compares against the live roster and the app’s email list — nothing is changed; this is a report.</div>
+                <textarea className="inp" value={txt} onChange={e=>setTxt(e.target.value)} placeholder='Paste like: Name <email@x.com>, "Other Name" <o@y.com>, bare@z.com …' style={{width:"100%",minHeight:110,fontSize:12,fontFamily:"monospace",lineHeight:1.5,padding:"10px 12px",boxSizing:"border-box"}}/>
+                {list.length>0&&(
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#4ade80",marginTop:8}}>{list.length} parsed · {matchedR.size} matched · {onlyRoster.length} roster-only · {onlyList.length} list-only</div>
+                    {flags.length>0&&(<div><div style={sect}>⚠ Verify</div>{flags.map((f,i)=><div key={i} style={{fontSize:11.5,color:"#fbbf24",padding:"2px 0"}}>{f}</div>)}</div>)}
+                    <div style={sect}>On the roster, NOT on the pasted list — removal candidates ({onlyRoster.length}) · check rounds before hiding</div>
+                    {onlyRoster.map(p=><div key={p.id} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{p.name}{p.email?<span style={{color:"rgba(255,255,255,0.3)"}}> · {p.email}</span>:<span style={{color:"rgba(255,255,255,0.25)"}}> · no email in app</span>}</div>)}
+                    <div style={sect}>In YOUR Clark Email listing, NOT on the pasted list — remove candidates ({listingOrphans.length})</div>
+                    {listingOrphans.length===0&&<div style={{fontSize:11.5,color:"rgba(255,255,255,0.3)"}}>None — the listing matches Clark’s list.</div>}
+                    {listingOrphans.map(e=>(
+                      <div key={e._key} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
+                        <span style={{flex:1,fontSize:12,color:"rgba(255,255,255,0.75)"}}>{e.name} <span style={{color:"rgba(255,255,255,0.35)"}}>· {e.email}</span></span>
+                        <button className="btn btn-sm" style={{color:"#f87171",borderColor:"rgba(248,113,113,0.4)",background:"transparent",fontWeight:700,fontSize:11}} onClick={()=>{if(window.confirm("Remove "+e.name+" from the Clark Email listing?")){firebase.database().ref("clarkEmailList/"+e._key).remove();}}}>Remove</button>
+                      </div>
+                    ))}
+                    <div style={sect}>On the pasted list, NOT on the roster — add candidates ({onlyList.length})</div>
+                    {onlyList.map((l,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{l.name||"(no name)"} <span style={{color:"rgba(255,255,255,0.35)"}}>· {l.email}</span></div>)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
   </div>);
 }
 
@@ -3075,102 +3167,6 @@ function ClarkEmailTab(){
 
   return(
     <div className="main">
-      <div className="card">
-        <div className="card-hdr"><span className="card-title">🔍 Compare a pasted email list</span></div>
-        <div className="card-body">
-          {(()=>{
-            const [txt,setTxt]=React.useState('');
-            const rosterEdits=useDB("rosterEdits")||{};
-            const extraP=useDB("extraPlayers")||{};
-            const rosterHidden=useDB("rosterHidden")||{};
-            const rosterEmails=rosterEmailsDB;
-            const all=[...ROSTER.map(p=>({id:p.id,name:(rosterEdits[p.id])||p.name})),...Object.values(extraP).map(p=>({id:p.id,name:p.name}))].filter(p=>!rosterHidden[p.id]);
-            const NICK={bob:'robert',rob:'robert',robert:'robert',bill:'william',billy:'william',will:'william',jim:'james',jimmy:'james',james:'james',mike:'michael',michael:'michael',tom:'thomas',thomas:'thomas',tommy:'thomas',jeff:'jeffrey',dave:'david',matt:'matthew',pete:'peter',ken:'kenneth',rick:'richard',greg:'gregory',joey:'joseph',joe:'joseph',steve:'steven'};
-            const norm=s=>String(s||'').toLowerCase().replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
-            const cf=f=>NICK[f]||f;
-            const parse=(raw)=>{
-              const out=[];const seen=new Set();
-              const re=/(?:"?([^"<>,]{2,60}?)"?\s*)?<([^<>\s]+@[^<>\s]+)>|(^|[\s,;])([^\s,;<>"]+@[^\s,;<>"]+)/g;
-              let m;while((m=re.exec(raw))){const email=(m[2]||m[4]||'').trim().toLowerCase();if(!email||seen.has(email))continue;seen.add(email);out.push({name:(m[1]||'').trim(),email});}
-              return out;
-            };
-            const list=parse(txt);
-            const emailsByName={};Object.entries(rosterEmails||{}).forEach(([id,e])=>{emailsByName[String(id)]=String(e||'').toLowerCase();});
-            const rosterList=all.map(p=>({id:p.id,name:p.name,email:emailsByName[String(p.id)]||''}));
-            const matchedR=new Set(), matchedL=new Set(), flags=[];
-            const tryMatch=(li,mode)=>{
-              const l=list[li];const ln=norm(l.name);
-              for(const p of rosterList){
-                if(matchedR.has(p.id))continue;
-                const rn=norm(p.name);
-                if(mode===0&&l.email&&p.email&&l.email===p.email)return p;
-                if(mode===1&&ln&&rn===ln)return p;
-                if(mode>=2&&ln){
-                  const lt=ln.split(' ');const rt=rn.split(' ');
-                  if(!lt.length||!rt.length)continue;
-                  const ll=lt[lt.length-1],lf=cf(lt[0]),rl=rt[rt.length-1],rf=cf(rt[0]);
-                  if(mode===2&&rl===ll&&(rf===lf||rf[0]===lf[0]))return p;
-                  if(mode===3&&rn===lt.slice().reverse().join(' '))return p;   // reversed names
-                }
-              }
-              return null;
-            };
-            for(let mode=0;mode<=3;mode++){
-              list.forEach((l,i)=>{
-                if(matchedL.has(i))return;
-                const p=tryMatch(i,mode);
-                if(p){matchedL.add(i);matchedR.add(p.id);
-                  if(mode===3)flags.push('Name reversed: list “'+l.name+'” = roster “'+p.name+'”');
-                  else if(mode===2&&norm(l.name)!==norm(p.name))flags.push('Fuzzy: list “'+l.name+'” ⇆ roster “'+p.name+'” — verify');
-                  if(l.email&&p.email&&l.email!==p.email)flags.push('Email differs for '+p.name+': roster has '+p.email+', list has '+l.email);
-                  if(l.email&&!p.email)flags.push(p.name+' has no email in the app — list has '+l.email);
-                }
-              });
-            }
-            const onlyRoster=rosterList.filter(p=>!matchedR.has(p.id));
-            const onlyList=list.filter((_,i)=>!matchedL.has(i));
-            const pastedEmails=new Set(list.map(l=>l.email));
-            const pastedByName={};list.forEach(l=>{if(l.name)pastedByName[norm(l.name)]=l;});
-            const listingOrphans=(entries||[]).filter(e=>{
-              const em=String(e.email||'').toLowerCase().trim();
-              if(em&&pastedEmails.has(em))return false;
-              const pn=pastedByName[norm(e.name)];
-              if(pn)return false;
-              return true;
-            });
-            (entries||[]).forEach(e=>{
-              const pn=pastedByName[norm(e.name)];
-              const em=String(e.email||'').toLowerCase().trim();
-              if(pn&&pn.email&&em&&pn.email!==em)flags.push('Listing email differs for '+e.name+': listing has '+em+', Clark has '+pn.email);
-            });
-            const sect={fontSize:10.5,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em",margin:"14px 0 6px"};
-            return (
-              <div>
-                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginBottom:8,lineHeight:1.6}}>Paste the raw To/CC block from any email. Matches by email first, then name (nicknames + reversed names handled). Compares against the live roster and the app’s email list — nothing is changed; this is a report.</div>
-                <textarea className="inp" value={txt} onChange={e=>setTxt(e.target.value)} placeholder='Paste like: Name <email@x.com>, "Other Name" <o@y.com>, bare@z.com …' style={{width:"100%",minHeight:110,fontSize:12,fontFamily:"monospace",lineHeight:1.5,padding:"10px 12px",boxSizing:"border-box"}}/>
-                {list.length>0&&(
-                  <div>
-                    <div style={{fontSize:12,fontWeight:700,color:"#4ade80",marginTop:8}}>{list.length} parsed · {matchedR.size} matched · {onlyRoster.length} roster-only · {onlyList.length} list-only</div>
-                    {flags.length>0&&(<div><div style={sect}>⚠ Verify</div>{flags.map((f,i)=><div key={i} style={{fontSize:11.5,color:"#fbbf24",padding:"2px 0"}}>{f}</div>)}</div>)}
-                    <div style={sect}>On the roster, NOT on the pasted list — removal candidates ({onlyRoster.length}) · check rounds before hiding</div>
-                    {onlyRoster.map(p=><div key={p.id} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{p.name}{p.email?<span style={{color:"rgba(255,255,255,0.3)"}}> · {p.email}</span>:<span style={{color:"rgba(255,255,255,0.25)"}}> · no email in app</span>}</div>)}
-                    <div style={sect}>In YOUR Clark Email listing, NOT on the pasted list — remove candidates ({listingOrphans.length})</div>
-                    {listingOrphans.length===0&&<div style={{fontSize:11.5,color:"rgba(255,255,255,0.3)"}}>None — the listing matches Clark’s list.</div>}
-                    {listingOrphans.map(e=>(
-                      <div key={e._key} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
-                        <span style={{flex:1,fontSize:12,color:"rgba(255,255,255,0.75)"}}>{e.name} <span style={{color:"rgba(255,255,255,0.35)"}}>· {e.email}</span></span>
-                        <button className="btn btn-sm" style={{color:"#f87171",borderColor:"rgba(248,113,113,0.4)",background:"transparent",fontWeight:700,fontSize:11}} onClick={()=>{if(window.confirm("Remove "+e.name+" from the Clark Email listing?")){firebase.database().ref("clarkEmailList/"+e._key).remove();}}}>Remove</button>
-                      </div>
-                    ))}
-                    <div style={sect}>On the pasted list, NOT on the roster — add candidates ({onlyList.length})</div>
-                    {onlyList.map((l,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.75)",padding:"2px 0"}}>{l.name||"(no name)"} <span style={{color:"rgba(255,255,255,0.35)"}}>· {l.email}</span></div>)}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-      </div>
       <div className="pg-eyebrow">Communications</div>
       <div className="pg-title">Clark Email List</div>
       <div className="pg-sub">Manage recipients for Clark's group emails. Check who to include, then copy all in Gmail format.</div>
@@ -4254,7 +4250,6 @@ const ALL_NAV_ITEMS=[
   {id:"gamerules",label:"Game Modes",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/><path d="M5.5 5.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2M18.5 18.5l-2-2"/></svg>},
   {id:"appsettings",label:"App Settings",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>},
   {id:"week",label:"Week",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
-  {id:"email",label:"Communications",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
   {id:"roster",label:"Roster",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   {id:"history",label:"History",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
   {id:"announce",label:"Announce",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>},
