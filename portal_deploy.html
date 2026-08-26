@@ -2715,6 +2715,8 @@ function TournamentTab(){
     return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
   },[extra,rosterEdits,rosterHidden]);
   const seasonLock=useDB("settings/seasonLock");
+  const rosterTeeT=useDB("rosterTee");
+  const rosterHcpT=useDB("rosterHcp");
   const roundCounts=React.useMemo(()=>{
     const m={};rounds.forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||"")>seasonLock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
   },[rounds,seasonLock]);
@@ -2849,7 +2851,7 @@ function TournamentTab(){
             <div>{CL("Tournament name")}<input className="inp" style={F} value={cfg.name||""} placeholder="Clark Group Tournament" onChange={e=>setCfg("name",e.target.value)}/></div>
             <div>{CL("Day 1")}<input className="inp" style={F} type="date" value={cfg.date1||""} onChange={e=>setCfg("date1",e.target.value||null)}/></div>
             <div>{CL("Day 2 (blank = 1-day)")}<input className="inp" style={F} type="date" value={cfg.date2||""} onChange={e=>setCfg("date2",e.target.value||null)}/></div>
-                <div><div className="fl">Responses due by (auto-locks answers)</div><input className="inp" type="date" value={cfg.rsvpDeadline||""} onChange={e=>setCfg("rsvpDeadline",e.target.value||null)}/></div>
+            <div>{CL("Responses due by (auto-locks)")}<input className="inp" style={F} type="date" value={cfg.rsvpDeadline||""} onChange={e=>setCfg("rsvpDeadline",e.target.value||null)}/></div>
             <div>{CL("Min rounds")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
             <div>{CL("Entry-fee bar $")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder={"auto ("+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
             <div>{CL("Extra prize $ (optional)")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="0" value={cfg.extraPrize||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("extraPrize",n>0?n:null);}}/></div>
@@ -3111,7 +3113,13 @@ function TournamentTab(){
                   )}
                   <div style={{width:110}}>
                     <div className="lbl" style={{fontSize:9}}>Paid in ($)</div>
-                    <input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{padding:"5px 8px",fontSize:12}}/>
+                    {isIn&&<span style={{display:"inline-flex",gap:5,alignItems:"center",marginRight:6}}>
+                  <input className="inp" style={{width:52,padding:"4px 6px",fontSize:11.5,textAlign:"center"}} title="Handicap (draw uses this)" value={tp[p.id]&&tp[p.id].handicap!=null?tp[p.id].handicap:((rosterHcpT&&rosterHcpT[p.id]!=null)?rosterHcpT[p.id]:(p.hcp!=null?p.hcp:""))} onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,"");setP(p.id,"handicap",v===""?null:parseFloat(v));}}/>
+                  <select className="inp" style={{width:"auto",padding:"4px 6px",fontSize:11}} title="Tees" value={(tp[p.id]&&tp[p.id].tee)||(rosterTeeT&&rosterTeeT[p.id])||p.tee||"Whites"} onChange={e=>setP(p.id,"tee",e.target.value)}>
+                    {["Blends","Whites","Golds","SGA"].map(x=><option key={x} value={x}>{x}</option>)}
+                  </select>
+                </span>}
+                <input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{padding:"5px 8px",fontSize:12}}/>
                   </div>
                   <span style={{fontSize:11,fontWeight:700,minWidth:86,textAlign:"right",color:net>0?"#fbbf24":(net<0?"#60a5fa":"#4ade80")}}>{net>0?"owes $"+net:(net<0?(cfg.refundOverpaid===true?"refund $"+(-net):"covered ✓"):"settled ✓")}</span>
                 </React.Fragment>)}
