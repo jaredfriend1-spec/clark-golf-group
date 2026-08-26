@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-p';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-q';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5258,14 +5258,12 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         const settledN=inRows.filter(x=>x.net<=0).length;
         const outstanding=inRows.reduce((s,x)=>s+x.net,0);
         const chip=(txt,color,border)=>(<span style={{fontSize:9.5,fontWeight:800,color,border:'1px solid '+border,borderRadius:6,padding:'1px 6px',marginLeft:5,whiteSpace:'nowrap'}}>{txt}</span>);
-        const toggle=(row)=>{
-          wsafe({['tournament/players/'+row.id+'/in']:!row.isIn,['tournament/players/'+row.id+'/by']:'admin',['tournament/players/'+row.id+'/ts']:Date.now()});
-        };
+
         return (
           <div>
             <div style={{...card,padding:'11px 14px'}}>
               <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {invitedRows.length} invited · {answeredN} answered · {invitedRows.length-answeredN} deciding · {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
-              <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Tap Paid ✓ when the cash lands.</div>
+              <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. In/Out answer FOR someone; tap the lit one again to clear back to no answer. Tap Paid ✓ when the cash lands.</div>
               {rows.map(row=>(
                 <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&row.rec&&row.rec.in===false)?0.6:1}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -5281,7 +5279,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                     {!row.isIn&&!row.eligible&&!(row.rec&&row.rec.invited===true)&&(
                       <button onClick={()=>wsafe({['tournament/players/'+row.id+'/invited']:true})} style={{flexShrink:0,height:38,padding:'0 10px',borderRadius:10,border:'1.5px solid var(--brand-border)',background:'transparent',color:'var(--brand)',fontWeight:800,fontSize:11.5,cursor:'pointer',fontFamily:'inherit'}}>✉ Invite</button>
                     )}
-                    <button onClick={()=>toggle(row)} style={{flexShrink:0,width:64,height:38,borderRadius:10,border:'1.5px solid',borderColor:row.isIn?'var(--brand)':'var(--hairline)',background:row.isIn?'var(--brand-soft)':'transparent',color:row.isIn?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{row.isIn?'In ✓':'Out'}</button>
+                    {(()=>{const ans=row.rec&&(row.rec.in===true||row.rec.in===false)?row.rec.in:null;
+                      const setAns=v=>{if(ans===v){wsafe({['tournament/players/'+row.id+'/in']:null,['tournament/players/'+row.id+'/by']:null,['tournament/players/'+row.id+'/ts']:null});}else{wsafe({['tournament/players/'+row.id+'/in']:v,['tournament/players/'+row.id+'/by']:'admin',['tournament/players/'+row.id+'/ts']:Date.now()});}};
+                      const bs=(on,col,bg)=>({flexShrink:0,minWidth:44,height:38,borderRadius:10,border:'1.5px solid',borderColor:on?col:'var(--hairline)',background:on?bg:'transparent',color:on?col:'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit',padding:'0 10px'});
+                      return (<span style={{display:'inline-flex',gap:5,flexShrink:0}}>
+                        <button style={bs(ans===true,'var(--brand)','var(--brand-soft)')} onClick={()=>setAns(true)}>In</button>
+                        <button style={bs(ans===false,'var(--money-neg)','transparent')} onClick={()=>setAns(false)}>Out</button>
+                      </span>);})()}
                   </div>
                   {row.isIn&&(
                     <div style={{display:'flex',gap:7,alignItems:'center',marginTop:7,flexWrap:'wrap'}}>
