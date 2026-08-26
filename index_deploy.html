@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-o';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-p';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5317,14 +5317,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           <div style={card}>
             <div style={hdr}>⚙ Tournament configuration <span style={{fontWeight:600,textTransform:'none'}}>— mirrors the portal; changes apply everywhere instantly</span></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(105px,1fr))',gap:9}}>
-              <div>
-            <div style={{...card,padding:0,overflow:'hidden'}}>
-              <div onClick={()=>setShowHow(v=>!v)} style={{padding:'11px 14px',display:'flex',alignItems:'center',cursor:'pointer'}}>
-                <span style={{fontSize:12,fontWeight:800,color:'var(--ink)'}}>📖 How the tournament works</span>
-                <span style={{fontSize:11,color:'var(--ink-40)',marginLeft:'auto'}}>{showHow?'hide ▲':'read ▼'}</span>
-              </div>
-              {showHow&&(
-                <div style={{padding:'0 14px 12px'}}>
+            <button onClick={()=>setShowHow(true)} style={{gridColumn:'1 / -1',width:'100%',padding:'12px 0',borderRadius:11,border:'1.5px solid var(--brand-border)',background:'var(--brand-soft)',color:'var(--brand)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit',marginBottom:4}}>📖 How the tournament works — tap to read</button>
+            {showHow&&ReactDOM.createPortal(
+              <div onClick={()=>setShowHow(false)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.6)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:'22px 14px'}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:'var(--surface)',borderRadius:16,padding:'18px 16px',maxWidth:560,width:'100%',maxHeight:'86vh',overflowY:'auto',boxShadow:'0 20px 50px rgba(0,0,0,0.35)'}}>
+                  <div style={{fontSize:15,fontWeight:800,color:'var(--ink)',marginBottom:12}}>📖 How the tournament works</div>
                   {[
                     ['The fund — already banked','All season, $1 from every player every round goes into the tournament fund. It is the floor of the pot and it is already collected — the pot grows every Friday before a single invite goes out.'],
                     ['Invites & the season lock','GO LIVE (portal) does two things at once: every eligible player sees a persistent invite in the app until they answer, and the season\u2019s books close — the fund, eligibility, and each buy-in lock as quoted. Fridays keep going; those rounds count toward NEXT season and next year\u2019s fund.'],
@@ -5335,14 +5332,16 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                     ['What players see','Before GO LIVE: nothing. After: this tab — the Board with the live pot and field, published Teams, live Scores. Their only control is their own answer.'],
                     ['After the tournament','Results live on the Scores board per day. Close-out & archive (frozen results, clean slate for next year) ships as the next build.'],
                   ].map(([t,body],i2)=>(
-                    <div key={i2} style={{marginBottom:9}}>
-                      <div style={{fontSize:10.5,fontWeight:800,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:2}}>{t}</div>
-                      <div style={{fontSize:12,color:'var(--ink-60)',lineHeight:1.6}}>{body}</div>
+                    <div key={i2} style={{marginBottom:12}}>
+                      <div style={{fontSize:11,fontWeight:800,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:3}}>{t}</div>
+                      <div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.65}}>{body}</div>
                     </div>
                   ))}
+                  <button className="btn" style={{width:'100%',marginTop:6,fontWeight:800}} onClick={()=>setShowHow(false)}>Close</button>
                 </div>
-              )}
-            </div>{L('Entry bar $')}{num('feeBar',null,'auto '+autoBar)}</div>
+              </div>
+            ,document.body)}
+              <div>{L('Entry bar $')}{num('feeBar',null,'auto '+autoBar)}</div>
               <div>{L('Min rounds')}{num('minRounds',10)}</div>
               <div>{L('Extra prize $')}{num('extraPrize',null,'0')}</div>
               <div>{L('Team size')}{num('teamSize',4)}</div>
