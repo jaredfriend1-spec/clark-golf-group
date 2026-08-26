@@ -2714,9 +2714,10 @@ function TournamentTab(){
     const ex=Object.values(extra||{}).map(p=>({...p,isExtra:true}));
     return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
   },[extra,rosterEdits,rosterHidden]);
+  const seasonLock=useDB("settings/seasonLock");
   const roundCounts=React.useMemo(()=>{
-    const m={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
-  },[rounds]);
+    const m={};rounds.forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||"")>seasonLock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
+  },[rounds,seasonLock]);
   const cnt=p=>roundCounts[String(p.name).toLowerCase().trim()]||0;
   const minRounds=cfg.minRounds!=null?cfg.minRounds:10;
   const autoBar=all.reduce((mx,p)=>Math.max(mx,cnt(p)),0);
@@ -2814,6 +2815,27 @@ function TournamentTab(){
   return(
     <div>
       <div className="pg-head"><div><div className="pg-title">Tournament</div><div className="pg-sub">Plan the Clark tournament with live season data</div></div></div>
+      {(()=>{
+        const [openHow,setOpenHow]=React.useState(false);
+        const H=({t,children})=>(<div style={{marginBottom:10}}><div style={{fontSize:11,fontWeight:800,color:"#4ade80",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>{t}</div><div style={{fontSize:12.5,color:"rgba(255,255,255,0.7)",lineHeight:1.65}}>{children}</div></div>);
+        return (
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-hdr" onClick={()=>setOpenHow(v=>!v)} style={{cursor:"pointer"}}><span className="card-title">📖 How the tournament works</span><span style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginLeft:"auto"}}>{openHow?"hide ▲":"read ▼"}</span></div>
+            {openHow&&(
+              <div style={{padding:"12px 14px"}}>
+                <H t="The fund — already banked">All season, $1 from every player every round goes into the tournament fund. It is the floor of the pot and it is already collected — the pot grows every Friday before a single invite goes out.</H>
+                <H t="Invites & the season lock">When you hit GO LIVE, two things happen at once: every eligible player (rounds at or over the bar) sees a persistent invite in the app until they answer, and the season's books close — the fund, eligibility, and each player's buy-in lock as quoted. Fridays keep going as normal; those rounds and dollars count toward NEXT season and next year's fund.</H>
+                <H t="Adding people below the bar">Numbers thin? Any admin can tap ✉ Invite on someone under the rounds bar (here or in the app's Field pill). They get the same banner and answer for themselves — they'll wear an EXCEPTION chip. The In/Out toggles remain the "I'm deciding for you" tool; SELF ✓ always means they chose.</H>
+                <H t="Pay-ins">Each player owes the buy-in bar minus their rounds (their $1s already in the fund). Collect cash at the club, tap Paid in the app's 💵 Field pill or here — one shared ledger. The header always shows who's invited, answered, still deciding, and what's outstanding.</H>
+                <H t="Answers & the deadline">Players confirm handicap and tees when they tap I'm in — the draw uses those numbers. They can change their answer freely until the response deadline (set above); after that, answers lock automatically and changes go through an admin.</H>
+                <H t="Payouts">Fund + opt-in cash + any added prize money = the pot. CTP holes come off the top; your category percentages split the rest; skins sweep every leftover dollar. All computed live on the Scores board — nothing to reconcile by hand.</H>
+                <H t="What players see">Before GO LIVE: nothing (stage it to yourself or admins to rehearse). After: the Tourney tab — the board with the live pot and field, published teams, and live scoring. Their only control is their own answer. No config, no money, no toggles.</H>
+                <H t="After the tournament">Results live on the Scores board per day. Closing out and archiving the whole event (frozen results + clean slate for next year) ships as the next build.</H>
+              </div>
+            )}
+          </div>
+        );
+      })()}
       <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:14}}>📋 DRAFT — planning workspace only. Numbers are live from real attendance; nothing appears in the member app until the tournament build is activated.</div>
 
       <div className="card">
@@ -2827,6 +2849,7 @@ function TournamentTab(){
             <div>{CL("Tournament name")}<input className="inp" style={F} value={cfg.name||""} placeholder="Clark Group Tournament" onChange={e=>setCfg("name",e.target.value)}/></div>
             <div>{CL("Day 1")}<input className="inp" style={F} type="date" value={cfg.date1||""} onChange={e=>setCfg("date1",e.target.value||null)}/></div>
             <div>{CL("Day 2 (blank = 1-day)")}<input className="inp" style={F} type="date" value={cfg.date2||""} onChange={e=>setCfg("date2",e.target.value||null)}/></div>
+                <div><div className="fl">Responses due by (auto-locks answers)</div><input className="inp" type="date" value={cfg.rsvpDeadline||""} onChange={e=>setCfg("rsvpDeadline",e.target.value||null)}/></div>
             <div>{CL("Min rounds")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
             <div>{CL("Entry-fee bar $")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder={"auto ("+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
             <div>{CL("Extra prize $ (optional)")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="0" value={cfg.extraPrize||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("extraPrize",n>0?n:null);}}/></div>
@@ -2869,7 +2892,7 @@ function TournamentTab(){
                   <button className="btn btn-g" style={{fontWeight:800,padding:"10px 22px"}} onClick={()=>setGoLiveOpen(true)}>🚀 GO LIVE</button>
                 ):(
                   <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"11px 13px"}}>
-                    <div style={{fontSize:12.5,fontWeight:700,color:"#e2e8f0",marginBottom:8}}>Go live now? Every member will see the tournament card and can tap I’m in / Can’t make it.</div>
+                    <div style={{fontSize:12.5,fontWeight:700,color:"#e2e8f0",marginBottom:8}}>Go live now? Every member will see the tournament card and can tap I’m in / Can’t make it. This also closes this season’s books: rounds, the fund, and buy-in amounts lock as quoted — Fridays keep going and count toward next season.</div>
                     <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>
                       <input type="checkbox" checked={pushToo} onChange={e=>setPushToo(e.target.checked)}/>Also send a push notification to everyone now
                     </label>
@@ -2880,6 +2903,10 @@ function TournamentTab(){
                       <button className="btn btn-g btn-sm" style={{fontWeight:800}} onClick={()=>{
                         setCfg("inviteOpen",true);
                         if((cfg.appTab||"off")!=="all")setCfg("appTab","all");
+                        if(!seasonLock||!seasonLock.closedAt){
+                          const t=new Date();const isoT=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+                          wr("settings/seasonLock",{closedAt:isoT,label:String(t.getFullYear()),lockedTs:Date.now()});
+                        }
                         if(pushToo){
                           fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Tournament invites are open! Open the app and tap I’m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
                           setCfg("invitePushTs",Date.now());
@@ -3052,7 +3079,7 @@ function TournamentTab(){
       </div>
 
       <div className="card">
-        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.35)",marginLeft:8}}>{inPlayers.filter(p=>(bar-cnt(p))-paidOf(p)<=0).length} / {inPlayers.length} settled</span></span>
+        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.35)",marginLeft:8}}>{(()=>{const inv=all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true));const ans=inv.filter(p=>tp[p.id]&&(tp[p.id].in===true||tp[p.id].in===false)).length;return inv.length+" invited · "+ans+" answered · "+(inv.length-ans)+" deciding · ";})()}{inPlayers.filter(p=>(bar-cnt(p))-paidOf(p)<=0).length} / {inPlayers.length} settled</span></span>
           <div style={{display:"flex",gap:6}}>
             <button className="btn btn-gh btn-sm" onClick={()=>{all.forEach(p=>{if(cnt(p)>=minRounds)setP(p.id,"in",true);});}}>Select all eligible</button>
             <button className="btn btn-gh btn-sm" onClick={()=>{Object.keys(tp).forEach(id=>{if(tp[id]&&tp[id].in)setP(id,"in",false);});}}>Clear all</button>
@@ -3065,11 +3092,12 @@ function TournamentTab(){
             const owed=bar-r;const paid=paidOf(p);const net=owed-paid;
             return(
               <div key={p.id} className="s-row" style={{gap:10,opacity:isIn?1:0.55}}>
+                {!isIn&&!eligible&&!(tp[p.id]&&tp[p.id].invited===true)&&<button className="btn btn-sm" style={{fontSize:10,color:"#4ade80",borderColor:"rgba(16,185,129,0.35)",background:"transparent",fontWeight:800,padding:"3px 8px"}} onClick={()=>setP(p.id,"invited",true)}>✉ Invite</button>}
                 <div onClick={()=>setP(p.id,"in",!isIn)} style={{width:36,height:20,borderRadius:20,background:isIn?"#10b981":"rgba(255,255,255,0.15)",position:"relative",cursor:"pointer",flexShrink:0}}>
                   <div style={{position:"absolute",top:2,left:isIn?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}/>
                 </div>
                 <div style={{flex:1,minWidth:140}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>SELF ✓</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===false&&<span style={{fontSize:9.5,fontWeight:700,color:"#f87171",border:"1px solid rgba(248,113,113,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>DECLINED</span>}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>SELF ✓</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===false&&<span style={{fontSize:9.5,fontWeight:700,color:"#f87171",border:"1px solid rgba(248,113,113,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>DECLINED</span>}{tp[p.id]&&tp[p.id].invited===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>✉ CLARK</span>}{(cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true))&&!(tp[p.id]&&(tp[p.id].in===true||tp[p.id].in===false))&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(251,191,36,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>INVITED · NO ANSWER</span>}</div>
                   <div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>{r} rounds · {eligible?"eligible":"needs "+(minRounds-r)+" more"} · entry ${Math.max(owed,0)}{owed<0?" (refund $"+(-owed)+")":""}</div>
                 </div>
                 {isIn&&(<React.Fragment>

@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-k';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-m';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4941,15 +4941,24 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const [att, setAtt] = useState(null);
   const [sub, setSub] = useState('board');
   const [day, setDay] = useState('day1');
+  const [seasonLock, setSeasonLock] = useState(null);
+  useEffect(()=>{
+    const d2=t&&t.config&&t.config.date2;
+    if(!d2)return;
+    const today=new Date();
+    const iso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    if(iso>=d2)setDay('day2');
+  },[t&&t.config&&t.config.date2]);
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
+    const u3=read('settings/seasonLock', v=>setSeasonLock(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
-    return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
+    return ()=>{try{u1&&u1();u2&&u2();u3&&u3();}catch(e){}};
   },[]);
   const cfg=(t&&t.config)||{};
   const live=cfg.inviteOpen===true;
   const rounds=Object.values(att||{});
-  const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
+  const counts={};rounds.forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||'')>seasonLock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
   const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
   const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
   const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:null;};
@@ -5241,6 +5250,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           return {id:p.id,name:p.name,r,rec,isIn,owed,paid,net:Math.max(owed-paid,0),eligible:r>=(cfg.minRounds!=null?cfg.minRounds:10)};
         }).sort((x,y)=>y.r-x.r||x.name.localeCompare(y.name));
         const inRows=rows.filter(x=>x.isIn);
+        const invitedRows=rows.filter(x=>x.eligible||(x.rec&&x.rec.invited===true));
+        const answeredN=invitedRows.filter(x=>x.rec&&(x.rec.in===true||x.rec.in===false)).length;
         const settledN=inRows.filter(x=>x.net<=0).length;
         const outstanding=inRows.reduce((s,x)=>s+x.net,0);
         const chip=(txt,color,border)=>(<span style={{fontSize:9.5,fontWeight:800,color,border:'1px solid '+border,borderRadius:6,padding:'1px 6px',marginLeft:5,whiteSpace:'nowrap'}}>{txt}</span>);
@@ -5250,7 +5261,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         return (
           <div>
             <div style={{...card,padding:'11px 14px'}}>
-              <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
+              <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {invitedRows.length} invited · {answeredN} answered · {invitedRows.length-answeredN} deciding · {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
               <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Tap Paid ✓ when the cash lands.</div>
               {rows.map(row=>(
                 <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&row.rec&&row.rec.in===false)?0.6:1}}>
@@ -5260,8 +5271,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                       {row.isIn&&!row.eligible&&chip('EXCEPTION','var(--warn-ink)','var(--warn-border)')}
                       {row.rec&&row.rec.by==='member'&&row.rec.in===true&&chip('SELF ✓','var(--brand)','var(--brand-border)')}
                       {row.rec&&row.rec.by==='member'&&row.rec.in===false&&chip('DECLINED','var(--money-neg)','var(--money-neg)')}
+                      {row.rec&&row.rec.invited===true&&chip('✉ CLARK','var(--brand)','var(--brand-border)')}
+                      {(row.eligible||(row.rec&&row.rec.invited===true))&&!(row.rec&&(row.rec.in===true||row.rec.in===false))&&chip('INVITED · NO ANSWER','var(--warn-ink)','var(--warn-border)')}
                       <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:2}}>{row.r} rounds{row.isIn?(row.owed>0?(' · owes $'+row.net+(row.paid>0?' ($'+row.paid+' in)':'')):' · covered ✓'):''}</div>
                     </div>
+                    {!row.isIn&&!row.eligible&&!(row.rec&&row.rec.invited===true)&&(
+                      <button onClick={()=>wsafe({['tournament/players/'+row.id+'/invited']:true})} style={{flexShrink:0,height:38,padding:'0 10px',borderRadius:10,border:'1.5px solid var(--brand-border)',background:'transparent',color:'var(--brand)',fontWeight:800,fontSize:11.5,cursor:'pointer',fontFamily:'inherit'}}>✉ Invite</button>
+                    )}
                     <button onClick={()=>toggle(row)} style={{flexShrink:0,width:64,height:38,borderRadius:10,border:'1.5px solid',borderColor:row.isIn?'var(--brand)':'var(--hairline)',background:row.isIn?'var(--brand-soft)':'transparent',color:row.isIn?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{row.isIn?'In ✓':'Out'}</button>
                   </div>
                   {row.isIn&&(
@@ -5344,18 +5360,25 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const [hcpDraft, setHcpDraft] = useState('');
   const [teeDraft, setTeeDraft] = useState('');
   const [rTee, setRTee] = useState({});
+  const [seasonLock, setSeasonLock] = useState(null);
   const [t, setT] = useState(null);
   const [att, setAtt] = useState(null);
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
     const u3=read('rosterTee', v=>setRTee(v||{}));
-  return ()=>{try{u1&&u1();u2&&u2();u3&&u3();}catch(e){}};
+    const u4=read('settings/seasonLock', v=>setSeasonLock(v||null));
+  return ()=>{try{u1&&u1();u2&&u2();u3&&u3();u4&&u4();}catch(e){}};
   },[]);
   const cfg=t&&t.config;
   if(!cfg||!currentUser||!currentUser.id)return null;
   const invitesLive=cfg.inviteOpen===true;
-  const rsvpLocked=cfg.rsvpLocked===true;
+  const meAnswered=(()=>{const raw=t.players;const rec=Array.isArray(raw)?raw[Number(currentUser&&currentUser.id)]:((raw||{})[String((currentUser&&currentUser.id)||'')]);return {rec,answered:!!(rec&&(rec.in===true||rec.in===false)),invited:!!(rec&&rec.invited===true)};})();
+  const todayIso=(()=>{const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');})();
+  const deadlinePassed=!!(cfg.rsvpDeadline&&todayIso>cfg.rsvpDeadline);
+  const rsvpLocked=cfg.rsvpLocked===true||deadlinePassed;
+  const invRounds=(()=>{let n=0;const nm=String((currentUser&&currentUser.name)||'').toLowerCase().trim();Object.values(att||{}).forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||'')>seasonLock.closedAt)return;((r&&r.players)||[]).forEach(p=>{if(String(p).toLowerCase().trim()===nm)n++;});});return n;})();
+  const eligibleForInvite=invRounds>=((cfg.minRounds!=null)?cfg.minRounds:10);
   const adminPreview=!invitesLive&&!!forcePreview;   // preview ONLY when opened via the Admin tab button
   if(!invitesLive&&!adminPreview)return null;
   const rounds=Object.values(att||{});
@@ -5369,6 +5392,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const me=(raw=>{if(Array.isArray(raw))return raw[Number(currentUser.id)]||null;return (raw||{})[String(currentUser.id)]||null;})(t.players);
   const status=me&&me.in===true?'in':(me&&me.in===false&&me.by==='member'?'declined':null);
   const dates=(cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'')+(cfg.date2?' & '+new Date(cfg.date2+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'');
+  if(invitesLive&&!isAdmin&&!forcePreview&&!meAnswered.answered&&!meAnswered.invited&&!eligibleForInvite)return null;
   const rosterMe=(fullRoster||[]).find(x=>String(x.id)===String(currentUser.id));
   const startOptIn=()=>{
     if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
@@ -5469,6 +5493,8 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           </div>
         </div>
       )}
+      {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — responses lock after that.</div>}
+      {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need a change? Grab an admin.</div>}
       {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in with handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap I'm in to update either.</div>}
       {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
 
@@ -5502,11 +5528,20 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
   function saveRounds(nr){ const sorted=[...nr].sort((a,b)=>b.date.localeCompare(a.date)); write('attendance/rounds',sorted); setRounds(sorted); }
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null),3000); }
   const [sortAZ, setSortAZ] = useState(false);
+  const [seasonView, setSeasonView] = useState('current');
+  const [seasonLock, setSeasonLock] = useState(null);
+  useEffect(()=>{const u=read('settings/seasonLock', v=>setSeasonLock(v||null));return ()=>{try{u&&u();}catch(e){}};},[]);
+  const seasonRounds = useMemo(()=>{
+    if(!seasonLock||!seasonLock.closedAt)return rounds;
+    if(seasonView==='all')return rounds;
+    if(seasonView==='prev')return rounds.filter(r=>String(r.date||'')<=seasonLock.closedAt);
+    return rounds.filter(r=>String(r.date||'')>seasonLock.closedAt);
+  },[rounds,seasonLock,seasonView]);
   const standings = useMemo(()=>{
     const p={};
-    rounds.forEach(r=>{ (r.players||[]).forEach(raw=>{ const name=normName(raw); if(!p[name])p[name]={name,rounds:0,dates:[]}; p[name].rounds++; p[name].dates.push(r.date); }); });
+    seasonRounds.forEach(r=>{ (r.players||[]).forEach(raw=>{ const name=normName(raw); if(!p[name])p[name]={name,rounds:0,dates:[]}; p[name].rounds++; p[name].dates.push(r.date); }); });
     return Object.values(p).sort(sortAZ?((a,b)=>a.name.localeCompare(b.name)):((a,b)=>b.rounds-a.rounds));
-  },[rounds,sortAZ]);
+  },[seasonRounds,sortAZ]);
   const totalEntries = rounds.reduce((s,r)=>s+(r.players||[]).length,0);
   const maxR = standings.length>0?standings[0].rounds:1;
   const filteredStandings = standings.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
@@ -5594,6 +5629,13 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
           <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)'}}><div style={{fontSize:14,fontWeight:600,marginBottom:6}}>No attendance data yet</div><div style={{fontSize:12}}>Rounds are added automatically when weeks close out.</div></div>
         ):(
           <>
+            {seasonLock&&seasonLock.closedAt&&(
+              <div style={{display:'flex',gap:6,marginBottom:8}}>
+                {[['current',(seasonLock.label?String(Number(seasonLock.label)+1):'This season')],['prev',seasonLock.label||'Last season'],['all','All-time']].map(([v,label])=>(
+                  <button key={v} onClick={()=>setSeasonView(v)} style={{flex:1,padding:'8px 0',borderRadius:9,border:'1.5px solid',borderColor:seasonView===v?'var(--brand)':'var(--hairline)',background:seasonView===v?'var(--brand-soft)':'transparent',color:seasonView===v?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+                ))}
+              </div>
+            )}
             <div style={{display:'flex',gap:8,marginBottom:10}}>
               <input className="form-input" style={{flex:1,marginBottom:0}} placeholder="Search players..." value={search} onChange={e=>setSearch(e.target.value)}/>
               {[['rounds',false,'By rounds'],['az',true,'A–Z']].map(([k,val,label])=>(
