@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-q';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-r';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4944,6 +4944,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const [seasonLock, setSeasonLock] = useState(null);
   const [rTee, setRTee] = useState({});
   const [showHow, setShowHow] = useState(false);
+  const [idDraft, setIdDraft] = useState(null);
   useEffect(()=>{
     const d2=t&&t.config&&t.config.date2;
     if(!d2)return;
@@ -5321,6 +5322,37 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           <div style={card}>
             <div style={hdr}>⚙ Tournament configuration <span style={{fontWeight:600,textTransform:'none'}}>— mirrors the portal; changes apply everywhere instantly</span></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(105px,1fr))',gap:9}}>
+            {(()=>{
+              const cur={name:cfg.name||'',date1:cfg.date1||'',date2:cfg.date2||'',rsvpDeadline:cfg.rsvpDeadline||''};
+              const d=idDraft||cur;
+              const dirty=idDraft&&JSON.stringify(idDraft)!==JSON.stringify(cur);
+              const edit=(k,v)=>setIdDraft(prev=>({...(prev||cur),[k]:v}));
+              const saveDetails=()=>{
+                if(d.date2&&d.date1&&d.date2<d.date1){alert('Day 2 is before Day 1 — check the dates.');return;}
+                if(d.rsvpDeadline&&d.date1&&d.rsvpDeadline>d.date1){alert('The response deadline is after Day 1 — players could answer mid-round. Check the dates.');return;}
+                if(!window.confirm('Lock in these details? Name, dates, and the deadline drive the schedule, invite banners, and auto-day.'))return;
+                wsafe({'tournament/config/name':d.name||null,'tournament/config/date1':d.date1||null,'tournament/config/date2':d.date2||null,'tournament/config/rsvpDeadline':d.rsvpDeadline||null});
+                setIdDraft(null);
+              };
+              const lbl=t=><div style={{fontSize:9.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',marginBottom:2}}>{t}</div>;
+              return (
+                <div style={{gridColumn:'1 / -1',padding:'11px 12px',background:'var(--surface-sunken)',borderRadius:11,marginBottom:4}}>
+                  <div style={{fontSize:11,fontWeight:800,color:'var(--ink)',marginBottom:8}}>Tournament details <span style={{fontWeight:600,color:'var(--ink-40)'}}>— saved only when you confirm</span></div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:8}}>
+                    <div style={{gridColumn:'1 / -1'}}>{lbl('Tournament name')}<input className="form-input" value={d.name} onChange={e=>edit('name',e.target.value)} style={{height:38}}/></div>
+                    <div>{lbl('Day 1')}<input className="form-input" type="date" value={d.date1} onChange={e=>edit('date1',e.target.value)} style={{height:38}}/></div>
+                    <div>{lbl('Day 2 (blank = 1-day)')}<input className="form-input" type="date" value={d.date2} onChange={e=>edit('date2',e.target.value)} style={{height:38}}/></div>
+                    <div>{lbl('Responses due by')}<input className="form-input" type="date" value={d.rsvpDeadline} onChange={e=>edit('rsvpDeadline',e.target.value)} style={{height:38}}/></div>
+                  </div>
+                  {dirty&&(
+                    <div style={{display:'flex',gap:8,marginTop:9}}>
+                      <button className="btn btn-sm" style={{flex:1,fontWeight:800}} onClick={saveDetails}>💾 Save details</button>
+                      <button className="btn btn-sm btn-secondary" onClick={()=>setIdDraft(null)}>Cancel</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <button onClick={()=>setShowHow(true)} style={{gridColumn:'1 / -1',width:'100%',padding:'12px 0',borderRadius:11,border:'1.5px solid var(--brand-border)',background:'var(--brand-soft)',color:'var(--brand)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit',marginBottom:4}}>📖 How the tournament works — tap to read</button>
             {showHow&&ReactDOM.createPortal(
               <div onClick={()=>setShowHow(false)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.6)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:'22px 14px'}}>
@@ -5377,7 +5409,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               {chk('refundOverpaid','Refund players over the entry bar',false)}
               {chk('redrawTeams','Fresh random teams each day',true)}
             </div>
-            <div style={{fontSize:11,color:'var(--ink-40)',marginTop:12,lineHeight:1.6}}>Dates, GO LIVE, RSVP lock, the app-tab stager, invite pushes, and full pay-in bookkeeping stay in the portal.</div>
+            <div style={{fontSize:11,color:'var(--ink-40)',marginTop:12,lineHeight:1.6}}>GO LIVE, RSVP lock, and the app-tab stager stay in the portal (Master only). Everything else — including name, dates, and the deadline above — syncs both ways.</div>
           </div>
         );
       })()}
