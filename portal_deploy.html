@@ -715,6 +715,7 @@ function DashTab({user}){
 
 // ── WEEK TAB ──────────────────────────────────────────────────────────────────
 function WeekTab({user}){
+  const pushTriggersDB=useDB("settings/pushTriggers");
   const week=useDB("week");
   const gameRules=useDB("settings/gameRules");
   const extra=useDB("extraPlayers");
@@ -777,8 +778,16 @@ function WeekTab({user}){
 
   function saveTee(day){
     const obj={time:teeVal,lottery:teeLottery};
+    const prevTee=week?.teeTimes?.[day];
+    const wasLottery=!!(prevTee&&typeof prevTee==="object"&&prevTee.lottery&&!prevTee.time);
+    const nowTime=obj&&obj.time&&!obj.lottery?obj.time:null;
     wr("week/teeTimes/"+day,obj);
-    setTeeModal(null);showToast("Tee time saved ✓");
+    if(wasLottery&&nowTime&&!(pushTriggersDB&&pushTriggersDB.teetime===false)){
+      fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🕐 "+day+" tee time is set!",body:day+" tees off at "+nowTime+".",url:"/",tag:"teetime-"+day})}).catch(()=>{});
+      setTeeModal(null);showToast("Tee time saved ✓ — members pinged");
+    } else {
+      setTeeModal(null);showToast("Tee time saved ✓");
+    }
   }
 
   function toggleLock(day){
@@ -2425,7 +2434,7 @@ function AppSettingsTab({user}){
                   <option value="admins">Admins only</option>
                 </select>
               )}
-              <button className="btn btn-sm btn-ghost" style={{fontSize:11}} onClick={()=>{if(tmplOpen===key){setTmplOpen(null);}else{setTmplOpen(key);const t=pushTmpl[key]||{};setTmplT(t.title||"");setTmplB(t.body||"");}}}>{tmplOpen===key?"Close":"\u270f\ufe0f Edit text"}</button>
+              <button className="btn btn-sm btn-ghost" style={{fontSize:11}} onClick={()=>{if(tmplOpen===key){setTmplOpen(null);}else{setTmplOpen(key);const t=pushTmpl[key]||{};const d=PUSH_DEFAULTS[key]||{};setTmplT(t.title||d.title||"");setTmplB(t.body||d.body||"");}}}>{tmplOpen===key?"Close":"\u270f\ufe0f Edit text"}</button>
             </div>
           );
         });})()}
@@ -2436,9 +2445,10 @@ function AppSettingsTab({user}){
             <input className="inp" placeholder={def.title} value={tmplT} onChange={e=>setTmplT(e.target.value)} style={{marginBottom:8}}/>
             <div className="lbl">Message</div>
             <input className="inp" placeholder={def.body} value={tmplB} onChange={e=>setTmplB(e.target.value)} style={{marginBottom:10}}/>
+            <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",marginBottom:10}}>Keep the {"{curly}"} tokens where you want live values — {"{day}"}, {"{time}"}, {"{name}"}, {"{reason}"} fill in automatically when the push sends.</div>
             <div style={{display:"flex",gap:8}}>
-              <button className="btn btn-sm btn-ghost" onClick={()=>{wr("settings/pushTemplates/"+tmplOpen,null);setTmplT("");setTmplB("");setTmplOpen(null);}}>Reset to default</button>
-              <button className="btn btn-sm" style={{flex:1}} onClick={()=>{const t=tmplT.trim(),b=tmplB.trim();wr("settings/pushTemplates/"+tmplOpen,(t||b)?{title:t||null,body:b||null}:null);setTmplOpen(null);}}>Save text</button>
+              <button className="btn btn-sm btn-ghost" onClick={()=>{wr("settings/pushTemplates/"+tmplOpen,null);setTmplT(def.title||"");setTmplB(def.body||"");}}>↺ Reset to default</button>
+              <button className="btn btn-sm" style={{flex:1}} onClick={()=>{const t=tmplT.trim(),b=tmplB.trim();const ct=(t&&t!==def.title)?t:null;const cb=(b&&b!==def.body)?b:null;wr("settings/pushTemplates/"+tmplOpen,(ct||cb)?{title:ct,body:cb}:null);setTmplOpen(null);}}>Save text</button>
             </div>
           </div>
         );})()}

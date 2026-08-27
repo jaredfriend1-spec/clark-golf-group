@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-r';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-s';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -9545,7 +9545,14 @@ function App(){
   function createWeek(data){ write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data}); }
   function deactivateDay(day){ const newWeek={...week,activeDays:safeArray(week?.activeDays).filter(d=>d!==day)};const tt={...(week?.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;if(newWeek.modes){const m={...newWeek.modes};delete m[day];newWeek.modes=m;}if(newWeek.modeConfig){const mc={...newWeek.modeConfig};delete mc[day];newWeek.modeConfig=mc;}write('week',newWeek); }
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
-  function updateTeeTime(day,data){ const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt}); }
+  function updateTeeTime(day,data){
+    const prevTee=week?.teeTimes?.[day];
+    const wasLottery=!!(prevTee&&typeof prevTee==='object'&&prevTee.lottery&&!prevTee.time);
+    const nowTime=data&&typeof data==='object'&&data.time&&!data.lottery?data.time:null;
+    const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt});
+    // Lottery-result moment only: lottery (no time) → an actual time. Routine sets stay silent.
+    if(wasLottery&&nowTime)sendPushNotify({audience:'all',title:'\ud83d\udd50 '+day+' tee time is set!',body:day+' tees off at '+nowTime+'.',url:'/',tag:'teetime-'+day,vars:{day:day,time:nowTime}});
+  }
   useEffect(()=>{
     if(seasonView==='live'){setSeasonData(null);return;}
     let alive=true;
