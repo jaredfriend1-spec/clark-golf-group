@@ -2715,6 +2715,7 @@ function TournamentTab(){
     return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
   },[extra,rosterEdits,rosterHidden]);
   const seasonLock=useDB("settings/seasonLock");
+  const isMasterUser=(()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user"));return !!u&&u.role==="master";}catch(e){return false;}})();
   const rosterTeeT=useDB("rosterTee");
   const rosterHcpT=useDB("rosterHcp");
   const roundCounts=React.useMemo(()=>{
@@ -2868,7 +2869,12 @@ function TournamentTab(){
             </label>
           </div>
           <div style={{marginTop:14,padding:"13px 15px",background:cfg.inviteOpen===true?"rgba(16,185,129,0.06)":"rgba(212,175,55,0.05)",border:"1px solid "+(cfg.inviteOpen===true?"rgba(16,185,129,0.3)":"rgba(212,175,55,0.2)"),borderRadius:10}}>
-            {cfg.inviteOpen!==true?(
+            {!isMasterUser?(
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:cfg.inviteOpen===true?"#4ade80":"#fbbf24"}}>{cfg.inviteOpen===true?"🟢 LIVE — members can answer":"🔒 NOT LIVE — members see nothing"}</div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginTop:6,lineHeight:1.6}}>Launching, the app-tab stager, RSVP lock, and Take offline are <strong>Master-only</strong>. Everything below — config, field, pay-ins, payouts — is yours to work.</div>
+              </div>
+            ):cfg.inviteOpen!==true?(
               <div>
                 <div style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>🔒 NOT LIVE — members see nothing</div>
                 <div style={{margin:"12px 0 0",padding:"10px 12px",background:"rgba(255,255,255,0.03)",borderRadius:10,border:"1px solid rgba(255,255,255,0.07)"}}>
