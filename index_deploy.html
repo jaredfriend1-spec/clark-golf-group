@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-s';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-t';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -3596,7 +3596,7 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
   }
 
   function editInPlace(day){
-    del('week/teamsPublished/'+day);
+    // True draft: published teams stay live for members; nothing changes until Save.
     setEditTeams([...savedTeams.map(t=>({...t,players:[...safeArray(t.players).map(p=>({...p}))]}))]);
   }
 
@@ -4014,7 +4014,8 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
                 {!manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>{if(indMode){genRandomGroups();}else setShowAutoOpts(s=>!s);}}>{indMode?'Shuffle groups':'Regenerate'}</button>}
                 {manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>{setManualTeams(null);setManualMode(false);setShowAutoOpts(true);}}>Switch to auto</button>}
                 {!manualMode && <button className="btn btn-ghost btn-sm" onClick={()=>setManualMode(true)}>Manual build</button>}
-                {editTeams && <button className="btn btn-ghost btn-sm" onClick={()=>{saveTeams(activeDay,editTeams);setEditTeams(null);showToast('Draft saved');}}>Save Draft</button>}
+                {editTeams && <button className="btn btn-sm" style={{fontWeight:800}} onClick={()=>{saveTeams(activeDay,editTeams);setEditTeams(null);showToast(published?'Teams updated — members see the change':'Draft saved');}}>💾 Save changes</button>}
+                {editTeams && <button className="btn btn-ghost btn-sm" onClick={()=>{setEditTeams(null);showToast('Edit cancelled — nothing changed');}}>✕ Cancel</button>}
                 {manualTeams && <button className="btn btn-ghost btn-sm" onClick={()=>{saveTeams(activeDay,manualTeams);showToast('Draft saved');}}>Save Draft</button>}
                 {currentDisplay.length > 0 && <button className="btn btn-primary btn-sm" onClick={publishAndLock}>{indMode?"Publish Groups":"Publish & Lock"}</button>}
                 {currentDisplay.length > 0 && <button className="btn btn-ghost btn-sm" onClick={copyTeams}>{copied?'✓ Copied':(indMode?'Copy groups':'Copy teams')}</button>}
