@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-u';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-w';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4974,10 +4974,12 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const myOwed=Math.max(bar-myRounds,0);
   const myPaid=me?Number(me.paid)||0:0;
   const twoDay=!!cfg.date2;
+  const wdOf=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return d||'';}};
+  const d1Label=twoDay?wdOf(cfg.date1):'In', d2Label=twoDay?wdOf(cfg.date2):'';
   const inDay=(rec,dk)=>!!(rec&&rec.in===true&&(!twoDay||!rec.days||rec.days[dk]===true));
   const inField=entries.filter(([,v])=>v&&v.in===true).map(([id])=>({id,name:nameOf(id)})).filter(p=>p.name);
   const inFieldFor=dk=>entries.filter(([,v])=>inDay(v,dk)).map(([id])=>({id,name:nameOf(id)})).filter(p=>p.name);
-  const dayTag=rec=>{if(!twoDay||!rec||!rec.days)return '';const a=rec.days.day1===true,b=rec.days.day2===true;return a&&b?'Both':a?'Day 1':b?'Day 2':'';};
+  const dayTag=rec=>{if(!twoDay||!rec||!rec.days)return '';const a=rec.days.day1===true,b=rec.days.day2===true;return a&&b?'Both':a?d1Label:b?d2Label:'';};
   const inNames=inField.map(p=>p.name).sort();
   const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
   const dayKeys=[cfg.date1?'day1':null,cfg.date2?'day2':null].filter(Boolean);
@@ -4993,7 +4995,9 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const refundsOut=cfg.refundOverpaid===true?inField.reduce((s,p)=>s+Math.max((counts[String(p.name).toLowerCase().trim()]||0)-bar,0),0):0;
   const availableNow=fundTotal+payinsDue+extraPrize-refundsOut;
   const pool=Math.floor(Math.max(availableNow-ctpTotal,0)/(((cfg.payMode||'perday')==='perday')?numDays:1));
-  const catF=cfg.catFront!=null?cfg.catFront:25, catB=cfg.catBack!=null?cfg.catBack:25, catO=cfg.catOverall!=null?cfg.catOverall:50;
+  const catF=cfg.catFront!=null?cfg.catFront:33, catB=cfg.catBack!=null?cfg.catBack:33, catO=cfg.catOverall!=null?cfg.catOverall:34;
+  const skinsPct=cfg.skinsPct!=null?cfg.skinsPct:40;
+  const teamPool=Math.floor(pool*(100-skinsPct)/100);
   const teamSize=cfg.teamSize||4;
   const teams=(t&&t.teams&&t.teams[day])||[];
   const published=!!(t&&t.teamsPublished&&t.teamsPublished[day]);
@@ -5037,7 +5041,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   return (
     <div>
       <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
-        {isAdmin&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('teams','👥 Teams')}{pill('scores','⛳ Scores')}{isAdmin&&pill('field','💵 Field')}
+        {isAdmin&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&pill('field','💵 Field')}
       </div>
 
       {sub==='board'&&(
@@ -5066,7 +5070,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 Closest to the pin{cfg.date2?' each day':''}: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?('Hole '+h+' — $'+ctpAmts[i]):null).filter(Boolean).join(' · ')} <span style={{color:'var(--ink-40)'}}>(individual)</span>
               </div>
             )}
-            {cfg.skinsOn===true&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins: the leftover after payouts and CTP, split by skins won.</div>}
+            {true&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% share + leftovers): the leftover after payouts and CTP, split by skins won.</div>}
           </div>
           {currentUser&&me&&me.in===true&&(
             <div style={{...card,borderColor:(myOwed-myPaid<=0)?'var(--brand-border)':'var(--warn-border)'}}>
@@ -5078,7 +5082,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               ):(
                 <div style={{fontSize:13.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.</div>
               )}
-              {me.handicap!=null&&<div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>Playing off {me.handicap} · {me.tee||'Whites'} tees.</div>}
+              <div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>{twoDay?('In for '+(dayTag(me)||'both days')+' · '):''}{me.handicap!=null?('Playing off '+me.handicap+' · '):''}{me.tee||'Whites'} tees.</div>
             </div>
           )}
           {(live||isAdmin)&&(()=>{
@@ -5100,12 +5104,38 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           })()}
           {(live||isAdmin)&&inNames.length>0&&(
             <div style={card}>
-              <div style={hdr}>👥 The field — {inNames.length} in{twoDay?(' · Day 1: '+inFieldFor('day1').length+' · Day 2: '+inFieldFor('day2').length):''}{declinedN?(' · '+declinedN+" can't make it"):''}</div>
+              <div style={hdr}>👥 The field — {inNames.length} in{twoDay?(' · '+d1Label+': '+inFieldFor('day1').length+' · '+d2Label+': '+inFieldFor('day2').length):''}{declinedN?(' · '+declinedN+" can't make it"):''}</div>
               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>{inField.slice().sort((x,y)=>x.name.localeCompare(y.name)).map(p=>{const tg=dayTag(tpNorm[String(p.id)]);return <span key={p.id} style={{fontSize:12.5,fontWeight:600,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:8,padding:'4px 11px'}}>{p.name}{tg?<span style={{fontSize:9.5,fontWeight:800,color:'var(--brand)',marginLeft:6}}>{tg}</span>:null}</span>;})}</div>
             </div>
           )}
         </div>
       )}
+
+      {sub==='whosin'&&(()=>{
+        const decl=entries.filter(([,v])=>v&&v.in===false).map(([id])=>nameOf(id)).filter(Boolean).sort();
+        const answered=new Set(entries.filter(([,v])=>v&&(v.in===true||v.in===false)).map(([id])=>String(id)));
+        const invitedAll=(fullRoster||[]).filter(p=>((counts[String(p.name||'').toLowerCase().trim()]||0)>=(cfg.minRounds!=null?cfg.minRounds:10))||(tpNorm[String(p.id)]&&tpNorm[String(p.id)].invited===true));
+        const deciding=invitedAll.filter(p=>!answered.has(String(p.id))).map(p=>p.name).sort();
+        const dayCard=(dk,label)=>{const list=inFieldFor(dk).map(p=>p.name).sort((x,y)=>x.localeCompare(y));return (
+          <div key={dk} style={card}>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:8}}><div style={{...hdr,marginBottom:0}}>{label}</div><div style={{fontSize:20,fontWeight:800,color:'var(--brand)'}}>{list.length}</div><div style={{fontSize:11,color:'var(--ink-40)'}}>in</div></div>
+            {list.length===0?<div style={{fontSize:12.5,color:'var(--ink-40)'}}>Nobody yet.</div>:(
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 12px'}}>{list.map((n,i)=><div key={n} style={{fontSize:13,color:'var(--ink)',padding:'3px 0',borderBottom:'1px solid var(--hairline-soft)'}}><span style={{fontSize:10.5,color:'var(--ink-40)',width:22,display:'inline-block'}}>{i+1}.</span>{n}</div>)}</div>
+            )}
+          </div>);};
+        return (
+          <div>
+            <div style={{display:'flex',gap:7,marginBottom:12}}>
+              {[['In',inField.length,'var(--brand)'],["Can't",decl.length,'var(--money-neg)'],['Deciding',deciding.length,'var(--warn-ink)']].map(([l,n,c])=>(
+                <div key={l} style={{flex:1,textAlign:'center',padding:'10px 4px',background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:12}}><div style={{fontSize:22,fontWeight:800,color:c}}>{n}</div><div style={{fontSize:10.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>{l}</div></div>
+              ))}
+            </div>
+            {twoDay?[dayCard('day1','\ud83d\udcc5 '+wdOf(cfg.date1)+' \u2014 '+fd(cfg.date1)),dayCard('day2','\ud83d\udcc5 '+wdOf(cfg.date2)+' \u2014 '+fd(cfg.date2))]:dayCard('day1','\ud83d\udcc5 '+fd(cfg.date1))}
+            {decl.length>0&&<div style={card}><div style={hdr}>Can’t make it ({decl.length})</div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{decl.join(' \u00b7 ')}</div></div>}
+            {isAdmin&&deciding.length>0&&<div style={card}><div style={hdr}>Still deciding ({deciding.length}) <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{deciding.join(' \u00b7 ')}</div></div>}
+          </div>
+        );
+      })()}
 
       {sub==='teams'&&(
         <div>
@@ -5172,8 +5202,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             const scoredRows=rows.filter(r=>r.f!=null&&r.b!=null).map(r=>({...r,tot:r.f+r.b}));
             const lead=key=>scoredRows.length?scoredRows.slice().sort((x,y)=>x[key]-y[key])[0]:null;
             const skinCount=rows.reduce((s,r)=>s+r.sk,0);
-            const catTotal=Math.floor(pool*catF/100)+Math.floor(pool*catB/100)+Math.floor(pool*catO/100);
-            const skinsPot=cfg.skinsOn===true?Math.max(pool-catTotal,0):0;
+            const catTotal=Math.floor(teamPool*catF/100)+Math.floor(teamPool*catB/100)+Math.floor(teamPool*catO/100);
+            const skinsPot=Math.max(pool-catTotal,0);  // skins share + rounding leftovers, like Fridays
             const perSkin=skinCount>0&&skinsPot>0?Math.floor(skinsPot/skinCount):0;
             const bumpW=(ti,key,d)=>{const cur=(sc[ti]&&sc[ti][key]!=null)?sc[ti][key]:0;setPath('scores/'+day+'/'+ti+'/'+key,Math.max(-15,Math.min(15,cur+d)));};
             const bumpSk=(ti,d)=>{const cur=Number(sc[ti]&&sc[ti].skins)||0;setPath('scores/'+day+'/'+ti+'/skins',Math.max(0,cur+d));};
@@ -5195,7 +5225,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                           {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,1)}>+</button>}
                         </div>
                       ))}
-                      {cfg.skinsOn===true&&(
+                      {true&&(
                         <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:'auto'}}>
                           <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>SKINS</span>
                           {isAdmin&&<button style={stBtn} onClick={()=>bumpSk(r.ti,-1)}>−</button>}
@@ -5209,7 +5239,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 <div style={card}>
                   <div style={hdr}>🏆 Results — ${pool} pool {cfg.payMode==='combined'?'(combined)':'this day'}</div>
                   <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-                    {[['Front 9',lead('f'),Math.floor(pool*catF/100),r=>r&&r.f],['Back 9',lead('b'),Math.floor(pool*catB/100),r=>r&&r.b],['Overall',lead('tot'),Math.floor(pool*catO/100),r=>r&&r.tot]].map(([label,win,cat$,get])=>(
+                    {[['Front 9',lead('f'),Math.floor(teamPool*catF/100),r=>r&&r.f],['Back 9',lead('b'),Math.floor(teamPool*catB/100),r=>r&&r.b],['Overall',lead('tot'),Math.floor(teamPool*catO/100),r=>r&&r.tot]].map(([label,win,cat$,get])=>(
                       <div key={label} style={{flex:1,minWidth:118,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'9px 11px'}}>
                         <div style={{fontSize:10,fontWeight:800,color:'var(--brand)',textTransform:'uppercase'}}>{label} · ${cat$}</div>
                         <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{win?win.label:'—'} {win&&<span style={{fontWeight:600,color:'var(--ink-50)'}}>({fmtRel(get(win))})</span>}</div>
@@ -5217,7 +5247,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                       </div>
                     ))}
                   </div>
-                  {cfg.skinsOn===true&&(
+                  {true&&(
                     <div style={{marginTop:8,fontSize:12.5,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:10,padding:'8px 11px'}}>
                       Team skins pot <b style={{color:'var(--ink)'}}>${skinsPot}</b>{skinCount>0?<span> ÷ <b style={{color:'var(--ink)'}}>{skinCount}</b> = <b style={{color:'var(--brand)'}}>${perSkin} each</b></span>:<span style={{color:'var(--ink-40)'}}> — no skins marked yet</span>}
                     </div>
@@ -5300,8 +5330,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                       const d1=ans===true&&(!rec.days||rec.days.day1===true), d2=ans===true&&(!rec.days||rec.days.day2===true);
                       const setDay=(dk,on)=>{const nd={day1:dk==='day1'?on:d1,day2:dk==='day2'?on:d2};if(!nd.day1&&!nd.day2){clearAll();return;}wsafe({[P+'in']:true,[P+'by']:'admin',[P+'ts']:Date.now(),[P+'days']:nd});};
                       return (<span style={{display:'inline-flex',gap:4,flexShrink:0}}>
-                        <button style={bs(d1,'var(--brand)','var(--brand-soft)')} onClick={()=>setDay('day1',!d1)}>D1</button>
-                        <button style={bs(d2,'var(--brand)','var(--brand-soft)')} onClick={()=>setDay('day2',!d2)}>D2</button>
+                        <button style={bs(d1,'var(--brand)','var(--brand-soft)')} onClick={()=>setDay('day1',!d1)}>{d1Label}</button>
+                        <button style={bs(d2,'var(--brand)','var(--brand-soft)')} onClick={()=>setDay('day2',!d2)}>{d2Label}</button>
                         <button style={bs(ans===false,'var(--money-neg)','transparent')} onClick={()=>{if(ans===false)clearAll();else wsafe({[P+'in']:false,[P+'by']:'admin',[P+'ts']:Date.now(),[P+'days']:null});}}>Out</button>
                       </span>);})()}
                   </div>
@@ -5397,7 +5427,6 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             ,document.body)}
               <div>{L('Entry bar $')}{num('feeBar',null,'auto '+autoBar)}</div>
               <div>{L('Min rounds')}{num('minRounds',10)}</div>
-              <div>{L('Extra prize $')}{num('extraPrize',null,'0')}</div>
               <div>{L('Team size')}{num('teamSize',4)}</div>
             </div>
             <div style={{display:'flex',gap:7,marginTop:10}}>
@@ -5406,13 +5435,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               ))}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))',gap:9,marginTop:10}}>
-              <div>{L('Front 9 %')}{num('catFront',25)}</div>
-              <div>{L('Back 9 %')}{num('catBack',25)}</div>
-              <div>{L('Overall %')}{num('catOverall',50)}</div>
+              <div>{L('Skins % of pot')}{num('skinsPct',40)}</div>
+              <div>{L('Front 9 % (of rest)')}{num('catFront',33)}</div>
+              <div>{L('Back 9 % (of rest)')}{num('catBack',33)}</div>
+              <div>{L('Overall % (of rest)')}{num('catOverall',34)}</div>
               <div>{L('Places paid')}{num('placesCount',3)}</div>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:7,marginTop:12}}>
-              {chk('skinsOn','Team skins (pot = leftover after payouts)',false)}
               {chk('redrawTeams','Fresh random teams each day',true)}
             </div>
             <div style={{fontSize:11,color:'var(--ink-40)',marginTop:12,lineHeight:1.6}}>GO LIVE, RSVP lock, and the app-tab stager stay in the portal (Master only). Everything else — including name, dates, and the deadline above — syncs both ways.</div>
@@ -5423,7 +5452,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   );
 }
 
-function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview }){
+function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview, compact, onOpen }){
   const [previewTap, setPreviewTap] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [daysPick, setDaysPick] = useState('both');
@@ -5463,6 +5492,21 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const status=me&&me.in===true?'in':(me&&me.in===false&&me.by==='member'?'declined':null);
   const dates=(cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'')+(cfg.date2?' & '+new Date(cfg.date2+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'');
   if(invitesLive&&!isAdmin&&!forcePreview&&!meAnswered.answered&&!meAnswered.invited&&!eligibleForInvite)return null;
+  if(compact){
+    if(!invitesLive||meAnswered.answered)return null;
+    if(!isAdmin&&!meAnswered.invited&&!eligibleForInvite)return null;
+    const dl=cfg.rsvpDeadline?(' \u00b7 answer by '+cfg.rsvpDeadline):'';
+    return (
+      <div onClick={onOpen} style={{margin:'0 0 10px',padding:'11px 14px',borderRadius:12,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
+        <span style={{fontSize:20}}>🏆</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:800,color:'var(--brand)'}}>You’re invited — {cfg.name||'the tournament'}</div>
+          <div style={{fontSize:11.5,color:'var(--ink-60)',marginTop:1}}>{rsvpLocked?'Responses are closed \u2014 see an admin.':('Tap to say you\u2019re in'+dl)}</div>
+        </div>
+        <span style={{fontSize:12,fontWeight:800,color:'var(--brand)'}}>Respond ›</span>
+      </div>
+    );
+  }
   const rosterMe=(fullRoster||[]).find(x=>String(x.id)===String(currentUser.id));
   const startOptIn=(pick)=>{
     if(pick)setDaysPick(pick);
@@ -10000,7 +10044,8 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
-      {tab === 'home' && <div style={{padding:'0 16px'}}><TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
+      {tab !== 'tournament' && tab !== 'home' && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard compact onOpen={()=>setTab('tournament')} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
+      {tab === 'home' && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
       {tab === 'tournament' && (
         <div>
           <div className="page-title">Tournament</div>

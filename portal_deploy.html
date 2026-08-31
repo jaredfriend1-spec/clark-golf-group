@@ -2725,6 +2725,7 @@ function TournamentTab(){
     return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
   },[extra,rosterEdits,rosterHidden]);
   const seasonLock=useDB("settings/seasonLock");
+  const wdOf=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});}catch(e){return d||"";}};
   const isMasterUser=(()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user"));return !!u&&u.role==="master";}catch(e){return false;}})();
   const rosterTeeT=useDB("rosterTee");
   const rosterHcpT=useDB("rosterHcp");
@@ -2757,13 +2758,14 @@ function TournamentTab(){
   // ── payout config w/ defaults ──
   const payMode=cfg.payMode||(twoDay?"perday":"combined");   // perday | combined
   const teamSize=cfg.teamSize||4;
-  const catF=cfg.catFront!=null?cfg.catFront:25, catB=cfg.catBack!=null?cfg.catBack:25, catO=cfg.catOverall!=null?cfg.catOverall:50;
+  const catF=cfg.catFront!=null?cfg.catFront:33, catB=cfg.catBack!=null?cfg.catBack:33, catO=cfg.catOverall!=null?cfg.catOverall:34;
+  const skinsPct=cfg.skinsPct!=null?cfg.skinsPct:40;
   const catSum=catF+catB+catO;
   const placesCount=cfg.placesCount||3;
   const PLACE_DEFAULTS={1:[100],2:[60,40],3:[50,30,20]};
   const placeVals=[0,1,2].slice(0,placesCount).map(i=>{const v=cfg["place"+(i+1)];return v!=null?v:PLACE_DEFAULTS[placesCount][i];});
   const placeSum=placeVals.reduce((a,b)=>a+b,0);
-  const skinsOn=cfg.skinsOn===true;
+  const skinsOn=true;
   const CTP_HOLES=[3,6,11,14];
   const ctpAmts=CTP_HOLES.map(h=>Number((cfg.ctpHoles&&cfg.ctpHoles["h"+h])||0));
   const ctpPerDayTotal=ctpAmts.reduce((a,b)=>a+b,0);
@@ -2778,7 +2780,7 @@ function TournamentTab(){
   function simPool(pool){
     const cats=[["Front 9",catF],["Back 9",catB],["Overall",catO]];
     return cats.map(([label,pct])=>{
-      const cat$=Math.floor(pool*pct/100);
+      const cat$=Math.floor(Math.floor(pool*(100-skinsPct)/100)*pct/100);
       const places=placeVals.map((pp,i)=>[["1st","2nd","3rd"][i],pp]).filter(([,pp])=>pp>0).map(([pl,pp])=>{
         const team$=Math.floor(cat$*pp/100);
         return {pl,team$,per$:teamSize>0?Math.floor(team$/teamSize):team$};
@@ -2800,12 +2802,19 @@ function TournamentTab(){
     L.push("- "+(cfg.redrawTeams!==false?"Fresh random A/B/C/D team draw each day":"Same teams both days"));
     L.push("- Teams of "+teamSize+" — payouts split Front 9 ("+catF+"%), Back 9 ("+catB+"%), Overall ("+catO+"%), paying "+placesCount+" place"+(placesCount>1?"s":"")+" each");
     if(ctpPerDayTotal>0)L.push("- Closest to the pin"+(numDays>1?" (each day)":"")+": "+CTP_HOLES.map((h,i)=>ctpAmts[i]>0?"Hole "+h+" $"+ctpAmts[i]:null).filter(Boolean).join(", "));
-    if(skinsOn)L.push("- Skins pot: $"+skinsPot+" (whatever remains after team payouts and CTP)");
+    if(skinsOn)L.push("- Skins pot: $"+skinsPot+" ("+skinsPct+"% share of the pot plus rounding leftovers — same as Fridays)");
     L.push("");
     L.push("ENTRY & ELIGIBILITY");
     L.push("- Eligibility: "+minRounds+"+ rounds with the group this season");
     L.push("- Entry-fee bar: $"+bar+" (most rounds played). Your entry = $"+bar+" minus your rounds played — your weekly $1 contributions count toward it. Example: 10 rounds = $"+(bar-10)+" due.");
     L.push("- Entry covers "+(twoDay?"both days; play both or either day":"the event"));
+    L.push("");
+    L.push("HOW TO ANSWER (takes 20 seconds, in the app)");
+    L.push("1. Open the app — you'll see a green \"You're invited\" banner on every screen until you answer. Tap it (or open the Tourney tab).");
+    L.push(twoDay?"2. Tap "+wdOf(cfg.date1)+" only, "+wdOf(cfg.date2)+" only, or Both days — or Can't make it.":"2. Tap I'm in — or Can't make it.");
+    L.push("3. Confirm your handicap and tees (pre-filled — fix them if they're off). That's it; the teams are drawn off those numbers.");
+    L.push("4. Your amount due is shown right on the board under Your entry. Bring cash to the club; an admin marks you paid."+(cfg.rsvpDeadline?" Please answer by "+cfg.rsvpDeadline+".":""));
+    L.push("Change your mind? Tap your day again any time before the deadline.");
     L.push("");
     L.push("THE MONEY (as configured today, "+inPlayers.length+" players in)");
     L.push("- One buy-in covers the whole tournament — play one day or both."+"\n- The pot: $"+fundTotal+" already banked in the tournament fund + $"+payinsDue+" in opt-in entries"+(extraPrize>0?" + $"+extraPrize+" added prize money":"")+" = $"+available);
@@ -2866,7 +2875,7 @@ function TournamentTab(){
             <div>{CL("Responses due by (auto-locks)")}<input className="inp" style={F} type="date" value={cfg.rsvpDeadline||""} onChange={e=>setCfg("rsvpDeadline",e.target.value||null)}/></div>
             <div>{CL("Min rounds")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
             <div>{CL("Entry-fee bar $")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder={"auto ("+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
-            <div>{CL("Extra prize $ (optional)")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="0" value={cfg.extraPrize||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("extraPrize",n>0?n:null);}}/></div>
+            
           </div>
             );})()}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"8px 18px",fontSize:12,color:"rgba(255,255,255,0.55)",marginTop:4}}>
@@ -2996,9 +3005,10 @@ function TournamentTab(){
             </div>
             <div style={row}>
               <div style={sect}>Pot split</div>
-              <div style={col()}>{L("Front 9 %")}{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
-              <div style={col()}>{L("Back 9 %")}{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
-              <div style={col()}>{L("Overall %")}{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Skins % of pot")}{numIn(skinsPct,e=>setCfg("skinsPct",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Front 9 % of rest")}{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Back 9 % of rest")}{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Overall % of rest")}{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
               {okBadge(catSum,skinsOn)}
             </div>
             <div style={row}>
@@ -3016,7 +3026,7 @@ function TournamentTab(){
             <div style={{...row,borderBottom:"none"}}>
               <div style={sect}>Extras</div>
               
-              {chk("Skins",skinsOn,e=>setCfg("skinsOn",e.target.checked))}
+              
               {skinsOn&&<div style={{flexShrink:0}}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:800,padding:"5px 11px",borderRadius:8,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",color:"#60a5fa",whiteSpace:"nowrap"}}>pot = leftover: ${skinsPot}</span></div></div>}
             </div>
             </React.Fragment>);})()}
@@ -3032,7 +3042,7 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today’s field</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
-            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Fund (banked)","$"+fundTotal],["Cash collected","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0)+extraPrize)],["Projected (all pay)","$"+(fundTotal+payinsDue+extraPrize)],["Extra prize","$"+extraPrize],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
+            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Fund (banked)","$"+fundTotal],["Cash collected","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0)+extraPrize)],["Projected (all pay)","$"+(fundTotal+payinsDue+extraPrize)],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",minHeight:24}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>
@@ -3109,8 +3119,8 @@ function TournamentTab(){
                   const d1=ans===true&&(!rec.days||rec.days.day1===true), d2=ans===true&&(!rec.days||rec.days.day2===true);
                   const setDay=(dk,on)=>{const nd={day1:dk==="day1"?on:d1,day2:dk==="day2"?on:d2};if(!nd.day1&&!nd.day2){clearAll();return;}setP(p.id,"in",true);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());setP(p.id,"days",nd);};
                   return (<span style={{display:"inline-flex",gap:4,flexShrink:0}}>
-                    <button style={bs(d1,"#4ade80")} onClick={()=>setDay("day1",!d1)} title="Day 1">D1</button>
-                    <button style={bs(d2,"#4ade80")} onClick={()=>setDay("day2",!d2)} title="Day 2">D2</button>
+                    <button style={bs(d1,"#4ade80")} onClick={()=>setDay("day1",!d1)} title="Day 1">{wdOf(cfg.date1)}</button>
+                    <button style={bs(d2,"#4ade80")} onClick={()=>setDay("day2",!d2)} title="Day 2">{wdOf(cfg.date2)}</button>
                     <button style={bs(ans===false,"#f87171")} onClick={()=>{if(ans===false)clearAll();else{setP(p.id,"in",false);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());setP(p.id,"days",null);}}}>Out</button>
                   </span>);})()}
                 <div style={{flex:1,minWidth:140}}>
@@ -3126,15 +3136,10 @@ function TournamentTab(){
                       </div>
                     </div>
                   )}
-                  <div style={{width:110}}>
-                    <div className="lbl" style={{fontSize:9}}>Paid in ($)</div>
-                    {isIn&&<span style={{display:"inline-flex",gap:5,alignItems:"center",marginRight:6}}>
-                  <input className="inp" style={{width:52,padding:"4px 6px",fontSize:11.5,textAlign:"center"}} title="Handicap (draw uses this)" value={tp[p.id]&&tp[p.id].handicap!=null?tp[p.id].handicap:((rosterHcpT&&rosterHcpT[p.id]!=null)?rosterHcpT[p.id]:(p.hcp!=null?p.hcp:""))} onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,"");setP(p.id,"handicap",v===""?null:parseFloat(v));}}/>
-                  <select className="inp" style={{width:"auto",padding:"4px 6px",fontSize:11}} title="Tees" value={(tp[p.id]&&tp[p.id].tee)||(rosterTeeT&&rosterTeeT[p.id])||p.tee||"Whites"} onChange={e=>setP(p.id,"tee",e.target.value)}>
-                    {["Blends","Whites","Golds","SGA"].map(x=><option key={x} value={x}>{x}</option>)}
-                  </select>
-                </span>}
-                <input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{padding:"5px 8px",fontSize:12}}/>
+                  <div style={{display:"flex",gap:10,alignItems:"flex-end",flexShrink:0}}>
+                    {isIn&&<div><div className="lbl" style={{fontSize:9,marginBottom:2}}>Hcp</div><input className="inp" style={{width:54,padding:"5px 6px",fontSize:12,textAlign:"center"}} title="Handicap (draw uses this)" value={tp[p.id]&&tp[p.id].handicap!=null?tp[p.id].handicap:((rosterHcpT&&rosterHcpT[p.id]!=null)?rosterHcpT[p.id]:(p.hcp!=null?p.hcp:""))} onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,"");setP(p.id,"handicap",v===""?null:parseFloat(v));}}/></div>}
+                    {isIn&&<div><div className="lbl" style={{fontSize:9,marginBottom:2}}>Tees</div><select className="inp" style={{width:"auto",padding:"5px 6px",fontSize:11.5}} value={(tp[p.id]&&tp[p.id].tee)||(rosterTeeT&&rosterTeeT[p.id])||p.tee||"Whites"} onChange={e=>setP(p.id,"tee",e.target.value)}>{["Blends","Whites","Golds","SGA"].map(x=><option key={x} value={x}>{x}</option>)}</select></div>}
+                    <div><div className="lbl" style={{fontSize:9,marginBottom:2}}>Paid $</div><input className="inp" inputMode="numeric" value={tp[p.id]&&tp[p.id].paid!=null?tp[p.id].paid:""} placeholder="0" onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setP(p.id,"paid",n||null);}} style={{width:64,padding:"5px 8px",fontSize:12}}/></div>
                   </div>
                   <span style={{fontSize:11,fontWeight:700,minWidth:86,textAlign:"right",color:net>0?"#fbbf24":(net<0?"#60a5fa":"#4ade80")}}>{net>0?"owes $"+net:(net<0?(cfg.refundOverpaid===true?"refund $"+(-net):"covered ✓"):"settled ✓")}</span>
                 </React.Fragment>)}
