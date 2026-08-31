@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-t';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-u';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4973,7 +4973,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const myRounds=currentUser?(counts[String(currentUser.name||'').toLowerCase().trim()]||0):0;
   const myOwed=Math.max(bar-myRounds,0);
   const myPaid=me?Number(me.paid)||0:0;
+  const twoDay=!!cfg.date2;
+  const inDay=(rec,dk)=>!!(rec&&rec.in===true&&(!twoDay||!rec.days||rec.days[dk]===true));
   const inField=entries.filter(([,v])=>v&&v.in===true).map(([id])=>({id,name:nameOf(id)})).filter(p=>p.name);
+  const inFieldFor=dk=>entries.filter(([,v])=>inDay(v,dk)).map(([id])=>({id,name:nameOf(id)})).filter(p=>p.name);
+  const dayTag=rec=>{if(!twoDay||!rec||!rec.days)return '';const a=rec.days.day1===true,b=rec.days.day2===true;return a&&b?'Both':a?'Day 1':b?'Day 2':'';};
   const inNames=inField.map(p=>p.name).sort();
   const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
   const dayKeys=[cfg.date1?'day1':null,cfg.date2?'day2':null].filter(Boolean);
@@ -5012,9 +5016,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
     </div>
   );
   function drawTeams(){
-    if(inField.length<teamSize){alert('Need at least '+teamSize+' opted-in players to draw.');return;}
+    const dayField=inFieldFor(day);
+    if(dayField.length<teamSize){alert('Need at least '+teamSize+' players opted in for this day to draw.');return;}
     if(teams.length&&!window.confirm('Redraw '+ (day==='day1'?'Day 1':'Day 2') +' teams? The current draw is replaced.'))return;
-    const players=inField.map(p=>{const rec=tpNorm[String(p.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
+    const players=dayField.map(p=>{const rec=tpNorm[String(p.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
     const built=buildTeams(players,teamSize,[],{}, [],[]);
     const drawn=built.map(tm=>({players:(tm.players||[]).map(p=>({name:p.name,handicap:parseFloat(p.handicap)||0})),totalHcp:Math.round(((tm.players||[]).reduce((s,p)=>s+(parseFloat(p.handicap)||0),0))*10)/10}));
     setPath('teams/'+day,drawn);
@@ -5086,8 +5091,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               <div style={card}>
                 <div style={hdr}>💰 The pot — live reconciliation</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{tile('Players in',inField.length)}{tile("Can't make it",declinedN)}{tile('Still deciding',stillDeciding)}</div>
-                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Fund (banked)','$'+fundTotal)}{tile('Opt-in cash','$'+payinsDue)}{extraPrize>0?tile('Added prize','$'+extraPrize):null}{ctpTotal>0?tile('To CTP','$'+ctpTotal):null}{refundsOut>0?tile('Refunds','−$'+refundsOut):null}{tile('Prize pool','$'+prizePool,true)}</div>
-                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>The fund is already collected — $1 from every round all season — and grows every week. Opt-in cash lands as guys sign up.</div>
+                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Fund (banked)','$'+fundTotal)}{tile('Cash collected','$'+paidTotal)}{extraPrize>0?tile('Added prize','$'+extraPrize):null}{tile('Pot now','$'+(fundTotal+paidTotal+extraPrize),true)}{tile('Projected (all pay)','$'+(fundTotal+payinsDue+extraPrize),true)}</div>
+                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = fund banked + cash actually collected. Projected = if every opted-in player pays. Split in half across the two days; each day pays out per its config.</div>
                 {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${fundTotal} banked in the fund · ${paidTotal} of ${payinsDue} opt-in cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
                 <div style={{fontSize:12,color:'var(--ink-40)',marginTop:6,lineHeight:1.6}}>Eligibility: {cfg.minRounds!=null?cfg.minRounds:10}+ qualifying rounds (exceptions by the admins).{cfg.refundOverpaid===true?' Players over the bar are refunded.':' Anything over the bar stays in the pot.'} Pot assumes every entry settles.</div>
               </div>
@@ -5095,8 +5100,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           })()}
           {(live||isAdmin)&&inNames.length>0&&(
             <div style={card}>
-              <div style={hdr}>👥 The field — {inNames.length} in{declinedN?(' · '+declinedN+" can't make it"):''}</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>{inNames.map(n=><span key={n} style={{fontSize:12.5,fontWeight:600,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:8,padding:'4px 11px'}}>{n}</span>)}</div>
+              <div style={hdr}>👥 The field — {inNames.length} in{twoDay?(' · Day 1: '+inFieldFor('day1').length+' · Day 2: '+inFieldFor('day2').length):''}{declinedN?(' · '+declinedN+" can't make it"):''}</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>{inField.slice().sort((x,y)=>x.name.localeCompare(y.name)).map(p=>{const tg=dayTag(tpNorm[String(p.id)]);return <span key={p.id} style={{fontSize:12.5,fontWeight:600,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:8,padding:'4px 11px'}}>{p.name}{tg?<span style={{fontSize:9.5,fontWeight:800,color:'var(--brand)',marginLeft:6}}>{tg}</span>:null}</span>;})}</div>
             </div>
           )}
         </div>
@@ -5108,7 +5113,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           {teams.length===0?(
             <div style={card}>
               <div style={{fontSize:13.5,color:'var(--ink-40)',textAlign:'center',padding:'14px 0'}}>{isAdmin?'No teams drawn for this day yet.':'Teams haven\u2019t been posted yet — check back!'}</div>
-              {isAdmin&&<button className="btn" style={{width:'100%',fontWeight:800}} onClick={drawTeams}>🎲 Random draw — {inField.length} players → teams of {teamSize}</button>}
+              {isAdmin&&<button className="btn" style={{width:'100%',fontWeight:800}} onClick={drawTeams}>🎲 Random draw — {inFieldFor(day).length} players in for this day → teams of {teamSize}</button>}
             </div>
           ):(!published&&!isAdmin)?(
             <div style={card}><div style={{fontSize:13.5,color:'var(--ink-40)',textAlign:'center',padding:'14px 0'}}>Teams haven't been posted yet — check back!</div></div>
@@ -5265,7 +5270,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           <div>
             <div style={{...card,padding:'11px 14px'}}>
               <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {invitedRows.length} invited · {answeredN} answered · {invitedRows.length-answeredN} deciding · {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
-              <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. In/Out answer FOR someone; tap the lit one again to clear back to no answer. Tap Paid ✓ when the cash lands.</div>
+              <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Day buttons answer FOR someone (tap a lit day again to clear it); Out declines. One buy-in covers any days. Tap Paid ✓ when the cash lands.</div>
               {rows.map(row=>(
                 <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&row.rec&&row.rec.in===false)?0.6:1}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -5281,12 +5286,23 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                     {!row.isIn&&!row.eligible&&!(row.rec&&row.rec.invited===true)&&(
                       <button onClick={()=>wsafe({['tournament/players/'+row.id+'/invited']:true})} style={{flexShrink:0,height:38,padding:'0 10px',borderRadius:10,border:'1.5px solid var(--brand-border)',background:'transparent',color:'var(--brand)',fontWeight:800,fontSize:11.5,cursor:'pointer',fontFamily:'inherit'}}>✉ Invite</button>
                     )}
-                    {(()=>{const ans=row.rec&&(row.rec.in===true||row.rec.in===false)?row.rec.in:null;
-                      const setAns=v=>{if(ans===v){wsafe({['tournament/players/'+row.id+'/in']:null,['tournament/players/'+row.id+'/by']:null,['tournament/players/'+row.id+'/ts']:null});}else{wsafe({['tournament/players/'+row.id+'/in']:v,['tournament/players/'+row.id+'/by']:'admin',['tournament/players/'+row.id+'/ts']:Date.now()});}};
-                      const bs=(on,col,bg)=>({flexShrink:0,minWidth:44,height:38,borderRadius:10,border:'1.5px solid',borderColor:on?col:'var(--hairline)',background:on?bg:'transparent',color:on?col:'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit',padding:'0 10px'});
-                      return (<span style={{display:'inline-flex',gap:5,flexShrink:0}}>
-                        <button style={bs(ans===true,'var(--brand)','var(--brand-soft)')} onClick={()=>setAns(true)}>In</button>
-                        <button style={bs(ans===false,'var(--money-neg)','transparent')} onClick={()=>setAns(false)}>Out</button>
+                    {(()=>{const rec=row.rec||{};const ans=(rec.in===true||rec.in===false)?rec.in:null;
+                      const P='tournament/players/'+row.id+'/';
+                      const clearAll=()=>wsafe({[P+'in']:null,[P+'by']:null,[P+'ts']:null,[P+'days']:null});
+                      const bs=(on,col,bg)=>({flexShrink:0,minWidth:40,height:38,borderRadius:10,border:'1.5px solid',borderColor:on?col:'var(--hairline)',background:on?bg:'transparent',color:on?col:'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit',padding:'0 8px'});
+                      if(!twoDay){
+                        const setAns=v=>{if(ans===v)clearAll();else wsafe({[P+'in']:v,[P+'by']:'admin',[P+'ts']:Date.now()});};
+                        return (<span style={{display:'inline-flex',gap:5,flexShrink:0}}>
+                          <button style={bs(ans===true,'var(--brand)','var(--brand-soft)')} onClick={()=>setAns(true)}>In</button>
+                          <button style={bs(ans===false,'var(--money-neg)','transparent')} onClick={()=>setAns(false)}>Out</button>
+                        </span>);
+                      }
+                      const d1=ans===true&&(!rec.days||rec.days.day1===true), d2=ans===true&&(!rec.days||rec.days.day2===true);
+                      const setDay=(dk,on)=>{const nd={day1:dk==='day1'?on:d1,day2:dk==='day2'?on:d2};if(!nd.day1&&!nd.day2){clearAll();return;}wsafe({[P+'in']:true,[P+'by']:'admin',[P+'ts']:Date.now(),[P+'days']:nd});};
+                      return (<span style={{display:'inline-flex',gap:4,flexShrink:0}}>
+                        <button style={bs(d1,'var(--brand)','var(--brand-soft)')} onClick={()=>setDay('day1',!d1)}>D1</button>
+                        <button style={bs(d2,'var(--brand)','var(--brand-soft)')} onClick={()=>setDay('day2',!d2)}>D2</button>
+                        <button style={bs(ans===false,'var(--money-neg)','transparent')} onClick={()=>{if(ans===false)clearAll();else wsafe({[P+'in']:false,[P+'by']:'admin',[P+'ts']:Date.now(),[P+'days']:null});}}>Out</button>
                       </span>);})()}
                   </div>
                   {row.isIn&&(
@@ -5362,10 +5378,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                   {[
                     ['The fund — already banked','All season, $1 from every player every round goes into the tournament fund. It is the floor of the pot and it is already collected — the pot grows every Friday before a single invite goes out.'],
                     ['Invites & the season lock','GO LIVE (portal) does two things at once: every eligible player sees a persistent invite in the app until they answer, and the season\u2019s books close — the fund, eligibility, and each buy-in lock as quoted. Fridays keep going; those rounds count toward NEXT season and next year\u2019s fund.'],
+                    ['Opt in per day','Players answer Day 1, Day 2, or Both (one buy-in either way — full amount). Each day\u2019s teams draw only from the players in for that day; the Board shows who\u2019s in for which.'],
                     ['Adding people below the bar','Numbers thin? Tap ✉ Invite on anyone under the rounds bar (💵 Field here, or the portal). They get the same banner and answer for themselves — with an EXCEPTION chip. In/Out toggles remain the \u201cI\u2019m deciding for you\u201d tool; SELF ✓ always means they chose.'],
                     ['Pay-ins','Each player owes the bar minus their rounds (their $1s are already in the fund). Collect cash at the club, tap Paid on the 💵 Field pill — one shared ledger with the portal. The header shows invited, answered, deciding, and outstanding at all times.'],
                     ['Answers & the deadline','Players confirm handicap and tees when they tap I\u2019m in — the draw uses those numbers. Answers change freely until the response deadline (set in the portal config); after that they lock automatically and changes go through an admin.'],
-                    ['Payouts','Fund + opt-in cash + added prize money = the pot. CTP holes come off the top; the category percentages split the rest; skins sweep every leftover dollar — computed live on the Scores board.'],
+                    ['Payouts','Fund + cash paid in + any added prize money = the pot. It splits in half across the two days; each day\u2019s category percentages divide its half and skins sweep the leftover — computed live on the Scores board. No CTP money, no refunds: over-the-bar money stays in.'],
                     ['What players see','Before GO LIVE: nothing. After: this tab — the Board with the live pot and field, published Teams, live Scores. Their only control is their own answer.'],
                     ['After the tournament','Results live on the Scores board per day. Close-out & archive (frozen results, clean slate for next year) ships as the next build.'],
                   ].map(([t,body],i2)=>(
@@ -5394,20 +5411,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               <div>{L('Overall %')}{num('catOverall',50)}</div>
               <div>{L('Places paid')}{num('placesCount',3)}</div>
             </div>
-            <div style={{marginTop:12}}>
-              {L('Closest to the pin — $ per hole per day (blank = skip)')}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7,marginTop:3}}>
-                {CTP_HOLES.map((h)=>(
-                  <div key={h}>
-                    <div style={{fontSize:9,fontWeight:700,color:'var(--ink-30,#9ca3af)',textAlign:'center'}}>Hole {h}</div>
-                    <input className="form-input" style={F} inputMode="numeric" placeholder="—" value={(cfg.ctpHoles&&cfg.ctpHoles['h'+h])||''} onChange={e=>{const n=parseInt(e.target.value.replace(/[^0-9]/g,'')||'0',10);setC('ctpHoles/h'+h,n>0?n:null);}}/>
-                  </div>
-                ))}
-              </div>
-            </div>
             <div style={{display:'flex',flexDirection:'column',gap:7,marginTop:12}}>
-              {chk('skinsOn','Team skins (pot = leftover after payouts + CTP)',false)}
-              {chk('refundOverpaid','Refund players over the entry bar',false)}
+              {chk('skinsOn','Team skins (pot = leftover after payouts)',false)}
               {chk('redrawTeams','Fresh random teams each day',true)}
             </div>
             <div style={{fontSize:11,color:'var(--ink-40)',marginTop:12,lineHeight:1.6}}>GO LIVE, RSVP lock, and the app-tab stager stay in the portal (Master only). Everything else — including name, dates, and the deadline above — syncs both ways.</div>
@@ -5421,6 +5426,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
 function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview }){
   const [previewTap, setPreviewTap] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [daysPick, setDaysPick] = useState('both');
   const [hcpDraft, setHcpDraft] = useState('');
   const [teeDraft, setTeeDraft] = useState('');
   const [rTee, setRTee] = useState({});
@@ -5458,7 +5464,8 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const dates=(cfg.date1?new Date(cfg.date1+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'')+(cfg.date2?' & '+new Date(cfg.date2+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'}):'');
   if(invitesLive&&!isAdmin&&!forcePreview&&!meAnswered.answered&&!meAnswered.invited&&!eligibleForInvite)return null;
   const rosterMe=(fullRoster||[]).find(x=>String(x.id)===String(currentUser.id));
-  const startOptIn=()=>{
+  const startOptIn=(pick)=>{
+    if(pick)setDaysPick(pick);
     if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
     if(rsvpLocked)return;
     setHcpDraft(String((me&&me.handicap!=null)?me.handicap:((rosterMe&&rosterMe.handicap!=null&&rosterMe.handicap!=='')?rosterMe.handicap:'')));
@@ -5468,11 +5475,12 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const confirmIn=()=>{
     const h=parseFloat(hcpDraft);
     if(isNaN(h)){alert('Enter your handicap so the teams draw fair.');return;}
-    update({['tournament/players/'+currentUser.id+'/in']:true,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now(),['tournament/players/'+currentUser.id+'/handicap']:h,['tournament/players/'+currentUser.id+'/tee']:teeDraft||'Whites'});
+    const daysObj=cfg.date2?{day1:daysPick!=='day2',day2:daysPick!=='day1'}:{day1:true,day2:false};
+    update({['tournament/players/'+currentUser.id+'/in']:true,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now(),['tournament/players/'+currentUser.id+'/handicap']:h,['tournament/players/'+currentUser.id+'/tee']:teeDraft||'Whites',['tournament/players/'+currentUser.id+'/days']:daysObj});
     setConfirming(false);
   };
   const rsvp=(val)=>{
-    if(val===true){startOptIn();return;}
+    if(val===true){startOptIn('both');return;}
     if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
     if(rsvpLocked)return;
     setConfirming(false);
@@ -5529,10 +5537,18 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         </div>
       )}
       <div style={{display:'flex',gap:8,marginTop:10,opacity:(rsvpLocked&&!adminPreview)?0.45:1,pointerEvents:(rsvpLocked&&!adminPreview)?'none':'auto'}}>
+        {cfg.date2?(()=>{
+          const wd=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return d;}};
+          const myDays=me&&me.in===true?(me.days||{day1:true,day2:true}):null;
+          const lit=(k)=>myDays&&(k==='both'?(myDays.day1&&myDays.day2):(k==='day1'?(myDays.day1&&!myDays.day2):(myDays.day2&&!myDays.day1)));
+          const bt=(k,label)=>(<button key={k} className="btn btn-sm" onClick={()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
+            style={{flex:1,fontWeight:800,padding:'9px 0',border:'1px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand-soft)':'transparent',color:lit(k)?'var(--brand)':'var(--ink-50)'}}>{lit(k)?'✓ ':''}{label}</button>);
+          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days')];
+        })():(
         <button className="btn btn-sm" onClick={()=>rsvp(true)}
           style={{flex:1,fontWeight:800,padding:'9px 0',border:'1px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand-soft)':'transparent',color:status==='in'?'var(--brand)':'var(--ink-50)'}}>
           {status==='in'?"🙌 You're in ✓":"I'm in"}
-        </button>
+        </button>)}
         <button className="btn btn-sm" onClick={()=>rsvp(false)}
           style={{flex:1,fontWeight:700,padding:'9px 0',border:'1px solid',borderColor:status==='declined'?'var(--hairline)':'var(--hairline-soft)',background:status==='declined'?'var(--surface-sunken)':'transparent',color:'var(--ink-40)'}}>
           {status==='declined'?"Not playing ✗":"Can't make it"}
@@ -5540,7 +5556,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
       </div>
       {confirming&&(
         <div style={{marginTop:10,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
-          <div style={{fontSize:11.5,fontWeight:800,color:'var(--ink)',marginBottom:7}}>Confirm your sign-up — teams draw off these:</div>
+          <div style={{fontSize:11.5,fontWeight:800,color:'var(--ink)',marginBottom:7}}>Confirm your sign-up{cfg.date2?(' — '+(daysPick==='both'?'both days':(daysPick==='day1'?'Day 1 only':'Day 2 only'))):''} — teams draw off these:</div>
           <div style={{display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
             <div style={{width:92}}>
               <div style={{fontSize:9.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Handicap</div>
@@ -5559,7 +5575,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
       )}
       {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — responses lock after that.</div>}
       {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need a change? Grab an admin.</div>}
-      {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in with handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap I'm in to update either.</div>}
+      {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?'Day 1 only':'Day 2 only'))):''} · handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap a day to update.</div>}
       {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
 
     </div>

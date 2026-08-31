@@ -2745,7 +2745,7 @@ function TournamentTab(){
   const fundTotal=Object.values(roundCounts||{}).reduce((s,v)=>s+v,0);
   const payinsDue=inPlayers.reduce((s,p)=>s+Math.max(bar-cnt(p),0),0);
   const refundsOut=cfg.refundOverpaid===true?inPlayers.reduce((s,p)=>s+Math.max(cnt(p)-bar,0),0):0;
-  const fullPot=fundTotal+payinsDue-refundsOut;
+  const fullPot=fundTotal+payinsDue;
   const setCfg=(k,v)=>wr("tournament/config/"+k,v);
   const setP=(id,k,v)=>wr("tournament/players/"+id+"/"+k,v);
   const [copied,setCopied]=React.useState(false);
@@ -2808,7 +2808,7 @@ function TournamentTab(){
     L.push("- Entry covers "+(twoDay?"both days; play both or either day":"the event"));
     L.push("");
     L.push("THE MONEY (as configured today, "+inPlayers.length+" players in)");
-    L.push("- The pot: $"+fundTotal+" already banked in the tournament fund + $"+payinsDue+" in opt-in entries"+(extraPrize>0?" + $"+extraPrize+" added prize money":"")+" = $"+available+(ctpTotal>0?" — $"+ctpTotal+" to CTP":""));
+    L.push("- One buy-in covers the whole tournament — play one day or both."+"\n- The pot: $"+fundTotal+" already banked in the tournament fund + $"+payinsDue+" in opt-in entries"+(extraPrize>0?" + $"+extraPrize+" added prize money":"")+" = $"+available);
     pools.forEach((pool,i)=>{
       L.push("- "+poolLabel(i)+" pool: $"+pool);
       simPool(pool).forEach(c=>{
@@ -2841,7 +2841,8 @@ function TournamentTab(){
                 <H t="Adding people below the bar">Numbers thin? Any admin can tap ✉ Invite on someone under the rounds bar (here or in the app's Field pill). They get the same banner and answer for themselves — they'll wear an EXCEPTION chip. The In/Out toggles remain the "I'm deciding for you" tool; SELF ✓ always means they chose.</H>
                 <H t="Pay-ins">Each player owes the buy-in bar minus their rounds (their $1s already in the fund). Collect cash at the club, tap Paid in the app's 💵 Field pill or here — one shared ledger. The header always shows who's invited, answered, still deciding, and what's outstanding.</H>
                 <H t="Answers & the deadline">Players confirm handicap and tees when they tap I'm in — the draw uses those numbers. They can change their answer freely until the response deadline (set above); after that, answers lock automatically and changes go through an admin.</H>
-                <H t="Payouts">Fund + opt-in cash + any added prize money = the pot. CTP holes come off the top; your category percentages split the rest; skins sweep every leftover dollar. All computed live on the Scores board — nothing to reconcile by hand.</H>
+                <H t="Payouts">Fund + cash paid in + any added prize money = the pot. It splits in half across the two days; each day’s category percentages divide its half and skins sweep the leftover. No CTP money and no refunds — over-the-bar money stays in. All computed live on the Scores board.</H>
+                <H t="Opt in per day">Players answer Day 1, Day 2, or Both — one buy-in either way, full amount. Each day’s teams draw only from the players in for that day; the Board shows who’s in for which.</H>
                 <H t="What players see">Before GO LIVE: nothing (stage it to yourself or admins to rehearse). After: the Tourney tab — the board with the live pot and field, published teams, and live scoring. Their only control is their own answer. No config, no money, no toggles.</H>
                 <H t="After the tournament">Results live on the Scores board per day. Closing out and archiving the whole event (frozen results + clean slate for next year) ships as the next build.</H>
               </div>
@@ -2874,9 +2875,7 @@ function TournamentTab(){
                 <input type="checkbox" checked={cfg[k]!==false} onChange={e=>setCfg(k,e.target.checked)}/>{label}
               </label>
             ))}
-            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-              <input type="checkbox" checked={cfg.refundOverpaid===true} onChange={e=>setCfg("refundOverpaid",e.target.checked)}/>Refund players over the entry bar <span style={{color:"rgba(255,255,255,0.3)"}}>(off = extra stays in the pot)</span>
-            </label>
+            
           </div>
           <div style={{marginTop:14,padding:"13px 15px",background:cfg.inviteOpen===true?"rgba(16,185,129,0.06)":"rgba(212,175,55,0.05)",border:"1px solid "+(cfg.inviteOpen===true?"rgba(16,185,129,0.3)":"rgba(212,175,55,0.2)"),borderRadius:10}}>
             {!isMasterUser?(
@@ -3016,17 +3015,7 @@ function TournamentTab(){
             </div>
             <div style={{...row,borderBottom:"none"}}>
               <div style={sect}>Extras</div>
-              <div style={{flexShrink:0}}>{L("Closest to the pin — $ per hole, per day (blank = skip)")}
-                <div style={{display:"flex",gap:6}}>
-                  {CTP_HOLES.map((h,i)=>(
-                    <div key={h} style={{width:64}}>
-                      <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.35)",textAlign:"center",marginBottom:2}}>Hole {h}</div>
-                      {numIn((cfg.ctpHoles&&cfg.ctpHoles["h"+h])||"",e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);wr("tournament/config/ctpHoles/h"+h,n>0?n:null);},"—")}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{width:16}}/>
+              
               {chk("Skins",skinsOn,e=>setCfg("skinsOn",e.target.checked))}
               {skinsOn&&<div style={{flexShrink:0}}>{L("\u00a0")}<div style={{height:38,display:"flex",alignItems:"center"}}><span style={{fontSize:11,fontWeight:800,padding:"5px 11px",borderRadius:8,background:"rgba(96,165,250,0.1)",border:"1px solid rgba(96,165,250,0.2)",color:"#60a5fa",whiteSpace:"nowrap"}}>pot = leftover: ${skinsPot}</span></div></div>}
             </div>
@@ -3043,7 +3032,7 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today’s field</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
-            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Fund (banked)","$"+fundTotal],["Opt-in cash","$"+payinsDue],["Extra prize","$"+extraPrize],["CTP total","$"+ctpTotal],["Prize pool (after CTP)","$"+Math.max(available-ctpTotal,0)],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
+            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Fund (banked)","$"+fundTotal],["Cash collected","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0)+extraPrize)],["Projected (all pay)","$"+(fundTotal+payinsDue+extraPrize)],["Extra prize","$"+extraPrize],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",minHeight:24}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>
@@ -3111,12 +3100,18 @@ function TournamentTab(){
             return(
               <div key={p.id} className="s-row" style={{gap:10,opacity:isIn?1:0.55}}>
                 {!isIn&&!eligible&&!(tp[p.id]&&tp[p.id].invited===true)&&<button className="btn btn-sm" style={{fontSize:10,color:"#4ade80",borderColor:"rgba(16,185,129,0.35)",background:"transparent",fontWeight:800,padding:"3px 8px"}} onClick={()=>setP(p.id,"invited",true)}>✉ Invite</button>}
-                {(()=>{const ans=tp[p.id]&&(tp[p.id].in===true||tp[p.id].in===false)?tp[p.id].in:null;
-                  const setAns=v=>{if(ans===v){setP(p.id,"in",null);setP(p.id,"by",null);setP(p.id,"ts",null);}else{setP(p.id,"in",v);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());}};
-                  const bs=(on,col)=>({padding:"3px 9px",borderRadius:7,border:"1px solid",borderColor:on?col:"rgba(255,255,255,0.15)",background:on?"rgba(16,185,129,0.12)":"transparent",color:on?col:"rgba(255,255,255,0.4)",fontWeight:800,fontSize:10.5,cursor:"pointer",flexShrink:0});
+                {(()=>{const rec=tp[p.id]||{};const ans=(rec.in===true||rec.in===false)?rec.in:null;
+                  const twoDay=!!cfg.date2;
+                  const clearAll=()=>{setP(p.id,"in",null);setP(p.id,"by",null);setP(p.id,"ts",null);setP(p.id,"days",null);};
+                  const bs=(on,col)=>({padding:"3px 8px",borderRadius:7,border:"1px solid",borderColor:on?col:"rgba(255,255,255,0.15)",background:on?"rgba(16,185,129,0.12)":"transparent",color:on?col:"rgba(255,255,255,0.4)",fontWeight:800,fontSize:10.5,cursor:"pointer",flexShrink:0});
+                  if(!twoDay){const setAns=v=>{if(ans===v)clearAll();else{setP(p.id,"in",v);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());}};
+                    return (<span style={{display:"inline-flex",gap:4,flexShrink:0}}><button style={bs(ans===true,"#4ade80")} onClick={()=>setAns(true)}>In</button><button style={bs(ans===false,"#f87171")} onClick={()=>setAns(false)}>Out</button></span>);}
+                  const d1=ans===true&&(!rec.days||rec.days.day1===true), d2=ans===true&&(!rec.days||rec.days.day2===true);
+                  const setDay=(dk,on)=>{const nd={day1:dk==="day1"?on:d1,day2:dk==="day2"?on:d2};if(!nd.day1&&!nd.day2){clearAll();return;}setP(p.id,"in",true);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());setP(p.id,"days",nd);};
                   return (<span style={{display:"inline-flex",gap:4,flexShrink:0}}>
-                    <button style={bs(ans===true,"#4ade80")} onClick={()=>setAns(true)} title="Tap again to clear back to no answer">In</button>
-                    <button style={bs(ans===false,"#f87171")} onClick={()=>setAns(false)} title="Tap again to clear back to no answer">Out</button>
+                    <button style={bs(d1,"#4ade80")} onClick={()=>setDay("day1",!d1)} title="Day 1">D1</button>
+                    <button style={bs(d2,"#4ade80")} onClick={()=>setDay("day2",!d2)} title="Day 2">D2</button>
+                    <button style={bs(ans===false,"#f87171")} onClick={()=>{if(ans===false)clearAll();else{setP(p.id,"in",false);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());setP(p.id,"days",null);}}}>Out</button>
                   </span>);})()}
                 <div style={{flex:1,minWidth:140}}>
                   <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>SELF ✓</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===false&&<span style={{fontSize:9.5,fontWeight:700,color:"#f87171",border:"1px solid rgba(248,113,113,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>DECLINED</span>}{tp[p.id]&&tp[p.id].invited===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>✉ CLARK</span>}{(cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true))&&!(tp[p.id]&&(tp[p.id].in===true||tp[p.id].in===false))&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(251,191,36,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>INVITED · NO ANSWER</span>}</div>
