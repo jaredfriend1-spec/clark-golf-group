@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-w';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-y';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4973,6 +4973,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const myRounds=currentUser?(counts[String(currentUser.name||'').toLowerCase().trim()]||0):0;
   const myOwed=Math.max(bar-myRounds,0);
   const myPaid=me?Number(me.paid)||0:0;
+  const isDeclined=rec=>!!(rec&&rec.in===false&&rec.by);   // explicit decline only; bare in:false (legacy clears) = no response
+  const hasAnswered=rec=>!!(rec&&(rec.in===true||isDeclined(rec)));
   const twoDay=!!cfg.date2;
   const wdOf=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return d||'';}};
   const d1Label=twoDay?wdOf(cfg.date1):'In', d2Label=twoDay?wdOf(cfg.date2):'';
@@ -4981,7 +4983,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const inFieldFor=dk=>entries.filter(([,v])=>inDay(v,dk)).map(([id])=>({id,name:nameOf(id)})).filter(p=>p.name);
   const dayTag=rec=>{if(!twoDay||!rec||!rec.days)return '';const a=rec.days.day1===true,b=rec.days.day2===true;return a&&b?'Both':a?d1Label:b?d2Label:'';};
   const inNames=inField.map(p=>p.name).sort();
-  const declinedN=entries.filter(([,v])=>v&&v.in===false&&v.by==='member').length;
+  const declinedN=entries.filter(([,v])=>isDeclined(v)).length;
   const dayKeys=[cfg.date1?'day1':null,cfg.date2?'day2':null].filter(Boolean);
   const dayDate=k=>k==='day1'?cfg.date1:cfg.date2;
   const fd=(d,long)=>d?new Date(d+'T12:00').toLocaleDateString([], long?{weekday:'long',month:'long',day:'numeric'}:{weekday:'short',month:'short',day:'numeric'}):null;
@@ -4995,9 +4997,9 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const refundsOut=cfg.refundOverpaid===true?inField.reduce((s,p)=>s+Math.max((counts[String(p.name).toLowerCase().trim()]||0)-bar,0),0):0;
   const availableNow=fundTotal+payinsDue+extraPrize-refundsOut;
   const pool=Math.floor(Math.max(availableNow-ctpTotal,0)/(((cfg.payMode||'perday')==='perday')?numDays:1));
-  const catF=cfg.catFront!=null?cfg.catFront:33, catB=cfg.catBack!=null?cfg.catBack:33, catO=cfg.catOverall!=null?cfg.catOverall:34;
+  const catF=cfg.catFront!=null?cfg.catFront:20, catB=cfg.catBack!=null?cfg.catBack:20, catO=cfg.catOverall!=null?cfg.catOverall:20;
   const skinsPct=cfg.skinsPct!=null?cfg.skinsPct:40;
-  const teamPool=Math.floor(pool*(100-skinsPct)/100);
+  const shareSum=catF+catB+catO+skinsPct;
   const teamSize=cfg.teamSize||4;
   const teams=(t&&t.teams&&t.teams[day])||[];
   const published=!!(t&&t.teamsPublished&&t.teamsPublished[day]);
@@ -5070,7 +5072,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 Closest to the pin{cfg.date2?' each day':''}: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?('Hole '+h+' — $'+ctpAmts[i]):null).filter(Boolean).join(' · ')} <span style={{color:'var(--ink-40)'}}>(individual)</span>
               </div>
             )}
-            {true&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% share + leftovers): the leftover after payouts and CTP, split by skins won.</div>}
+            {true&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% of the pot, plus rounding leftovers): the leftover after payouts and CTP, split by skins won.</div>}
           </div>
           {currentUser&&me&&me.in===true&&(
             <div style={{...card,borderColor:(myOwed-myPaid<=0)?'var(--brand-border)':'var(--warn-border)'}}>
@@ -5112,8 +5114,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
       )}
 
       {sub==='whosin'&&(()=>{
-        const decl=entries.filter(([,v])=>v&&v.in===false).map(([id])=>nameOf(id)).filter(Boolean).sort();
-        const answered=new Set(entries.filter(([,v])=>v&&(v.in===true||v.in===false)).map(([id])=>String(id)));
+        const decl=entries.filter(([,v])=>isDeclined(v)).map(([id])=>nameOf(id)).filter(Boolean).sort();
+        const answered=new Set(entries.filter(([,v])=>hasAnswered(v)).map(([id])=>String(id)));
         const invitedAll=(fullRoster||[]).filter(p=>((counts[String(p.name||'').toLowerCase().trim()]||0)>=(cfg.minRounds!=null?cfg.minRounds:10))||(tpNorm[String(p.id)]&&tpNorm[String(p.id)].invited===true));
         const deciding=invitedAll.filter(p=>!answered.has(String(p.id))).map(p=>p.name).sort();
         const dayCard=(dk,label)=>{const list=inFieldFor(dk).map(p=>p.name).sort((x,y)=>x.localeCompare(y));return (
@@ -5202,7 +5204,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             const scoredRows=rows.filter(r=>r.f!=null&&r.b!=null).map(r=>({...r,tot:r.f+r.b}));
             const lead=key=>scoredRows.length?scoredRows.slice().sort((x,y)=>x[key]-y[key])[0]:null;
             const skinCount=rows.reduce((s,r)=>s+r.sk,0);
-            const catTotal=Math.floor(teamPool*catF/100)+Math.floor(teamPool*catB/100)+Math.floor(teamPool*catO/100);
+            const catTotal=Math.floor(pool*catF/100)+Math.floor(pool*catB/100)+Math.floor(pool*catO/100);
             const skinsPot=Math.max(pool-catTotal,0);  // skins share + rounding leftovers, like Fridays
             const perSkin=skinCount>0&&skinsPot>0?Math.floor(skinsPot/skinCount):0;
             const bumpW=(ti,key,d)=>{const cur=(sc[ti]&&sc[ti][key]!=null)?sc[ti][key]:0;setPath('scores/'+day+'/'+ti+'/'+key,Math.max(-15,Math.min(15,cur+d)));};
@@ -5239,7 +5241,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 <div style={card}>
                   <div style={hdr}>🏆 Results — ${pool} pool {cfg.payMode==='combined'?'(combined)':'this day'}</div>
                   <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-                    {[['Front 9',lead('f'),Math.floor(teamPool*catF/100),r=>r&&r.f],['Back 9',lead('b'),Math.floor(teamPool*catB/100),r=>r&&r.b],['Overall',lead('tot'),Math.floor(teamPool*catO/100),r=>r&&r.tot]].map(([label,win,cat$,get])=>(
+                    {[['Front 9',lead('f'),Math.floor(pool*catF/100),r=>r&&r.f],['Back 9',lead('b'),Math.floor(pool*catB/100),r=>r&&r.b],['Overall',lead('tot'),Math.floor(pool*catO/100),r=>r&&r.tot]].map(([label,win,cat$,get])=>(
                       <div key={label} style={{flex:1,minWidth:118,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'9px 11px'}}>
                         <div style={{fontSize:10,fontWeight:800,color:'var(--brand)',textTransform:'uppercase'}}>{label} · ${cat$}</div>
                         <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{win?win.label:'—'} {win&&<span style={{fontWeight:600,color:'var(--ink-50)'}}>({fmtRel(get(win))})</span>}</div>
@@ -5291,7 +5293,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         }).sort((x,y)=>y.r-x.r||x.name.localeCompare(y.name));
         const inRows=rows.filter(x=>x.isIn);
         const invitedRows=rows.filter(x=>x.eligible||(x.rec&&x.rec.invited===true));
-        const answeredN=invitedRows.filter(x=>x.rec&&(x.rec.in===true||x.rec.in===false)).length;
+        const answeredN=invitedRows.filter(x=>hasAnswered(x.rec)).length;
         const settledN=inRows.filter(x=>x.net<=0).length;
         const outstanding=inRows.reduce((s,x)=>s+x.net,0);
         const chip=(txt,color,border)=>(<span style={{fontSize:9.5,fontWeight:800,color,border:'1px solid '+border,borderRadius:6,padding:'1px 6px',marginLeft:5,whiteSpace:'nowrap'}}>{txt}</span>);
@@ -5302,21 +5304,21 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {invitedRows.length} invited · {answeredN} answered · {invitedRows.length-answeredN} deciding · {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
               <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Day buttons answer FOR someone (tap a lit day again to clear it); Out declines. One buy-in covers any days. Tap Paid ✓ when the cash lands.</div>
               {rows.map(row=>(
-                <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&row.rec&&row.rec.in===false)?0.6:1}}>
+                <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&isDeclined(row.rec))?0.6:1}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
                     <div style={{flex:1,minWidth:0}}>
                       <span style={{fontSize:14,fontWeight:600,color:'var(--ink)'}}>{row.name}</span>
                       {row.isIn&&!row.eligible&&chip('EXCEPTION','var(--warn-ink)','var(--warn-border)')}
                       {row.rec&&row.rec.by==='member'&&row.rec.in===true&&chip('SELF ✓','var(--brand)','var(--brand-border)')}
-                      {row.rec&&row.rec.by==='member'&&row.rec.in===false&&chip('DECLINED','var(--money-neg)','var(--money-neg)')}
+                      {isDeclined(row.rec)&&chip(row.rec.by==='member'?'DECLINED':'OUT (admin)','var(--money-neg)','var(--money-neg)')}
                       {row.rec&&row.rec.invited===true&&chip('✉ CLARK','var(--brand)','var(--brand-border)')}
-                      {(row.eligible||(row.rec&&row.rec.invited===true))&&!(row.rec&&(row.rec.in===true||row.rec.in===false))&&chip('INVITED · NO ANSWER','var(--warn-ink)','var(--warn-border)')}
+                      {(row.eligible||(row.rec&&row.rec.invited===true))&&!hasAnswered(row.rec)&&chip('INVITED · NO ANSWER','var(--warn-ink)','var(--warn-border)')}
                       <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:2}}>{row.r} rounds{row.isIn?(row.owed>0?(' · owes $'+row.net+(row.paid>0?' ($'+row.paid+' in)':'')):' · covered ✓'):''}</div>
                     </div>
                     {!row.isIn&&!row.eligible&&!(row.rec&&row.rec.invited===true)&&(
                       <button onClick={()=>wsafe({['tournament/players/'+row.id+'/invited']:true})} style={{flexShrink:0,height:38,padding:'0 10px',borderRadius:10,border:'1.5px solid var(--brand-border)',background:'transparent',color:'var(--brand)',fontWeight:800,fontSize:11.5,cursor:'pointer',fontFamily:'inherit'}}>✉ Invite</button>
                     )}
-                    {(()=>{const rec=row.rec||{};const ans=(rec.in===true||rec.in===false)?rec.in:null;
+                    {(()=>{const rec=row.rec||{};const ans=rec.in===true?true:(isDeclined(rec)?false:null);
                       const P='tournament/players/'+row.id+'/';
                       const clearAll=()=>wsafe({[P+'in']:null,[P+'by']:null,[P+'ts']:null,[P+'days']:null});
                       const bs=(on,col,bg)=>({flexShrink:0,minWidth:40,height:38,borderRadius:10,border:'1.5px solid',borderColor:on?col:'var(--hairline)',background:on?bg:'transparent',color:on?col:'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit',padding:'0 8px'});
@@ -5412,7 +5414,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                     ['Adding people below the bar','Numbers thin? Tap ✉ Invite on anyone under the rounds bar (💵 Field here, or the portal). They get the same banner and answer for themselves — with an EXCEPTION chip. In/Out toggles remain the \u201cI\u2019m deciding for you\u201d tool; SELF ✓ always means they chose.'],
                     ['Pay-ins','Each player owes the bar minus their rounds (their $1s are already in the fund). Collect cash at the club, tap Paid on the 💵 Field pill — one shared ledger with the portal. The header shows invited, answered, deciding, and outstanding at all times.'],
                     ['Answers & the deadline','Players confirm handicap and tees when they tap I\u2019m in — the draw uses those numbers. Answers change freely until the response deadline (set in the portal config); after that they lock automatically and changes go through an admin.'],
-                    ['Payouts','Fund + cash paid in + any added prize money = the pot. It splits in half across the two days; each day\u2019s category percentages divide its half and skins sweep the leftover — computed live on the Scores board. No CTP money, no refunds: over-the-bar money stays in.'],
+                    ['Payouts','Fund + cash paid in = the pot, split in half across the two days. Each day\u2019s half pays by share of the whole: front 9, back 9, overall, and skins (defaults 20 / 20 / 20 / 40 — a $500 day pays $100 / $100 / $100 and $200 to skins, exactly like Fridays). Computed live on the Scores board. No CTP, no refunds: over-the-bar money stays in.'],
                     ['What players see','Before GO LIVE: nothing. After: this tab — the Board with the live pot and field, published Teams, live Scores. Their only control is their own answer.'],
                     ['After the tournament','Results live on the Scores board per day. Close-out & archive (frozen results, clean slate for next year) ships as the next build.'],
                   ].map(([t,body],i2)=>(
@@ -5435,10 +5437,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               ))}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))',gap:9,marginTop:10}}>
-              <div>{L('Skins % of pot')}{num('skinsPct',40)}</div>
-              <div>{L('Front 9 % (of rest)')}{num('catFront',33)}</div>
-              <div>{L('Back 9 % (of rest)')}{num('catBack',33)}</div>
-              <div>{L('Overall % (of rest)')}{num('catOverall',34)}</div>
+              <div>{L('Front 9 %')}{num('catFront',20)}</div>
+              <div>{L('Back 9 %')}{num('catBack',20)}</div>
+              <div>{L('Overall %')}{num('catOverall',20)}</div>
+              <div>{L('Skins %')}{num('skinsPct',40)}</div>
+              <div style={{gridColumn:'1 / -1',fontSize:11.5,fontWeight:700,color:shareSum===100?'var(--brand)':'var(--money-neg)'}}>{shareSum===100?'✓ Shares add to 100% — e.g. a $500 day pool pays $'+Math.floor(500*catF/100)+' / $'+Math.floor(500*catB/100)+' / $'+Math.floor(500*catO/100)+' and $'+(500-Math.floor(500*catF/100)-Math.floor(500*catB/100)-Math.floor(500*catO/100))+' to skins':'⚠ Shares add to '+shareSum+'% — they must total 100%'}</div>
               <div>{L('Places paid')}{num('placesCount',3)}</div>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:7,marginTop:12}}>
@@ -5472,13 +5475,26 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const cfg=t&&t.config;
   if(!cfg||!currentUser||!currentUser.id)return null;
   const invitesLive=cfg.inviteOpen===true;
-  const meAnswered=(()=>{const raw=t.players;const rec=Array.isArray(raw)?raw[Number(currentUser&&currentUser.id)]:((raw||{})[String((currentUser&&currentUser.id)||'')]);return {rec,answered:!!(rec&&(rec.in===true||rec.in===false)),invited:!!(rec&&rec.invited===true)};})();
+  const meAnswered=(()=>{const raw=t.players;const rec=Array.isArray(raw)?raw[Number(currentUser&&currentUser.id)]:((raw||{})[String((currentUser&&currentUser.id)||'')]);return {rec,answered:!!(rec&&(rec.in===true||(rec.in===false&&rec.by))),invited:!!(rec&&rec.invited===true)};})();
   const todayIso=(()=>{const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');})();
   const deadlinePassed=!!(cfg.rsvpDeadline&&todayIso>cfg.rsvpDeadline);
   const rsvpLocked=cfg.rsvpLocked===true||deadlinePassed;
   const invRounds=(()=>{let n=0;const nm=String((currentUser&&currentUser.name)||'').toLowerCase().trim();Object.values(att||{}).forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||'')>seasonLock.closedAt)return;((r&&r.players)||[]).forEach(p=>{if(String(p).toLowerCase().trim()===nm)n++;});});return n;})();
   const eligibleForInvite=invRounds>=((cfg.minRounds!=null)?cfg.minRounds:10);
   const adminPreview=!invitesLive&&!!forcePreview;   // preview ONLY when opened via the Admin tab button
+  if(compact&&!invitesLive){
+    if(!(isAdmin&&forcePreview))return null;
+    return (
+      <div onClick={onOpen} style={{margin:'0 0 10px',padding:'10px 14px',borderRadius:12,background:'var(--warn-soft)',border:'1.5px dashed var(--warn-border)',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
+        <span style={{fontSize:18}}>🏆</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:12.5,fontWeight:800,color:'var(--warn-ink)'}}>PREVIEW · You’re invited — {cfg.name||'the tournament'}</div>
+          <div style={{fontSize:11,color:'var(--ink-60)',marginTop:1}}>Members see this banner on every screen after GO LIVE. Taps record nothing yet.</div>
+        </div>
+        <span style={{fontSize:12,fontWeight:800,color:'var(--warn-ink)'}}>Respond ›</span>
+      </div>
+    );
+  }
   if(!invitesLive&&!adminPreview)return null;
   const rounds=Object.values(att||{});
   const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
@@ -10044,8 +10060,8 @@ function App(){
           🔄 A new version of the app is available — tap here to update
         </div>
       )}
-      {tab !== 'tournament' && tab !== 'home' && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard compact onOpen={()=>setTab('tournament')} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
-      {tab === 'home' && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
+      {tab !== 'tournament' && tab !== 'home' && tournTabVisible && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard compact forcePreview={isAdmin} onOpen={()=>setTab('tournament')} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
+      {tab === 'home' && tournTabVisible && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard forcePreview={isAdmin} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster}/></div>}
       {tab === 'tournament' && (
         <div>
           <div className="page-title">Tournament</div>

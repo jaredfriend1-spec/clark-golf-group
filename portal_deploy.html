@@ -490,6 +490,9 @@ function ClearLoginLogBtn({logEntries}){
 }
 
 // ── DASH ──────────────────────────────────────────────────────────────────────
+// ONE formula for the tournament fund everywhere: $1 × every recorded attendance player-round (season window if locked). No surplus, no starting balance.
+const tournFundFromAttendance=(roundsNode,lock)=>{const rs=roundsNode?(Array.isArray(roundsNode)?roundsNode:Object.values(roundsNode)):[];return rs.reduce((s,r)=>{if(!r)return s;if(lock&&lock.closedAt&&String(r.date||"")>lock.closedAt)return s;return s+((r.players)||[]).length;},0);};
+const MASTER_EMAILS=["jaredfriend1@gmail.com"];
 function DashTab({user}){
   const settings=useDB("settings");
   const rosterPins=useDB("rosterPins");
@@ -497,6 +500,8 @@ function DashTab({user}){
   const history=useDB("history");
   const week=useDB("week");
   const rawActivityLog=useDB("activityLog");
+  const attRoundsDash=useDB("attendance/rounds");
+  const seasonLockDash=useDB("settings/seasonLock");
   const [appOk,setAppOk]=useState(null);
   const [fbInspect,setFbInspect]=useState(null);
   const [showInspect,setShowInspect]=useState(false);
@@ -536,7 +541,7 @@ function DashTab({user}){
   const allDayActive=DAYS.filter(d=>safeArr(week?.activeDays).includes(d));
   const signups=Object.values(week?.signups||{});
   const totalSignups=signups.length;
-  const tf=Object.values(history||{}).reduce((s,r)=>s+(r.scores?.tournFund||0),0)+(settings?.tournFundStartingBalance||0);
+  const tf=tournFundFromAttendance(attRoundsDash,seasonLockDash);   // $1 × attendance player-rounds — same number as the tournament module
   const playersByDay=DAYS.map(d=>({day:d,count:signups.filter(s=>s.day===d).length})).filter(x=>x.count>0||allDayActive.includes(x.day));
 
   return(
@@ -2758,9 +2763,9 @@ function TournamentTab(){
   // ── payout config w/ defaults ──
   const payMode=cfg.payMode||(twoDay?"perday":"combined");   // perday | combined
   const teamSize=cfg.teamSize||4;
-  const catF=cfg.catFront!=null?cfg.catFront:33, catB=cfg.catBack!=null?cfg.catBack:33, catO=cfg.catOverall!=null?cfg.catOverall:34;
+  const catF=cfg.catFront!=null?cfg.catFront:20, catB=cfg.catBack!=null?cfg.catBack:20, catO=cfg.catOverall!=null?cfg.catOverall:20;
   const skinsPct=cfg.skinsPct!=null?cfg.skinsPct:40;
-  const catSum=catF+catB+catO;
+  const catSum=catF+catB+catO+skinsPct;
   const placesCount=cfg.placesCount||3;
   const PLACE_DEFAULTS={1:[100],2:[60,40],3:[50,30,20]};
   const placeVals=[0,1,2].slice(0,placesCount).map(i=>{const v=cfg["place"+(i+1)];return v!=null?v:PLACE_DEFAULTS[placesCount][i];});
@@ -2780,7 +2785,7 @@ function TournamentTab(){
   function simPool(pool){
     const cats=[["Front 9",catF],["Back 9",catB],["Overall",catO]];
     return cats.map(([label,pct])=>{
-      const cat$=Math.floor(Math.floor(pool*(100-skinsPct)/100)*pct/100);
+      const cat$=Math.floor(pool*pct/100);
       const places=placeVals.map((pp,i)=>[["1st","2nd","3rd"][i],pp]).filter(([,pp])=>pp>0).map(([pl,pp])=>{
         const team$=Math.floor(cat$*pp/100);
         return {pl,team$,per$:teamSize>0?Math.floor(team$/teamSize):team$};
@@ -2802,7 +2807,7 @@ function TournamentTab(){
     L.push("- "+(cfg.redrawTeams!==false?"Fresh random A/B/C/D team draw each day":"Same teams both days"));
     L.push("- Teams of "+teamSize+" — payouts split Front 9 ("+catF+"%), Back 9 ("+catB+"%), Overall ("+catO+"%), paying "+placesCount+" place"+(placesCount>1?"s":"")+" each");
     if(ctpPerDayTotal>0)L.push("- Closest to the pin"+(numDays>1?" (each day)":"")+": "+CTP_HOLES.map((h,i)=>ctpAmts[i]>0?"Hole "+h+" $"+ctpAmts[i]:null).filter(Boolean).join(", "));
-    if(skinsOn)L.push("- Skins pot: $"+skinsPot+" ("+skinsPct+"% share of the pot plus rounding leftovers — same as Fridays)");
+    if(skinsOn)L.push("- Skins pot: $"+skinsPot+" ("+skinsPct+"% of the pot, plus rounding leftovers — same as Fridays)");
     L.push("");
     L.push("ENTRY & ELIGIBILITY");
     L.push("- Eligibility: "+minRounds+"+ rounds with the group this season");
@@ -2850,7 +2855,7 @@ function TournamentTab(){
                 <H t="Adding people below the bar">Numbers thin? Any admin can tap ✉ Invite on someone under the rounds bar (here or in the app's Field pill). They get the same banner and answer for themselves — they'll wear an EXCEPTION chip. The In/Out toggles remain the "I'm deciding for you" tool; SELF ✓ always means they chose.</H>
                 <H t="Pay-ins">Each player owes the buy-in bar minus their rounds (their $1s already in the fund). Collect cash at the club, tap Paid in the app's 💵 Field pill or here — one shared ledger. The header always shows who's invited, answered, still deciding, and what's outstanding.</H>
                 <H t="Answers & the deadline">Players confirm handicap and tees when they tap I'm in — the draw uses those numbers. They can change their answer freely until the response deadline (set above); after that, answers lock automatically and changes go through an admin.</H>
-                <H t="Payouts">Fund + cash paid in + any added prize money = the pot. It splits in half across the two days; each day’s category percentages divide its half and skins sweep the leftover. No CTP money and no refunds — over-the-bar money stays in. All computed live on the Scores board.</H>
+                <H t="Payouts">Fund + cash paid in = the pot, split in half across the two days. Each day’s half pays by share of the whole: front 9, back 9, overall, and skins (defaults 20 / 20 / 20 / 40 — a $500 day pays $100 / $100 / $100 and $200 to skins, exactly like Fridays). No CTP and no refunds — over-the-bar money stays in. All computed live on the Scores board.</H>
                 <H t="Opt in per day">Players answer Day 1, Day 2, or Both — one buy-in either way, full amount. Each day’s teams draw only from the players in for that day; the Board shows who’s in for which.</H>
                 <H t="What players see">Before GO LIVE: nothing (stage it to yourself or admins to rehearse). After: the Tourney tab — the board with the live pot and field, published teams, and live scoring. Their only control is their own answer. No config, no money, no toggles.</H>
                 <H t="After the tournament">Results live on the Scores board per day. Closing out and archiving the whole event (frozen results + clean slate for next year) ships as the next build.</H>
@@ -3005,11 +3010,11 @@ function TournamentTab(){
             </div>
             <div style={row}>
               <div style={sect}>Pot split</div>
-              <div style={col()}>{L("Skins % of pot")}{numIn(skinsPct,e=>setCfg("skinsPct",parseInt(e.target.value||"0",10)))}</div>
-              <div style={col()}>{L("Front 9 % of rest")}{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
-              <div style={col()}>{L("Back 9 % of rest")}{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
-              <div style={col()}>{L("Overall % of rest")}{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
-              {okBadge(catSum,skinsOn)}
+              <div style={col()}>{L("Skins %")}{numIn(skinsPct,e=>setCfg("skinsPct",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Front 9 %")}{numIn(catF,e=>setCfg("catFront",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Back 9 %")}{numIn(catB,e=>setCfg("catBack",parseInt(e.target.value||"0",10)))}</div>
+              <div style={col()}>{L("Overall %")}{numIn(catO,e=>setCfg("catOverall",parseInt(e.target.value||"0",10)))}</div>
+              {okBadge(catSum,false)}
             </div>
             <div style={row}>
               <div style={sect}>Places paid</div>
@@ -3096,10 +3101,10 @@ function TournamentTab(){
       </div>
 
       <div className="card">
-        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.35)",marginLeft:8}}>{(()=>{const inv=all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true));const ans=inv.filter(p=>tp[p.id]&&(tp[p.id].in===true||tp[p.id].in===false)).length;return inv.length+" invited · "+ans+" answered · "+(inv.length-ans)+" deciding · ";})()}{inPlayers.filter(p=>(bar-cnt(p))-paidOf(p)<=0).length} / {inPlayers.length} settled</span></span>
+        <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.35)",marginLeft:8}}>{(()=>{const inv=all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true));const ans=inv.filter(p=>tp[p.id]&&(tp[p.id].in===true||(tp[p.id].in===false&&tp[p.id].by))).length;return inv.length+" invited · "+ans+" answered · "+(inv.length-ans)+" deciding · ";})()}{inPlayers.filter(p=>(bar-cnt(p))-paidOf(p)<=0).length} / {inPlayers.length} settled</span></span>
           <div style={{display:"flex",gap:6}}>
             <button className="btn btn-gh btn-sm" onClick={()=>{all.forEach(p=>{if(cnt(p)>=minRounds)setP(p.id,"in",true);});}}>Select all eligible</button>
-            <button className="btn btn-gh btn-sm" onClick={()=>{Object.keys(tp).forEach(id=>{if(tp[id]&&tp[id].in)setP(id,"in",false);});}}>Clear all</button>
+            <button className="btn btn-gh btn-sm" onClick={()=>{Object.keys(tp).forEach(id=>{if(tp[id]&&tp[id].in)setP(id,"in",null);setP(id,"by",null);setP(id,"ts",null);setP(id,"days",null);});}}>Clear all</button>
             <button className="btn btn-gh btn-sm" onClick={()=>{const lines=all.slice().sort((a,b)=>cnt(b)-cnt(a)).map(p=>{const r=cnt(p);return p.name+" — "+r+" rounds ("+(r>=minRounds?"eligible":"needs "+(minRounds-r)+" more")+") — entry if playing: $"+Math.max(bar-r,0)+(cfg.refundOverpaid===true&&bar-r<0?" (refund $"+(r-bar)+")":"");});navigator.clipboard.writeText("CLARK TOURNAMENT — STANDINGS AS OF "+new Date().toLocaleDateString()+"\nEntry-fee bar: $"+bar+"\nEligibility: "+minRounds+"+ rounds\n\n"+lines.join("\n"));setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?"✓ Copied":"📋 Copy standings"}</button>
           </div>
         </div>
@@ -3110,7 +3115,7 @@ function TournamentTab(){
             return(
               <div key={p.id} className="s-row" style={{gap:10,opacity:isIn?1:0.55}}>
                 {!isIn&&!eligible&&!(tp[p.id]&&tp[p.id].invited===true)&&<button className="btn btn-sm" style={{fontSize:10,color:"#4ade80",borderColor:"rgba(16,185,129,0.35)",background:"transparent",fontWeight:800,padding:"3px 8px"}} onClick={()=>setP(p.id,"invited",true)}>✉ Invite</button>}
-                {(()=>{const rec=tp[p.id]||{};const ans=(rec.in===true||rec.in===false)?rec.in:null;
+                {(()=>{const rec=tp[p.id]||{};const ans=rec.in===true?true:((rec.in===false&&rec.by)?false:null);
                   const twoDay=!!cfg.date2;
                   const clearAll=()=>{setP(p.id,"in",null);setP(p.id,"by",null);setP(p.id,"ts",null);setP(p.id,"days",null);};
                   const bs=(on,col)=>({padding:"3px 8px",borderRadius:7,border:"1px solid",borderColor:on?col:"rgba(255,255,255,0.15)",background:on?"rgba(16,185,129,0.12)":"transparent",color:on?col:"rgba(255,255,255,0.4)",fontWeight:800,fontSize:10.5,cursor:"pointer",flexShrink:0});
@@ -3124,7 +3129,7 @@ function TournamentTab(){
                     <button style={bs(ans===false,"#f87171")} onClick={()=>{if(ans===false)clearAll();else{setP(p.id,"in",false);setP(p.id,"by","admin");setP(p.id,"ts",Date.now());setP(p.id,"days",null);}}}>Out</button>
                   </span>);})()}
                 <div style={{flex:1,minWidth:140}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>SELF ✓</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===false&&<span style={{fontSize:9.5,fontWeight:700,color:"#f87171",border:"1px solid rgba(248,113,113,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>DECLINED</span>}{tp[p.id]&&tp[p.id].invited===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>✉ CLARK</span>}{(cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true))&&!(tp[p.id]&&(tp[p.id].in===true||tp[p.id].in===false))&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(251,191,36,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>INVITED · NO ANSWER</span>}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#e2e8f0"}}>{p.name} {isIn&&!eligible&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(245,158,11,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>EXCEPTION</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>SELF ✓</span>}{tp[p.id]&&tp[p.id].by==="member"&&tp[p.id].in===false&&<span style={{fontSize:9.5,fontWeight:700,color:"#f87171",border:"1px solid rgba(248,113,113,0.3)",borderRadius:6,padding:"1px 6px",marginLeft:4}}>DECLINED</span>}{tp[p.id]&&tp[p.id].invited===true&&<span style={{fontSize:9.5,fontWeight:700,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>✉ CLARK</span>}{(cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true))&&!(tp[p.id]&&(tp[p.id].in===true||(tp[p.id].in===false&&tp[p.id].by)))&&<span style={{fontSize:9.5,fontWeight:700,color:"#fbbf24",border:"1px solid rgba(251,191,36,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4}}>INVITED · NO ANSWER</span>}</div>
                   <div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>{r} rounds · {eligible?"eligible":"needs "+(minRounds-r)+" more"} · entry ${Math.max(owed,0)}{owed<0?" (refund $"+(-owed)+")":""}</div>
                 </div>
                 {isIn&&(<React.Fragment>
@@ -3686,7 +3691,8 @@ function SeasonTab(){
   const [backedUp,setBackedUp]=React.useState({});
   React.useEffect(()=>{setNm((season&&season.name)||String(new Date().getFullYear()));setEd((season&&season.endDate)||"");},[season]);
   const liveRounds=Object.keys(history||{}).length;
-  const liveFund=Object.values(history||{}).reduce((s,r)=>s+((r&&r.scores&&parseFloat(r.scores.tournFund))||0),0);
+  const seasonLockS=useDB("settings/seasonLock");
+  const liveFund=tournFundFromAttendance(attendance&&attendance.rounds,seasonLockS);
   const attCount=(attendance&&attendance.rounds)?(Array.isArray(attendance.rounds)?attendance.rounds.length:Object.keys(attendance.rounds).length):0;
   const daysLeft=(()=>{if(!ed)return null;const d=Math.ceil((new Date(ed+"T23:59:59")-new Date())/86400000);return d;})();
 
@@ -4302,7 +4308,7 @@ function SettingsTab({user,onSignOut}){
     </div>
 
     <div className="card">
-      <div className="card-hdr"><span className="card-title">Tournament Fund Starting Balance</span></div>
+      <div className="card-hdr"><span className="card-title">Tournament Fund Starting Balance</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>historical note only — NOT added. The fund is $1 × every recorded attendance player-round (already includes the backfilled rounds).</span></div>
       <div className="card-body">
         <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginBottom:8}}>Balance from before rounds were tracked in the app:</div>
         <div style={{display:"flex",gap:8}}>
@@ -4355,7 +4361,6 @@ const ALL_NAV_ITEMS=[
   {id:"settings",label:"Settings",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>},
 ];
 
-const MASTER_EMAILS=["jaredfriend1@gmail.com"];
 function Portal(){
   const [user,setUser]=useState(()=>{try{const s=sessionStorage.getItem("portal_user");return s?JSON.parse(s):null;}catch{return null;}});
   const [tab,setTab]=useState("dash");
