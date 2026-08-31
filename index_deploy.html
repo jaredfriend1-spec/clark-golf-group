@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-z';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-a';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4994,6 +4994,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const extraPrize=Number(cfg.extraPrize||0);
   const fundTotal=Object.values(counts).reduce((s,v)=>s+v,0);
   const payinsDue=inField.reduce((s,p)=>s+Math.max(bar-(counts[String(p.name).toLowerCase().trim()]||0),0),0);
+  const potentialDue=(fullRoster||[]).filter(p=>{const r=counts[String(p.name||'').toLowerCase().trim()]||0;const rec=tpNorm[String(p.id)];return r>=(cfg.minRounds!=null?cfg.minRounds:10)||(rec&&rec.invited===true);}).reduce((s,p)=>s+Math.max(bar-(counts[String(p.name||'').toLowerCase().trim()]||0),0),0);
   const refundsOut=cfg.refundOverpaid===true?inField.reduce((s,p)=>s+Math.max((counts[String(p.name).toLowerCase().trim()]||0)-bar,0),0):0;
   const availableNow=fundTotal+payinsDue+extraPrize-refundsOut;
   const pool=Math.floor(Math.max(availableNow-ctpTotal,0)/(((cfg.payMode||'perday')==='perday')?numDays:1));
@@ -5115,8 +5116,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               <div style={card}>
                 <div style={hdr}>💰 The pot — live reconciliation</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{tile('Players in',inField.length)}{tile("Can't make it",declinedN)}{tile('Still deciding',stillDeciding)}</div>
-                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Fund (banked)','$'+fundTotal)}{tile('Cash collected','$'+paidTotal)}{extraPrize>0?tile('Added prize','$'+extraPrize):null}{tile('Pot now','$'+(fundTotal+paidTotal+extraPrize),true)}{tile('Projected (all pay)','$'+(fundTotal+payinsDue+extraPrize),true)}</div>
-                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = fund banked + cash actually collected. Projected = if every opted-in player pays. Split in half across the two days; each day pays out per its config.</div>
+                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Pot now','$'+(fundTotal+paidTotal),true)}{tile('Projected — opted in','$'+(fundTotal+payinsDue),true)}{tile('Potential — everyone invited','$'+(fundTotal+potentialDue),true)}</div>
+                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = ${fundTotal} fund banked + ${paidTotal} cash in hand. Projected = fund + every opted-in buy-in. Potential = fund + every eligible or invited player’s buy-in if they all played. ${paidTotal} collected of ${payinsDue} due from opted-in players · ${Math.max(payinsDue-paidTotal,0)} still to collect. Same buy-in for one day or both.</div>
                 {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${fundTotal} banked in the fund · ${paidTotal} of ${payinsDue} opt-in cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
                 <div style={{fontSize:12,color:'var(--ink-40)',marginTop:6,lineHeight:1.6}}>Eligibility: {cfg.minRounds!=null?cfg.minRounds:10}+ qualifying rounds (exceptions by the admins).{cfg.refundOverpaid===true?' Players over the bar are refunded.':' Anything over the bar stays in the pot.'} Pot assumes every entry settles.</div>
               </div>

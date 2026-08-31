@@ -3048,7 +3048,7 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today’s field</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
-            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Fund (banked)","$"+fundTotal],["Cash collected","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0)+extraPrize)],["Projected (all pay)","$"+(fundTotal+payinsDue+extraPrize)],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
+            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0))],["Projected — opted in","$"+(fundTotal+payinsDue)],["Potential — everyone invited","$"+(fundTotal+all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true)).reduce((s,p)=>s+Math.max(bar-cnt(p),0),0))],["Collected / due (opted in)","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)+" / $"+payinsDue],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",minHeight:24}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>
@@ -3104,7 +3104,7 @@ function TournamentTab(){
       <div className="card">
         <div className="card-hdr"><span className="card-title">👥 Field Selection &amp; Pay-Ins <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.35)",marginLeft:8}}>{(()=>{const inv=all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true));const ans=inv.filter(p=>tp[p.id]&&(tp[p.id].in===true||(tp[p.id].in===false&&tp[p.id].by))).length;return inv.length+" invited · "+ans+" answered · "+(inv.length-ans)+" deciding · ";})()}{inPlayers.filter(p=>(bar-cnt(p))-paidOf(p)<=0).length} / {inPlayers.length} settled</span></span>
           <div style={{display:"flex",gap:6}}>
-            <button className="btn btn-gh btn-sm" onClick={()=>{all.forEach(p=>{if(cnt(p)>=minRounds)setP(p.id,"in",true);});}}>Select all eligible</button>
+            
             <button className="btn btn-gh btn-sm" onClick={()=>{Object.keys(tp).forEach(id=>{if(tp[id]&&tp[id].in)setP(id,"in",null);setP(id,"by",null);setP(id,"ts",null);setP(id,"days",null);});}}>Clear all</button>
             <button className="btn btn-gh btn-sm" onClick={()=>{const lines=all.slice().sort((a,b)=>cnt(b)-cnt(a)).map(p=>{const r=cnt(p);return p.name+" — "+r+" rounds ("+(r>=minRounds?"eligible":"needs "+(minRounds-r)+" more")+") — entry if playing: $"+Math.max(bar-r,0)+(cfg.refundOverpaid===true&&bar-r<0?" (refund $"+(r-bar)+")":"");});navigator.clipboard.writeText("CLARK TOURNAMENT — STANDINGS AS OF "+new Date().toLocaleDateString()+"\nEntry-fee bar: $"+bar+"\nEligibility: "+minRounds+"+ rounds\n\n"+lines.join("\n"));setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?"✓ Copied":"📋 Copy standings"}</button>
           </div>
