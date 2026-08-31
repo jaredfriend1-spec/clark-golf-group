@@ -2818,8 +2818,9 @@ function TournamentTab(){
     L.push("1. Open the app — you'll see a green \"You're invited\" banner on every screen until you answer. Tap it (or open the Tourney tab).");
     L.push(twoDay?"2. Tap "+wdOf(cfg.date1)+" only, "+wdOf(cfg.date2)+" only, or Both days — or Can't make it.":"2. Tap I'm in — or Can't make it.");
     L.push("3. Confirm your handicap and tees (pre-filled — fix them if they're off). That's it; the teams are drawn off those numbers.");
-    L.push("4. Your amount due is shown right on the board under Your entry. Bring cash to the club; an admin marks you paid."+(cfg.rsvpDeadline?" Please answer by "+cfg.rsvpDeadline+".":""));
-    L.push("Change your mind? Tap your day again any time before the deadline.");
+    L.push("4. Your amount due is shown on the board under Your entry. It's the SAME entry fee whether you play one day or both.");
+    L.push("5. Payments are due to Clark BEFORE the tournament starts — cash at the club works; he'll mark you paid in the app."+(cfg.rsvpDeadline?" Please answer by "+cfg.rsvpDeadline+".":""));
+    L.push("Change your mind? Tap your day again any time before the deadline. After the deadline the app locks — reach out to Clark directly for any changes.");
     L.push("");
     L.push("THE MONEY (as configured today, "+inPlayers.length+" players in)");
     L.push("- One buy-in covers the whole tournament — play one day or both."+"\n- The pot: $"+fundTotal+" already banked in the tournament fund + $"+payinsDue+" in opt-in entries"+(extraPrize>0?" + $"+extraPrize+" added prize money":"")+" = $"+available);

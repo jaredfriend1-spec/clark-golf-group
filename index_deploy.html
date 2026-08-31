@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.17-y';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.17-z';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5032,12 +5032,29 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
     setPath('teamsPublished/'+day,null);
     setPath('scores/'+day,null);
   }
+  const recalcTeams=u=>{u.forEach(tm=>{tm.totalHcp=Math.round((tm.players.reduce((s,q)=>s+(parseFloat(q.handicap)||0),0))*10)/10;});return u;};
   function movePlayer(fromTi,pi,toTi){
     const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
     const [p]=u[fromTi].players.splice(pi,1);
     u[toTi].players.push(p);
-    u.forEach(tm=>{tm.totalHcp=Math.round((tm.players.reduce((s,q)=>s+(parseFloat(q.handicap)||0),0))*10)/10;});
-    setPath('teams/'+day,u);
+    setPath('teams/'+day,recalcTeams(u));
+  }
+  function dropFromTeam(ti,pi,alsoOut){
+    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const [p]=u[ti].players.splice(pi,1);
+    setPath('teams/'+day,recalcTeams(u));
+    if(alsoOut&&p){
+      const ent=entries.find(([id])=>nameOf(id)===p.name);
+      if(ent){const [id,rec]=ent;const P='tournament/players/'+id+'/';
+        if(twoDay){const nd={day1:(!rec.days||rec.days.day1===true),day2:(!rec.days||rec.days.day2===true)};nd[day]=false;if(!nd.day1&&!nd.day2)wsafe({[P+'in']:false,[P+'by']:'admin',[P+'ts']:Date.now(),[P+'days']:null});else wsafe({[P+'days']:nd,[P+'by']:'admin',[P+'ts']:Date.now()});}
+        else wsafe({[P+'in']:false,[P+'by']:'admin',[P+'ts']:Date.now()});
+      }
+    }
+  }
+  function addToTeam(name,handicap,ti){
+    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    u[ti].players.push({name,handicap:parseFloat(handicap)||0});
+    setPath('teams/'+day,recalcTeams(u));
   }
   if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
   return (
@@ -5085,6 +5102,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 <div style={{fontSize:13.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.</div>
               )}
               <div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>{twoDay?('In for '+(dayTag(me)||'both days')+' · '):''}{me.handicap!=null?('Playing off '+me.handicap+' · '):''}{me.tee||'Whites'} tees.</div>
+              <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6,lineHeight:1.55}}>Same entry fee whether you play one day or both. Pay Clark before the tournament starts.</div>
             </div>
           )}
           {(live||isAdmin)&&(()=>{
@@ -5163,6 +5181,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                   {(tm.players||[]).map((p,pi)=>(
                     <div key={pi} style={{display:'flex',alignItems:'center',gap:8,padding:'3px 0'}}>
                       <span style={{flex:1,fontSize:13.5,color:'var(--ink)'}}>{p.name}</span>
+                      {isAdmin&&<button onClick={()=>{const alsoOut=window.confirm(p.name+' — drop from this team.\n\nOK = also mark them OUT for '+(twoDay?d1Label&&day==='day1'?d1Label:d2Label:'the day')+' (they dropped).\nCancel = just take them off the team (keep them in the field).');dropFromTeam(ti,pi,alsoOut);}} title="Drop from team" style={{width:30,height:30,borderRadius:8,border:'1px solid var(--hairline)',background:'transparent',color:'var(--money-neg)',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>✕</button>}
                       {isAdmin&&teams.length>1&&(
                         <select value={ti} onChange={e=>movePlayer(ti,pi,parseInt(e.target.value,10))} className="form-input" style={{width:'auto',padding:'3px 7px',fontSize:11.5}}>
                           {teams.map((_,i2)=><option key={i2} value={i2}>{'Team '+String.fromCharCode(65+i2)}</option>)}
@@ -5172,6 +5191,24 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                   ))}
                 </div>
               ))}
+              {isAdmin&&(()=>{
+                const onTeams=new Set(teams.flatMap(tm=>(tm.players||[]).map(p=>p.name)));
+                const missing=inFieldFor(day).filter(p=>!onTeams.has(p.name));
+                if(!missing.length)return null;
+                return (
+                  <div style={{...card,borderColor:'var(--warn-border)'}}>
+                    <div style={hdr}>In for this day but not on a team ({missing.length})</div>
+                    {missing.map(p=>{const rec=tpNorm[String(p.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=rec.handicap!=null?rec.handicap:(r&&r.handicap);return (
+                      <div key={p.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                        <span style={{flex:1,fontSize:13.5,color:'var(--ink)'}}>{p.name} <span style={{fontSize:11,color:'var(--ink-40)'}}>hcp {h!=null?h:'—'}</span></span>
+                        <select className="form-input" defaultValue="" onChange={e=>{if(e.target.value==='')return;addToTeam(p.name,h,parseInt(e.target.value,10));}} style={{width:'auto',padding:'4px 8px',fontSize:12}}>
+                          <option value="">Add to…</option>
+                          {teams.map((_,i2)=><option key={i2} value={i2}>{'Team '+String.fromCharCode(65+i2)}</option>)}
+                        </select>
+                      </div>);})}
+                  </div>
+                );
+              })()}
               {isAdmin&&(
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                   {!published?(
@@ -5616,7 +5653,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
       </div>
       {confirming&&(
         <div style={{marginTop:10,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
-          <div style={{fontSize:11.5,fontWeight:800,color:'var(--ink)',marginBottom:7}}>Confirm your sign-up{cfg.date2?(' — '+(daysPick==='both'?'both days':(daysPick==='day1'?'Day 1 only':'Day 2 only'))):''} — teams draw off these:</div>
+          <div style={{fontSize:11.5,fontWeight:800,color:'var(--ink)',marginBottom:7}}>Confirm your sign-up{cfg.date2?(' — '+(daysPick==='both'?'both days':(daysPick==='day1'?'Day 1 only':'Day 2 only'))):''} — teams draw off these:{cfg.date2?<span style={{display:'block',fontWeight:600,color:'var(--ink-40)',marginTop:2}}>Same entry fee for one day or both. Pay Clark before the tournament.</span>:null}</div>
           <div style={{display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
             <div style={{width:92}}>
               <div style={{fontSize:9.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Handicap</div>
@@ -5633,8 +5670,8 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           </div>
         </div>
       )}
-      {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — responses lock after that.</div>}
-      {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need a change? Grab an admin.</div>}
+      {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — the app locks at midnight after that; late changes go through Clark directly.</div>}
+      {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need to change your answer? Talk to Clark directly — he can update it.</div>}
       {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?'Day 1 only':'Day 2 only'))):''} · handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap a day to update.</div>}
       {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
 
