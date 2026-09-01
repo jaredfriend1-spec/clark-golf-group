@@ -2421,6 +2421,25 @@ function AppSettingsTab({user}){
     <div className="pg-eyebrow">Configuration</div>
     <div className="pg-title">App Settings</div>
     <div className="pg-sub">Global settings that apply to every day and every week. More settings will land here as the app grows.</div>
+    {user&&user.role==="master"&&(()=>{
+      const [codeDraft,setCodeDraft]=React.useState(null);
+      const cur=(settings&&settings.guestCode)||"";
+      const val=codeDraft==null?cur:codeDraft;
+      return (
+        <div className="card">
+          <div className="card-hdr"><span className="card-title">👀 Preview (view-only) code</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only</span></div>
+          <div style={{padding:"12px 14px"}}>
+            <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:10}}>Lets someone tour the real app without a login. They tap <strong>Preview the app</strong> on the sign-in screen and enter this code. Preview mode is read-only at the plumbing — every save, sign-up, RSVP and push is disabled, and a banner says so. Clear the code to switch the option off entirely. Each preview sign-in is noted in the activity log.</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <input className="inp" style={{width:180,fontFamily:"monospace",letterSpacing:"0.08em"}} placeholder="e.g. TOUR2026" value={val} onChange={e=>setCodeDraft(e.target.value)}/>
+              <button className="btn btn-sm" disabled={codeDraft==null||codeDraft.trim()===cur} onClick={()=>{wr("settings/guestCode",codeDraft.trim()||null);setCodeDraft(null);showToast(codeDraft.trim()?"Preview code saved ✓":"Preview option turned off");}}>Save</button>
+              {cur&&<button className="btn btn-sm btn-ghost" onClick={()=>{if(window.confirm("Turn off the preview option? The code stops working immediately."))wr("settings/guestCode",null);setCodeDraft(null);}}>Turn off</button>}
+              <span style={{fontSize:11,color:cur?"#4ade80":"rgba(255,255,255,0.3)",fontWeight:700}}>{cur?"● On":"○ Off"}</span>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
     <div className="card">
       <div className="card-hdr"><span className="card-title">🔔 Automatic Push Notifications</span></div>
       <div className="info-box"><strong>Control which events buzz phones automatically.</strong> Applies to everyone with notifications on. Manual pushes and checked announcements always send.</div>
