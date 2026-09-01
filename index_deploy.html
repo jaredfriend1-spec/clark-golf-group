@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-k';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-m';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5015,11 +5015,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const fmtRel=v=>v==null?'—':(v===0?'E':(v>0?'+'+v:String(v)));
   const wsafe=(obj)=>{try{const r=update(obj);if(r&&r.catch)r.catch(e=>alert('Save failed — check connection: '+((e&&e.message)||e)));}catch(e){alert('Save failed: '+((e&&e.message)||e));}};
   const setPath=(p,v)=>wsafe({['tournament/'+p]:v});
-  const card={background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:14,padding:'13px 15px',marginBottom:12};
-  const hdr={fontSize:11.5,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:7};
+  // Championship palette — the tournament wears gold-on-dark; Fridays stay green.
+  const GOLD='#b8891a', GOLD_SOFT='rgba(184,137,26,0.12)', GOLD_BORDER='rgba(184,137,26,0.45)', DARK='#0f2f22', DARK2='#174332';
+  const card={background:'var(--surface)',border:'1px solid var(--hairline)',borderLeft:'3px solid '+GOLD,borderRadius:14,padding:'13px 15px',marginBottom:12};
+  const hdr={fontSize:12,fontWeight:900,color:'var(--ink)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:9,paddingBottom:5,borderBottom:'2px solid '+GOLD_BORDER,display:'inline-block'};
   const stBtn={width:36,height:36,borderRadius:9,border:'1.5px solid var(--hairline)',background:'var(--surface)',fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'inherit',color:'var(--ink)',lineHeight:1};
   const pill=(id,label)=>(
-    <button key={id} onClick={()=>setSub(id)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'1px solid',borderColor:sub===id?'var(--brand)':'var(--hairline)',background:sub===id?'var(--brand-soft)':'transparent',color:sub===id?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+    <button key={id} onClick={()=>setSub(id)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'1px solid',borderColor:sub===id?GOLD:'var(--hairline)',background:sub===id?GOLD_SOFT:'transparent',color:sub===id?GOLD:'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
   );
   const dayPills=dayKeys.length>1&&(
     <div style={{display:'flex',gap:7,margin:'0 0 12px'}}>
@@ -5066,6 +5068,14 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
   return (
     <div>
+      <div style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'16px 18px',marginBottom:14,display:'flex',alignItems:'center',gap:14,boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
+        <div style={{width:46,height:46,borderRadius:13,background:'rgba(184,137,26,0.18)',border:'1px solid rgba(184,137,26,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>🏆</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:10.5,fontWeight:800,color:'rgba(184,137,26,0.95)',textTransform:'uppercase',letterSpacing:'0.12em'}}>Clark Golf Group · Tournament</div>
+          <div style={{fontSize:19,fontWeight:900,color:'#fff',lineHeight:1.15,marginTop:2,letterSpacing:'-0.01em'}}>{cfg.name||'The Tournament'}</div>
+          <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.72)',marginTop:3}}>{cfg.date1?(fd(cfg.date1)+(cfg.date2?(' – '+fd(cfg.date2)):'')):'Dates coming soon'}{live?<span style={{marginLeft:8,fontSize:10,fontWeight:800,color:'#0f2f22',background:'#d6b34a',borderRadius:6,padding:'2px 7px',verticalAlign:'middle'}}>INVITES OPEN</span>:null}</div>
+        </div>
+      </div>
       <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
         {isAdmin&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&pill('field','💵 Field')}
       </div>
@@ -5084,19 +5094,20 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             <div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>{cfg.date2?'Two separate one-day events — play both or either.':'One-day event.'}{cfg.redrawTeams!==false?' Fresh random teams each day.':''}</div>
           </div>
           <div style={card}>
-            <div style={hdr}>💰 Entry &amp; payouts</div>
+            <div style={hdr}>💰 {isAdmin?'Entry & payouts':'Entry'}</div>
             <div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75}}>
               Entry: <b style={{color:'var(--ink)'}}>${bar}</b> minus $1 per round you've played this season.{extraPrize>0?<span> An extra <b style={{color:'var(--ink)'}}>${extraPrize}</b> in prize money has been added.</span>:null}
             </div>
-            <div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>
-              Payouts{cfg.payMode==='combined'?' (one combined payout)':' each day'}: Front 9 ({catF}%), Back 9 ({catB}%), Overall ({catO}%) — {cfg.placesCount||3} place{(cfg.placesCount||3)>1?'s':''} per category, split among the {teamSize} players.
-            </div>
+            {isAdmin&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>
+              Payouts{cfg.payMode==='combined'?' (one combined payout)':' each day'}: Front 9 ({catF}%), Back 9 ({catB}%), Overall ({catO}%) — {cfg.placesCount||3} place{(cfg.placesCount||3)>1?'s':''} per category, split among the {teamSize} players. <span style={{color:'var(--ink-40)'}}>(admins only — players see the pot, not the split)</span>
+            </div>}
             {ctpAmts.some(x=>x>0)&&(
               <div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>
                 Closest to the pin{cfg.date2?' each day':''}: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?('Hole '+h+' — $'+ctpAmts[i]):null).filter(Boolean).join(' · ')} <span style={{color:'var(--ink-40)'}}>(individual)</span>
               </div>
             )}
-            {true&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% of the pot, plus rounding leftovers): the leftover after payouts and CTP, split by skins won.</div>}
+            {isAdmin&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% of the pot, plus rounding leftovers): the leftover after team payouts, split by skins won.</div>}
+            {!isAdmin&&<div style={{fontSize:12,color:'var(--ink-40)',lineHeight:1.6,marginTop:4}}>Payouts for front 9, back 9, overall and team skins each day — the split is announced by the admins before play.</div>}
           </div>
           {currentUser&&me&&me.in===true&&(
             <div style={{...card,borderColor:(myOwed-myPaid<=0)?'var(--brand-border)':'var(--warn-border)'}}>
@@ -5117,7 +5128,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             const prizePool=Math.max(availableNow-ctpTotal,0);
             const paidTotal=entries.filter(([,v])=>v&&v.in===true).reduce((s,[,v])=>s+(Number(v.paid)||0),0);
             const outstanding=Math.max(payinsDue-paidTotal,0);
-            const tile=(l,v,acc)=>(<div style={{flex:1,minWidth:96,background:acc?'var(--brand-soft)':'var(--surface-sunken)',border:acc?'1px solid var(--brand-border)':'1px solid transparent',borderRadius:10,padding:'8px 10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>{l}</div><div style={{fontSize:17,fontWeight:800,color:acc?'var(--brand)':'var(--ink)'}}>{v}</div></div>);
+            const tile=(l,v,acc)=>(<div style={{flex:1,minWidth:96,background:acc?GOLD_SOFT:'var(--surface-sunken)',border:acc?'1px solid '+GOLD_BORDER:'1px solid transparent',borderRadius:10,padding:'9px 10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.04em'}}>{l}</div><div style={{fontSize:acc?22:17,fontWeight:900,color:acc?GOLD:'var(--ink)',marginTop:2,letterSpacing:'-0.01em'}}>{v}</div></div>);
             return (
               <div style={card}>
                 <div style={hdr}>💰 The pot — live reconciliation</div>
@@ -5145,7 +5156,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         const deciding=invitedAll.filter(p=>!answered.has(String(p.id))).map(p=>p.name).sort();
         const dayCard=(dk,label)=>{const list=inFieldFor(dk).map(p=>p.name).sort((x,y)=>x.localeCompare(y));return (
           <div key={dk} style={card}>
-            <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:8}}><div style={{...hdr,marginBottom:0}}>{label}</div><div style={{fontSize:20,fontWeight:800,color:'var(--brand)'}}>{list.length}</div><div style={{fontSize:11,color:'var(--ink-40)'}}>in</div></div>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:8}}><div style={{...hdr,marginBottom:0}}>{label}</div><div style={{fontSize:22,fontWeight:900,color:GOLD}}>{list.length}</div><div style={{fontSize:11,color:'var(--ink-40)'}}>in</div></div>
             {list.length===0?<div style={{fontSize:12.5,color:'var(--ink-40)'}}>Nobody yet.</div>:(
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 12px'}}>{list.map((n,i)=><div key={n} style={{fontSize:13,color:'var(--ink)',padding:'3px 0',borderBottom:'1px solid var(--hairline-soft)'}}><span style={{fontSize:10.5,color:'var(--ink-40)',width:22,display:'inline-block'}}>{i+1}.</span>{n}</div>)}</div>
             )}
@@ -5153,7 +5164,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         return (
           <div>
             <div style={{display:'flex',gap:7,marginBottom:12}}>
-              {[['In',inField.length,'var(--brand)'],["Can't",decl.length,'var(--money-neg)'],['Deciding',deciding.length,'var(--warn-ink)']].map(([l,n,c])=>(
+              {[['In',inField.length,GOLD],["Can't",decl.length,'var(--money-neg)'],['Deciding',deciding.length,'var(--warn-ink)']].map(([l,n,c])=>(
                 <div key={l} style={{flex:1,textAlign:'center',padding:'10px 4px',background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:12}}><div style={{fontSize:22,fontWeight:800,color:c}}>{n}</div><div style={{fontSize:10.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>{l}</div></div>
               ))}
             </div>
@@ -5182,7 +5193,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               {teams.map((tm,ti)=>(
                 <div key={ti} style={{...card,padding:'11px 14px'}}>
                   <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:6}}>
-                    <span style={{fontSize:12.5,fontWeight:800,color:'var(--brand)'}}>Team {String.fromCharCode(65+ti)}</span>
+                    <span style={{fontSize:13,fontWeight:900,color:GOLD,letterSpacing:'0.02em'}}>Team {String.fromCharCode(65+ti)}</span>
                     {tm.totalHcp!=null&&<span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>HCP {tm.totalHcp}</span>}
                   </div>
                   {(tm.players||[]).map((p,pi)=>(
