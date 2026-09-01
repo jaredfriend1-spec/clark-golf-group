@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-d';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-e';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -6773,8 +6773,8 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
       {showAdminSec&&(()=>{
         const isMasterHere=!!(rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master');
         const myEmail=String((rosterEmails&&currentUser&&rosterEmails[currentUser.id])||'').toLowerCase().trim();
-        const hasAccount=isMasterHere||(!!myEmail&&Object.values(portalUsersReg||{}).some(u=>u&&String(u.email||'').toLowerCase().trim()===myEmail));
-        if(!hasAccount)return null;   // a portal account IS the permission — created per person under Portal Users
+        const doorOn=isMasterHere||(!!myEmail&&Object.values(portalUsersReg||{}).some(u=>u&&u.appDoor===true&&String(u.email||'').toLowerCase().trim()===myEmail));
+        if(!doorOn)return null;   // per person: their Portal Users row must have App door ticked
         return (
           <div style={{margin:'0 16px 14px',padding:'13px 15px',borderRadius:14,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',display:'flex',alignItems:'center',gap:12}}>
             <span style={{fontSize:22}}>🛠️</span>

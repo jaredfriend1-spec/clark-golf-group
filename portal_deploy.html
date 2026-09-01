@@ -1869,7 +1869,7 @@ function AccessTab({user}){
       <div className="card" style={{marginBottom:14}}>
         <div className="card-hdr"><span className="card-title">👁 Optional extra access for Super Admins</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only</span></div>
         <div style={{padding:"10px 14px"}}>
-          <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:10}}>Super Admins already see their standard set. Everything below is <strong>off by default</strong> — switch on only what you want to hand them. Visibility, never control: roles, adds &amp; removals stay yours. <strong>Portal access itself is per person:</strong> anyone you create under Portal Users gets the app’s Admin Portal door automatically; nobody else does.</div>
+          <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:10}}>Super Admins already see their standard set. Everything below is <strong>off by default</strong> — switch on only what you want to hand them. Visibility, never control: roles, adds &amp; removals stay yours. <strong>Portal access is per person:</strong> create their login under Portal Users, then tick <strong>App door</strong> on their row to show the Admin Portal link in their app. Off by default.</div>
           {[
             ["Portal menu items (your Master Only group)", ALL_NAV_ITEMS.filter(n=>n.master).map(n=>[n.id, n.label])],
             ["Inside the Access tab", [["portalUsers","See the Portal Users list &amp; send password resets (create / role / remove stay Master)"]]],
@@ -1987,7 +1987,7 @@ function AccessTab({user}){
       <div className="info-box"><strong>Portal Users</strong> can sign into this portal with a password. Master has full access; Super Admins manage games and rosters.</div>
       <div className="card">
         <div className="card-hdr">
-          <span className="card-title">Portal Users ({portalUserList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>You set the first password · changes go by reset email</span>
+          <span className="card-title">Portal Users ({portalUserList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>You set the first password · changes go by reset email · App door = shows the portal link in their app</span>
           {isMaster(user.role)&&<button className="btn btn-g btn-sm" onClick={()=>setAddingPU(v=>!v)}>{addingPU?"Cancel":"+ Add User"}</button>}
         </div>
         {addingPU&&(
@@ -2012,6 +2012,12 @@ function AccessTab({user}){
               <div className="p-name">{pu.name}</div>
               {pu.email&&<div className="p-sub">{pu.email}</div>}
             </div>
+            {isMaster(user.role)&&pu.email&&(
+              <label title="Show the Admin Portal door on this person’s Admin tab in the app" style={{display:"flex",alignItems:"center",gap:6,marginRight:10,fontSize:11,fontWeight:700,color:pu.appDoor===true?"#4ade80":"rgba(255,255,255,0.4)",cursor:"pointer",whiteSpace:"nowrap"}}>
+                <input type="checkbox" checked={pu.appDoor===true} onChange={e=>wr("settings/portalUsers/"+pu._key+"/appDoor",e.target.checked?true:null)} style={{width:16,height:16}}/>
+                App door
+              </label>
+            )}
             {canSee("portalUsers")&&pu.email&&(
               <button className="btn btn-sm" style={{fontSize:10.5,color:"#60a5fa",borderColor:"rgba(59,130,246,0.3)",marginRight:6}} onClick={()=>{
                 auth.sendPasswordResetEmail(pu.email).then(()=>showToast("Reset email sent to "+pu.email+" ✓")).catch(err=>showToast("Reset failed: "+((err&&err.message)||err),"err"));
