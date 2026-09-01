@@ -1248,7 +1248,7 @@ function RosterTab(){
   const [aprModal,setAprModal]=React.useState(null);
   const [apr,setApr]=React.useState({tee:"Whites",hcp:"",pin:"",email:""});
   const portalUser=useDB("_portalSession"); // not real — use localStorage
-  const isMasterUser=()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch{return false;}};
+  const isMasterUser=()=>{try{const u=JSON.parse(localStorage.getItem("portal_user")||"{}");return u.role==="master";}catch{return false;}};
   const rosterEdits=useDB("rosterEdits");
   const rosterHidden=useDB("rosterHidden");
   const rosterPins=useDB("rosterPins");
@@ -1870,7 +1870,7 @@ function AccessTab({user}){
         <div className="card-hdr"><span className="card-title">👁 What Super Admins can see</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only — visibility, never control: roles, adds &amp; removals stay yours</span></div>
         <div style={{padding:"10px 14px"}}>
           <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Menu items (the Master Only group)</div>
-          {[...ALL_NAV_ITEMS.filter(n=>n.master).map(n=>[n.id,"Menu: "+n.label]),["portalUsers","Access tab: portal user accounts &amp; password resets"]].map(([k,label])=>(
+          {[...ALL_NAV_ITEMS.filter(n=>n.master).map(n=>[n.id,"Menu: "+n.label]),["portalUsers","Access tab: portal user accounts &amp; password resets"],["portalDoor","App: the Admin Portal door on the Admin tab (needs a portal account)"]].map(([k,label])=>(
             <label key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",cursor:"pointer",fontSize:12.5,color:"rgba(255,255,255,0.75)"}}>
               <input type="checkbox" checked={(portalPerms&&portalPerms[k])===true} onChange={e=>wr("settings/portalPerms/"+k,e.target.checked?true:null)} style={{width:17,height:17}}/>
               <span dangerouslySetInnerHTML={{__html:label}}/>
@@ -2731,7 +2731,7 @@ function TournamentTab(){
   },[extra,rosterEdits,rosterHidden]);
   const seasonLock=useDB("settings/seasonLock");
   const wdOf=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});}catch(e){return d||"";}};
-  const isMasterUser=(()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user"));return !!u&&u.role==="master";}catch(e){return false;}})();
+  const isMasterUser=(()=>{try{const u=JSON.parse(localStorage.getItem("portal_user"));return !!u&&u.role==="master";}catch(e){return false;}})();
   const rosterTeeT=useDB("rosterTee");
   const rosterHcpT=useDB("rosterHcp");
   const roundCounts=React.useMemo(()=>{
@@ -3682,8 +3682,8 @@ function SeasonTab(){
   const history=useDB("history");
   const attendance=useDB("attendance");
   const seasons=useDB("seasons");
-  const isMaster=(()=>{try{const u=JSON.parse(sessionStorage.getItem("portal_user")||"{}");return u.role==="master";}catch(e){return false;}})();
-  const me=(()=>{try{return JSON.parse(sessionStorage.getItem("portal_user")||"{}").name||"master";}catch(e){return "master";}})();
+  const isMaster=(()=>{try{const u=JSON.parse(localStorage.getItem("portal_user")||"{}");return u.role==="master";}catch(e){return false;}})();
+  const me=(()=>{try{return JSON.parse(localStorage.getItem("portal_user")||"{}").name||"master";}catch(e){return "master";}})();
   const [nm,setNm]=React.useState("");
   const [ed,setEd]=React.useState("");
   const [typed,setTyped]=React.useState("");
@@ -4363,7 +4363,7 @@ const ALL_NAV_ITEMS=[
 ];
 
 function Portal(){
-  const [user,setUser]=useState(()=>{try{const s=sessionStorage.getItem("portal_user");return s?JSON.parse(s):null;}catch{return null;}});
+  const [user,setUser]=useState(()=>{try{const s=localStorage.getItem("portal_user");return s?JSON.parse(s):null;}catch{return null;}});
   const [tab,setTab]=useState("dash");
 
   useEffect(()=>{
@@ -4377,7 +4377,7 @@ function Portal(){
         Object.values(reg).forEach(v=>{if(v&&String(v.email||"").toLowerCase().trim()===em&&v.role)role=v.role;});
         if(MASTER_EMAILS.indexOf(em)>=0)role="master";
         const ud={email:u.email,role,method:"firebase"};
-        sessionStorage.setItem("portal_user",JSON.stringify(ud));
+        localStorage.setItem("portal_user",JSON.stringify(ud));
         setUser(prev=>(!prev||prev.role!==role||prev.email!==u.email)?ud:prev);
       });
     });
@@ -4389,8 +4389,8 @@ function Portal(){
     if(user&&!tabAllowed(tab)){setTab("dash");}
   },[user,tab]);
 
-  function onAuth(u){sessionStorage.setItem("portal_user",JSON.stringify(u));setUser(u);}
-  function signOut(){sessionStorage.removeItem("portal_user");try{if(auth&&auth.currentUser)auth.signOut();}catch(e){}setUser(null);}
+  function onAuth(u){localStorage.setItem("portal_user",JSON.stringify(u));setUser(u);}
+  function signOut(){localStorage.removeItem("portal_user");try{if(auth&&auth.currentUser)auth.signOut();}catch(e){}setUser(null);}
 
   if(!user)return<Gate onAuth={onAuth}/>;
 
@@ -4411,9 +4411,10 @@ function Portal(){
             <div style={{width:26,height:26,borderRadius:"50%",background:"#10b981",color:"#fff",fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>{ini}</div>
             <span style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.65)",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name||user.email||"Admin"}</span>
           </div>
-          <a href="index.html" style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.2)",textDecoration:"none",padding:"5px 12px",borderRadius:20,border:"1px solid rgba(255,255,255,0.08)",transition:"all 0.2s",whiteSpace:"nowrap"}} onMouseEnter={e=>{e.currentTarget.style.color="rgba(255,255,255,0.5)";e.currentTarget.style.borderColor="rgba(255,255,255,0.18)";}} onMouseLeave={e=>{e.currentTarget.style.color="rgba(255,255,255,0.2)";e.currentTarget.style.borderColor="rgba(255,255,255,0.08)";}}>← App</a>
+          <a href="/" style={{fontSize:12.5,fontWeight:800,color:"#0b1f17",background:"#4ade80",textDecoration:"none",padding:"8px 14px",borderRadius:20,whiteSpace:"nowrap",boxShadow:"0 2px 10px rgba(74,222,128,0.35)"}}>← Back to App</a>
         </div>
       </div>
+      <a href="/" className="mob-back" style={{position:"fixed",left:12,bottom:"calc(env(safe-area-inset-bottom) + 66px)",zIndex:50,background:"#4ade80",color:"#0b1f17",fontWeight:800,fontSize:12.5,padding:"10px 14px",borderRadius:22,textDecoration:"none",boxShadow:"0 6px 18px rgba(0,0,0,0.35)"}}>← App</a>
       <div className="mob-nav">
         {NAV_ITEMS.map(n=>(
           <button key={n.id} className={`mob-btn${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}<span>{n.label}</span></button>

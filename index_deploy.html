@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-a';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-b';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -6643,6 +6643,9 @@ function EmailViewV2({ week, isAdmin, history }){
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
 function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, fcmTokens, dbBuild, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
+  const [portalUsersReg, setPortalUsersReg] = useState(null);
+  const [portalPermsDoor, setPortalPermsDoor] = useState(null);
+  useEffect(()=>{const u1=read('settings/portalUsers', v=>setPortalUsersReg(v||{}));const u2=read('settings/portalPerms', v=>setPortalPermsDoor(v||{}));return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};},[]);
 
   // ── State ──
   const [showChecklist, setShowChecklist] = useState(false);
@@ -6768,6 +6771,23 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
     <main className="content">
       <div className="page-eyebrow" style={{marginTop:10}}>{viewMode==='week'?'Run the week':'Admin only'}</div>
       <div className="page-title" style={{marginBottom:14}}>{viewMode==='week'?'Manage Week':'Admin Panel'}</div>
+      {showAdminSec&&(()=>{
+        const isMasterHere=!!(rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master');
+        const doorOn=isMasterHere||!!(portalPermsDoor&&portalPermsDoor.portalDoor===true);
+        if(!doorOn)return null;
+        const myEmail=String((rosterEmails&&currentUser&&rosterEmails[currentUser.id])||'').toLowerCase().trim();
+        const hasAccount=isMasterHere||(!!myEmail&&Object.values(portalUsersReg||{}).some(u=>u&&String(u.email||'').toLowerCase().trim()===myEmail));
+        return (
+          <div style={{margin:'0 16px 14px',padding:'13px 15px',borderRadius:14,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',display:'flex',alignItems:'center',gap:12}}>
+            <span style={{fontSize:22}}>🛠️</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13.5,fontWeight:800,color:'var(--brand)'}}>Admin Portal</div>
+              <div style={{fontSize:11.5,color:'var(--ink-60)',marginTop:1}}>{hasAccount?'Opens in this window — one sign-in per device, then it just works. There’s a ← Back to App button up top.':'Portal access isn’t set up for you yet — ask Jared to create your portal login.'}</div>
+            </div>
+            {hasAccount?<a href="/portal.html" className="btn btn-sm" style={{fontWeight:800,textDecoration:'none',flexShrink:0}}>Open ↗</a>:<span style={{fontSize:11,fontWeight:800,color:'var(--ink-40)',flexShrink:0}}>Not set up</span>}
+          </div>
+        );
+      })()}
       {(()=>{
         const pend=Object.entries(joinRequests||{}).filter(([,r])=>r&&r.status==='pending');
         const drops=Object.entries(alertsDrops||{}).filter(([,a])=>a&&!a.cleared).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
