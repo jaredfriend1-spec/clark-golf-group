@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-j';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-k';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1138,7 +1138,7 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
           {settings&&settings.guestCode&&(
             <button onClick={()=>{const c=window.prompt('Preview code (view-only access):');if(c==null)return;if(String(c).trim().toLowerCase()!==String(settings.guestCode).trim().toLowerCase()){alert('That code isn\u2019t right.');return;}onPreview&&onPreview();}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
               <div style={{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,0.04)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:16}}>👀</div>
-              <div style={{flex:1}}><div style={{fontSize:13.5,fontWeight:700,color:'rgba(255,255,255,0.6)'}}>Preview the app</div><div style={{fontSize:11.5,color:'rgba(255,255,255,0.3)'}}>View only \u2014 needs a preview code</div></div>
+              <div style={{flex:1}}><div style={{fontSize:13.5,fontWeight:700,color:'rgba(255,255,255,0.6)'}}>Preview the app</div><div style={{fontSize:11.5,color:'rgba(255,255,255,0.3)'}}>View only — needs a preview code</div></div>
             </button>
           )}
 
@@ -10132,7 +10132,7 @@ function App(){
         <div style={{margin:'10px 16px 0',padding:'10px 14px',borderRadius:12,background:'var(--warn-soft)',border:'1.5px dashed var(--warn-border)',display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:18}}>👀</span>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:12.5,fontWeight:800,color:'var(--warn-ink)'}}>Preview mode — view only <span style={{fontWeight:600,color:'var(--ink-40)'}}>· build {APP_BUILD}</span></div>
+            <div style={{fontSize:12.5,fontWeight:800,color:'var(--warn-ink)'}}>Preview mode — view only</div>
             <div style={{fontSize:11,color:'var(--ink-60)',marginTop:1}}>{(Date.now()-previewFlash)<2500?'That action is disabled in preview.':'Real data, nothing you tap will change anything.'}</div>
           </div>
           <button onClick={logoutUser} style={{fontSize:11.5,fontWeight:800,color:'var(--warn-ink)',background:'transparent',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',cursor:'pointer',fontFamily:'inherit'}}>Exit</button>
