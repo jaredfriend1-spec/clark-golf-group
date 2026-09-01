@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-f';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-g';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1133,11 +1133,7 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
             <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:'#0f172a',marginBottom:2}}>Member Sign In</div><div style={{fontSize:12,color:'rgba(0,0,0,0.45)'}}>Enter last 4 digits of your phone</div></div>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-          <button onClick={onPlayer} style={{display:'flex',alignItems:'center',gap:14,padding:'16px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',borderBottom:'1px solid rgba(255,255,255,0.06)',width:'100%'}}>
-            <div style={{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-            <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.8)',marginBottom:2}}>Continue as Guest</div><div style={{fontSize:12,color:'rgba(255,255,255,0.35)'}}>View schedule &amp; sign up as a guest</div></div>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
+          
           {settings&&settings.guestCode&&(
             <button onClick={()=>{const c=window.prompt('Preview code (view-only access):');if(c==null)return;if(String(c).trim().toLowerCase()!==String(settings.guestCode).trim().toLowerCase()){alert('That code isn\u2019t right.');return;}onPreview&&onPreview();}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
               <div style={{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,0.04)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:16}}>👀</div>
@@ -2058,14 +2054,14 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           matchPairings={matchPairings}
           expanded={!!expanded[day.day]}
           onToggle={() => setExpanded(p => ({...p, [day.day]: !p[day.day]}))}
-          onSignup={() => { window.scrollTo({top:0,behavior:'smooth'}); setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:false }); }}
+          onSignup={() => { window.scrollTo({top:0,behavior:'smooth'}); (window.__cgPreview?(()=>{window.__cgPreviewFlash&&window.__cgPreviewFlash();}):setSignupModal)({ day, existingSignup:null, signupKey:null, isAdminAdd:false }); }}
           onEditSignup={(existingSignup, signupKey) => {
             // Find existing guest entries for this member
             const existingGuests = day.signups.filter(s => s.isGuest && s.guestOf === existingSignup.name);
-            setSignupModal({ day, existingSignup, signupKey, isAdminAdd:false, existingGuests });
+            (window.__cgPreview?(()=>{window.__cgPreviewFlash&&window.__cgPreviewFlash();}):setSignupModal)({ day, existingSignup, signupKey, isAdminAdd:false, existingGuests });
           }}
           onRemoveSignup={handleRemoveSignup}
-          onAdminAdd={() => setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:true })}
+          onAdminAdd={() => (window.__cgPreview?(()=>{window.__cgPreviewFlash&&window.__cgPreviewFlash();}):setSignupModal)({ day, existingSignup:null, signupKey:null, isAdminAdd:true })}
           onSetTeeTime={() => setTeeModal(day)}
           onAddToWaitlist={onAddToWaitlist}
           onRemoveFromWaitlist={onRemoveFromWaitlist}
@@ -9496,6 +9492,8 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
 
 
 function App(){
+  const [previewFlash, setPreviewFlash] = useState(0);   // declared before any early return (hook order)
+  window.__cgPreviewFlash = ()=>{setPreviewFlash(Date.now());};
   const [currentUser, setCurrentUser] = useState(()=>{try{const u=localStorage.getItem('cgCurrentUser');return u?JSON.parse(u):null;}catch{return null;}});
   const [tab, setTab] = useState('home');
 
@@ -9954,6 +9952,7 @@ function App(){
 
   // Show landing if not signed in
   if(!currentUser){
+    window.__cgPreview=false;
     return <Landing
       week={week}
       fullRoster={fullRoster}
@@ -9974,8 +9973,6 @@ function App(){
   const isGuest = currentUser.role === 'guest';
   const isPreview = currentUser.role === 'preview';
   window.__cgPreview = isPreview;
-  const [previewFlash, setPreviewFlash] = useState(0);
-  window.__cgPreviewFlash = ()=>{setPreviewFlash(Date.now());};
 
   const statsAccess = settings?.statsAccess || 'none';
   const statsAllowed = settings?.statsAllowed || {};
