@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-g';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-i';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -690,6 +690,7 @@ function derivePin(input, pinsMap, excludeId){
   return {pin:d.slice(-6), n:6, collides:true};
 }
 let PUSH_TEMPLATES_CACHE=null;
+function dayTeamsAreOut(week,day){try{if(!week||!day)return false;if(!(week.teamsPublished&&week.teamsPublished[day]===true))return false;const t=week.teams&&week.teams[day];const arr=Array.isArray(t)?t:Object.values(t||{});return arr.some(x=>x&&Array.isArray(x.players)&&x.players.length>0);}catch(e){return false;}}
 function sendPushNotify(p){
   if(window.__cgPreview)return;
   const k=pushTriggerKey(p&&p.tag);
@@ -1836,7 +1837,8 @@ function TeeTimeModal({ day, onClose, onSave }){
 function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   const [pushPromptGone,setPushPromptGone]=useState(false);
   const [expanded, setExpanded] = useState({});
-  const [signupModal, setSignupModal] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
+  const [signupModal, _setSignupModalRaw] = useState(null); // { day, existingSignup, signupKey, isAdminAdd }
+  const setSignupModal=(v)=>{if(v&&window.__cgPreview){try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}return;}_setSignupModalRaw(v);};
   const [teeModal, setTeeModal] = useState(null); // day object
 
   const activeDays = sortDays(safeArray(week?.activeDays));
@@ -1947,7 +1949,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       });
       if(onLogRemove) onLogRemove(signupKey, removedSignup);
       // Post-publish drop → admin alert (teams/groups already out for that day)
-      if(week?.teamsPublished&&week.teamsPublished[removedSignup.day]&&push){
+      if(dayTeamsAreOut(week,removedSignup.day)&&push){
         push('alerts/drops',{name:removedSignup.name,day:removedSignup.day,ts:Date.now(),by:(currentUser&&currentUser.name)||'member',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:removedSignup.name+' dropped '+removedSignup.day+' after teams were published.',url:'/',tag:'drop',vars:{name:removedSignup.name,day:removedSignup.day}});
       }
     }
@@ -2054,14 +2056,14 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           matchPairings={matchPairings}
           expanded={!!expanded[day.day]}
           onToggle={() => setExpanded(p => ({...p, [day.day]: !p[day.day]}))}
-          onSignup={() => { window.scrollTo({top:0,behavior:'smooth'}); (window.__cgPreview?(()=>{window.__cgPreviewFlash&&window.__cgPreviewFlash();}):setSignupModal)({ day, existingSignup:null, signupKey:null, isAdminAdd:false }); }}
+          onSignup={() => { window.scrollTo({top:0,behavior:'smooth'}); setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:false }); }}
           onEditSignup={(existingSignup, signupKey) => {
             // Find existing guest entries for this member
             const existingGuests = day.signups.filter(s => s.isGuest && s.guestOf === existingSignup.name);
-            (window.__cgPreview?(()=>{window.__cgPreviewFlash&&window.__cgPreviewFlash();}):setSignupModal)({ day, existingSignup, signupKey, isAdminAdd:false, existingGuests });
+            setSignupModal({ day, existingSignup, signupKey, isAdminAdd:false, existingGuests });
           }}
           onRemoveSignup={handleRemoveSignup}
-          onAdminAdd={() => (window.__cgPreview?(()=>{window.__cgPreviewFlash&&window.__cgPreviewFlash();}):setSignupModal)({ day, existingSignup:null, signupKey:null, isAdminAdd:true })}
+          onAdminAdd={() => setSignupModal({ day, existingSignup:null, signupKey:null, isAdminAdd:true })}
           onSetTeeTime={() => setTeeModal(day)}
           onAddToWaitlist={onAddToWaitlist}
           onRemoveFromWaitlist={onRemoveFromWaitlist}
@@ -2110,7 +2112,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         </div>
       )}
 
-      {signupModal && (
+      {signupModal&&!window.__cgPreview && (
         <SignupModal
           day={signupModal.day}
           isIndividualDay={(()=>{const c=resolveDayMode(week,settings,signupModal.day&&signupModal.day.day?signupModal.day.day:signupModal.day);return !!(c&&c.type==='individual');})()}
@@ -9716,7 +9718,7 @@ function App(){
       const cnt=Object.values(week?.signups||{}).filter(s=>s.day===entry.day).length+1;
       if(cnt>=cap){write('week/locked/'+entry.day,true);logActivity('auto_lock',{day:entry.day,by:'system',name:String(cap)+' player cap reached'});}
     } }
-  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(week?.teamsPublished&&week.teamsPublished[rs.day]){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop',vars:{name:rs.name,day:rs.day}});}} del('week/signups/'+key); }
+  function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(dayTeamsAreOut(week,rs.day)){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop',vars:{name:rs.name,day:rs.day}});}} del('week/signups/'+key); }
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
     write('extraPlayers',safeArray(extra).concat([{id:newId,name:normName(req.name),handicap:parseFloat(opts.hcp)||0,tee:opts.tee||'Whites'}]));
@@ -10130,7 +10132,7 @@ function App(){
         <div style={{margin:'10px 16px 0',padding:'10px 14px',borderRadius:12,background:'var(--warn-soft)',border:'1.5px dashed var(--warn-border)',display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:18}}>👀</span>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:12.5,fontWeight:800,color:'var(--warn-ink)'}}>Preview mode — view only</div>
+            <div style={{fontSize:12.5,fontWeight:800,color:'var(--warn-ink)'}}>Preview mode — view only <span style={{fontWeight:600,color:'var(--ink-40)'}}>· build {APP_BUILD}</span></div>
             <div style={{fontSize:11,color:'var(--ink-60)',marginTop:1}}>{(Date.now()-previewFlash)<2500?'That action is disabled in preview.':'Real data, nothing you tap will change anything.'}</div>
           </div>
           <button onClick={logoutUser} style={{fontSize:11.5,fontWeight:800,color:'var(--warn-ink)',background:'transparent',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',cursor:'pointer',fontFamily:'inherit'}}>Exit</button>
