@@ -1867,14 +1867,22 @@ function AccessTab({user}){
 
     {isMaster(user.role)&&(
       <div className="card" style={{marginBottom:14}}>
-        <div className="card-hdr"><span className="card-title">👁 What Super Admins can see</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only — visibility, never control: roles, adds &amp; removals stay yours</span></div>
+        <div className="card-hdr"><span className="card-title">👁 Optional extra access for Super Admins</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only</span></div>
         <div style={{padding:"10px 14px"}}>
-          <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Menu items (the Master Only group)</div>
-          {[...ALL_NAV_ITEMS.filter(n=>n.master).map(n=>[n.id,"Menu: "+n.label]),["portalUsers","Access tab: portal user accounts &amp; password resets"],["portalDoor","App: the Admin Portal door on the Admin tab (needs a portal account)"]].map(([k,label])=>(
-            <label key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",cursor:"pointer",fontSize:12.5,color:"rgba(255,255,255,0.75)"}}>
-              <input type="checkbox" checked={(portalPerms&&portalPerms[k])===true} onChange={e=>wr("settings/portalPerms/"+k,e.target.checked?true:null)} style={{width:17,height:17}}/>
-              <span dangerouslySetInnerHTML={{__html:label}}/>
-            </label>
+          <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:10}}>Super Admins already see their standard set. Everything below is <strong>off by default</strong> — switch on only what you want to hand them. Visibility, never control: roles, adds &amp; removals stay yours. <strong>Portal access itself is per person:</strong> anyone you create under Portal Users gets the app’s Admin Portal door automatically; nobody else does.</div>
+          {[
+            ["Portal menu items (your Master Only group)", ALL_NAV_ITEMS.filter(n=>n.master).map(n=>[n.id, n.label])],
+            ["Inside the Access tab", [["portalUsers","See the Portal Users list &amp; send password resets (create / role / remove stay Master)"]]],
+          ].map(([group,rows])=>(
+            <div key={group} style={{marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>{group}</div>
+              {rows.map(([k,label])=>(
+                <label key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",fontSize:12.5,color:"rgba(255,255,255,0.75)"}}>
+                  <input type="checkbox" checked={(portalPerms&&portalPerms[k])===true} onChange={e=>wr("settings/portalPerms/"+k,e.target.checked?true:null)} style={{width:17,height:17,flexShrink:0}}/>
+                  <span dangerouslySetInnerHTML={{__html:label}}/>
+                </label>
+              ))}
+            </div>
           ))}
         </div>
       </div>
