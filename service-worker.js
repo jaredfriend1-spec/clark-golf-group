@@ -1,7 +1,7 @@
 // Clark Golf Group — Service Worker
 // Enables PWA "Add to Home Screen" and basic offline support
 
-const CACHE_NAME = 'clark-golf-v1';
+const CACHE_NAME = 'clark-golf-v2';   // bumped: purges any stale v1 entries on activate
 
 // Files to cache for offline use
 const PRECACHE_URLS = [
@@ -11,6 +11,10 @@ const PRECACHE_URLS = [
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
+
+// Pages that must always come straight from the network (never a cached or
+// substituted copy): the admin portal. Everything under /portal is bypassed.
+const NETWORK_ONLY_PATHS = ['/portal'];
 
 // Install: pre-cache core files
 self.addEventListener('install', event => {
@@ -47,6 +51,16 @@ self.addEventListener('fetch', event => {
   if (event.request.url.includes('firebaseio.com')) return;
   if (event.request.url.includes('googleapis.com')) return;
 
+  const url = new URL(event.request.url);
+
+  // Portal: hands off entirely — the browser fetches it fresh, no cache, no fallback.
+  if (url.origin === self.location.origin &&
+      NETWORK_ONLY_PATHS.some(p => url.pathname.startsWith(p))) {
+    return;
+  }
+
+  const isNavigation = event.request.mode === 'navigate';
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
@@ -58,11 +72,17 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Network failed — try cache
-        return caches.match(event.request).then(cached => {
+        // Network failed — try the cache for this exact request (ignoring ?v= style params)
+        return caches.match(event.request, { ignoreSearch: true }).then(cached => {
           if (cached) return cached;
-          // Last resort: return the main page
-          return caches.match('/index.html');
+          // Last resort: ONLY substitute the main page for a navigation to the app itself.
+          // Never answer some other page's URL with index.html (that is what left the
+          // portal looking blank until a refresh).
+          if (isNavigation && (url.pathname === '/' || url.pathname === '/index.html')) {
+            return caches.match('/index.html');
+          }
+          return new Response('Offline', { status: 503, statusText: 'Offline',
+            headers: { 'Content-Type': 'text/plain' } });
         });
       })
   );
