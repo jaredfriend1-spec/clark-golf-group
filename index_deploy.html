@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-i';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-j';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -9888,7 +9888,7 @@ function App(){
   // Live-sync the logged-in user's role when their rosterAdmins value changes
   // Fixes: admin/scoring role promotions/demotions used to require sign-out + sign-in
   useEffect(()=>{
-    if(!currentUser || currentUser.role === 'guest' || !ready) return;
+    if(!currentUser || currentUser.role === 'guest' || currentUser.role === 'preview' || currentUser.id === 'preview' || !ready) return;
     const fbRole = rosterAdmins && rosterAdmins[currentUser.id];
     // Map Firebase value → role string used in UI
     const expectedRole = fbRole === 'master' ? 'admin'  // master still uses 'admin' role UI tabs
@@ -9905,7 +9905,7 @@ function App(){
   // Live-sync the logged-in user's default tee + handicap when they update their profile.
   // Fixes: editing tee/HCP in Profile used to require sign-out + sign-in for sign-up modal to pre-fill correctly.
   useEffect(() => {
-    if(!currentUser || currentUser.role === 'guest' || !ready) return;
+    if(!currentUser || currentUser.role === 'guest' || currentUser.role === 'preview' || currentUser.id === 'preview' || !ready) return;
     const uid = currentUser.id;
     const newTee = (rosterTee && rosterTee[uid]) || null;
     const newHcp = (rosterHcp && rosterHcp[uid] != null) ? rosterHcp[uid] : null;
@@ -9922,7 +9922,7 @@ function App(){
 
   // Load this user's dismissals + initialize joinedAt
   useEffect(() => {
-    if(!currentUser || currentUser.role === 'guest' || !ready) return;
+    if(!currentUser || currentUser.role === 'guest' || currentUser.role === 'preview' || currentUser.id === 'preview' || !ready) return;
     const uid = currentUser.id;
     const unsubs = [];
     unsubs.push(read('announcementDismissals/' + uid, v => setMyDismissals(v || {})));
@@ -9973,7 +9973,7 @@ function App(){
   const isAdmin = currentUser.role === 'admin';
   const isScoring = currentUser.role === 'scoring';
   const isGuest = currentUser.role === 'guest';
-  const isPreview = currentUser.role === 'preview';
+  const isPreview = currentUser.role === 'preview' || currentUser.id === 'preview';   // by id too: no role-sync can rewrite it away
   window.__cgPreview = isPreview;
 
   const statsAccess = settings?.statsAccess || 'none';
