@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-m';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-n';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5000,6 +5000,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const extraPrize=Number(cfg.extraPrize||0);
   const fundTotal=Object.values(counts).reduce((s,v)=>s+v,0);
   const payinsDue=inField.reduce((s,p)=>s+Math.max(bar-(counts[String(p.name).toLowerCase().trim()]||0),0),0);
+  const paidTotalAll=entries.filter(([,v])=>v&&v.in===true).reduce((s,[,v])=>s+(Number(v.paid)||0),0);
+  const declinedAll=entries.filter(([,v])=>isDeclined(v)).length;
   const potentialDue=(fullRoster||[]).filter(p=>{const r=counts[String(p.name||'').toLowerCase().trim()]||0;const rec=tpNorm[String(p.id)];return r>=(cfg.minRounds!=null?cfg.minRounds:10)||(rec&&rec.invited===true);}).reduce((s,p)=>s+Math.max(bar-(counts[String(p.name||'').toLowerCase().trim()]||0),0),0);
   const refundsOut=cfg.refundOverpaid===true?inField.reduce((s,p)=>s+Math.max((counts[String(p.name).toLowerCase().trim()]||0)-bar,0),0):0;
   const availableNow=fundTotal+payinsDue+extraPrize-refundsOut;
@@ -5076,6 +5078,24 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.72)',marginTop:3}}>{cfg.date1?(fd(cfg.date1)+(cfg.date2?(' – '+fd(cfg.date2)):'')):'Dates coming soon'}{live?<span style={{marginLeft:8,fontSize:10,fontWeight:800,color:'#0f2f22',background:'#d6b34a',borderRadius:6,padding:'2px 7px',verticalAlign:'middle'}}>INVITES OPEN</span>:null}</div>
         </div>
       </div>
+      {sub==='board'&&(live||isAdmin)&&(
+        <div style={{background:DARK,borderRadius:16,padding:'14px 14px 12px',margin:'-24px 0 14px',paddingTop:24,boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
+          <div style={{display:'flex',gap:8}}>
+            {[['Pot now',fundTotal+paidTotalAll],['Projected',fundTotal+payinsDue],['Potential',fundTotal+potentialDue]].map(([l,v])=>(
+              <div key={l} style={{flex:1,textAlign:'center',padding:'10px 6px',borderRadius:12,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(184,137,26,0.35)'}}>
+                <div style={{fontSize:9.5,fontWeight:800,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
+                <div style={{fontSize:24,fontWeight:900,color:'#d6b34a',letterSpacing:'-0.01em',marginTop:2}}>${v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap',justifyContent:'center'}}>
+            {(twoDay?[[d1Label,inFieldFor('day1').length],[d2Label,inFieldFor('day2').length]]:[['In',inField.length]]).concat([["Can't",declinedAll]]).map(([l,n])=>(
+              <div key={l} style={{fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.85)',background:'rgba(184,137,26,0.16)',border:'1px solid rgba(184,137,26,0.4)',borderRadius:20,padding:'5px 12px'}}><span style={{color:'#d6b34a'}}>{n}</span> {l}</div>
+            ))}
+          </div>
+          <div style={{fontSize:10.5,color:'rgba(255,255,255,0.45)',textAlign:'center',marginTop:8}}>Pot now = fund banked + cash in hand · Projected = if every opted-in player pays · Potential = if everyone invited played</div>
+        </div>
+      )}
       <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
         {isAdmin&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&pill('field','💵 Field')}
       </div>
@@ -5131,9 +5151,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             const tile=(l,v,acc)=>(<div style={{flex:1,minWidth:96,background:acc?GOLD_SOFT:'var(--surface-sunken)',border:acc?'1px solid '+GOLD_BORDER:'1px solid transparent',borderRadius:10,padding:'9px 10px',textAlign:'center'}}><div style={{fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.04em'}}>{l}</div><div style={{fontSize:acc?22:17,fontWeight:900,color:acc?GOLD:'var(--ink)',marginTop:2,letterSpacing:'-0.01em'}}>{v}</div></div>);
             return (
               <div style={card}>
-                <div style={hdr}>💰 The pot — live reconciliation</div>
+                <div style={hdr}>💰 The field &amp; the money</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{tile('Players in',inField.length)}{tile("Can't make it",declinedN)}{tile('Still deciding',stillDeciding)}</div>
-                <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:7}}>{tile('Pot now','$'+(fundTotal+paidTotal),true)}{tile('Projected — opted in','$'+(fundTotal+payinsDue),true)}{tile('Potential — everyone invited','$'+(fundTotal+potentialDue),true)}</div>
                 <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = ${fundTotal} fund banked + ${paidTotal} cash in hand. Projected = fund + every opted-in buy-in. Potential = fund + every eligible or invited player’s buy-in if they all played. ${paidTotal} collected of ${payinsDue} due from opted-in players · ${Math.max(payinsDue-paidTotal,0)} still to collect. Same buy-in for one day or both.</div>
                 {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${fundTotal} banked in the fund · ${paidTotal} of ${payinsDue} opt-in cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
                 <div style={{fontSize:12,color:'var(--ink-40)',marginTop:6,lineHeight:1.6}}>Eligibility: {cfg.minRounds!=null?cfg.minRounds:10}+ qualifying rounds (exceptions by the admins).{cfg.refundOverpaid===true?' Players over the bar are refunded.':' Anything over the bar stays in the pot.'} Pot assumes every entry settles.</div>
