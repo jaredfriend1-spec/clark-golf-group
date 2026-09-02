@@ -2134,6 +2134,74 @@ function HistoryTab({user}){
 }
 
 // ── ATTEND TAB (matches main app: attendance/rounds = array of {date, players[]}) ──
+// ── VERBATIM COPY of the app's Standings leaderboard maths — do not "improve" it.
+function moneyLeaderboard(rounds){
+    const safeArray=x=>Array.isArray(x)?x:Object.values(x||{});
+    const normName=n=>{if(!n)return"";return String(n).trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");};
+    const players = {};
+    rounds.forEach(r=>{
+      // ── Individual (Stableford) rounds: paid from buy-in, winnings from the
+      //    round's own computed awards + skins awards. Team math never runs.
+      if(r.scores.gameMode==='individual'){
+        const buyIn=parseFloat(r.scores.buyIn)||25;
+        Object.keys(r.scores.indScores||{}).forEach(nm=>{
+          const pn=normName(nm);
+          if(!players[pn])players[pn]={name:pn,rounds:0,won:0,paid:0};
+          players[pn].rounds++; players[pn].paid+=buyIn;
+        });
+        safeArray(r.scores.awards).forEach(a=>{const pn=normName(a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
+        safeArray(r.scores.skinsAwards).forEach(a=>{const pn=normName(a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
+        return;
+      }
+      safeArray(r.teams).forEach(team=>{
+        safeArray(team.players).forEach(p=>{
+          const pn = normName(p.name);
+          if(!players[pn]) players[pn]={name:pn,rounds:0,won:0,paid:0};
+          players[pn].rounds++;
+          players[pn].paid+=25;
+        });
+      });
+      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,k1:'f1',k2:'f2'},
+       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1,k1:'b1',k2:'b2'},
+       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,k1:'o1',k2:'o2'}
+      ].forEach(({seg,pot:segPot,pl,k1,k2})=>{
+        const p=parseFloat(segPot||0); if(!p)return;
+        const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+        if(!sc.length)return;
+        sc.sort((a,b)=>a.score-b.score);
+        const best=sc[0].score;
+        const tied1st=sc.filter(t=>t.score===best);
+        const secondScore=sc.find(t=>t.score!==best)?.score;
+        const tied2nd=secondScore!==undefined?sc.filter(t=>t.score===secondScore):[];
+        const c1=r.scores[k1]?parseFloat(r.scores[k1]):0;
+        const c2=r.scores[k2]?parseFloat(r.scores[k2]):0;
+        const first=c1>0?c1:(pl===1?p:p*0.6);
+        const sec=c2>0?c2:p*0.4;
+        if(tied1st.length>1){
+          const split=Math.floor(pl===1?p/tied1st.length:(first+sec)/tied1st.length);
+          tied1st.forEach(t=>safeArray(t.players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=split/safeArray(t.players).length;}));
+        } else {
+          safeArray(tied1st[0].players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=Math.floor(first)/safeArray(tied1st[0].players).length;});
+          if(pl===2&&tied2nd.length>0){
+            const split2=Math.floor(sec/tied2nd.length);
+            tied2nd.forEach(t=>safeArray(t.players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=split2/safeArray(t.players).length;}));
+          }
+        }
+      });
+      const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
+      const tsk=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+x,0);
+      if(tsk>0){
+        const psk=Math.floor(snet/tsk);
+        Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{
+          if(!cnt)return;
+          const team=r.teams.find(t=>String(t.id)===String(tid)); if(!team)return;
+          safeArray(team.players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=(psk*cnt)/safeArray(team.players).length;});
+        });
+      }
+    });
+    return Object.values(players).map(p=>({...p,won:Math.round(p.won),net:Math.round(p.won-p.paid),returnPct:p.paid>0?Math.round(p.won/p.paid*100):0}));
+  }
+
 function AwardsTab({user}){
   const history=useDB("history");
   const attendance=useDB("attendance/rounds");
@@ -2162,9 +2230,9 @@ function AwardsTab({user}){
       const scI=r.scores||{};
       if(scI.gameMode==="individual"){
         const buyIn=parseFloat(scI.buyIn)||25;
-        Object.keys(scI.indScores||{}).forEach(nm=>{const p=get(nm);if(p){p.rounds++;p.paid+=buyIn;}});
-        (Array.isArray(scI.awards)?scI.awards:Object.values(scI.awards||{})).forEach(aw=>{const p=get(aw&&aw.name);if(p)p.won+=parseFloat(aw.amount)||0;});
-        (Array.isArray(scI.skinsAwards)?scI.skinsAwards:Object.values(scI.skinsAwards||{})).forEach(aw=>{const p=get(aw&&aw.name);if(p)p.won+=parseFloat(aw.amount)||0;});
+        Object.keys(scI.indScores||{}).forEach(nm=>{const p=get(nm);if(p){p.rounds++;}});
+        
+        
         return;
       }
       const teams=Array.isArray(r.teams)?r.teams:Object.values(r.teams||{});
@@ -2194,12 +2262,12 @@ function AwardsTab({user}){
         const first=c1>0?c1:(pl===1?p0:p0*0.6);const sec=c2>0?c2:p0*0.4;
         if(tied1.length>1){
           const split=Math.floor(pl===1?p0/tied1.length:(first+sec)/tied1.length);
-          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split/x.players.length;roundWinners.add(p.name);}}));
+          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){roundWinners.add(p.name);}}));
         } else {
-          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=Math.floor(first)/x.players.length;roundWinners.add(p.name);}}));
+          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){roundWinners.add(p.name);}}));
           if(pl===2&&tied2.length){
             const split2=Math.floor(sec/tied2.length);
-            tied2.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split2/x.players.length;roundSeconds.add(p.name);}}));
+            tied2.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){roundSeconds.add(p.name);}}));
           }
         }
       });
@@ -2211,15 +2279,17 @@ function AwardsTab({user}){
           const n2=parseInt(cnt)||0;if(!n2)return;
           const team=rowsR.find(x=>String(x.id)===String(tid))||rowsR[Number(tid)];
           if(!team||!team.players.length)return;
-          team.players.forEach(nm=>{const p=get(nm);if(p){p.skins+=n2;p.won+=(psk*n2)/team.players.length;}});
+          team.players.forEach(nm=>{const p=get(nm);if(p){p.skins+=n2;}});
         });
       }
       // one placement per ROUND, not per category
       roundWinners.forEach(nm=>{const p=get(nm);if(p)p.winRounds++;});
       roundSeconds.forEach(nm=>{if(roundWinners.has(nm))return;const p=get(nm);if(p)p.silverRounds++;});
-      rowsR.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p)p.paid+=25;}));
+
     });
-    const arr=Object.values(P).map(p=>{const gross=Math.round(p.won);const paid=Math.round(p.paid||0);return {...p,partners:p.partners.size,gross,paid,won:gross,net:Math.round(gross-paid),returnPct:paid>0?Math.round(gross/paid*100):0};});
+    // money comes from the app's own leaderboard code, not a re-implementation
+    const money={};moneyLeaderboard(rounds).forEach(m=>{money[m.name]=m;});
+    const arr=Object.values(P).map(p=>{const m=money[p.name]||{won:0,paid:0,net:0,rounds:0};const gross=Math.round(m.won);const paid=Math.round(m.paid||0);return {...p,partners:p.partners.size,gross,paid,won:gross,net:Math.round(gross-paid),moneyRounds:m.rounds||0,returnPct:paid>0?Math.round(gross/paid*100):0};});
     const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
     const attIn=attRounds.filter(inSeason);
     const attBy={};attIn.forEach(r=>((r.players)||[]).forEach(n=>{const k=normName(n);if(k)attBy[k]=(attBy[k]||0)+1;}));
