@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-r';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-s';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -7321,14 +7321,15 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
           {showRoster&&(
             <div style={{borderTop:'1px solid var(--hairline)',padding:'12px 16px'}}>
               {(()=>{
-                const withEm=allRoster.filter(p=>!(rosterHidden&&rosterHidden[p.id])).map(p=>({p,em:(rosterEmails&&rosterEmails[p.id])||''})).filter(x=>x.em&&String(x.em).indexOf('@')>0);
+                const liveRoster=allRoster.filter(p=>!(rosterHidden&&rosterHidden[p.id])&&!(rosterDeleted&&rosterDeleted[p.id]));
+                const withEm=liveRoster.map(p=>({p,em:(rosterEmails&&rosterEmails[p.id])||''})).filter(x=>x.em&&String(x.em).indexOf('@')>0);
                 return (
                   <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
                     <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
                       const s=withEm.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+withEm.length+' emails — paste into Gmail.');setTimeout(()=>setAddPlayerToast(''),3000);});
                     }}>📋 Copy all emails ({withEm.length})</button>
-                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{allRoster.length-withEm.length>0?(allRoster.length-withEm.length)+' players have no email — see the portal Roster counter.':'Every player has an email ✓'}</span>
+                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{liveRoster.length-withEm.length>0?(liveRoster.length-withEm.length)+' of '+liveRoster.length+' have no email — see the portal Roster tab.':'Every player has an email ✓'}</span>
                   </div>
                 );
               })()}

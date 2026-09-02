@@ -1654,6 +1654,70 @@ function RosterTab(){
       </div>
     )}
     <div className="card">
+        <div className="card-hdr"><span className="card-title">🧹 Cleanup session</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>work the list live &middot; every change is real</span></div>
+        <div className="card-body">
+          {(()=>{
+            const [bucket,setBucket]=React.useState("noemail");
+            const [emailDraft,setEmailDraft]=React.useState({});
+            const clSet=new Set(Object.values(clarkList||{}).map(e=>String(e.email||"").toLowerCase().trim()).filter(Boolean));
+            const emOf=p=>String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
+            const hasEmail=p=>emOf(p).indexOf("@")>0;
+            const isReg=p=>!!(rosterPins&&rosterPins[p.id]);
+            const onCl=p=>hasEmail(p)&&clSet.has(emOf(p));
+            const B={
+              noemail:{label:"No email",rows:visible.filter(p=>!hasEmail(p)),note:"Add an address here and it saves straight to the roster."},
+              addcl:{label:"Add to Clark's",rows:visible.filter(p=>hasEmail(p)&&isReg(p)&&!onCl(p)),note:"Registered in the app but missing from Clark's list — send him these."},
+              stale:{label:"Delete candidates",rows:visible.filter(p=>!isReg(p)&&!onCl(p)&&roundsOf(p)===0),note:"Never registered, not on Clark's list, no rounds. Safe to delete."},
+              nudge:{label:"Not registered",rows:visible.filter(p=>!isReg(p)&&onCl(p)),note:"On Clark's list but never signed into the app."},
+              all:{label:"Everyone",rows:visible,note:"The full roster."}
+            };
+            const cur=B[bucket]||B.all;
+            const rows=cur.rows.slice().sort((a,b)=>a.name.localeCompare(b.name));
+            const copyList=()=>{const s=rows.filter(hasEmail).map(emOf).join(", ");navigator.clipboard.writeText(s).then(()=>showToast("Copied "+rows.filter(hasEmail).length+" emails ✓"));};
+            const backup=()=>{const data={exportedAt:new Date().toISOString(),roster:all.map(p=>({id:p.id,name:p.name,email:(rosterEmails&&rosterEmails[p.id])||null,registered:!!(rosterPins&&rosterPins[p.id]),rounds:roundsOf(p),isExtra:!!p.isExtra})),clarkEmailList:clarkList||{},deleted:rosterDeleted||{}};
+              const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="clark-golf-roster-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();showToast("Backup downloaded ✓");};
+            return (
+              <div>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
+                  <button className="btn btn-sm" onClick={backup}>💾 Download backup first</button>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>Saves the roster, emails, rounds and Clark's list as a JSON file.</span>
+                </div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+                  {Object.keys(B).map(k=>(
+                    <button key={k} className="btn btn-sm" onClick={()=>setBucket(k)} style={{fontWeight:800,fontSize:11,border:"1px solid",borderColor:bucket===k?"#10b981":"rgba(255,255,255,0.12)",background:bucket===k?"rgba(16,185,129,0.12)":"transparent",color:bucket===k?"#4ade80":"rgba(255,255,255,0.5)"}}>{B[k].label} ({B[k].rows.length})</button>
+                  ))}
+                </div>
+                <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginBottom:8}}>{cur.note}</div>
+                {rows.length===0?(
+                  <div style={{fontSize:12.5,color:"rgba(255,255,255,0.3)",padding:"10px 0"}}>Nothing here — this bucket is clear ✓</div>
+                ):rows.map(p=>{
+                  const draft=emailDraft[p.id];
+                  const cur2=(rosterEmails&&rosterEmails[p.id])||"";
+                  const val=draft==null?cur2:draft;
+                  return (
+                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.05)",flexWrap:"wrap"}}>
+                      <div style={{flex:"1 1 180px",minWidth:0}}>
+                        <div style={{fontSize:13.5,fontWeight:600,color:"#e2e8f0"}}>{p.name}
+                          <span style={{fontSize:9.5,fontWeight:800,marginLeft:6,color:roundsOf(p)>0?"#4ade80":"rgba(255,255,255,0.35)"}}>{roundsOf(p)} rounds</span>
+                          {isReg(p)&&<span style={{fontSize:9,fontWeight:800,marginLeft:5,color:"#60a5fa"}}>REGISTERED</span>}
+                          {onCl(p)&&<span style={{fontSize:9,fontWeight:800,marginLeft:5,color:"#4ade80"}}>CL ✓</span>}
+                        </div>
+                      </div>
+                      <input className="inp" style={{flex:"1 1 200px",fontSize:12,padding:"5px 8px"}} placeholder="email@example.com" value={val} onChange={e=>setEmailDraft(d=>({...d,[p.id]:e.target.value}))}/>
+                      {draft!=null&&draft.trim()!==cur2&&(
+                        <button className="btn btn-sm" style={{fontWeight:800}} onClick={()=>{const v=draft.trim();if(v&&v.indexOf("@")<1){showToast("That does not look like an email","err");return;}wr("rosterEmails/"+p.id,v||null);if(v)firebase.database().ref("clarkEmailList").push({name:p.name,email:v});setEmailDraft(d=>{const n={...d};delete n[p.id];return n;});showToast("Saved ✓");}}>Save</button>
+                      )}
+                      <button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Delete</button>
+                    </div>
+                  );
+                })}
+                <div style={{marginTop:10}}><button className="btn btn-sm btn-ghost" onClick={copyList}>📋 Copy this bucket&rsquo;s emails</button></div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+      <div className="card">
         <div className="card-hdr"><span className="card-title">🔍 Compare a pasted email list</span></div>
         <div className="card-body">
           {(()=>{
