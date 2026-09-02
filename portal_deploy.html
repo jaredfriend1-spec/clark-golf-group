@@ -1270,7 +1270,6 @@ function RosterTab(){
   const [revealPin,setRevealPin]=useState(null); // player id whose PIN is shown
   const [newP,setNewP]=useState({name:"",tee:"Whites",hcp:"",phone:"",email:""});
   const [confirmDel,setConfirmDel]=useState(null);
-  const [confirmHide,setConfirmHide]=useState(null);
   const [confirmResetPin,setConfirmResetPin]=useState(null);
   const [confirmSetPin,setConfirmSetPin]=useState(null);
   const [newPinVal,setNewPinVal]=useState("");
@@ -1283,15 +1282,14 @@ function RosterTab(){
   },[extra,rosterEdits,rosterHcp,rosterTee]);
 
   const rosterDeleted=useDB("rosterDeleted");
-  const isDeletedP=p=>!!(rosterDeleted&&rosterDeleted[p.id]);
+  const isDeletedP=p=>!!((rosterDeleted&&rosterDeleted[p.id])||(rosterHidden&&rosterHidden[p.id]));   // legacy hidden = deleted
   const live=all.filter(p=>!isDeletedP(p));
   const deletedList=all.filter(isDeletedP).sort((x,y)=>x.name.localeCompare(y.name));
   const visible=live.filter(p=>!rosterHidden||!rosterHidden[p.id]);
-  const hiddenList=live.filter(p=>rosterHidden&&rosterHidden[p.id]);
   const activeList=visible.filter(p=>!!(rosterPins&&rosterPins[p.id]));
   const inactiveList=visible.filter(p=>!(rosterPins&&rosterPins[p.id]));
 
-  const currentList=seg==="active"?activeList:seg==="inactive"?inactiveList:hiddenList;
+  const currentList=seg==="active"?activeList:inactiveList;
   const filtered=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).filter(p=>clFilter==="all"?true:(clFilter==="on"?onClarkList(p):!onClarkList(p))).sort((a,b)=>a.name.localeCompare(b.name));
 
   function saveEdit(){
@@ -1343,19 +1341,7 @@ function RosterTab(){
     }
     setConfirmDel(null);
   }
-  function restoreDeleted(id){dl("rosterDeleted/"+id);showToast("Restored ✓");}
-
-  function hidePlayer(id){
-    wr("rosterHidden/"+id,true);
-    setConfirmHide(null);
-    showToast("Hidden ✓");
-  }
-
-  function unhidePlayer(id){
-    const u={...rosterHidden};delete u[id];
-    wr("rosterHidden",u);
-    showToast("Restored ✓");
-  }
+  function restoreDeleted(id){dl("rosterDeleted/"+id);dl("rosterHidden/"+id);showToast("Restored ✓");}
 
   function resetPin(id){
     dl("rosterPins/"+id);
@@ -1462,7 +1448,7 @@ function RosterTab(){
             </div>
           );
         })()}
-        <div className="pg-sub">{activeList.length} active · {inactiveList.length} inactive · {hiddenList.length} hidden</div>
+        <div className="pg-sub">{activeList.length} active · {inactiveList.length} inactive · {deletedList.length} deleted</div>
       </div>
       <button className="btn btn-g btn-sm" onClick={()=>setAdding(v=>!v)}>{adding?"Cancel":"+ Add Player"}</button>
     </div>
@@ -1470,12 +1456,12 @@ function RosterTab(){
     <div className="stat-grid sg-3" style={{marginBottom:14}}>
       <div className="stat"><div className="stat-v" style={{color:"#10b981"}}>{activeList.length}</div><div className="stat-l">Active (Has PIN)</div></div>
       <div className="stat"><div className="stat-v" style={{color:"#f87171"}}>{inactiveList.length}</div><div className="stat-l">Inactive (No PIN)</div></div>
-      <div className="stat"><div className="stat-v" style={{color:"rgba(255,255,255,0.4)"}}>{hiddenList.length}</div><div className="stat-l">Hidden</div></div>
+      <div className="stat"><div className="stat-v" style={{color:"rgba(255,255,255,0.4)"}}>{deletedList.length}</div><div className="stat-l">Deleted</div></div>
     </div>
 
     {/* SEGMENT TABS */}
     <div className="sec-tabs">
-      {[["active","Active — Has PIN"],["inactive","Inactive — No PIN"],["hidden","Hidden"]].map(([id,label])=>(
+      {[["active","Active — Has PIN"],["inactive","Inactive — No PIN"]].map(([id,label])=>(
         <button key={id} className={`mtab${seg===id?" on":""}`} style={{fontSize:12}} onClick={()=>setSeg(id)}>{label}</button>
       ))}
     </div>
@@ -1526,7 +1512,6 @@ function RosterTab(){
           const email=(rosterEmails&&rosterEmails[p.id])||"";
           const isAdmin=!!(rosterAdmins&&rosterAdmins[p.id]);
           const isMasterP=rosterAdmins&&rosterAdmins[p.id]==="master";
-          const isHidden=seg==="hidden";
 
           if(editing?.id===p.id){
             return(
@@ -1595,12 +1580,9 @@ function RosterTab(){
                 </div>
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                {isHidden?(
-                  <button className="btn btn-gh btn-sm" onClick={()=>unhidePlayer(p.id)}>Restore</button>
-                ):(
+                {(
                   <>
                     <button className="btn btn-gh btn-sm" onClick={()=>setEditing({id:p.id,name:p.name,tee:p.tee||"Whites",hcp:p.hcp||"",email})}>Edit</button>
-                    {!p.isExtra&&<button className="btn btn-gh btn-sm" onClick={()=>setConfirmHide(p)}>Hide</button>}
                     <button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Delete</button>
                   </>
                 )}
@@ -1641,19 +1623,6 @@ function RosterTab(){
       </div>
     )}
 
-    {/* HIDE CONFIRM */}
-    {confirmHide&&(
-      <div className="overlay">
-        <div className="modal">
-          <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Hide {confirmHide.name}?</div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>Moves to Hidden segment. Their PIN and email are preserved. Restore anytime.</div>
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn btn-a" style={{flex:1}} onClick={()=>hidePlayer(confirmHide.id)}>Hide</button>
-            <button className="btn btn-gh" style={{flex:1}} onClick={()=>setConfirmHide(null)}>Cancel</button>
-          </div>
-        </div>
-      </div>
-    )}
 
     {/* RESET PIN CONFIRM */}
     {confirmResetPin&&(

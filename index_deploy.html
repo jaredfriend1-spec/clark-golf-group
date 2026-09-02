@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-p';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-q';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5742,15 +5742,19 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
   function saveRounds(nr){ const sorted=[...nr].sort((a,b)=>b.date.localeCompare(a.date)); write('attendance/rounds',sorted); setRounds(sorted); }
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null),3000); }
   const [sortAZ, setSortAZ] = useState(false);
-  const [seasonView, setSeasonView] = useState('current');
+  const [seasonView, setSeasonView] = useState(null);   // null = auto: the season we're actually in
   const [seasonLock, setSeasonLock] = useState(null);
   useEffect(()=>{const u=read('settings/season', v=>setSeasonLock(v&&v.endDate?{closedAt:String(v.endDate)}:null));return ()=>{try{u&&u();}catch(e){}};},[]);
+  const todayIsoA=(()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');})();
+  // Before the end date we're still IN this season, so 'current' means on-or-before it.
+  const seasonOver = !!(seasonLock&&seasonLock.closedAt&&todayIsoA>seasonLock.closedAt);
+  const effView = seasonView||(seasonOver?'current':'prev');
   const seasonRounds = useMemo(()=>{
     if(!seasonLock||!seasonLock.closedAt)return rounds;
-    if(seasonView==='all')return rounds;
-    if(seasonView==='prev')return rounds.filter(r=>String(r.date||'')<=seasonLock.closedAt);
+    if(effView==='all')return rounds;
+    if(effView==='prev')return rounds.filter(r=>String(r.date||'')<=seasonLock.closedAt);
     return rounds.filter(r=>String(r.date||'')>seasonLock.closedAt);
-  },[rounds,seasonLock,seasonView]);
+  },[rounds,seasonLock,effView]);
   const standings = useMemo(()=>{
     const p={};
     seasonRounds.forEach(r=>{ (r.players||[]).forEach(raw=>{ const name=normName(raw); if(!p[name])p[name]={name,rounds:0,dates:[]}; p[name].rounds++; p[name].dates.push(r.date); }); });
@@ -5845,8 +5849,8 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
           <>
             {seasonLock&&seasonLock.closedAt&&(
               <div style={{display:'flex',gap:6,marginBottom:8}}>
-                {[['current',(seasonLock.label?String(Number(seasonLock.label)+1):'This season')],['prev',seasonLock.label||'Last season'],['all','All-time']].map(([v,label])=>(
-                  <button key={v} onClick={()=>setSeasonView(v)} style={{flex:1,padding:'8px 0',borderRadius:9,border:'1.5px solid',borderColor:seasonView===v?'var(--brand)':'var(--hairline)',background:seasonView===v?'var(--brand-soft)':'transparent',color:seasonView===v?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+                {[['prev',(seasonOver?(seasonLock.label||'Last season'):'This season')],['current',(seasonOver?'This season':'Next season')],['all','All-time']].map(([v,label])=>(
+                  <button key={v} onClick={()=>setSeasonView(v)} style={{flex:1,padding:'8px 0',borderRadius:9,border:'1.5px solid',borderColor:effView===v?'var(--brand)':'var(--hairline)',background:effView===v?'var(--brand-soft)':'transparent',color:effView===v?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
                 ))}
               </div>
             )}
