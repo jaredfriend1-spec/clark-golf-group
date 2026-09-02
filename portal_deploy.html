@@ -2238,7 +2238,18 @@ function AwardsTab({user}){
       const teams=Array.isArray(r.teams)?r.teams:Object.values(r.teams||{});
       const sc=r.scores||{};const ts=sc.teamScores||{};
       const rowsR=teams.map((t,ti)=>{
-        const players=Object.values(t.players||{}).map(p=>p.name).filter(Boolean);
+        const plist=Object.values(t.players||{});
+        plist.forEach(pp=>{if(pp&&pp.isGuest&&pp.guestOf){const h=get(pp.guestOf);if(h){h.guestsBrought++;h.guestNames.add(String(pp.name||"").trim());}}});
+        plist.forEach(pp=>{
+          if(!pp||!pp.name)return;
+          const pr=get(pp.name);if(!pr)return;
+          const hc=parseFloat(pp.handicap);
+          if(!isNaN(hc)&&hc>0){pr.hcpLog.push({date:r.date||"",hcp:hc});}
+          if(pp.teePreference==="first")pr.firstTee++;
+          if(pp.teePreference==="last")pr.lastTee++;
+          pr.prefRounds++;
+        });
+        const players=plist.map(p=>p.name).filter(Boolean);
         const raw=ts[t.id]||ts[ti]||ts[String(ti)]||{};
         const num=v=>{const n2=parseFloat(v);return isNaN(n2)?null:n2;};
         const f=num(raw.front),b=num(raw.back),o=num(raw.overall);
@@ -2298,8 +2309,13 @@ function AwardsTab({user}){
     // sign-up order + guests
     const sl=Object.values(signupLog||{}).filter(x=>x&&x.name);
     const ord={};sl.forEach(x=>{const k=String(x.name).trim();if(!ord[k])ord[k]={n:0,sum:0};ord[k].n++;ord[k].sum+=Number(x.order)||0;});
-    arr.forEach(p=>{const o=ord[p.name];p.avgOrder=o&&o.n?Math.round((o.sum/o.n)*10)/10:null;p.signupCount=o?o.n:0;});
-    const gl=Object.values(guestLog||{});const gby={};gl.forEach(x=>{const k=String(x.host||"").trim();gby[k]=(gby[k]||0)+(Number(x.count)||1);});
+    arr.forEach(p=>{const o=ord[p.name];p.avgOrder=o&&o.n?Math.round((o.sum/o.n)*10)/10:null;p.signupCount=o?o.n:0;p.guests=p.guestsBrought||gby[p.name]||0;p.guestPeople=p.guestNames?p.guestNames.size:0;
+      const lg=(p.hcpLog||[]).slice().sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+      if(lg.length>=4){p.hcpFirst=lg[0].hcp;p.hcpLast=lg[lg.length-1].hcp;p.hcpMove=Math.round((p.hcpLast-p.hcpFirst)*10)/10;p.hcpPoints=lg.length;}
+      else {p.hcpFirst=null;p.hcpLast=null;p.hcpMove=null;p.hcpPoints=lg.length;}
+      p.firstPct=p.prefRounds>=5?Math.round((p.firstTee/p.prefRounds)*100):null;
+      p.lastPct=p.prefRounds>=5?Math.round((p.lastTee/p.prefRounds)*100):null;});
+    const gl=Object.values(guestLog||{});const gby={};gl.forEach(x=>{const k=normName(x&&x.host);if(k)gby[k]=(gby[k]||0)+(Number(x.count)||1);});
     arr.forEach(p=>{p.guests=gby[p.name]||0;});
     const weeks=new Set(attIn.map(r=>r.date)).size;
     return {players:arr,teamRows,weeks};
@@ -2321,7 +2337,11 @@ function AwardsTab({user}){
     {id:"perfect",src:"full",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
     {id:"early",src:"new",icon:"🐓",title:"First Man In",blurb:"Signs up before the ink is dry.",board:top("avgOrder","asc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
     {id:"late",src:"new",icon:"🐌",title:"The Procrastinator",blurb:"Always last. Always squeezing in.",board:top("avgOrder","desc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
-    {id:"host",src:"new",icon:"🚪",title:"The Ambassador",blurb:"Brought the most guests to the group.",board:top("guests","desc",p=>p.guests>0).slice(0,5).map(p=>({name:p.name,detail:p.guests+" guests"}))},
+    {id:"host",src:"full",icon:"🚪",title:"The Ambassador",blurb:"Brought more guests out to play than anyone.",board:top("guests","desc",p=>p.guests>0).slice(0,5).map(p=>({name:p.name,detail:p.guests+" guest round"+(p.guests===1?"":"s")+((p.guestPeople&&p.guestPeople!==p.guests)?(" · "+p.guestPeople+" different guests"):"")}))},
+    {id:"improved",src:"full",icon:"📉",title:"Most Improved",blurb:"Handicap dropped further than anyone\u2019s. The work is showing.",board:top("hcpMove","asc",p=>p.hcpMove!=null&&p.hcpMove<0).slice(0,5).map(p=>({name:p.name,detail:p.hcpFirst+" → "+p.hcpLast+" ("+p.hcpMove+")"}))},
+    {id:"wrongway",src:"full",icon:"📈",title:"Going the Wrong Way",blurb:"Handicap climbed all season. It happens to the best of us. Allegedly.",board:top("hcpMove","desc",p=>p.hcpMove!=null&&p.hcpMove>0).slice(0,5).map(p=>({name:p.name,detail:p.hcpFirst+" → "+p.hcpLast+" (+"+p.hcpMove+")"}))},
+    {id:"firstoff",src:"full",icon:"🌄",title:"Always First Off",blurb:"Asks for the first tee time more than anyone. Somewhere to be.",board:top("firstTee","desc",p=>p.firstTee>0).slice(0,5).map(p=>({name:p.name,detail:p.firstTee+" request"+(p.firstTee===1?"":"s")+(p.firstPct!=null?(" · "+p.firstPct+"% of his rounds"):"")}))},
+    {id:"lastoff",src:"full",icon:"🌆",title:"Always Last Off",blurb:"Never in a hurry. Wants the last group, every time.",board:top("lastTee","desc",p=>p.lastTee>0).slice(0,5).map(p=>({name:p.name,detail:p.lastTee+" request"+(p.lastTee===1?"":"s")+(p.lastPct!=null?(" · "+p.lastPct+"% of his rounds"):"")}))},
     {id:"bestfront",src:"full",icon:"🌅",title:"Best Front Nine",blurb:"The lowest front nine any team posted all season.",board:teamTop("f","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
     {id:"bestback",src:"full",icon:"🌇",title:"Best Back Nine",blurb:"The lowest back nine of the year.",board:teamTop("b","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
     {id:"bestday",src:"full",icon:"👑",title:"Round of the Year",blurb:"The best eighteen anybody played together.",board:teamTop("tot","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
