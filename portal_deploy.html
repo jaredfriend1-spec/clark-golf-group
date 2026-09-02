@@ -2144,6 +2144,7 @@ function AwardsTab({user}){
   const [toast,showToast]=useToast();
   const [edits,setEdits]=useState({});
   const [customs,setCustoms]=useState([]);
+  const [srcFilter,setSrcFilter]=useState("all");
   const year=String((season&&season.endDate?season.endDate:new Date().toISOString().slice(0,10)).slice(0,4));
   const published=!!(saved&&saved[year]&&saved[year].published);
 
@@ -2160,9 +2161,10 @@ function AwardsTab({user}){
       const sc=r.scores||{};const ts=sc.teamScores||{};
       const rowsR=teams.map((t,ti)=>{
         const players=Object.values(t.players||{}).map(p=>p.name).filter(Boolean);
-        const s=ts[t.id]||ts[ti]||{};
-        const f=s.f!=null?Number(s.f):null,b=s.b!=null?Number(s.b):null;
-        return {ti,players,f,b,tot:(f!=null&&b!=null)?f+b:null,date:r.date,day:r.day};
+        const raw=ts[t.id]||ts[ti]||ts[String(ti)]||{};
+        const num=v=>{const n2=parseFloat(v);return isNaN(n2)?null:n2;};
+        const f=num(raw.front),b=num(raw.back),o=num(raw.overall);
+        return {ti,players,f,b,tot:o!=null?o:((f!=null&&b!=null)?f+b:null),date:r.date,day:r.day};
       });
       rowsR.forEach(x=>{x.players.forEach(n=>{const p=get(n);if(!p)return;p.rounds++;x.players.forEach(o=>{if(o!==n)p.partners.add(o);});});});
       teamRows.push(...rowsR.filter(x=>x.tot!=null||x.f!=null||x.b!=null));
@@ -2174,9 +2176,9 @@ function AwardsTab({user}){
         valid[0].players.forEach(n=>{const p=get(n);if(p){p.won+=per1;p.firsts++;}});
         if(amt2>0&&valid[1]){const per2=valid[1].players.length?Math.floor(amt2/valid[1].players.length):0;valid[1].players.forEach(n=>{const p=get(n);if(p){p.won+=per2;p.seconds++;}});}
       };
-      place("f",sc.f1||sc.frontPot,sc.f2);place("b",sc.b1||sc.backPot,sc.b2);place("tot",sc.o1||sc.overallPot,sc.o2);
+      place("f",(parseFloat(sc.f1)||0)>0?parseFloat(sc.f1):parseFloat(sc.frontPot||0),parseFloat(sc.f2)||0);place("b",(parseFloat(sc.b1)||0)>0?parseFloat(sc.b1):parseFloat(sc.backPot||0),parseFloat(sc.b2)||0);place("tot",(parseFloat(sc.o1)||0)>0?parseFloat(sc.o1):parseFloat(sc.overallPot||0),parseFloat(sc.o2)||0);
       const skc=sc.skinCounts||{};const totalSk=Object.values(skc).reduce((s2,c)=>s2+(parseInt(c)||0),0);
-      const perSk=totalSk>0?Math.floor((sc.skinsPot||0)/totalSk):0;
+      const perSk=totalSk>0?Math.floor(parseFloat(sc.skinsPot||0)/totalSk):0;
       Object.entries(skc).forEach(([n,c])=>{const p=get(n);if(p){p.skins+=parseInt(c)||0;p.won+=(parseInt(c)||0)*perSk;}});
     });
     const arr=Object.values(P).map(p=>({...p,partners:p.partners.size,spent:p.rounds*25,net:p.won-(p.rounds*25)}));
@@ -2201,36 +2203,37 @@ function AwardsTab({user}){
   const nameList=x=>x.players.join(" & ");
 
   const AWARDS=[
-    {id:"ironman",icon:"🏋️",title:"The Iron Man",blurb:"Showed up more than anyone. The backbone of the fund.",board:top("attend","desc").slice(0,5).map(p=>({name:p.name,detail:p.attend+" rounds"}))},
-    {id:"money",icon:"💰",title:"Money List Champion",blurb:"Took home more cash than any man in the group.",board:top("won","desc").slice(0,5).map(p=>({name:p.name,detail:"$"+p.won}))},
-    {id:"skins",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc").slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
-    {id:"donor",icon:"🩸",title:"Most Generous Donor",blurb:"Paid in the most, took home the least. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down"}))},
-    {id:"bridesmaid",icon:"💐",title:"Always the Bridesmaid",blurb:"So many seconds. So few wins.",board:S.players.filter(p=>p.seconds>0).sort((a,b)=>(b.seconds-b.firsts)-(a.seconds-a.firsts)).slice(0,5).map(p=>({name:p.name,detail:p.seconds+" seconds · "+p.firsts+" wins"}))},
-    {id:"social",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc").slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
-    {id:"perfect",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
-    {id:"early",icon:"🐓",title:"First Man In",blurb:"Signs up before the ink is dry.",board:top("avgOrder","asc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
-    {id:"late",icon:"🐌",title:"The Procrastinator",blurb:"Always last. Always squeezing in.",board:top("avgOrder","desc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
-    {id:"host",icon:"🚪",title:"The Ambassador",blurb:"Brought the most guests to the group.",board:top("guests","desc",p=>p.guests>0).slice(0,5).map(p=>({name:p.name,detail:p.guests+" guests"}))},
-    {id:"bestfront",icon:"🌅",title:"Best Front Nine",blurb:"The lowest front nine any team posted all season.",board:teamTop("f","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
-    {id:"bestback",icon:"🌇",title:"Best Back Nine",blurb:"The lowest back nine of the year.",board:teamTop("b","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
-    {id:"bestday",icon:"👑",title:"Round of the Year",blurb:"The best eighteen anybody played together.",board:teamTop("tot","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
-    {id:"worstfront",icon:"🧨",title:"Worst Front Nine",blurb:"It happens to everyone. It happened most to these two.",board:teamTop("f","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
-    {id:"worstback",icon:"🕳️",title:"Worst Back Nine",blurb:"The wheels came off after the turn.",board:teamTop("b","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
-    {id:"worstday",icon:"🔥",title:"Round Best Forgotten",blurb:"Eighteen holes nobody wants to relive.",board:teamTop("tot","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
+    {id:"ironman",src:"full",icon:"🏋️",title:"The Iron Man",blurb:"Showed up more than anyone. The backbone of the fund.",board:top("attend","desc").slice(0,5).map(p=>({name:p.name,detail:p.attend+" rounds"}))},
+    {id:"money",src:"full",icon:"💰",title:"Money List Champion",blurb:"Took home more cash than any man in the group.",board:top("won","desc").slice(0,5).map(p=>({name:p.name,detail:"$"+p.won}))},
+    {id:"skins",src:"full",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc").slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
+    {id:"donor",src:"full",icon:"🩸",title:"Most Generous Donor",blurb:"Paid in the most, took home the least. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down"}))},
+    {id:"bridesmaid",src:"full",icon:"💐",title:"Always the Bridesmaid",blurb:"So many seconds. So few wins.",board:S.players.filter(p=>p.seconds>0).sort((a,b)=>(b.seconds-b.firsts)-(a.seconds-a.firsts)).slice(0,5).map(p=>({name:p.name,detail:p.seconds+" seconds · "+p.firsts+" wins"}))},
+    {id:"social",src:"full",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc").slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
+    {id:"perfect",src:"full",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
+    {id:"early",src:"new",icon:"🐓",title:"First Man In",blurb:"Signs up before the ink is dry.",board:top("avgOrder","asc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
+    {id:"late",src:"new",icon:"🐌",title:"The Procrastinator",blurb:"Always last. Always squeezing in.",board:top("avgOrder","desc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
+    {id:"host",src:"new",icon:"🚪",title:"The Ambassador",blurb:"Brought the most guests to the group.",board:top("guests","desc",p=>p.guests>0).slice(0,5).map(p=>({name:p.name,detail:p.guests+" guests"}))},
+    {id:"bestfront",src:"full",icon:"🌅",title:"Best Front Nine",blurb:"The lowest front nine any team posted all season.",board:teamTop("f","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
+    {id:"bestback",src:"full",icon:"🌇",title:"Best Back Nine",blurb:"The lowest back nine of the year.",board:teamTop("b","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
+    {id:"bestday",src:"full",icon:"👑",title:"Round of the Year",blurb:"The best eighteen anybody played together.",board:teamTop("tot","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
+    {id:"worstfront",src:"full",icon:"🧨",title:"Worst Front Nine",blurb:"It happens to everyone. It happened most to these two.",board:teamTop("f","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
+    {id:"worstback",src:"full",icon:"🕳️",title:"Worst Back Nine",blurb:"The wheels came off after the turn.",board:teamTop("b","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
+    {id:"worstday",src:"full",icon:"🔥",title:"Round Best Forgotten",blurb:"Eighteen holes nobody wants to relive.",board:teamTop("tot","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
   ];
 
   const val=(id,field,dflt)=>{const e=edits[id]||{};if(e[field]!=null)return e[field];const sv=saved&&saved[year]&&saved[year].items&&saved[year].items[id];if(sv&&sv[field]!=null)return sv[field];return dflt;};
   const setVal=(id,field,v)=>setEdits(d=>({...d,[id]:{...(d[id]||{}),[field]:v}}));
   const winnerOf=a=>val(a.id,"winner",(a.board[0]&&a.board[0].name)||"");
   const detailOf=a=>val(a.id,"detail",(a.board[0]&&a.board[0].detail)||"");
-  const included=a=>val(a.id,"on",a.board.length>0)!==false;
+  const included=a=>val(a.id,"on",a.board.length>0&&a.src!=="new")!==false;
 
   const allItems=()=>{
     const items={};
-    AWARDS.filter(included).forEach(a=>{items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a)};});
+    AWARDS.filter(included).filter(a=>winnerOf(a)).forEach(a=>{items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a)};});
     customs.forEach((c,i2)=>{if(c.title&&c.winner)items["custom"+i2]={icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner,detail:c.detail||""};});
     return items;
   };
+  const saveDraft=()=>{wr("awards/"+year,{year:year,published:published,items:allItems(),updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast("Draft saved ✓");};
   const publish=(on)=>{const items=allItems();wr("awards/"+year,{year:year,published:on,items:items,updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast(on?"Awards published to the app ✓":"Saved — not visible to members");};
   const copyEmail=()=>{
     const items=allItems();
@@ -2249,6 +2252,7 @@ function AwardsTab({user}){
       <div className="card" style={{marginBottom:16,borderColor:published?"rgba(16,185,129,0.35)":"rgba(255,255,255,0.08)"}}>
         <div className="card-hdr"><span className="card-title">{published?"🟢 Published — members can see the Awards page":"🔒 Draft — nobody but you can see this"}</span></div>
         <div style={{padding:"12px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button className="btn btn-sm" onClick={saveDraft}>💾 Save draft</button>
           <button className="btn btn-g btn-sm" onClick={()=>publish(true)}>{published?"Update published awards":"🏆 Publish to the app"}</button>
           {published&&<button className="btn btn-gh btn-sm" onClick={()=>publish(false)}>Unpublish</button>}
           <button className="btn btn-sm" onClick={copyEmail}>📋 Copy for email</button>
@@ -2256,10 +2260,26 @@ function AwardsTab({user}){
         </div>
       </div>
 
-      {AWARDS.map(a=>(
+      {(()=>{
+        const nFull=AWARDS.filter(x=>x.src==="full").length, nNew=AWARDS.filter(x=>x.src==="new").length;
+        const logStart=(()=>{const all=Object.values(signupLog||{}).map(x=>x&&x.ts).filter(Boolean);if(!all.length)return null;const d=new Date(Math.min.apply(null,all));return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});})();
+        return (
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:14}}>
+            <span style={{fontSize:9.5,fontWeight:800,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Show</span>
+            {[["all","Everything",AWARDS.length],["full","✅ Full season data",nFull],["new","🌱 Tracking just started",nNew]].map(([v,label,n])=>(
+              <button key={v} onClick={()=>setSrcFilter(v)} style={{padding:"6px 12px",borderRadius:9,border:"1px solid",borderColor:srcFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:srcFilter===v?"rgba(16,185,129,0.12)":"transparent",color:srcFilter===v?"#4ade80":"rgba(255,255,255,0.5)",fontWeight:800,fontSize:11.5,cursor:"pointer"}}>{label} ({n})</button>
+            ))}
+            <div style={{flexBasis:"100%",fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.6,marginTop:2}}>
+              <b style={{color:"rgba(255,255,255,0.7)"}}>✅ Full season</b> — every scored round and attendance day this season. <b style={{color:"rgba(255,255,255,0.7)"}}>🌱 Just started</b> — sign-up order and guests only began recording {logStart?("on "+logStart):"very recently"}, so they are partial and are left out by default. Turn them on next season.
+            </div>
+          </div>
+        );
+      })()}
+      {AWARDS.filter(x=>srcFilter==="all"||x.src===srcFilter).map(a=>(
         <div key={a.id} className="card" style={{marginBottom:12,opacity:included(a)?1:0.5}}>
           <div className="card-hdr" style={{display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:18}}>{val(a.id,"icon",a.icon)}</span>
+            <span title={a.src==="full"?"Full season of data":"Tracking started recently — partial"} style={{fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:20,whiteSpace:"nowrap",background:a.src==="full"?"rgba(16,185,129,0.14)":"rgba(251,191,36,0.14)",color:a.src==="full"?"#4ade80":"#fbbf24"}}>{a.src==="full"?"FULL SEASON":"JUST STARTED"}</span>
             <input className="inp" style={{flex:1,fontWeight:800,fontSize:13,padding:"5px 8px"}} value={val(a.id,"title",a.title)} onChange={e=>setVal(a.id,"title",e.target.value)}/>
             <label style={{fontSize:11,fontWeight:700,color:included(a)?"#4ade80":"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:5,cursor:"pointer",whiteSpace:"nowrap"}}>
               <input type="checkbox" checked={included(a)} onChange={e=>setVal(a.id,"on",e.target.checked)} style={{width:15,height:15}}/>include
