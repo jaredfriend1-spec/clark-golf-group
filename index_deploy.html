@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-n';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-o';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4961,7 +4961,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   },[t&&t.config&&t.config.date2]);
   useEffect(()=>{
     const u1=read('tournament', v=>setT(v||null));
-    const u3=read('settings/seasonLock', v=>setSeasonLock(v||null));
+    const u3=read('settings/season', v=>setSeasonLock(v&&v.endDate?{closedAt:String(v.endDate)}:null));
     const u4=read('rosterTee', v=>setRTee(v||{}));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
     return ()=>{try{u1&&u1();u2&&u2();u3&&u3();u4&&u4();}catch(e){}};
@@ -5137,10 +5137,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               ):myPaid>=myOwed?(
                 <div style={{fontSize:13.5,fontWeight:700,color:'var(--brand)'}}>Paid ✓ — ${myPaid} received. You're all set.</div>
               ):(
-                <div style={{fontSize:13.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.</div>
+                <div style={{fontSize:13.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.{myOwed-myPaid>0?<span style={{fontWeight:600,color:'var(--ink-40)'}}> Drops $1 per round you play before the season ends.</span>:null}</div>
               )}
               <div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>{twoDay?('In for '+(dayTag(me)||'both days')+' · '):''}{me.handicap!=null?('Playing off '+me.handicap+' · '):''}{me.tee||'Whites'} tees.</div>
-              <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6,lineHeight:1.55}}>Same entry fee whether you play one day or both. Pay Clark before the tournament starts.</div>
+              <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6,lineHeight:1.55}}>Same entry fee whether you play one day or both — and it drops $1 for every round you play before the season ends. Pay Clark before the tournament starts.</div>
             </div>
           )}
           {(live||isAdmin)&&(()=>{
@@ -5543,7 +5543,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     const u1=read('tournament', v=>setT(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
     const u3=read('rosterTee', v=>setRTee(v||{}));
-    const u4=read('settings/seasonLock', v=>setSeasonLock(v||null));
+    const u4=read('settings/season', v=>setSeasonLock(v&&v.endDate?{closedAt:String(v.endDate)}:null));
   return ()=>{try{u1&&u1();u2&&u2();u3&&u3();u4&&u4();}catch(e){}};
   },[]);
   const cfg=t&&t.config;
@@ -5744,7 +5744,7 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
   const [sortAZ, setSortAZ] = useState(false);
   const [seasonView, setSeasonView] = useState('current');
   const [seasonLock, setSeasonLock] = useState(null);
-  useEffect(()=>{const u=read('settings/seasonLock', v=>setSeasonLock(v||null));return ()=>{try{u&&u();}catch(e){}};},[]);
+  useEffect(()=>{const u=read('settings/season', v=>setSeasonLock(v&&v.endDate?{closedAt:String(v.endDate)}:null));return ()=>{try{u&&u();}catch(e){}};},[]);
   const seasonRounds = useMemo(()=>{
     if(!seasonLock||!seasonLock.closedAt)return rounds;
     if(seasonView==='all')return rounds;

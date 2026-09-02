@@ -491,6 +491,7 @@ function ClearLoginLogBtn({logEntries}){
 
 // ── DASH ──────────────────────────────────────────────────────────────────────
 // ONE formula for the tournament fund everywhere: $1 × every recorded attendance player-round (season window if locked). No surplus, no starting balance.
+const seasonBound=(season)=>((season&&season.endDate)?{closedAt:String(season.endDate)}:null);   // rounds ON the end date are IN season
 const tournFundFromAttendance=(roundsNode,lock)=>{const rs=roundsNode?(Array.isArray(roundsNode)?roundsNode:Object.values(roundsNode)):[];return rs.reduce((s,r)=>{if(!r)return s;if(lock&&lock.closedAt&&String(r.date||"")>lock.closedAt)return s;return s+((r.players)||[]).length;},0);};
 const MASTER_EMAILS=["jaredfriend1@gmail.com"];
 function DashTab({user}){
@@ -501,7 +502,7 @@ function DashTab({user}){
   const week=useDB("week");
   const rawActivityLog=useDB("activityLog");
   const attRoundsDash=useDB("attendance/rounds");
-  const seasonLockDash=useDB("settings/seasonLock");
+  const seasonDash=useDB("settings/season");
   const [appOk,setAppOk]=useState(null);
   const [fbInspect,setFbInspect]=useState(null);
   const [showInspect,setShowInspect]=useState(false);
@@ -541,7 +542,7 @@ function DashTab({user}){
   const allDayActive=DAYS.filter(d=>safeArr(week?.activeDays).includes(d));
   const signups=Object.values(week?.signups||{});
   const totalSignups=signups.length;
-  const tf=tournFundFromAttendance(attRoundsDash,seasonLockDash);   // $1 × attendance player-rounds — same number as the tournament module
+  const tf=tournFundFromAttendance(attRoundsDash,seasonBound(seasonDash));   // $1 × attendance player-rounds — same number as the tournament module
   const playersByDay=DAYS.map(d=>({day:d,count:signups.filter(s=>s.day===d).length})).filter(x=>x.count>0||allDayActive.includes(x.day));
 
   return(
@@ -2762,7 +2763,8 @@ function TournamentTab(){
     const ex=Object.values(extra||{}).map(p=>({...p,isExtra:true}));
     return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
   },[extra,rosterEdits,rosterHidden]);
-  const seasonLock=useDB("settings/seasonLock");
+  const seasonCfg=useDB("settings/season");
+  const seasonLock=seasonBound(seasonCfg);
   const wdOf=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});}catch(e){return d||"";}};
   const isMasterUser=(()=>{try{const u=JSON.parse(localStorage.getItem("portal_user"));return !!u&&u.role==="master";}catch(e){return false;}})();
   const rosterTeeT=useDB("rosterTee");
@@ -2844,7 +2846,7 @@ function TournamentTab(){
     L.push("");
     L.push("ENTRY & ELIGIBILITY");
     L.push("- Eligibility: "+minRounds+"+ rounds with the group this season");
-    L.push("- Entry-fee bar: $"+bar+" (most rounds played). Your entry = $"+bar+" minus your rounds played — your weekly $1 contributions count toward it. Example: 10 rounds = $"+(bar-10)+" due.");
+    L.push("- Entry-fee bar: $"+bar+" (most rounds played). Your entry = $"+bar+" minus your rounds played — your weekly $1 contributions count toward it. Example: 10 rounds = $"+(bar-10)+" due."+(seasonCfg&&seasonCfg.endDate?" It keeps dropping for every round you play through "+seasonCfg.endDate+" — the season's last day.":""));
     L.push("- Entry covers "+(twoDay?"both days; play both or either day":"the event"));
     L.push("");
     L.push("HOW TO ANSWER (takes 20 seconds, in the app)");
@@ -2957,7 +2959,7 @@ function TournamentTab(){
                   <button className="btn btn-g" style={{fontWeight:800,padding:"10px 22px"}} onClick={()=>setGoLiveOpen(true)}>🚀 GO LIVE</button>
                 ):(
                   <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"11px 13px"}}>
-                    <div style={{fontSize:12.5,fontWeight:700,color:"#e2e8f0",marginBottom:8}}>Go live now? Every member will see the tournament card and can tap I’m in / Can’t make it. This also closes this season’s books: rounds, the fund, and buy-in amounts lock as quoted — Fridays keep going and count toward next season.</div>
+                    <div style={{fontSize:12.5,fontWeight:700,color:"#e2e8f0",marginBottom:8}}>Go live now? Every member will see the tournament card and can tap I’m in / Can’t make it. The season keeps running: rounds played before the season end date keep growing the fund and keep lowering each player’s entry.</div>
                     <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10}}>
                       <input type="checkbox" checked={pushToo} onChange={e=>setPushToo(e.target.checked)}/>Also send a push notification to everyone now
                     </label>
@@ -2968,10 +2970,7 @@ function TournamentTab(){
                       <button className="btn btn-g btn-sm" style={{fontWeight:800}} onClick={()=>{
                         setCfg("inviteOpen",true);
                         if((cfg.appTab||"off")!=="all")setCfg("appTab","all");
-                        if(!seasonLock||!seasonLock.closedAt){
-                          const t=new Date();const isoT=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
-                          wr("settings/seasonLock",{closedAt:isoT,label:String(t.getFullYear()),lockedTs:Date.now()});
-                        }
+                        // Season boundary lives in settings/season.endDate (Season tab) — GO LIVE no longer touches it.
                         if(pushToo){
                           fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Tournament invites are open! Open the app and tap I’m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
                           setCfg("invitePushTs",Date.now());
@@ -3725,8 +3724,7 @@ function SeasonTab(){
   const [backedUp,setBackedUp]=React.useState({});
   React.useEffect(()=>{setNm((season&&season.name)||String(new Date().getFullYear()));setEd((season&&season.endDate)||"");},[season]);
   const liveRounds=Object.keys(history||{}).length;
-  const seasonLockS=useDB("settings/seasonLock");
-  const liveFund=tournFundFromAttendance(attendance&&attendance.rounds,seasonLockS);
+  const liveFund=tournFundFromAttendance(attendance&&attendance.rounds,seasonBound(season));
   const attCount=(attendance&&attendance.rounds)?(Array.isArray(attendance.rounds)?attendance.rounds.length:Object.keys(attendance.rounds).length):0;
   const daysLeft=(()=>{if(!ed)return null;const d=Math.ceil((new Date(ed+"T23:59:59")-new Date())/86400000);return d;})();
 
