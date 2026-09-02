@@ -2978,6 +2978,58 @@ function TournamentTab(){
                   }}>📣 Send reminder push</button>
                   <button className="btn btn-gh btn-sm" onClick={()=>{if(window.confirm("Take the tournament card away from members? Their answers are kept."))setCfg("inviteOpen",null);}}>Take offline</button>
                 </div>
+                {(()=>{
+                  const [closeText,setCloseText]=React.useState("");
+                  const [busy,setBusy]=React.useState(false);
+                  const todayIso=(()=>{const x=new Date();return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");})();
+                  const lastDay=cfg.date2||cfg.date1||"";
+                  const overYet=!!(lastDay&&todayIso>lastDay);
+                  const days=cfg.date2?["day1","day2"]:["day1"];
+                  const gaps=[];
+                  days.forEach(dk=>{
+                    const pubd=!!(t&&t.teamsPublished&&t.teamsPublished[dk]);
+                    const tm=(t&&t.teams&&t.teams[dk])||[];
+                    const arr=Array.isArray(tm)?tm:Object.values(tm||{});
+                    if(!pubd||!arr.length){gaps.push((dk==="day1"?"Day 1":"Day 2")+": no published teams");return;}
+                    const sc=(t&&t.scores&&t.scores[dk])||{};
+                    const unscored=arr.filter((_,ii)=>{const s=sc[ii]||{};return s.f==null||s.b==null;}).length;
+                    if(unscored)gaps.push((dk==="day1"?"Day 1":"Day 2")+": "+unscored+" team"+(unscored>1?"s":"")+" still unscored");
+                  });
+                  const readyToClose=overYet&&gaps.length===0;
+                  const year=String((cfg.date1||todayIso).slice(0,4));
+                  const doClose=()=>{
+                    if(closeText.trim().toUpperCase()!=="CLOSE")return;
+                    setBusy(true);
+                    const snap={...(t||{}),closedAt:Date.now(),closedBy:(user&&user.email)||"master",year:year,name:cfg.name||("Tournament "+year),date1:cfg.date1||null,date2:cfg.date2||null};
+                    const ref=firebase.database().ref("tournaments/"+year);
+                    ref.set(snap).then(()=>ref.once("value")).then(s=>{
+                      const back=s.val();
+                      const okBack=back&&back.closedAt===snap.closedAt&&JSON.stringify(back.config||{})===JSON.stringify(snap.config||{});
+                      if(!okBack){setBusy(false);showToast("Archive did not read back correctly — nothing was cleared","err");return null;}
+                      try{const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});const a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download="tournament-"+year+".json";a2.click();}catch(e){}
+                      return firebase.database().ref("tournament").remove().then(()=>{
+                        setBusy(false);setCloseText("");
+                        showToast("Archived to "+year+" — the live slot is empty for next year");
+                      });
+                    }).catch(err=>{setBusy(false);showToast("Close-out failed: "+((err&&err.message)||err),"err");});
+                  };
+                  return (
+                    <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+                      <div style={{fontSize:12.5,fontWeight:800,color:"#e2e8f0",marginBottom:5}}>🏁 Close out &amp; archive</div>
+                      {!readyToClose?(
+                        <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",lineHeight:1.6}}>{!overYet?("Available after the final day ("+(lastDay||"set the dates")+")."):("Finish scoring first — "+gaps.join(" · ")+".")}</div>
+                      ):(
+                        <div>
+                          <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:8}}>Saves everything — config, field, pay-ins, teams, scores and results — to <b style={{color:"#e2e8f0"}}>{year}</b>, downloads a JSON copy, then empties the live slot so next year starts fresh. The Tourney tab keeps showing {year} as Results. Nothing is deleted.</div>
+                          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                            <input className="inp" style={{width:150,fontFamily:"monospace",letterSpacing:"0.1em"}} placeholder="type CLOSE" value={closeText} onChange={e=>setCloseText(e.target.value)}/>
+                            <button className="btn btn-r btn-sm" disabled={busy||closeText.trim().toUpperCase()!=="CLOSE"} onClick={doClose}>{busy?"Archiving…":"🏁 Close out "+year}</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em"}}>📱 App tournament tab:</span>
                   {[["off","Hidden"],["only","One person"],["admins","Admins only"],["all","Everyone"]].map(([v,label])=>(

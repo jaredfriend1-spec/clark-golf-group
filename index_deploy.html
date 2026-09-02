@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-v';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-w';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4951,6 +4951,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const [day, setDay] = useState('day1');
   const [seasonLock, setSeasonLock] = useState(null);
   const [rTee, setRTee] = useState({});
+  const [archives, setArchives] = useState(null);
+  const [viewYear, setViewYear] = useState(null);
   const [showHow, setShowHow] = useState(false);
   const [idDraft, setIdDraft] = useState(null);
   useEffect(()=>{
@@ -4964,17 +4966,23 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
     const u1=read('tournament', v=>setT(v||null));
     const u3=read('settings/season', v=>setSeasonLock(v&&v.endDate?{closedAt:String(v.endDate)}:null));
     const u4=read('rosterTee', v=>setRTee(v||{}));
+    const u5=read('tournaments', v=>setArchives(v||null));
     const u2=read('attendance/rounds', v=>setAtt(v||null));
-    return ()=>{try{u1&&u1();u2&&u2();u3&&u3();u4&&u4();}catch(e){}};
+    return ()=>{try{u1&&u1();u2&&u2();u3&&u3();u4&&u4();u5&&u5();}catch(e){}};
   },[]);
-  const cfg=(t&&t.config)||{};
+  const archYears=Object.keys(archives||{}).sort().reverse();
+  const liveExists=!!(t&&t.config);
+  const effYear=viewYear||(liveExists?'live':(archYears[0]||null));
+  const tv_=effYear==='live'?t:((archives||{})[effYear]||null);
+  const isArchived=effYear!=='live'&&!!tv_;
+  const cfg=(tv_&&tv_.config)||{};
   const live=cfg.inviteOpen===true;
   const rounds=Object.values(att||{});
   const counts={};rounds.forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||'')>seasonLock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
   const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
   const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
   const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:null;};
-  const tpNorm=(raw=>{if(Array.isArray(raw)){const m={};raw.forEach((v,i)=>{if(v)m[String(i)]=v;});return m;}return raw||{};})(t&&t.players);
+  const tpNorm=(raw=>{if(Array.isArray(raw)){const m={};raw.forEach((v,i)=>{if(v)m[String(i)]=v;});return m;}return raw||{};})(tv_&&tv_.players);
   const entries=Object.entries(tpNorm);
   const me=currentUser?(tpNorm[String(currentUser.id)]||null):null;
   const myRounds=currentUser?(counts[String(currentUser.name||'').toLowerCase().trim()]||0):0;
@@ -5011,12 +5019,12 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const skinsPct=cfg.skinsPct!=null?cfg.skinsPct:40;
   const shareSum=catF+catB+catO+skinsPct;
   const teamSize=cfg.teamSize||4;
-  const teams=(t&&t.teams&&t.teams[day])||[];
-  const published=!!(t&&t.teamsPublished&&t.teamsPublished[day]);
-  const sc=(t&&t.scores&&t.scores[day])||{};
-  const ctpPicks=(t&&t.ctp&&t.ctp[day])||{};
+  const teams=(tv_&&tv_.teams&&tv_.teams[day])||[];
+  const published=!!(tv_&&tv_.teamsPublished&&tv_.teamsPublished[day]);
+  const sc=(tv_&&tv_.scores&&tv_.scores[day])||{};
+  const ctpPicks=(tv_&&tv_.ctp&&tv_.ctp[day])||{};
   const fmtRel=v=>v==null?'—':(v===0?'E':(v>0?'+'+v:String(v)));
-  const wsafe=(obj)=>{try{const r=update(obj);if(r&&r.catch)r.catch(e=>alert('Save failed — check connection: '+((e&&e.message)||e)));}catch(e){alert('Save failed: '+((e&&e.message)||e));}};
+  const wsafe=(obj)=>{if(isArchived){alert('This tournament is closed — records are read-only.');return;}try{const r=update(obj);if(r&&r.catch)r.catch(e=>alert('Save failed — check connection: '+((e&&e.message)||e)));}catch(e){alert('Save failed: '+((e&&e.message)||e));}};
   const setPath=(p,v)=>wsafe({['tournament/'+p]:v});
   // Championship palette — the tournament wears gold-on-dark; Fridays stay green.
   const GOLD='#b8891a', GOLD_SOFT='rgba(184,137,26,0.12)', GOLD_BORDER='rgba(184,137,26,0.45)', DARK='#0f2f22', DARK2='#174332';
@@ -5097,8 +5105,19 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           <div style={{fontSize:10.5,color:'rgba(255,255,255,0.45)',textAlign:'center',marginTop:8}}>Pot now = fund banked + cash in hand · Projected = if every opted-in player pays · Potential = if everyone invited played</div>
         </div>
       )}
+      {archYears.length>0&&(
+        <div style={{display:'flex',gap:6,margin:'0 0 12px',flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:10,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Year</span>
+          {(liveExists?[['live',(cfg.date1?String(cfg.date1).slice(0,4):'This year')]]:[]).concat(archYears.map(y=>[y,y])).map(([v,label])=>(
+            <button key={v} onClick={()=>setViewYear(v)} style={{padding:'6px 12px',borderRadius:9,border:'1.5px solid',borderColor:effYear===v?GOLD:'var(--hairline)',background:effYear===v?GOLD_SOFT:'transparent',color:effYear===v?GOLD:'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+          ))}
+        </div>
+      )}
+      {isArchived&&(
+        <div style={{margin:'0 0 12px',padding:'9px 13px',borderRadius:11,background:GOLD_SOFT,border:'1px solid '+GOLD_BORDER,fontSize:12,fontWeight:700,color:GOLD}}>🏁 {effYear} — final results. This tournament is closed.</div>
+      )}
       <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
-        {isAdmin&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&pill('field','💵 Field')}
+        {isAdmin&&!isArchived&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&!isArchived&&pill('field','💵 Field')}
       </div>
 
       {sub==='board'&&(
