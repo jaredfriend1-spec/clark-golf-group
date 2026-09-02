@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-y';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-z';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -8272,7 +8272,7 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
 
 // ═══════════════ STATS VIEW V2 ═══════════════
 function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, currentUser, settings, publicMode, onSwitchTab }){
-  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra)].filter(p=>!p.hidden);
+  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra)].filter(p=>p&&!p.hidden);
   const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
   const msDay=86400000;
