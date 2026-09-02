@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-t';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-u';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -7329,7 +7329,12 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                     <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
                       const s=withEm.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+withEm.length+' emails — paste into Gmail.');setTimeout(()=>setAddPlayerToast(''),3000);});
-                    }}>📋 Copy all emails ({withEm.length})</button>
+                    }}>📋 Copy all ({withEm.length})</button>
+                    <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
+                      const reg=withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id]));
+                      const s=reg.map(x=>String(x.em).trim()).join(', ');
+                      navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+reg.length+' registered emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
+                    }}>📱 Registered only ({withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id])).length})</button>
                     <span style={{fontSize:11,color:'var(--ink-40)'}}>{liveRoster.length-withEm.length>0?(liveRoster.length-withEm.length)+' of '+liveRoster.length+' have no email — see the portal Roster tab.':'Every player has an email ✓'}</span>
                   </div>
                 );
