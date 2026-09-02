@@ -2145,18 +2145,28 @@ function AwardsTab({user}){
   const [edits,setEdits]=useState({});
   const [customs,setCustoms]=useState([]);
   const [srcFilter,setSrcFilter]=useState("all");
+  const [openId,setOpenId]=useState(null);
   const year=String((season&&season.endDate?season.endDate:new Date().toISOString().slice(0,10)).slice(0,4));
   const published=!!(saved&&saved[year]&&saved[year].published);
 
-  const rounds=React.useMemo(()=>Object.values(history||{}).filter(r=>r&&r.teams),[history]);
+  const rounds=React.useMemo(()=>Object.values(history||{}).filter(r=>r&&r.scores&&(r.teams||r.scores.gameMode==="individual")),[history]);
   const inSeason=r=>!(season&&season.endDate&&String(r.date||"")>season.endDate);
 
   // ── compute everything once ──
   const S=React.useMemo(()=>{
     const P={};
-    const get=n=>{const k=String(n||"").trim();if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null};return P[k];};
+    const normName=n=>{if(!n)return"";return String(n).trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");};
+    const get=n=>{const k=normName(n);if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null};return P[k];};
     const teamRows=[];
     rounds.filter(inSeason).forEach(r=>{
+      const scI=r.scores||{};
+      if(scI.gameMode==="individual"){
+        const buyIn=parseFloat(scI.buyIn)||25;
+        Object.keys(scI.indScores||{}).forEach(nm=>{const p=get(nm);if(p){p.rounds++;p.paid+=buyIn;}});
+        (Array.isArray(scI.awards)?scI.awards:Object.values(scI.awards||{})).forEach(aw=>{const p=get(aw&&aw.name);if(p)p.won+=parseFloat(aw.amount)||0;});
+        (Array.isArray(scI.skinsAwards)?scI.skinsAwards:Object.values(scI.skinsAwards||{})).forEach(aw=>{const p=get(aw&&aw.name);if(p)p.won+=parseFloat(aw.amount)||0;});
+        return;
+      }
       const teams=Array.isArray(r.teams)?r.teams:Object.values(r.teams||{});
       const sc=r.scores||{};const ts=sc.teamScores||{};
       const rowsR=teams.map((t,ti)=>{
@@ -2169,6 +2179,7 @@ function AwardsTab({user}){
       rowsR.forEach(x=>{x.players.forEach(n=>{const p=get(n);if(!p)return;p.rounds++;x.players.forEach(o=>{if(o!==n)p.partners.add(o);});});});
       teamRows.push(...rowsR.filter(x=>x.tot!=null||x.f!=null||x.b!=null));
       // ── money: faithful port of the app's Standings maths ──
+      const roundWinners=new Set(), roundSeconds=new Set();
       const segs=[{seg:"f",pot:sc.frontPot,pl:sc.frontPlaces||1,k1:"f1",k2:"f2"},
                   {seg:"b",pot:sc.backPot,pl:sc.backPlaces||1,k1:"b1",k2:"b2"},
                   {seg:"tot",pot:sc.overallPot,pl:sc.overallPlaces||1,k1:"o1",k2:"o2"}];
@@ -2183,12 +2194,12 @@ function AwardsTab({user}){
         const first=c1>0?c1:(pl===1?p0:p0*0.6);const sec=c2>0?c2:p0*0.4;
         if(tied1.length>1){
           const split=Math.floor(pl===1?p0/tied1.length:(first+sec)/tied1.length);
-          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split/x.players.length;p.firsts++;}}));
+          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split/x.players.length;roundWinners.add(p.name);}}));
         } else {
-          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=Math.floor(first)/x.players.length;p.firsts++;}}));
+          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=Math.floor(first)/x.players.length;roundWinners.add(p.name);}}));
           if(pl===2&&tied2.length){
             const split2=Math.floor(sec/tied2.length);
-            tied2.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split2/x.players.length;p.seconds++;}}));
+            tied2.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split2/x.players.length;roundSeconds.add(p.name);}}));
           }
         }
       });
@@ -2203,12 +2214,15 @@ function AwardsTab({user}){
           team.players.forEach(nm=>{const p=get(nm);if(p){p.skins+=n2;p.won+=(psk*n2)/team.players.length;}});
         });
       }
+      // one placement per ROUND, not per category
+      roundWinners.forEach(nm=>{const p=get(nm);if(p)p.winRounds++;});
+      roundSeconds.forEach(nm=>{if(roundWinners.has(nm))return;const p=get(nm);if(p)p.silverRounds++;});
       rowsR.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p)p.paid+=25;}));
     });
     const arr=Object.values(P).map(p=>{const gross=Math.round(p.won);const paid=Math.round(p.paid||0);return {...p,partners:p.partners.size,gross,paid,won:gross,net:Math.round(gross-paid),returnPct:paid>0?Math.round(gross/paid*100):0};});
     const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
     const attIn=attRounds.filter(inSeason);
-    const attBy={};attIn.forEach(r=>((r.players)||[]).forEach(n=>{const k=String(n).trim();attBy[k]=(attBy[k]||0)+1;}));
+    const attBy={};attIn.forEach(r=>((r.players)||[]).forEach(n=>{const k=normName(n);if(k)attBy[k]=(attBy[k]||0)+1;}));
     arr.forEach(p=>{p.attend=attBy[p.name]||p.rounds;});
     Object.keys(attBy).forEach(n=>{if(!arr.find(p=>p.name===n))arr.push({name:n,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:0,spent:attBy[n]*25,net:-attBy[n]*25,attend:attBy[n]});});
     // sign-up order + guests
@@ -2227,13 +2241,13 @@ function AwardsTab({user}){
   const nameList=x=>x.players.join(" & ");
 
   const AWARDS=[
-    {id:"ironman",src:"full",icon:"🏋️",title:"The Iron Man",blurb:"Showed up more than anyone. The backbone of the fund.",board:top("attend","desc").slice(0,5).map(p=>({name:p.name,detail:p.attend+" rounds"}))},
+    {id:"ironman",src:"full",icon:"🏋️",title:"The Iron Man",blurb:"Showed up more than anyone. The backbone of the fund.",board:top("attend","desc",p=>p.attend>0).slice(0,5).map(p=>({name:p.name,detail:p.attend+" rounds"}))},
     {id:"money",src:"full",icon:"💰",title:"Money List Champion (Gross)",blurb:"Took home more cash than any man in the group — total winnings, before what he paid in.",board:top("gross","desc",p=>p.gross>0).slice(0,5).map(p=>({name:p.name,detail:"$"+p.gross+" won"}))},
-    {id:"net",src:"full",icon:"📈",title:"Best Net — Actually Up",blurb:"Won more than he paid in. The only man leaving with the group\u2019s money.",board:top("net","desc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:(p.net>=0?"+$":"-$")+Math.abs(p.net)+" net · $"+p.gross+" of $"+p.paid+" in"}))},
-    {id:"skins",src:"full",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc").slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
-    {id:"donor",src:"full",icon:"🩸",title:"Most Generous Donor",blurb:"Paid in the most, took home the least. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down · $"+p.gross+" won of $"+p.paid+" in"}))},
-    {id:"bridesmaid",src:"full",icon:"💐",title:"Always the Bridesmaid",blurb:"So many seconds. So few wins.",board:S.players.filter(p=>p.seconds>0).sort((a,b)=>(b.seconds-b.firsts)-(a.seconds-a.firsts)).slice(0,5).map(p=>({name:p.name,detail:p.seconds+" seconds · "+p.firsts+" wins"}))},
-    {id:"social",src:"full",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc").slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
+    {id:"net",src:"full",icon:"📈",title:"Best Net — Up on the Year",blurb:"Won more than he paid in. Everyone else funded this.",board:top("net","desc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:(p.net>=0?"+$":"-$")+Math.abs(p.net)+" net · $"+p.gross+" of $"+p.paid+" in"}))},
+    {id:"skins",src:"full",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc",p=>p.skins>0).slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
+    {id:"donor",src:"full",icon:"🩸",title:"Most Generous Donor",blurb:"Lost the most money this season — paid in far more than he took home. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down · $"+p.gross+" won of $"+p.paid+" in"}))},
+    {id:"bridesmaid",src:"full",icon:"💐",title:"Always the Bridesmaid",blurb:"Runner-up more than anyone, and walked away with nothing those days.",board:S.players.filter(p=>p.silverRounds>0).sort((a,b)=>(b.silverRounds-b.winRounds)-(a.silverRounds-a.winRounds)||b.silverRounds-a.silverRounds).slice(0,5).map(p=>({name:p.name,detail:p.silverRounds+" runner-up round"+(p.silverRounds===1?"":"s")+" · "+p.winRounds+" win"+(p.winRounds===1?"":"s")+" in "+p.rounds}))},
+    {id:"social",src:"full",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc",p=>p.partners>0).slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
     {id:"perfect",src:"full",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
     {id:"early",src:"new",icon:"🐓",title:"First Man In",blurb:"Signs up before the ink is dry.",board:top("avgOrder","asc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
     {id:"late",src:"new",icon:"🐌",title:"The Procrastinator",blurb:"Always last. Always squeezing in.",board:top("avgOrder","desc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
@@ -2300,39 +2314,64 @@ function AwardsTab({user}){
           </div>
         );
       })()}
-      {AWARDS.filter(x=>srcFilter==="all"||x.src===srcFilter).map(a=>(
-        <div key={a.id} className="card" style={{marginBottom:12,opacity:included(a)?1:0.5}}>
-          <div className="card-hdr" style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:18}}>{val(a.id,"icon",a.icon)}</span>
-            <span title={a.src==="full"?"Full season of data":"Tracking started recently — partial"} style={{fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:20,whiteSpace:"nowrap",background:a.src==="full"?"rgba(16,185,129,0.14)":"rgba(251,191,36,0.14)",color:a.src==="full"?"#4ade80":"#fbbf24"}}>{a.src==="full"?"FULL SEASON":"JUST STARTED"}</span>
-            <input className="inp" style={{flex:1,fontWeight:800,fontSize:13,padding:"5px 8px"}} value={val(a.id,"title",a.title)} onChange={e=>setVal(a.id,"title",e.target.value)}/>
-            <label style={{fontSize:11,fontWeight:700,color:included(a)?"#4ade80":"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:5,cursor:"pointer",whiteSpace:"nowrap"}}>
-              <input type="checkbox" checked={included(a)} onChange={e=>setVal(a.id,"on",e.target.checked)} style={{width:15,height:15}}/>include
-            </label>
-          </div>
-          <div style={{padding:"10px 14px"}}>
-            <input className="inp" style={{width:"100%",fontSize:12,padding:"5px 8px",marginBottom:8}} value={val(a.id,"blurb",a.blurb)} onChange={e=>setVal(a.id,"blurb",e.target.value)} placeholder="One line of trash talk…"/>
-            {a.board.length===0?(
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>No data yet for this one — it fills in as rounds are scored.</div>
-            ):(
-              <div>
-                <div className="lbl" style={{marginBottom:4}}>Leaderboard — tap a name to make him the winner</div>
-                {a.board.map((b,bi)=>(
-                  <div key={bi} onClick={()=>{setVal(a.id,"winner",b.name);setVal(a.id,"detail",b.detail);}} style={{display:"flex",gap:8,alignItems:"center",padding:"4px 6px",borderRadius:7,cursor:"pointer",background:winnerOf(a)===b.name?"rgba(16,185,129,0.12)":"transparent"}}>
-                    <span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.3)",width:16}}>{bi+1}</span>
-                    <span style={{flex:1,fontSize:12.5,color:winnerOf(a)===b.name?"#4ade80":"rgba(255,255,255,0.75)",fontWeight:winnerOf(a)===b.name?800:600}}>{b.name}</span>
-                    <span style={{fontSize:11.5,color:"rgba(255,255,255,0.4)"}}>{b.detail}</span>
-                  </div>
-                ))}
-                <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
-                  <input className="inp" style={{flex:"1 1 160px",fontSize:12,padding:"5px 8px"}} value={winnerOf(a)} onChange={e=>setVal(a.id,"winner",e.target.value)} placeholder="Winner"/>
-                  <input className="inp" style={{flex:"1 1 120px",fontSize:12,padding:"5px 8px"}} value={detailOf(a)} onChange={e=>setVal(a.id,"detail",e.target.value)} placeholder="Detail (27 rounds)"/>
-                </div>
+      {AWARDS.filter(x=>srcFilter==="all"||x.src===srcFilter).map(a=>{
+        const isOpen=openId===a.id;
+        const w=winnerOf(a), d=detailOf(a);
+        return (
+        <div key={a.id} className="card" style={{marginBottom:10,opacity:included(a)?1:0.45,borderColor:isOpen?"rgba(16,185,129,0.35)":"rgba(255,255,255,0.08)"}}>
+          <div onClick={()=>setOpenId(isOpen?null:a.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",cursor:"pointer"}}>
+            <span style={{fontSize:26,lineHeight:1,flexShrink:0}}>{val(a.id,"icon",a.icon)}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+                <span style={{fontSize:14.5,fontWeight:800,color:"#e2e8f0"}}>{val(a.id,"title",a.title)}</span>
+                {a.src==="new"&&<span style={{fontSize:8.5,fontWeight:800,padding:"2px 6px",borderRadius:20,background:"rgba(251,191,36,0.14)",color:"#fbbf24",whiteSpace:"nowrap"}}>JUST STARTED</span>}
+                {!included(a)&&<span style={{fontSize:8.5,fontWeight:800,padding:"2px 6px",borderRadius:20,background:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.4)"}}>NOT INCLUDED</span>}
               </div>
-            )}
+              {w?(
+                <div style={{marginTop:3,display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontSize:17,fontWeight:900,color:"#4ade80",letterSpacing:"-0.01em"}}>{w}</span>
+                  {d&&<span style={{fontSize:12.5,color:"rgba(255,255,255,0.45)"}}>{d}</span>}
+                </div>
+              ):(
+                <div style={{marginTop:3,fontSize:12.5,color:"rgba(255,255,255,0.3)"}}>{a.board.length?"No winner picked yet":"No data yet"}</div>
+              )}
+            </div>
+            <span style={{fontSize:16,color:"rgba(255,255,255,0.3)",flexShrink:0}}>{isOpen?"▴":"▾"}</span>
           </div>
-        </div>
-      ))}
+          {isOpen&&(
+            <div style={{padding:"0 16px 16px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",margin:"12px 0"}}>
+                <input className="inp" style={{width:60,textAlign:"center",fontSize:19,padding:"6px"}} value={val(a.id,"icon",a.icon)} onChange={e=>setVal(a.id,"icon",e.target.value)}/>
+                <input className="inp" style={{flex:"1 1 220px",fontWeight:800,fontSize:14,padding:"8px 10px"}} value={val(a.id,"title",a.title)} onChange={e=>setVal(a.id,"title",e.target.value)}/>
+                <label style={{fontSize:12.5,fontWeight:700,color:included(a)?"#4ade80":"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:6,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  <input type="checkbox" checked={included(a)} onChange={e=>setVal(a.id,"on",e.target.checked)} style={{width:17,height:17}}/>include
+                </label>
+              </div>
+              <input className="inp" style={{width:"100%",fontSize:13,padding:"8px 10px",marginBottom:12}} value={val(a.id,"blurb",a.blurb)} onChange={e=>setVal(a.id,"blurb",e.target.value)} placeholder="One line of trash talk…"/>
+              {a.board.length===0?(
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.3)"}}>No data for this one yet — it fills in as rounds are scored.</div>
+              ):(
+                <div>
+                  <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6}}>Leaderboard — tap to crown</div>
+                  {a.board.map((b2,bi)=>{
+                    const on=w===b2.name;
+                    return (
+                    <div key={bi} onClick={()=>{setVal(a.id,"winner",b2.name);setVal(a.id,"detail",b2.detail);}} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",borderRadius:9,cursor:"pointer",marginBottom:3,background:on?"rgba(16,185,129,0.12)":"rgba(255,255,255,0.02)",border:"1px solid "+(on?"rgba(16,185,129,0.3)":"transparent")}}>
+                      <span style={{fontSize:11,fontWeight:800,color:on?"#4ade80":"rgba(255,255,255,0.25)",width:18}}>{bi+1}</span>
+                      <span style={{flex:1,fontSize:14,color:on?"#4ade80":"rgba(255,255,255,0.8)",fontWeight:on?800:600}}>{b2.name}</span>
+                      <span style={{fontSize:12.5,color:"rgba(255,255,255,0.45)",textAlign:"right"}}>{b2.detail}</span>
+                    </div>);
+                  })}
+                  <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                    <input className="inp" style={{flex:"1 1 170px",fontSize:13,padding:"8px 10px"}} value={w} onChange={e=>setVal(a.id,"winner",e.target.value)} placeholder="Winner"/>
+                    <input className="inp" style={{flex:"1 1 140px",fontSize:13,padding:"8px 10px"}} value={d} onChange={e=>setVal(a.id,"detail",e.target.value)} placeholder="Detail"/>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>);
+      })}
 
       <div className="card" style={{marginBottom:24}}>
         <div className="card-hdr"><span className="card-title">🏅 Your own awards</span><button className="btn btn-g btn-sm" onClick={()=>setCustoms(c=>[...c,{icon:"🏅",title:"",blurb:"",winner:"",detail:""}])}>+ Add award</button></div>
