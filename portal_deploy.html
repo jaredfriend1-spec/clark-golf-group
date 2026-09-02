@@ -2164,7 +2164,7 @@ function AwardsTab({user}){
         const raw=ts[t.id]||ts[ti]||ts[String(ti)]||{};
         const num=v=>{const n2=parseFloat(v);return isNaN(n2)?null:n2;};
         const f=num(raw.front),b=num(raw.back),o=num(raw.overall);
-        return {ti,players,f,b,tot:o!=null?o:((f!=null&&b!=null)?f+b:null),date:r.date,day:r.day};
+        return {ti,id:t.id,players,f,b,tot:o!=null?o:((f!=null&&b!=null)?f+b:null),date:r.date,day:r.day};
       });
       rowsR.forEach(x=>{x.players.forEach(n=>{const p=get(n);if(!p)return;p.rounds++;x.players.forEach(o=>{if(o!==n)p.partners.add(o);});});});
       teamRows.push(...rowsR.filter(x=>x.tot!=null||x.f!=null||x.b!=null));
@@ -2177,9 +2177,18 @@ function AwardsTab({user}){
         if(amt2>0&&valid[1]){const per2=valid[1].players.length?Math.floor(amt2/valid[1].players.length):0;valid[1].players.forEach(n=>{const p=get(n);if(p){p.won+=per2;p.seconds++;}});}
       };
       place("f",(parseFloat(sc.f1)||0)>0?parseFloat(sc.f1):parseFloat(sc.frontPot||0),parseFloat(sc.f2)||0);place("b",(parseFloat(sc.b1)||0)>0?parseFloat(sc.b1):parseFloat(sc.backPot||0),parseFloat(sc.b2)||0);place("tot",(parseFloat(sc.o1)||0)>0?parseFloat(sc.o1):parseFloat(sc.overallPot||0),parseFloat(sc.o2)||0);
-      const skc=sc.skinCounts||{};const totalSk=Object.values(skc).reduce((s2,c)=>s2+(parseInt(c)||0),0);
+      // Skins are recorded per TEAM (keyed by team id) — credit the team's players, never the raw key.
+      const skc=sc.skinCounts||{};
+      const totalSk=Object.values(skc).reduce((s2,c2)=>s2+(parseInt(c2)||0),0);
       const perSk=totalSk>0?Math.floor(parseFloat(sc.skinsPot||0)/totalSk):0;
-      Object.entries(skc).forEach(([n,c])=>{const p=get(n);if(p){p.skins+=parseInt(c)||0;p.won+=(parseInt(c)||0)*perSk;}});
+      Object.entries(skc).forEach(([key,cnt])=>{
+        const n2=parseInt(cnt)||0;if(!n2)return;
+        const team=rowsR.find(x=>String(x.id)===String(key))||rowsR[Number(key)];
+        const names=team?team.players:((typeof key==='string'&&/[a-zA-Z]/.test(key))?[key]:[]);
+        if(!names.length)return;
+        const cash=Math.floor((n2*perSk)/names.length);
+        names.forEach(nm=>{const p=get(nm);if(p){p.skins+=n2;p.won+=cash;}});
+      });
     });
     const arr=Object.values(P).map(p=>({...p,partners:p.partners.size,spent:p.rounds*25,net:p.won-(p.rounds*25)}));
     const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
