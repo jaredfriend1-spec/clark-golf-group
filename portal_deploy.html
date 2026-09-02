@@ -2050,8 +2050,8 @@ function HistoryTab({user}){
   const [confirmDel,setConfirmDel]=useState(null);
   const [delTyped,setDelTyped]=useState("");
   const [toast,showToast]=useToast();
-  const rounds=useMemo(()=>Object.entries(history||{}).sort((a,b)=>(b[1].date||"").localeCompare(a[1].date||"")),[history]);
-  const pc=r=>r.playerCount||safeArr(r.teams).reduce((s,t)=>s+Object.values(t.players||{}).length,0);
+  const rounds=useMemo(()=>Object.entries(history||{}).filter(e=>e[1]&&typeof e[1]==="object").sort((a,b)=>(b[1].date||"").localeCompare(a[1].date||"")),[history]);
+  const pc=r=>(r&&r.playerCount)||safeArr(r&&r.teams).reduce((s,t)=>s+Object.values((t&&t.players)||{}).length,0);
 
   function deleteRound(key){
     if(delTyped!=="DELETE"){showToast('Type "DELETE" to confirm',"err");return;}
@@ -2149,13 +2149,14 @@ function moneyLeaderboard(rounds){
           if(!players[pn])players[pn]={name:pn,rounds:0,won:0,paid:0};
           players[pn].rounds++; players[pn].paid+=buyIn;
         });
-        safeArray(r.scores.awards).forEach(a=>{const pn=normName(a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
-        safeArray(r.scores.skinsAwards).forEach(a=>{const pn=normName(a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
+        safeArray(r.scores.awards).forEach(a=>{const pn=normName(a&&a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
+        safeArray(r.scores.skinsAwards).forEach(a=>{const pn=normName(a&&a.name);if(players[pn])players[pn].won+=(parseFloat(a.amount)||0);});
         return;
       }
       safeArray(r.teams).forEach(team=>{
         safeArray(team.players).forEach(p=>{
-          const pn = normName(p.name);
+          const pn = normName(p&&p.name);
+          if(!pn) return;
           if(!players[pn]) players[pn]={name:pn,rounds:0,won:0,paid:0};
           players[pn].rounds++;
           players[pn].paid+=25;
@@ -2166,7 +2167,7 @@ function moneyLeaderboard(rounds){
        {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,k1:'o1',k2:'o2'}
       ].forEach(({seg,pot:segPot,pl,k1,k2})=>{
         const p=parseFloat(segPot||0); if(!p)return;
-        const sc=r.teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+        const sc=safeArray(r.teams).map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
         if(!sc.length)return;
         sc.sort((a,b)=>a.score-b.score);
         const best=sc[0].score;
@@ -2179,12 +2180,12 @@ function moneyLeaderboard(rounds){
         const sec=c2>0?c2:p*0.4;
         if(tied1st.length>1){
           const split=Math.floor(pl===1?p/tied1st.length:(first+sec)/tied1st.length);
-          tied1st.forEach(t=>safeArray(t.players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=split/safeArray(t.players).length;}));
+          tied1st.forEach(t=>safeArray(t.players).forEach(px=>{if(players[normName(px&&px.name)])players[normName(px&&px.name)].won+=split/safeArray(t.players).length;}));
         } else {
-          safeArray(tied1st[0].players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=Math.floor(first)/safeArray(tied1st[0].players).length;});
+          safeArray(tied1st[0].players).forEach(px=>{if(players[normName(px&&px.name)])players[normName(px&&px.name)].won+=Math.floor(first)/safeArray(tied1st[0].players).length;});
           if(pl===2&&tied2nd.length>0){
             const split2=Math.floor(sec/tied2nd.length);
-            tied2nd.forEach(t=>safeArray(t.players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=split2/safeArray(t.players).length;}));
+            tied2nd.forEach(t=>safeArray(t.players).forEach(px=>{if(players[normName(px&&px.name)])players[normName(px&&px.name)].won+=split2/safeArray(t.players).length;}));
           }
         }
       });
@@ -2194,8 +2195,8 @@ function moneyLeaderboard(rounds){
         const psk=Math.floor(snet/tsk);
         Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{
           if(!cnt)return;
-          const team=r.teams.find(t=>String(t.id)===String(tid)); if(!team)return;
-          safeArray(team.players).forEach(px=>{if(players[normName(px.name)])players[normName(px.name)].won+=(psk*cnt)/safeArray(team.players).length;});
+          const team=safeArray(r.teams).find(t=>String(t.id)===String(tid)); if(!team)return;
+          safeArray(team.players).forEach(px=>{if(players[normName(px&&px.name)])players[normName(px&&px.name)].won+=(psk*cnt)/safeArray(team.players).length;});
         });
       }
     });
@@ -2224,7 +2225,7 @@ function AwardsTab({user}){
   const S=React.useMemo(()=>{
     const P={};
     const normName=n=>{if(!n)return"";return String(n).trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");};
-    const get=n=>{const k=normName(n);if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null};return P[k];};
+    const get=n=>{const k=normName(n);if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null,winRounds:0,silverRounds:0,guestsBrought:0,guestNames:new Set(),hcpLog:[],firstTee:0,lastTee:0,prefRounds:0};return P[k];};
     const teamRows=[];
     rounds.filter(inSeason).forEach(r=>{
       const scI=r.scores||{};
@@ -2249,7 +2250,7 @@ function AwardsTab({user}){
           if(pp.teePreference==="last")pr.lastTee++;
           pr.prefRounds++;
         });
-        const players=plist.map(p=>p.name).filter(Boolean);
+        const players=plist.map(p=>p&&p.name).filter(Boolean);
         const raw=ts[t.id]||ts[ti]||ts[String(ti)]||{};
         const num=v=>{const n2=parseFloat(v);return isNaN(n2)?null:n2;};
         const f=num(raw.front),b=num(raw.back),o=num(raw.overall);
@@ -2299,7 +2300,7 @@ function AwardsTab({user}){
 
     });
     // money comes from the app's own leaderboard code, not a re-implementation
-    const money={};moneyLeaderboard(rounds).forEach(m=>{money[m.name]=m;});
+    const money={};moneyLeaderboard(rounds.filter(inSeason)).forEach(m=>{money[m.name]=m;});
     const arr=Object.values(P).map(p=>{const m=money[p.name]||{won:0,paid:0,net:0,rounds:0};const gross=Math.round(m.won);const paid=Math.round(m.paid||0);return {...p,partners:p.partners.size,gross,paid,won:gross,net:Math.round(gross-paid),moneyRounds:m.rounds||0,returnPct:paid>0?Math.round(gross/paid*100):0};});
     const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
     const attIn=attRounds.filter(inSeason);
@@ -2307,16 +2308,16 @@ function AwardsTab({user}){
     arr.forEach(p=>{p.attend=attBy[p.name]||p.rounds;});
     Object.keys(attBy).forEach(n=>{if(!arr.find(p=>p.name===n))arr.push({name:n,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:0,spent:attBy[n]*25,net:-attBy[n]*25,attend:attBy[n]});});
     // sign-up order + guests
+    const gl=Object.values(guestLog||{});const gby={};gl.forEach(x=>{const k=normName(x&&x.host);if(k)gby[k]=(gby[k]||0)+(Number(x.count)||1);});
     const sl=Object.values(signupLog||{}).filter(x=>x&&x.name);
     const ord={};sl.forEach(x=>{const k=String(x.name).trim();if(!ord[k])ord[k]={n:0,sum:0};ord[k].n++;ord[k].sum+=Number(x.order)||0;});
-    arr.forEach(p=>{const o=ord[p.name];p.avgOrder=o&&o.n?Math.round((o.sum/o.n)*10)/10:null;p.signupCount=o?o.n:0;p.guests=p.guestsBrought||gby[p.name]||0;p.guestPeople=p.guestNames?p.guestNames.size:0;
+    const anyTeamGuests=Object.values(P).some(p=>p.guestsBrought>0);
+    arr.forEach(p=>{const o=ord[p.name];p.avgOrder=o&&o.n?Math.round((o.sum/o.n)*10)/10:null;p.signupCount=o?o.n:0;p.guests=anyTeamGuests?(p.guestsBrought||0):(gby[p.name]||0);p.guestPeople=p.guestNames?p.guestNames.size:0;
       const lg=(p.hcpLog||[]).slice().sort((x,y)=>String(x.date).localeCompare(String(y.date)));
       if(lg.length>=4){p.hcpFirst=lg[0].hcp;p.hcpLast=lg[lg.length-1].hcp;p.hcpMove=Math.round((p.hcpLast-p.hcpFirst)*10)/10;p.hcpPoints=lg.length;}
       else {p.hcpFirst=null;p.hcpLast=null;p.hcpMove=null;p.hcpPoints=lg.length;}
       p.firstPct=p.prefRounds>=5?Math.round((p.firstTee/p.prefRounds)*100):null;
       p.lastPct=p.prefRounds>=5?Math.round((p.lastTee/p.prefRounds)*100):null;});
-    const gl=Object.values(guestLog||{});const gby={};gl.forEach(x=>{const k=normName(x&&x.host);if(k)gby[k]=(gby[k]||0)+(Number(x.count)||1);});
-    arr.forEach(p=>{p.guests=gby[p.name]||0;});
     const weeks=new Set(attIn.map(r=>r.date)).size;
     return {players:arr,teamRows,weeks};
   },[rounds,attendance,signupLog,guestLog,season]);
