@@ -2168,29 +2168,44 @@ function AwardsTab({user}){
       });
       rowsR.forEach(x=>{x.players.forEach(n=>{const p=get(n);if(!p)return;p.rounds++;x.players.forEach(o=>{if(o!==n)p.partners.add(o);});});});
       teamRows.push(...rowsR.filter(x=>x.tot!=null||x.f!=null||x.b!=null));
-      // money: split each category payout among the winning team's players
-      const place=(key,amt1,amt2)=>{
-        const valid=rowsR.filter(x=>x[key]!=null).sort((a,b2)=>a[key]-b2[key]);
-        if(!valid.length)return;
-        const per1=valid[0].players.length?Math.floor((amt1||0)/valid[0].players.length):0;
-        valid[0].players.forEach(n=>{const p=get(n);if(p){p.won+=per1;p.firsts++;}});
-        if(amt2>0&&valid[1]){const per2=valid[1].players.length?Math.floor(amt2/valid[1].players.length):0;valid[1].players.forEach(n=>{const p=get(n);if(p){p.won+=per2;p.seconds++;}});}
-      };
-      place("f",(parseFloat(sc.f1)||0)>0?parseFloat(sc.f1):parseFloat(sc.frontPot||0),parseFloat(sc.f2)||0);place("b",(parseFloat(sc.b1)||0)>0?parseFloat(sc.b1):parseFloat(sc.backPot||0),parseFloat(sc.b2)||0);place("tot",(parseFloat(sc.o1)||0)>0?parseFloat(sc.o1):parseFloat(sc.overallPot||0),parseFloat(sc.o2)||0);
-      // Skins are recorded per TEAM (keyed by team id) — credit the team's players, never the raw key.
-      const skc=sc.skinCounts||{};
-      const totalSk=Object.values(skc).reduce((s2,c2)=>s2+(parseInt(c2)||0),0);
-      const perSk=totalSk>0?Math.floor(parseFloat(sc.skinsPot||0)/totalSk):0;
-      Object.entries(skc).forEach(([key,cnt])=>{
-        const n2=parseInt(cnt)||0;if(!n2)return;
-        const team=rowsR.find(x=>String(x.id)===String(key))||rowsR[Number(key)];
-        const names=team?team.players:((typeof key==='string'&&/[a-zA-Z]/.test(key))?[key]:[]);
-        if(!names.length)return;
-        const cash=Math.floor((n2*perSk)/names.length);
-        names.forEach(nm=>{const p=get(nm);if(p){p.skins+=n2;p.won+=cash;}});
+      // ── money: faithful port of the app's Standings maths ──
+      const segs=[{seg:"f",pot:sc.frontPot,pl:sc.frontPlaces||1,k1:"f1",k2:"f2"},
+                  {seg:"b",pot:sc.backPot,pl:sc.backPlaces||1,k1:"b1",k2:"b2"},
+                  {seg:"tot",pot:sc.overallPot,pl:sc.overallPlaces||1,k1:"o1",k2:"o2"}];
+      segs.forEach(({seg,pot,pl,k1,k2})=>{
+        const p0=parseFloat(pot||0);if(!p0)return;
+        const list=rowsR.filter(x=>x[seg]!=null).sort((x,y)=>x[seg]-y[seg]);
+        if(!list.length)return;
+        const best=list[0][seg];const tied1=list.filter(x=>x[seg]===best);
+        const secondScore=(list.find(x=>x[seg]!==best)||{})[seg];
+        const tied2=secondScore!==undefined?list.filter(x=>x[seg]===secondScore):[];
+        const c1=parseFloat(sc[k1]||0),c2=parseFloat(sc[k2]||0);
+        const first=c1>0?c1:(pl===1?p0:p0*0.6);const sec=c2>0?c2:p0*0.4;
+        if(tied1.length>1){
+          const split=Math.floor(pl===1?p0/tied1.length:(first+sec)/tied1.length);
+          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split/x.players.length;p.firsts++;}}));
+        } else {
+          tied1.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=Math.floor(first)/x.players.length;p.firsts++;}}));
+          if(pl===2&&tied2.length){
+            const split2=Math.floor(sec/tied2.length);
+            tied2.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p){p.won+=split2/x.players.length;p.seconds++;}}));
+          }
+        }
       });
+      const snet=Math.max(0,parseFloat(sc.skinsPot||0)-(parseFloat(sc.tournFund)||0));
+      const tsk=Object.values(sc.skinCounts||{}).reduce((s2,x)=>s2+(parseInt(x)||0),0);
+      if(tsk>0){
+        const psk=Math.floor(snet/tsk);
+        Object.entries(sc.skinCounts||{}).forEach(([tid,cnt])=>{
+          const n2=parseInt(cnt)||0;if(!n2)return;
+          const team=rowsR.find(x=>String(x.id)===String(tid))||rowsR[Number(tid)];
+          if(!team||!team.players.length)return;
+          team.players.forEach(nm=>{const p=get(nm);if(p){p.skins+=n2;p.won+=(psk*n2)/team.players.length;}});
+        });
+      }
+      rowsR.forEach(x=>x.players.forEach(nm=>{const p=get(nm);if(p)p.paid+=25;}));
     });
-    const arr=Object.values(P).map(p=>({...p,partners:p.partners.size,spent:p.rounds*25,net:p.won-(p.rounds*25)}));
+    const arr=Object.values(P).map(p=>{const gross=Math.round(p.won);const paid=Math.round(p.paid||0);return {...p,partners:p.partners.size,gross,paid,won:gross,net:Math.round(gross-paid),returnPct:paid>0?Math.round(gross/paid*100):0};});
     const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
     const attIn=attRounds.filter(inSeason);
     const attBy={};attIn.forEach(r=>((r.players)||[]).forEach(n=>{const k=String(n).trim();attBy[k]=(attBy[k]||0)+1;}));
@@ -2213,9 +2228,10 @@ function AwardsTab({user}){
 
   const AWARDS=[
     {id:"ironman",src:"full",icon:"🏋️",title:"The Iron Man",blurb:"Showed up more than anyone. The backbone of the fund.",board:top("attend","desc").slice(0,5).map(p=>({name:p.name,detail:p.attend+" rounds"}))},
-    {id:"money",src:"full",icon:"💰",title:"Money List Champion",blurb:"Took home more cash than any man in the group.",board:top("won","desc").slice(0,5).map(p=>({name:p.name,detail:"$"+p.won}))},
+    {id:"money",src:"full",icon:"💰",title:"Money List Champion (Gross)",blurb:"Took home more cash than any man in the group — total winnings, before what he paid in.",board:top("gross","desc",p=>p.gross>0).slice(0,5).map(p=>({name:p.name,detail:"$"+p.gross+" won"}))},
+    {id:"net",src:"full",icon:"📈",title:"Best Net — Actually Up",blurb:"Won more than he paid in. The only man leaving with the group\u2019s money.",board:top("net","desc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:(p.net>=0?"+$":"-$")+Math.abs(p.net)+" net · $"+p.gross+" of $"+p.paid+" in"}))},
     {id:"skins",src:"full",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc").slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
-    {id:"donor",src:"full",icon:"🩸",title:"Most Generous Donor",blurb:"Paid in the most, took home the least. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down"}))},
+    {id:"donor",src:"full",icon:"🩸",title:"Most Generous Donor",blurb:"Paid in the most, took home the least. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down · $"+p.gross+" won of $"+p.paid+" in"}))},
     {id:"bridesmaid",src:"full",icon:"💐",title:"Always the Bridesmaid",blurb:"So many seconds. So few wins.",board:S.players.filter(p=>p.seconds>0).sort((a,b)=>(b.seconds-b.firsts)-(a.seconds-a.firsts)).slice(0,5).map(p=>({name:p.name,detail:p.seconds+" seconds · "+p.firsts+" wins"}))},
     {id:"social",src:"full",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc").slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
     {id:"perfect",src:"full",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
