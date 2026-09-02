@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-q';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-r';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -5748,12 +5748,12 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
   const todayIsoA=(()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');})();
   // Before the end date we're still IN this season, so 'current' means on-or-before it.
   const seasonOver = !!(seasonLock&&seasonLock.closedAt&&todayIsoA>seasonLock.closedAt);
-  const effView = seasonView||(seasonOver?'current':'prev');
+  const effView = seasonView||'season';
   const seasonRounds = useMemo(()=>{
     if(!seasonLock||!seasonLock.closedAt)return rounds;
     if(effView==='all')return rounds;
-    if(effView==='prev')return rounds.filter(r=>String(r.date||'')<=seasonLock.closedAt);
-    return rounds.filter(r=>String(r.date||'')>seasonLock.closedAt);
+    // 'season' = the season we're in right now: before the end date that's on-or-before it; after, it's the new one.
+    return seasonOver?rounds.filter(r=>String(r.date||'')>seasonLock.closedAt):rounds.filter(r=>String(r.date||'')<=seasonLock.closedAt);
   },[rounds,seasonLock,effView]);
   const standings = useMemo(()=>{
     const p={};
@@ -5843,17 +5843,18 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
           <button onClick={()=>setAttView('standings')} style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid',borderColor:attView==='standings'?'var(--brand)':'var(--hairline)',background:attView==='standings'?'var(--brand-soft)':'var(--surface)',color:attView==='standings'?'var(--brand)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Standings</button>
           <button onClick={()=>setAttView('history')} style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid',borderColor:attView==='history'?'var(--brand)':'var(--hairline)',background:attView==='history'?'var(--brand-soft)':'var(--surface)',color:attView==='history'?'var(--brand)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>History</button>
         </div>
-        {attView==='standings'&&(standings.length===0?(
-          <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)'}}><div style={{fontSize:14,fontWeight:600,marginBottom:6}}>No attendance data yet</div><div style={{fontSize:12}}>Rounds are added automatically when weeks close out.</div></div>
-        ):(
-          <>
-            {seasonLock&&seasonLock.closedAt&&(
+        {attView==='standings'&&<div style={{padding:'0 0 0'}}>          {seasonLock&&seasonLock.closedAt&&(
               <div style={{display:'flex',gap:6,marginBottom:8}}>
-                {[['prev',(seasonOver?(seasonLock.label||'Last season'):'This season')],['current',(seasonOver?'This season':'Next season')],['all','All-time']].map(([v,label])=>(
+                {[['season','This season'],['all','All-time']].map(([v,label])=>(
                   <button key={v} onClick={()=>setSeasonView(v)} style={{flex:1,padding:'8px 0',borderRadius:9,border:'1.5px solid',borderColor:effView===v?'var(--brand)':'var(--hairline)',background:effView===v?'var(--brand-soft)':'transparent',color:effView===v?'var(--brand)':'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
                 ))}
               </div>
             )}
+        </div>}
+        {attView==='standings'&&(standings.length===0?(
+          <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)'}}><div style={{fontSize:14,fontWeight:600,marginBottom:6}}>{effView==='all'?'No attendance data yet':'No rounds in this season yet'}</div><div style={{fontSize:12}}>{effView==='all'?'Rounds are added automatically when weeks close out.':'Tap All-time to see every round on record.'}</div></div>
+        ):(
+          <>
             <div style={{display:'flex',gap:8,marginBottom:10}}>
               <input className="form-input" style={{flex:1,marginBottom:0}} placeholder="Search players..." value={search} onChange={e=>setSearch(e.target.value)}/>
               {[['rounds',false,'By rounds'],['az',true,'A–Z']].map(([k,val,label])=>(
