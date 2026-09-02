@@ -1404,7 +1404,7 @@ function RosterTab(){
       <div>
         <div className="pg-eyebrow">Members</div>
     <div className="pg-title">Roster</div>
-      <div className="card">
+      <div className="card" style={{marginBottom:20,borderColor:"rgba(16,185,129,0.3)"}}>
         <div className="card-hdr"><span className="card-title">🧹 Cleanup session</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>work the list live &middot; every change is real</span></div>
         <div className="card-body">
           {(()=>{
@@ -1468,55 +1468,62 @@ function RosterTab(){
           })()}
         </div>
       </div>
-      {(()=>{
-        const [showMissing,setShowMissing]=React.useState(false);
-        const hasEm=p=>{const e=rosterEmails&&rosterEmails[p.id];return !!(e&&String(e).indexOf("@")>0);};
-        const withEm=visible.filter(hasEm);
-        const missing=visible.filter(p=>!hasEm(p)).sort((a,b)=>a.name.localeCompare(b.name));
-        return (
-          <div style={{margin:"6px 0 14px",padding:"10px 13px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
-            <div onClick={()=>setShowMissing(s=>!s)} style={{display:"flex",alignItems:"center",gap:10,cursor:missing.length?"pointer":"default"}}>
-              <span style={{fontSize:12.5,fontWeight:800,color:missing.length?"#fbbf24":"#4ade80"}}>✉ Emails: {withEm.length} of {visible.length} recorded{missing.length?" — "+missing.length+" missing":" ✓"}</span>
-              {missing.length>0&&<span style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginLeft:"auto"}}>{showMissing?"hide ▲":"show who ▼"}</span>}
-            </div>
-            {showMissing&&missing.length>0&&(
-              <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:9}}>
-                {missing.map(p=><span key={p.id} style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.65)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:7,padding:"3px 9px"}}>{p.name}{p.isExtra?" (extra)":""}</span>)}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-        {(()=>{
-          const clSet=new Set(Object.values(clarkList||{}).map(e=>String(e.email||"").toLowerCase().trim()).filter(Boolean));
-          const emOf=p=>String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
-          const copy=(arr,label)=>{const s=arr.join(", ");navigator.clipboard.writeText(s).then(()=>alert("Copied "+arr.length+" emails ("+label+") — paste into Gmail."));};
-          const allEm=visible.map(emOf).filter(e=>e.indexOf("@")>0);
-          const regEm=visible.filter(p=>rosterPins&&rosterPins[p.id]).map(emOf).filter(e=>e.indexOf("@")>0);
-          const clEm=[...clSet];
-          return (
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",margin:"0 0 12px"}}>
-              <button className="btn btn-sm" onClick={()=>copy(allEm,"all roster")}>📋 Copy ALL roster emails ({allEm.length})</button>
-              <button className="btn btn-sm" onClick={()=>copy(regEm,"registered")}>📱 Copy REGISTERED only — has PIN ({regEm.length})</button>
-              
-              <div style={{display:"flex",gap:5,marginLeft:"auto",alignItems:"center"}}>
-                <span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.05em"}}>Filter</span>
-                {(()=>{
-                  const base=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
-                  const nOn=base.filter(p=>onClarkList(p)).length;
-                  return [["all","All",base.length],["on","On Clark’s",nOn],["off","Not on his",base.length-nOn]];
-                })().map(([v,label,n])=>(
-                  <button key={v} className="btn btn-sm" onClick={()=>setClFilter(v)} style={{fontWeight:700,fontSize:11,border:"1px solid",borderColor:clFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:clFilter===v?"rgba(16,185,129,0.12)":"transparent",color:clFilter===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label} ({n})</button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
         <div className="pg-sub">{activeList.length} active · {inactiveList.length} inactive · {deletedList.length} deleted</div>
       </div>
-      <button className="btn btn-g btn-sm" onClick={()=>setAdding(v=>!v)}>{adding?"Cancel":"+ Add Player"}</button>
     </div>
 
+    <div className="card" style={{marginTop:6}}>
+      <div className="card-hdr" style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+        <span className="card-title">👥 The roster</span>
+        <span style={{fontSize:10.5,color:"rgba(255,255,255,0.35)"}}>{activeList.length} active · {inactiveList.length} inactive · {deletedList.length} deleted</span>
+        <button className="btn btn-g btn-sm" style={{marginLeft:"auto"}} onClick={()=>setAdding(v=>!v)}>{adding?"Cancel":"+ Add Player"}</button>
+      </div>
+      <div style={{padding:"12px 14px 6px"}}>
+      {(()=>{
+        const [showMissing,setShowMissing]=React.useState(false);
+        const hasEm=p=>{const e=rosterEmails&&rosterEmails[p.id];return !!(e&&String(e).indexOf("@")>0);};
+        const withEm=visible.filter(hasEm);
+        const missing=visible.filter(p=>!hasEm(p)).sort((a,b)=>a.name.localeCompare(b.name));
+        return (
+          <div style={{margin:"6px 0 14px",padding:"10px 13px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
+            <div onClick={()=>setShowMissing(s=>!s)} style={{display:"flex",alignItems:"center",gap:10,cursor:missing.length?"pointer":"default"}}>
+              <span style={{fontSize:12.5,fontWeight:800,color:missing.length?"#fbbf24":"#4ade80"}}>✉ Emails: {withEm.length} of {visible.length} recorded{missing.length?" — "+missing.length+" missing":" ✓"}</span>
+              {missing.length>0&&<span style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginLeft:"auto"}}>{showMissing?"hide ▲":"show who ▼"}</span>}
+            </div>
+            {showMissing&&missing.length>0&&(
+              <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:9}}>
+                {missing.map(p=><span key={p.id} style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.65)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:7,padding:"3px 9px"}}>{p.name}{p.isExtra?" (extra)":""}</span>)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+        {(()=>{
+          const clSet=new Set(Object.values(clarkList||{}).map(e=>String(e.email||"").toLowerCase().trim()).filter(Boolean));
+          const emOf=p=>String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
+          const copy=(arr,label)=>{const s=arr.join(", ");navigator.clipboard.writeText(s).then(()=>alert("Copied "+arr.length+" emails ("+label+") — paste into Gmail."));};
+          const allEm=visible.map(emOf).filter(e=>e.indexOf("@")>0);
+          const regEm=visible.filter(p=>rosterPins&&rosterPins[p.id]).map(emOf).filter(e=>e.indexOf("@")>0);
+          const clEm=[...clSet];
+          return (
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",margin:"0 0 12px"}}>
+              <button className="btn btn-sm" onClick={()=>copy(allEm,"all roster")}>📋 Copy ALL roster emails ({allEm.length})</button>
+              <button className="btn btn-sm" onClick={()=>copy(regEm,"registered")}>📱 Copy REGISTERED only — has PIN ({regEm.length})</button>
+              
+              <div style={{display:"flex",gap:5,marginLeft:"auto",alignItems:"center"}}>
+                <span style={{fontSize:9.5,fontWeight:800,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Filter the list</span>
+                {(()=>{
+                  const base=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
+                  const nOn=base.filter(p=>onClarkList(p)).length;
+                  return [["all","All",base.length],["on","On Clark’s",nOn],["off","Not on his",base.length-nOn]];
+                })().map(([v,label,n])=>(
+                  <button key={v} className="btn btn-sm" onClick={()=>setClFilter(v)} style={{fontWeight:700,fontSize:11,border:"1px solid",borderColor:clFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:clFilter===v?"rgba(16,185,129,0.12)":"transparent",color:clFilter===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label} ({n})</button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+      </div>
     <div className="stat-grid sg-3" style={{marginBottom:14}}>
       <div className="stat"><div className="stat-v" style={{color:"#10b981"}}>{activeList.length}</div><div className="stat-l">Active (Has PIN)</div></div>
       <div className="stat"><div className="stat-v" style={{color:"#f87171"}}>{inactiveList.length}</div><div className="stat-l">Inactive (No PIN)</div></div>
@@ -1672,6 +1679,8 @@ function RosterTab(){
         </div>
       </div>
     )}
+
+    </div>
 
     {deletedList.length>0&&(
       <div className="card" style={{marginTop:14}}>
