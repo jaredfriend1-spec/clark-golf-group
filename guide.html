@@ -148,10 +148,6 @@
           <div style="width:36px;height:36px;border-radius:8px;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">🔒</div>
           <div><div style="font-size:14px;font-weight:700;color:#fff;">Member Sign In</div><div style="font-size:11px;color:rgba(255,255,255,0.5);">Enter last 4 digits of your phone</div></div>
         </div>
-        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">👤</div>
-          <div><div style="font-size:14px;font-weight:700;color:#fff;">Continue as Guest</div><div style="font-size:11px;color:rgba(255,255,255,0.5);">View schedule &amp; sign up as a guest</div></div>
-        </div>
         <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
           <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">🛡️</div>
           <div><div style="font-size:14px;font-weight:700;color:#fff;">Create or Update Your Sign-In</div><div style="font-size:11px;color:rgba(255,255,255,0.5);">Register or update your phone number</div></div>
@@ -167,8 +163,8 @@
         <p>Tap <b>Member Sign In</b>. Select your name from the dropdown, enter your 4-digit PIN, and tap Continue.</p>
       </div>
       <div class="feature">
-        <h3><span class="feature-num">3</span> Continuing as Guest</h3>
-        <p>Not a member? Tap <b>Continue as Guest</b>. You'll land on the Week tab where you can browse the schedule and sign up under your own name as a guest of a member.</p>
+        <h3><span class="feature-num">3</span> Guests</h3>
+        <p>Guests don't sign in — a member brings them. When you sign up for a day, tap <b>+ Bring a guest</b> and add their name, tees and handicap. There's no separate guest login.</p>
       </div>
     </div>
 
@@ -452,7 +448,7 @@
 
       <div class="feature">
         <h3><span class="feature-num">9</span> Roster Management</h3>
-        <p>Under <b>Roster</b> in the Admin tab: edit names, set/reset PINs, hide/restore players, add new players. The Hidden Players section shows anyone you've archived — restorable at any time.</p>
+        <p>Under <b>Roster</b> in the Admin tab: copy every roster email (or just the registered ones), search and manage players, and add new players — <b>an email address is now required</b> when adding anyone, and it syncs to the group email list automatically. Deeper cleanup lives in the portal.</p>
         <div class="info-m"><strong>Phone number format</strong><p>Enter any format — the app strips everything and stores only the last 4 digits as the PIN.</p></div>
       </div>
 
@@ -521,7 +517,7 @@
       <p>A separate management tool at <b>portal.html</b> for running the group behind the scenes. Master Admin and Super Admins with a portal password can access it.</p>
       <div class="feature">
         <h3><span class="feature-num dark">1</span> What's in the Portal?</h3>
-        <p><b>Dashboard</b> — active days, player counts, tournament pot, system health, Firebase inspector (master only), activity log, login log.<br/><br/><b>Week</b> — manage days and sign-ups, day checklists, weekly notes, End Week (master only).<br/><br/><b>Email</b> — same email builder as the main app.<br/><br/><b>Roster</b> — segmented into Active (has PIN), Inactive (no PIN), and Hidden. Full edit: name, email, tee, handicap, set/reset PIN.<br/><br/><b>Access</b> — manage admin roles. Add admins, switch between Super Admin and Scoring Admin, remove access. Set portal passwords for Super Admins.<br/><br/><b>History</b> — view and manage completed rounds. Delete moves to trash (recoverable from main app).<br/><br/><b>Attend</b> — log rounds, edit attendance, view standings.<br/><br/><b>Season</b> — end-of-season tools (coming soon). Master only.<br/><br/><b>Settings</b> — Firebase auth setup, tournament fund balance, master password. Master only.</p>
+        <p><b>Dashboard</b> — active days, player counts, tournament pot, system health, Firebase inspector (master only), activity log, login log.<br/><br/><b>Week</b> — manage days and sign-ups, day checklists, weekly notes, End Week (master only).<br/><br/><b>Communications</b> — the weekly email builder.<br/><br/><b>Roster</b> — the 🧹 <b>Cleanup session</b> at the top (backup button, then buckets: no email · add to Clark's list · delete candidates · never registered), then the roster itself: email coverage, copy buttons, Clark's-list filter, and every player with rounds played and registration status. One <b>Delete</b> per player with a 🗑 Deleted list you can restore from. Past rounds always stay counted — deleting a player never changes the fund or old standings.<br/><br/><b>Awards</b> — the season awards workbench (see below).<br/><br/><b>Access</b> — manage admin roles. Add admins, switch between Super Admin and Scoring Admin, remove access. Set portal passwords for Super Admins.<br/><br/><b>History</b> — view and manage completed rounds. Delete moves to trash (recoverable from main app).<br/><br/><b>Attend</b> — log rounds, edit attendance, view standings.<br/><br/><b>Tournament</b> — the whole tournament: config, field &amp; pay-ins, payouts, GO LIVE, and 🏁 Close out &amp; archive. Master only for launch controls.<br/><br/><b>Season</b> — season name and end date (the date that splits one season from the next). Master only.<br/><br/><b>Settings</b> — Firebase auth setup, tournament fund balance, master password. Master only.</p>
       </div>
       <div class="feature">
         <h3><span class="feature-num dark">2</span> Managing Admin Roles</h3>
@@ -556,6 +552,63 @@
         <h3><span class="feature-num gold">4</span> Admin Controls</h3>
         <p>Admins can log rounds manually — pick a date, select players from the full roster, add guests by name. Edit or delete existing rounds via the Attend tab or the Admin Portal.</p>
       </div>
+    </div>
+
+    <!-- TOURNAMENT -->
+    <div class="section">
+      <h2>The Tournament</h2>
+      <p>The year-end tournament runs inside the app — invites, teams, scoring and money, all in the 🏆 <b>Tourney</b> tab.</p>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">1</span> The Fund You've Already Paid Into</h3>
+        <p>All season, <b>$1 from every player every round</b> goes into the tournament fund. It's real money already collected, and it grows every week we play up to the season end date.</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">2</span> Your Invite</h3>
+        <p>When invites open you'll get a <b>pop-up</b> the next time you open the app: the dates, what you owe, and four buttons — <b>Saturday only</b>, <b>Sunday only</b>, <b>Both days</b>, or <b>Can't make it</b>. Tap one and you're done.</p>
+        <p style="margin-top:8px;">Not ready? Tap <b>I'll decide later</b>. The invite card stays at the top of the Week tab and the 🏆 tab carries a red dot until you answer — and the pop-up returns once more three days before the deadline.</p>
+        <div class="callout"><strong>Change your mind any time</strong><p>Tap a different day on the 🏆 tab right up to the response deadline. After that the app locks and changes go through Clark directly.</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">3</span> What It Costs</h3>
+        <p>Entry is a set amount minus <b>$1 for every round you've played</b> this season — so it keeps dropping every Friday you show up. <b>The same entry covers one day or both.</b> Pay Clark before you tee off.</p>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">4</span> The Tourney Tab</h3>
+        <p><b>🏆 Board</b> — the scoreboard: pot now, projected, and potential, plus who's in for each day.<br/><b>👥 Who's in</b> — counts and alphabetical lists per day.<br/><b>⛳ Teams</b> — your team once published, drawn fresh each day and handicap-balanced from whoever is playing that day.<br/><b>📋 Scores</b> — live scoring and results.</p>
+        <div class="info-m"><strong>Admins also see</strong><p><b>⚙ Config</b> (name, dates, deadline, entry bar, payout split) and <b>💵 Field</b> (place anyone in or out per day, fix handicaps and tees, mark payments, and ✉ Invite anyone under the rounds bar).</p></div>
+      </div>
+
+      <div class="feature">
+        <h3><span class="feature-num gold">5</span> After the Tournament</h3>
+        <p>Once every team is scored, the master admin runs <b>🏁 Close out &amp; archive</b> in the portal. Everything is saved to that year, a backup file is downloaded, and the live slot empties for next year. <b>The Tourney tab keeps showing the results</b> — with a year picker as tournaments stack up. Nothing is ever deleted.</p>
+      </div>
+    </div>
+
+    <!-- SEASON BOUNDARY -->
+    <div class="section">
+      <h2>Seasons</h2>
+      <p>The season has an <b>end date</b>, set in the portal. It's the line that separates one year from the next.</p>
+      <p style="margin-top:8px;">Rounds played <b>on or before</b> that date count toward this season's standings and this year's tournament fund. Rounds after it start counting toward <b>next</b> season and next year's fund — automatically, on the date, with nothing to press.</p>
+      <div class="info-m"><strong>In the app</strong><p>The Attend tab has <b>This season</b> and <b>All-time</b> views. Nothing is ever archived away — old rounds stay on the books forever.</p></div>
+    </div>
+
+    <!-- AWARDS -->
+    <div class="section">
+      <h2>Season Awards</h2>
+      <p>At the end of the season, an <b>🏆 Awards</b> tab appears in the app with the year's honours — computed from every round played.</p>
+      <p style="margin-top:8px;">🏋️ The Iron Man · 💰 Money List Champion · 🔪 The Skinner · 🩸 Most Generous Donor · 💐 Always the Bridesmaid · 🤝 The Social Butterfly · 📅 Perfect Attendance · 🐓 First Man In · 🐌 The Procrastinator · 🚪 The Ambassador · 🌅 Best Front Nine · 🌇 Best Back Nine · 👑 Round of the Year — and the ones nobody wants: 🧨 Worst Front Nine · 🕳️ Worst Back Nine · 🔥 Round Best Forgotten.</p>
+      <div class="info-m"><strong>Admins</strong><p>The portal's <b>Awards</b> tab computes every leaderboard from real data. Edit titles and blurbs, tap a name to crown a winner, add your own custom awards, then <b>Publish to the app</b> or <b>Copy for email</b>. Nothing is visible to members until you publish.</p></div>
+    </div>
+
+    <!-- PREVIEW MODE -->
+    <div class="section">
+      <h2>Showing Someone the App</h2>
+      <p>Want to show the app to someone without giving them a login? The master admin can set a <b>preview code</b> (portal → App Settings). On the sign-in screen they tap <b>Preview the app</b>, enter the code, and browse the real app with a <b>view-only</b> banner.</p>
+      <div class="callout"><strong>Truly read-only</strong><p>Nothing they tap can change anything — sign-ups, RSVPs and every save are disabled at the plumbing, not just hidden. Clear the code to switch the option off.</p></div>
     </div>
 
     <div class="link-row" style="justify-content:center;">

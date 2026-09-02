@@ -2134,6 +2134,179 @@ function HistoryTab({user}){
 }
 
 // ── ATTEND TAB (matches main app: attendance/rounds = array of {date, players[]}) ──
+function AwardsTab({user}){
+  const history=useDB("history");
+  const attendance=useDB("attendance/rounds");
+  const season=useDB("settings/season");
+  const saved=useDB("awards");
+  const signupLog=useDB("stats/signupLog");
+  const guestLog=useDB("stats/guestLog");
+  const [toast,showToast]=useToast();
+  const [edits,setEdits]=useState({});
+  const [customs,setCustoms]=useState([]);
+  const year=String((season&&season.endDate?season.endDate:new Date().toISOString().slice(0,10)).slice(0,4));
+  const published=!!(saved&&saved[year]&&saved[year].published);
+
+  const rounds=React.useMemo(()=>Object.values(history||{}).filter(r=>r&&r.teams),[history]);
+  const inSeason=r=>!(season&&season.endDate&&String(r.date||"")>season.endDate);
+
+  // ── compute everything once ──
+  const S=React.useMemo(()=>{
+    const P={};
+    const get=n=>{const k=String(n||"").trim();if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null};return P[k];};
+    const teamRows=[];
+    rounds.filter(inSeason).forEach(r=>{
+      const teams=Array.isArray(r.teams)?r.teams:Object.values(r.teams||{});
+      const sc=r.scores||{};const ts=sc.teamScores||{};
+      const rowsR=teams.map((t,ti)=>{
+        const players=Object.values(t.players||{}).map(p=>p.name).filter(Boolean);
+        const s=ts[t.id]||ts[ti]||{};
+        const f=s.f!=null?Number(s.f):null,b=s.b!=null?Number(s.b):null;
+        return {ti,players,f,b,tot:(f!=null&&b!=null)?f+b:null,date:r.date,day:r.day};
+      });
+      rowsR.forEach(x=>{x.players.forEach(n=>{const p=get(n);if(!p)return;p.rounds++;x.players.forEach(o=>{if(o!==n)p.partners.add(o);});});});
+      teamRows.push(...rowsR.filter(x=>x.tot!=null||x.f!=null||x.b!=null));
+      // money: split each category payout among the winning team's players
+      const place=(key,amt1,amt2)=>{
+        const valid=rowsR.filter(x=>x[key]!=null).sort((a,b2)=>a[key]-b2[key]);
+        if(!valid.length)return;
+        const per1=valid[0].players.length?Math.floor((amt1||0)/valid[0].players.length):0;
+        valid[0].players.forEach(n=>{const p=get(n);if(p){p.won+=per1;p.firsts++;}});
+        if(amt2>0&&valid[1]){const per2=valid[1].players.length?Math.floor(amt2/valid[1].players.length):0;valid[1].players.forEach(n=>{const p=get(n);if(p){p.won+=per2;p.seconds++;}});}
+      };
+      place("f",sc.f1||sc.frontPot,sc.f2);place("b",sc.b1||sc.backPot,sc.b2);place("tot",sc.o1||sc.overallPot,sc.o2);
+      const skc=sc.skinCounts||{};const totalSk=Object.values(skc).reduce((s2,c)=>s2+(parseInt(c)||0),0);
+      const perSk=totalSk>0?Math.floor((sc.skinsPot||0)/totalSk):0;
+      Object.entries(skc).forEach(([n,c])=>{const p=get(n);if(p){p.skins+=parseInt(c)||0;p.won+=(parseInt(c)||0)*perSk;}});
+    });
+    const arr=Object.values(P).map(p=>({...p,partners:p.partners.size,spent:p.rounds*25,net:p.won-(p.rounds*25)}));
+    const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
+    const attIn=attRounds.filter(inSeason);
+    const attBy={};attIn.forEach(r=>((r.players)||[]).forEach(n=>{const k=String(n).trim();attBy[k]=(attBy[k]||0)+1;}));
+    arr.forEach(p=>{p.attend=attBy[p.name]||p.rounds;});
+    Object.keys(attBy).forEach(n=>{if(!arr.find(p=>p.name===n))arr.push({name:n,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:0,spent:attBy[n]*25,net:-attBy[n]*25,attend:attBy[n]});});
+    // sign-up order + guests
+    const sl=Object.values(signupLog||{}).filter(x=>x&&x.name);
+    const ord={};sl.forEach(x=>{const k=String(x.name).trim();if(!ord[k])ord[k]={n:0,sum:0};ord[k].n++;ord[k].sum+=Number(x.order)||0;});
+    arr.forEach(p=>{const o=ord[p.name];p.avgOrder=o&&o.n?Math.round((o.sum/o.n)*10)/10:null;p.signupCount=o?o.n:0;});
+    const gl=Object.values(guestLog||{});const gby={};gl.forEach(x=>{const k=String(x.host||"").trim();gby[k]=(gby[k]||0)+(Number(x.count)||1);});
+    arr.forEach(p=>{p.guests=gby[p.name]||0;});
+    const weeks=new Set(attIn.map(r=>r.date)).size;
+    return {players:arr,teamRows,weeks};
+  },[rounds,attendance,signupLog,guestLog,season]);
+
+  const top=(key,dir,filter)=>{const l=S.players.filter(p=>(filter?filter(p):true)&&p[key]!=null).sort((a,b)=>dir==="asc"?a[key]-b[key]:b[key]-a[key]);return l;};
+  const teamTop=(key,dir)=>S.teamRows.filter(x=>x[key]!=null).sort((a,b)=>dir==="asc"?a[key]-b[key]:b[key]-a[key]);
+  const rel=v=>v===0?"E":(v>0?"+"+v:String(v));
+  const nameList=x=>x.players.join(" & ");
+
+  const AWARDS=[
+    {id:"ironman",icon:"🏋️",title:"The Iron Man",blurb:"Showed up more than anyone. The backbone of the fund.",board:top("attend","desc").slice(0,5).map(p=>({name:p.name,detail:p.attend+" rounds"}))},
+    {id:"money",icon:"💰",title:"Money List Champion",blurb:"Took home more cash than any man in the group.",board:top("won","desc").slice(0,5).map(p=>({name:p.name,detail:"$"+p.won}))},
+    {id:"skins",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc").slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
+    {id:"donor",icon:"🩸",title:"Most Generous Donor",blurb:"Paid in the most, took home the least. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down"}))},
+    {id:"bridesmaid",icon:"💐",title:"Always the Bridesmaid",blurb:"So many seconds. So few wins.",board:S.players.filter(p=>p.seconds>0).sort((a,b)=>(b.seconds-b.firsts)-(a.seconds-a.firsts)).slice(0,5).map(p=>({name:p.name,detail:p.seconds+" seconds · "+p.firsts+" wins"}))},
+    {id:"social",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc").slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
+    {id:"perfect",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
+    {id:"early",icon:"🐓",title:"First Man In",blurb:"Signs up before the ink is dry.",board:top("avgOrder","asc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
+    {id:"late",icon:"🐌",title:"The Procrastinator",blurb:"Always last. Always squeezing in.",board:top("avgOrder","desc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
+    {id:"host",icon:"🚪",title:"The Ambassador",blurb:"Brought the most guests to the group.",board:top("guests","desc",p=>p.guests>0).slice(0,5).map(p=>({name:p.name,detail:p.guests+" guests"}))},
+    {id:"bestfront",icon:"🌅",title:"Best Front Nine",blurb:"The lowest front nine any team posted all season.",board:teamTop("f","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
+    {id:"bestback",icon:"🌇",title:"Best Back Nine",blurb:"The lowest back nine of the year.",board:teamTop("b","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
+    {id:"bestday",icon:"👑",title:"Round of the Year",blurb:"The best eighteen anybody played together.",board:teamTop("tot","asc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
+    {id:"worstfront",icon:"🧨",title:"Worst Front Nine",blurb:"It happens to everyone. It happened most to these two.",board:teamTop("f","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.f)+" · "+x.date}))},
+    {id:"worstback",icon:"🕳️",title:"Worst Back Nine",blurb:"The wheels came off after the turn.",board:teamTop("b","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.b)+" · "+x.date}))},
+    {id:"worstday",icon:"🔥",title:"Round Best Forgotten",blurb:"Eighteen holes nobody wants to relive.",board:teamTop("tot","desc").slice(0,5).map(x=>({name:nameList(x),detail:rel(x.tot)+" · "+x.date}))},
+  ];
+
+  const val=(id,field,dflt)=>{const e=edits[id]||{};if(e[field]!=null)return e[field];const sv=saved&&saved[year]&&saved[year].items&&saved[year].items[id];if(sv&&sv[field]!=null)return sv[field];return dflt;};
+  const setVal=(id,field,v)=>setEdits(d=>({...d,[id]:{...(d[id]||{}),[field]:v}}));
+  const winnerOf=a=>val(a.id,"winner",(a.board[0]&&a.board[0].name)||"");
+  const detailOf=a=>val(a.id,"detail",(a.board[0]&&a.board[0].detail)||"");
+  const included=a=>val(a.id,"on",a.board.length>0)!==false;
+
+  const allItems=()=>{
+    const items={};
+    AWARDS.filter(included).forEach(a=>{items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a)};});
+    customs.forEach((c,i2)=>{if(c.title&&c.winner)items["custom"+i2]={icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner,detail:c.detail||""};});
+    return items;
+  };
+  const publish=(on)=>{const items=allItems();wr("awards/"+year,{year:year,published:on,items:items,updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast(on?"Awards published to the app ✓":"Saved — not visible to members");};
+  const copyEmail=()=>{
+    const items=allItems();
+    const L=[];L.push("CLARK GOLF GROUP — "+year+" SEASON AWARDS");L.push("");
+    Object.values(items).forEach(it=>{L.push(it.icon+"  "+it.title.toUpperCase());L.push("    "+it.winner+(it.detail?("  ("+it.detail+")"):""));if(it.blurb)L.push("    "+it.blurb);L.push("");});
+    navigator.clipboard.writeText(L.join("\n")).then(()=>showToast("Awards copied — paste into the email ✓"));
+  };
+
+  return(
+    <div className="main">
+      <Toast msg={toast.msg} type={toast.type}/>
+      <div className="pg-eyebrow">Season</div>
+      <div className="pg-title">Awards</div>
+      <div className="pg-sub">Every board below is computed from this season&rsquo;s rounds. Edit the titles, override a winner, add your own — then publish to the app or copy for the email.</div>
+
+      <div className="card" style={{marginBottom:16,borderColor:published?"rgba(16,185,129,0.35)":"rgba(255,255,255,0.08)"}}>
+        <div className="card-hdr"><span className="card-title">{published?"🟢 Published — members can see the Awards page":"🔒 Draft — nobody but you can see this"}</span></div>
+        <div style={{padding:"12px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button className="btn btn-g btn-sm" onClick={()=>publish(true)}>{published?"Update published awards":"🏆 Publish to the app"}</button>
+          {published&&<button className="btn btn-gh btn-sm" onClick={()=>publish(false)}>Unpublish</button>}
+          <button className="btn btn-sm" onClick={copyEmail}>📋 Copy for email</button>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.35)",alignSelf:"center"}}>{S.players.length} players · {S.weeks} weeks scored</span>
+        </div>
+      </div>
+
+      {AWARDS.map(a=>(
+        <div key={a.id} className="card" style={{marginBottom:12,opacity:included(a)?1:0.5}}>
+          <div className="card-hdr" style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:18}}>{val(a.id,"icon",a.icon)}</span>
+            <input className="inp" style={{flex:1,fontWeight:800,fontSize:13,padding:"5px 8px"}} value={val(a.id,"title",a.title)} onChange={e=>setVal(a.id,"title",e.target.value)}/>
+            <label style={{fontSize:11,fontWeight:700,color:included(a)?"#4ade80":"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:5,cursor:"pointer",whiteSpace:"nowrap"}}>
+              <input type="checkbox" checked={included(a)} onChange={e=>setVal(a.id,"on",e.target.checked)} style={{width:15,height:15}}/>include
+            </label>
+          </div>
+          <div style={{padding:"10px 14px"}}>
+            <input className="inp" style={{width:"100%",fontSize:12,padding:"5px 8px",marginBottom:8}} value={val(a.id,"blurb",a.blurb)} onChange={e=>setVal(a.id,"blurb",e.target.value)} placeholder="One line of trash talk…"/>
+            {a.board.length===0?(
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>No data yet for this one — it fills in as rounds are scored.</div>
+            ):(
+              <div>
+                <div className="lbl" style={{marginBottom:4}}>Leaderboard — tap a name to make him the winner</div>
+                {a.board.map((b,bi)=>(
+                  <div key={bi} onClick={()=>{setVal(a.id,"winner",b.name);setVal(a.id,"detail",b.detail);}} style={{display:"flex",gap:8,alignItems:"center",padding:"4px 6px",borderRadius:7,cursor:"pointer",background:winnerOf(a)===b.name?"rgba(16,185,129,0.12)":"transparent"}}>
+                    <span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.3)",width:16}}>{bi+1}</span>
+                    <span style={{flex:1,fontSize:12.5,color:winnerOf(a)===b.name?"#4ade80":"rgba(255,255,255,0.75)",fontWeight:winnerOf(a)===b.name?800:600}}>{b.name}</span>
+                    <span style={{fontSize:11.5,color:"rgba(255,255,255,0.4)"}}>{b.detail}</span>
+                  </div>
+                ))}
+                <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
+                  <input className="inp" style={{flex:"1 1 160px",fontSize:12,padding:"5px 8px"}} value={winnerOf(a)} onChange={e=>setVal(a.id,"winner",e.target.value)} placeholder="Winner"/>
+                  <input className="inp" style={{flex:"1 1 120px",fontSize:12,padding:"5px 8px"}} value={detailOf(a)} onChange={e=>setVal(a.id,"detail",e.target.value)} placeholder="Detail (27 rounds)"/>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div className="card" style={{marginBottom:24}}>
+        <div className="card-hdr"><span className="card-title">🏅 Your own awards</span><button className="btn btn-g btn-sm" onClick={()=>setCustoms(c=>[...c,{icon:"🏅",title:"",blurb:"",winner:"",detail:""}])}>+ Add award</button></div>
+        <div style={{padding:"10px 14px"}}>
+          {customs.length===0?<div style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>For the ones only you two would think of.</div>:customs.map((c,ci)=>(
+            <div key={ci} style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+              <input className="inp" style={{width:52,textAlign:"center",fontSize:15,padding:"5px"}} value={c.icon} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,icon:e.target.value}:x))}/>
+              <input className="inp" style={{flex:"1 1 150px",fontSize:12,padding:"5px 8px"}} placeholder="Award name" value={c.title} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,title:e.target.value}:x))}/>
+              <input className="inp" style={{flex:"1 1 130px",fontSize:12,padding:"5px 8px"}} placeholder="Winner" value={c.winner} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,winner:e.target.value}:x))}/>
+              <input className="inp" style={{flex:"1 1 100%",fontSize:12,padding:"5px 8px"}} placeholder="Why he won it…" value={c.blurb} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,blurb:e.target.value}:x))}/>
+              <button className="btn btn-r btn-sm" onClick={()=>setCustoms(l=>l.filter((_,i2)=>i2!==ci))}>Remove</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AttendTab({user}){
   const rosterEdits=useDB("rosterEdits");
   const extra=useDB("extraPlayers");
@@ -2910,7 +3083,59 @@ function TournamentTab(){
               <div>
                 <div style={{fontSize:13,fontWeight:800,color:cfg.inviteOpen===true?"#4ade80":"#fbbf24"}}>{cfg.inviteOpen===true?"🟢 LIVE — members can answer":"🔒 NOT LIVE — members see nothing"}</div>
                 <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginTop:6,lineHeight:1.6}}>Launching, the app-tab stager, RSVP lock, and Take offline are <strong>Master-only</strong>. Everything below — config, field, pay-ins, payouts — is yours to work.</div>
-              </div>
+                    {(()=>{
+                  const [closeText,setCloseText]=React.useState("");
+                  const [busy,setBusy]=React.useState(false);
+                  const todayIso=(()=>{const x=new Date();return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");})();
+                  const lastDay=cfg.date2||cfg.date1||"";
+                  const overYet=!!(lastDay&&todayIso>lastDay);
+                  const days=cfg.date2?["day1","day2"]:["day1"];
+                  const gaps=[];
+                  days.forEach(dk=>{
+                    const pubd=!!(t&&t.teamsPublished&&t.teamsPublished[dk]);
+                    const tm=(t&&t.teams&&t.teams[dk])||[];
+                    const arr=Array.isArray(tm)?tm:Object.values(tm||{});
+                    if(!pubd||!arr.length){gaps.push((dk==="day1"?"Day 1":"Day 2")+": no published teams");return;}
+                    const sc=(t&&t.scores&&t.scores[dk])||{};
+                    const unscored=arr.filter((_,ii)=>{const s=sc[ii]||{};return s.f==null||s.b==null;}).length;
+                    if(unscored)gaps.push((dk==="day1"?"Day 1":"Day 2")+": "+unscored+" team"+(unscored>1?"s":"")+" still unscored");
+                  });
+                  const readyToClose=overYet&&gaps.length===0;
+                  const year=String((cfg.date1||todayIso).slice(0,4));
+                  const doClose=()=>{
+                    if(closeText.trim().toUpperCase()!=="CLOSE")return;
+                    setBusy(true);
+                    const snap={...(t||{}),closedAt:Date.now(),closedBy:(user&&user.email)||"master",year:year,name:cfg.name||("Tournament "+year),date1:cfg.date1||null,date2:cfg.date2||null};
+                    const ref=firebase.database().ref("tournaments/"+year);
+                    ref.set(snap).then(()=>ref.once("value")).then(s=>{
+                      const back=s.val();
+                      const okBack=back&&back.closedAt===snap.closedAt&&JSON.stringify(back.config||{})===JSON.stringify(snap.config||{});
+                      if(!okBack){setBusy(false);showToast("Archive did not read back correctly — nothing was cleared","err");return null;}
+                      try{const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});const a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download="tournament-"+year+".json";a2.click();}catch(e){}
+                      return firebase.database().ref("tournament").remove().then(()=>{
+                        setBusy(false);setCloseText("");
+                        showToast("Archived to "+year+" — the live slot is empty for next year");
+                      });
+                    }).catch(err=>{setBusy(false);showToast("Close-out failed: "+((err&&err.message)||err),"err");});
+                  };
+                  return (
+                    <div style={{marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+                      <div style={{fontSize:12.5,fontWeight:800,color:"#e2e8f0",marginBottom:5}}>🏁 Close out &amp; archive</div>
+                      {!readyToClose?(
+                        <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",lineHeight:1.6}}>{!cfg.inviteOpen?("Available after the tournament is played — the button unlocks once every team is scored."):!overYet?("Available after the final day ("+(lastDay||"set the dates")+")."):("Finish scoring first — "+gaps.join(" · ")+".")}</div>
+                      ):(
+                        <div>
+                          <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:8}}>Saves everything — config, field, pay-ins, teams, scores and results — to <b style={{color:"#e2e8f0"}}>{year}</b>, downloads a JSON copy, then empties the live slot so next year starts fresh. The Tourney tab keeps showing {year} as Results. Nothing is deleted.</div>
+                          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                            <input className="inp" style={{width:150,fontFamily:"monospace",letterSpacing:"0.1em"}} placeholder="type CLOSE" value={closeText} onChange={e=>setCloseText(e.target.value)}/>
+                            <button className="btn btn-r btn-sm" disabled={busy||closeText.trim().toUpperCase()!=="CLOSE"} onClick={doClose}>{busy?"Archiving…":"🏁 Close out "+year}</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+          </div>
             ):cfg.inviteOpen!==true?(
               <div>
                 <div style={{fontSize:13,fontWeight:800,color:"#fbbf24"}}>🔒 NOT LIVE — members see nothing</div>
@@ -2978,58 +3203,7 @@ function TournamentTab(){
                   }}>📣 Send reminder push</button>
                   <button className="btn btn-gh btn-sm" onClick={()=>{if(window.confirm("Take the tournament card away from members? Their answers are kept."))setCfg("inviteOpen",null);}}>Take offline</button>
                 </div>
-                {(()=>{
-                  const [closeText,setCloseText]=React.useState("");
-                  const [busy,setBusy]=React.useState(false);
-                  const todayIso=(()=>{const x=new Date();return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");})();
-                  const lastDay=cfg.date2||cfg.date1||"";
-                  const overYet=!!(lastDay&&todayIso>lastDay);
-                  const days=cfg.date2?["day1","day2"]:["day1"];
-                  const gaps=[];
-                  days.forEach(dk=>{
-                    const pubd=!!(t&&t.teamsPublished&&t.teamsPublished[dk]);
-                    const tm=(t&&t.teams&&t.teams[dk])||[];
-                    const arr=Array.isArray(tm)?tm:Object.values(tm||{});
-                    if(!pubd||!arr.length){gaps.push((dk==="day1"?"Day 1":"Day 2")+": no published teams");return;}
-                    const sc=(t&&t.scores&&t.scores[dk])||{};
-                    const unscored=arr.filter((_,ii)=>{const s=sc[ii]||{};return s.f==null||s.b==null;}).length;
-                    if(unscored)gaps.push((dk==="day1"?"Day 1":"Day 2")+": "+unscored+" team"+(unscored>1?"s":"")+" still unscored");
-                  });
-                  const readyToClose=overYet&&gaps.length===0;
-                  const year=String((cfg.date1||todayIso).slice(0,4));
-                  const doClose=()=>{
-                    if(closeText.trim().toUpperCase()!=="CLOSE")return;
-                    setBusy(true);
-                    const snap={...(t||{}),closedAt:Date.now(),closedBy:(user&&user.email)||"master",year:year,name:cfg.name||("Tournament "+year),date1:cfg.date1||null,date2:cfg.date2||null};
-                    const ref=firebase.database().ref("tournaments/"+year);
-                    ref.set(snap).then(()=>ref.once("value")).then(s=>{
-                      const back=s.val();
-                      const okBack=back&&back.closedAt===snap.closedAt&&JSON.stringify(back.config||{})===JSON.stringify(snap.config||{});
-                      if(!okBack){setBusy(false);showToast("Archive did not read back correctly — nothing was cleared","err");return null;}
-                      try{const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});const a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download="tournament-"+year+".json";a2.click();}catch(e){}
-                      return firebase.database().ref("tournament").remove().then(()=>{
-                        setBusy(false);setCloseText("");
-                        showToast("Archived to "+year+" — the live slot is empty for next year");
-                      });
-                    }).catch(err=>{setBusy(false);showToast("Close-out failed: "+((err&&err.message)||err),"err");});
-                  };
-                  return (
-                    <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
-                      <div style={{fontSize:12.5,fontWeight:800,color:"#e2e8f0",marginBottom:5}}>🏁 Close out &amp; archive</div>
-                      {!readyToClose?(
-                        <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",lineHeight:1.6}}>{!overYet?("Available after the final day ("+(lastDay||"set the dates")+")."):("Finish scoring first — "+gaps.join(" · ")+".")}</div>
-                      ):(
-                        <div>
-                          <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:8}}>Saves everything — config, field, pay-ins, teams, scores and results — to <b style={{color:"#e2e8f0"}}>{year}</b>, downloads a JSON copy, then empties the live slot so next year starts fresh. The Tourney tab keeps showing {year} as Results. Nothing is deleted.</div>
-                          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                            <input className="inp" style={{width:150,fontFamily:"monospace",letterSpacing:"0.1em"}} placeholder="type CLOSE" value={closeText} onChange={e=>setCloseText(e.target.value)}/>
-                            <button className="btn btn-r btn-sm" disabled={busy||closeText.trim().toUpperCase()!=="CLOSE"} onClick={doClose}>{busy?"Archiving…":"🏁 Close out "+year}</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.05em"}}>📱 App tournament tab:</span>
                   {[["off","Hidden"],["only","One person"],["admins","Admins only"],["all","Everyone"]].map(([v,label])=>(
@@ -4417,6 +4591,7 @@ const ALL_NAV_ITEMS=[
   {id:"announce",label:"Announce",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11h3l8-7v18l-8-7H3z"/><path d="M19 5a7 7 0 010 14"/></svg>},
   {id:"tournament",label:"Tournament",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.5 4 4 4M17 6h3a1 1 0 0 1 1 1c0 2.5-1.5 4-4 4"/></svg>},
   {id:"email",label:"Communications",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>},
+  {id:"awards",label:"Awards",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg>},
   {id:"attend",label:"Attend",master:false,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>},
   {id:"season",label:"Season",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3.6 9h16.8M3.6 15h16.8"/></svg>},
   {id:"logincards",label:"Login Cards",master:true,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="12" r="3"/><line x1="15" y1="10" x2="19" y2="10"/><line x1="15" y1="14" x2="17" y2="14"/></svg>},
@@ -4516,6 +4691,7 @@ function Portal(){
           {tab==="announce"&&<AnnounceTab user={user}/>}
           {tab==="tournament"&&<TournamentTab/>}
           {tab==="clarkemail"&&<ClarkEmailTab/>}
+          {tab==="awards"&&<AwardsTab user={user}/>}
           {tab==="attend"&&<AttendTab user={user}/>}
           {tab==="logincards"&&tabAllowed("logincards")&&<LoginCardsTab/>}
           {tab==="season"&&tabAllowed("season")&&<SeasonTab/>}
