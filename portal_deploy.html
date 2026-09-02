@@ -1257,6 +1257,9 @@ function RosterTab(){
   const rosterAdmins=useDB("rosterAdmins");
   const rosterHcp=useDB("rosterHcp");
   const rosterTee=useDB("rosterTee");
+  const attendanceR=useDB("attendance/rounds");
+  const roundsByName=React.useMemo(()=>{const m={};const rs=attendanceR?(Array.isArray(attendanceR)?attendanceR:Object.values(attendanceR)):[];rs.forEach(r=>{((r&&r.players)||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;},[attendanceR]);
+  const roundsOf=p=>roundsByName[String(p.name||"").toLowerCase().trim()]||0;
   const [seg,setSeg]=useState("active"); // active | inactive | hidden
   const [q,setQ]=useState("");
   const [clFilter,setClFilter]=useState("all");
@@ -1279,8 +1282,12 @@ function RosterTab(){
     return[...base,...ex];
   },[extra,rosterEdits,rosterHcp,rosterTee]);
 
-  const visible=all.filter(p=>!rosterHidden||!rosterHidden[p.id]);
-  const hiddenList=all.filter(p=>rosterHidden&&rosterHidden[p.id]);
+  const rosterDeleted=useDB("rosterDeleted");
+  const isDeletedP=p=>!!(rosterDeleted&&rosterDeleted[p.id]);
+  const live=all.filter(p=>!isDeletedP(p));
+  const deletedList=all.filter(isDeletedP).sort((x,y)=>x.name.localeCompare(y.name));
+  const visible=live.filter(p=>!rosterHidden||!rosterHidden[p.id]);
+  const hiddenList=live.filter(p=>rosterHidden&&rosterHidden[p.id]);
   const activeList=visible.filter(p=>!!(rosterPins&&rosterPins[p.id]));
   const inactiveList=visible.filter(p=>!(rosterPins&&rosterPins[p.id]));
 
@@ -1326,13 +1333,17 @@ function RosterTab(){
     const entry=Object.entries(extra||{}).find(([,p])=>String(p.id)===String(id));
     if(entry){
       dl("extraPlayers/"+entry[0]);
-      dl("rosterPins/"+id);
-      dl("rosterEmails/"+id);
-      dl("rosterAdmins/"+id);
-      showToast("Removed ✓");
+      dl("rosterPins/"+id);dl("rosterEmails/"+id);dl("rosterAdmins/"+id);dl("rosterHidden/"+id);dl("rosterDeleted/"+id);
+      showToast("Deleted ✓");
+    } else {
+      // Base roster player: lives in the app's source, so we flag it. Same effect everywhere; restorable.
+      wr("rosterDeleted/"+id,{at:Date.now()});
+      dl("rosterPins/"+id);dl("rosterEmails/"+id);dl("rosterAdmins/"+id);dl("rosterHidden/"+id);
+      showToast("Deleted ✓ — restore from Deleted list");
     }
     setConfirmDel(null);
   }
+  function restoreDeleted(id){dl("rosterDeleted/"+id);showToast("Restored ✓");}
 
   function hidePlayer(id){
     wr("rosterHidden/"+id,true);
@@ -1580,7 +1591,7 @@ function RosterTab(){
                   {email&&<span className="b b-b">📧</span>}
                   {isMasterP&&<span className="b b-a">⭐ Master</span>}
                   {isAdmin&&!isMasterP&&<span className="b b-a">Admin</span>}
-                  {p.isExtra&&<span className="b b-p">Extra</span>}
+                  {p.isExtra&&<span className="b b-p">Extra</span>}<span className="b" style={{background:roundsOf(p)>0?"rgba(16,185,129,0.14)":"rgba(255,255,255,0.06)",color:roundsOf(p)>0?"#4ade80":"rgba(255,255,255,0.4)",border:"none"}}>{roundsOf(p)} rounds</span>{!(rosterPins&&rosterPins[p.id])&&<span className="b" style={{background:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.35)",border:"none"}}>never registered</span>}
                 </div>
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -1589,8 +1600,8 @@ function RosterTab(){
                 ):(
                   <>
                     <button className="btn btn-gh btn-sm" onClick={()=>setEditing({id:p.id,name:p.name,tee:p.tee||"Whites",hcp:p.hcp||"",email})}>Edit</button>
-                    {!p.isExtra&&<button className="btn btn-r btn-sm" onClick={()=>setConfirmHide(p)}>Remove</button>}
-                    {p.isExtra&&<button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Remove</button>}
+                    {!p.isExtra&&<button className="btn btn-gh btn-sm" onClick={()=>setConfirmHide(p)}>Hide</button>}
+                    <button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Delete</button>
                   </>
                 )}
               </div>
@@ -1605,11 +1616,27 @@ function RosterTab(){
       <div className="overlay">
         <div className="modal">
           <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#f87171"}}>Delete {confirmDel.name}?</div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>Permanently removes player, PIN, email, and admin flag. Cannot be undone.</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:10,lineHeight:1.7}}><b style={{color:"#e2e8f0"}}>{roundsOf(confirmDel)} rounds played</b> · {(rosterPins&&rosterPins[confirmDel.id])?<span style={{color:"#fbbf24"}}>HAS REGISTERED (has a PIN)</span>:"never registered"}{(rosterEmails&&rosterEmails[confirmDel.id])?<span> · {rosterEmails[confirmDel.id]}</span>:null}</div>
+          {(roundsOf(confirmDel)>0||(rosterPins&&rosterPins[confirmDel.id]))&&<div style={{fontSize:11.5,color:"#fbbf24",marginBottom:10,lineHeight:1.6}}>⚠ This player has history or has registered. Consider <b>Hide</b> instead — it removes them from every list but keeps their record intact.</div>}
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:16,lineHeight:1.6}}>Removes them from every list, picker, count and email in the app and portal, and clears their PIN, email and admin flag. Past attendance rounds stay counted (the fund and old standings don't change). You can restore them from the Deleted list.</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-r" style={{flex:1}} onClick={()=>deletePlayer(confirmDel.id)}>Delete Forever</button>
             <button className="btn btn-gh" style={{flex:1}} onClick={()=>setConfirmDel(null)}>Cancel</button>
           </div>
+        </div>
+      </div>
+    )}
+
+    {deletedList.length>0&&(
+      <div className="card" style={{marginTop:14}}>
+        <div className="card-hdr"><span className="card-title">🗑 Deleted ({deletedList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>hidden from everything · restore any time</span></div>
+        <div style={{padding:"6px 14px 12px"}}>
+          {deletedList.map(p=>(
+            <div key={p.id} className="p-row" style={{opacity:0.75}}>
+              <div style={{flex:1}}><div className="p-name">{p.name}</div><div className="p-sub">{roundsOf(p)} rounds{p.isExtra?" · extra":""}</div></div>
+              <button className="btn btn-gh btn-sm" onClick={()=>restoreDeleted(p.id)}>Restore</button>
+            </div>
+          ))}
         </div>
       </div>
     )}

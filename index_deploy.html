@@ -385,7 +385,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-o';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.08.18-p';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -9534,6 +9534,7 @@ function App(){
   const [extra, setExtra] = useState([]);
   const [rosterEdits, setRosterEdits] = useState({});
   const [rosterHidden, setRosterHidden] = useState({});
+  const [rosterDeleted, setRosterDeleted] = useState({});
   const [rosterHcp, setRosterHcp] = useState({});
   const [rosterTargets, setRosterTargets] = useState({});
   const [pushOn, setPushOn] = useState(()=>{try{return localStorage.getItem('cgPushOn')==='1'&&('Notification' in window)&&Notification.permission==='granted';}catch(e){return false;}});
@@ -9607,6 +9608,7 @@ function App(){
     u.push(read('extraPlayers', v=>setExtra(safeArray(v))));
     u.push(read('rosterEdits', v=>setRosterEdits(v||{})));
     u.push(read('rosterHidden', v=>setRosterHidden(v||{})));
+      u.push(read('rosterDeleted', v=>setRosterDeleted(v||{})));
     u.push(read('rosterHcp', v=>setRosterHcp(v||{})));
     u.push(read('rosterTargets', v=>setRosterTargets(v||{})));
     u.push(read('joinRequests', v=>setJoinRequests(v||{})));
@@ -9661,7 +9663,7 @@ function App(){
     })).filter(p => !rosterHidden[p.id])
   ,[rosterEdits, rosterHidden, rosterHcp, rosterTee]);
 
-  const fullRoster = useMemo(()=>[...effectiveRoster, ...safeArray(extra).filter(p=>p.id>96 && !p.isGuest)], [effectiveRoster, extra]);
+  const fullRoster = useMemo(()=>[...effectiveRoster, ...safeArray(extra).filter(p=>p.id>96 && !p.isGuest)].filter(p=>!(rosterDeleted&&rosterDeleted[p.id])), [effectiveRoster, extra, rosterDeleted]);
 
   // Demo: use fake data, fake roster — NEVER Firebase
   const activeWeek = week; // preview always uses real data
