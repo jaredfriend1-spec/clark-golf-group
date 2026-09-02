@@ -1260,7 +1260,7 @@ function RosterTab(){
   const attendanceR=useDB("attendance/rounds");
   const roundsByName=React.useMemo(()=>{const m={};const rs=attendanceR?(Array.isArray(attendanceR)?attendanceR:Object.values(attendanceR)):[];rs.forEach(r=>{((r&&r.players)||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;},[attendanceR]);
   const roundsOf=p=>roundsByName[String(p.name||"").toLowerCase().trim()]||0;
-  const [seg,setSeg]=useState("active"); // active | inactive | hidden
+  const [seg,setSeg]=useState("active"); // active | inactive
   const [q,setQ]=useState("");
   const [clFilter,setClFilter]=useState("all");
   const clarkList=useDB("clarkEmailList");
@@ -1285,7 +1285,7 @@ function RosterTab(){
   const isDeletedP=p=>!!((rosterDeleted&&rosterDeleted[p.id])||(rosterHidden&&rosterHidden[p.id]));   // legacy hidden = deleted
   const live=all.filter(p=>!isDeletedP(p));
   const deletedList=all.filter(isDeletedP).sort((x,y)=>x.name.localeCompare(y.name));
-  const visible=live.filter(p=>!rosterHidden||!rosterHidden[p.id]);
+  const visible=live;   // "live" already excludes deleted (incl. legacy hidden)
   const activeList=visible.filter(p=>!!(rosterPins&&rosterPins[p.id]));
   const inactiveList=visible.filter(p=>!(rosterPins&&rosterPins[p.id]));
 
@@ -1611,7 +1611,7 @@ function RosterTab(){
 
     {deletedList.length>0&&(
       <div className="card" style={{marginTop:14}}>
-        <div className="card-hdr"><span className="card-title">🗑 Deleted ({deletedList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>hidden from everything · restore any time</span></div>
+        <div className="card-hdr"><span className="card-title">🗑 Deleted ({deletedList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>removed from every list · restore any time</span></div>
         <div style={{padding:"6px 14px 12px"}}>
           {deletedList.map(p=>(
             <div key={p.id} className="p-row" style={{opacity:0.75}}>
@@ -2752,13 +2752,14 @@ function TournamentTab(){
   const attendance=useDB("attendance")||{};
   const rosterEdits=useDB("rosterEdits");
   const rosterHidden=useDB("rosterHidden");
+  const rosterDeletedT=useDB("rosterDeleted");
   const extra=useDB("extraPlayers");
   const rounds=Object.values(attendance.rounds||{});
   const all=React.useMemo(()=>{
     const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name,isExtra:false}));
     const ex=Object.values(extra||{}).map(p=>({...p,isExtra:true}));
-    return[...base,...ex].filter(p=>!rosterHidden||!rosterHidden[p.id]);
-  },[extra,rosterEdits,rosterHidden]);
+    return[...base,...ex].filter(p=>!((rosterHidden&&rosterHidden[p.id])||(rosterDeletedT&&rosterDeletedT[p.id])));
+  },[extra,rosterEdits,rosterHidden,rosterDeletedT]);
   const seasonCfg=useDB("settings/season");
   const seasonLock=seasonBound(seasonCfg);
   const wdOf=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});}catch(e){return d||"";}};
