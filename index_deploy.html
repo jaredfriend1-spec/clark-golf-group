@@ -6843,7 +6843,8 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   const effectiveDates = {...wd,...(week?.dates||{})};
   const activeDays = sortDays(safeArray(week?.activeDays));
   const allSignups = Object.entries(week?.signups||{});
-  const allRoster = [...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)];
+  const allRoster = [...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)]
+    .filter(p=>p&&!(rosterHidden&&rosterHidden[p.id])&&!(rosterDeletedAdmin&&rosterDeletedAdmin[p.id]));
 
   useEffect(()=>{ setLocalNotes(week?.emailNotes||{}); setLocalEvents(week?.emailEvents||''); },[week?.emailNotes, week?.emailEvents]);
 
@@ -8271,8 +8272,8 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
 
 
 // ═══════════════ STATS VIEW V2 ═══════════════
-function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, currentUser, settings, publicMode, onSwitchTab }){
-  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra)].filter(p=>p&&!p.hidden);
+function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, rosterDeleted, currentUser, settings, publicMode, onSwitchTab }){
+  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)].filter(p=>p&&!p.hidden&&!(rosterHidden&&rosterHidden[p.id])&&!(rosterDeleted&&rosterDeleted[p.id]));
   const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
   const msDay=86400000;
@@ -10326,10 +10327,10 @@ function App(){
       {tab === 'master' && (()=>{
         const isMasterAdmin=!!(rosterAdmins&&currentUser&&rosterAdmins[currentUser.id]==='master');
         if(isMasterAdmin){
-          return <StatsViewV2 cancelledDays={cancelledDays} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={false} onSwitchTab={setTab}/>;
+          return <StatsViewV2 rosterDeleted={rosterDeleted} cancelledDays={cancelledDays} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={false} onSwitchTab={setTab}/>;
         }
         if(canSeeMemberStats){
-          return <StatsViewV2 week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
+          return <StatsViewV2 rosterDeleted={rosterDeleted} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
         }
         return null;
       })()}
