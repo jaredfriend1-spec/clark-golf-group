@@ -10290,7 +10290,7 @@ function App(){
           <button onClick={logoutUser} style={{fontSize:11.5,fontWeight:800,color:'var(--warn-ink)',background:'transparent',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',cursor:'pointer',fontFamily:'inherit'}}>Exit</button>
         </div>
       )}
-      {tab === 'home' && tournTabVisible && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard forcePreview={isAdmin} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} onStatus={setTournUnanswered}/></div>}
+      {tab === 'home' && tournTabVisible && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard forcePreview={false} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} onStatus={setTournUnanswered}/></div>}
       {tournTabVisible && tab !== 'score' && showInviteModal && <TournamentRsvpCard asModal forcePreview={isAdmin} onDismiss={dismissInviteModal} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} onStatus={setTournUnanswered}/>}
       {tab === 'awards' && (
         <div>
