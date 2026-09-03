@@ -289,7 +289,7 @@ const safeArr=v=>Array.isArray(v)?v:v?Object.values(v):[];
 
 function useDB(path){
   const [v,setV]=useState(null);
-  useEffect(()=>{if(!db||!path)return;const r=db.ref(path);r.on("value",s=>setV(s.val()));return()=>r.off();},[path]);
+  useEffect(()=>{if(!db||!path)return;const r=db.ref(path);const cb=r.on("value",s=>setV(s.val()),()=>setV(null));return()=>r.off("value",cb);},[path]);
   return v;
 }
 const wr=(p,v)=>db&&db.ref(p).set(v);
@@ -4800,15 +4800,18 @@ function Portal(){
     if(user&&!tabAllowed(tab)){setTab("dash");}
   },[user,tab]);
 
+  // Must run on EVERY render, including logged out. A hook below the early
+  // return changes the hook count between renders and blanks the portal.
+  const navPerms=useDB("settings/portalPerms");
+
   function onAuth(u){localStorage.setItem("portal_user",JSON.stringify(u));setUser(u);}
   function signOut(){localStorage.removeItem("portal_user");try{if(auth&&auth.currentUser)auth.signOut();}catch(e){}setUser(null);}
 
   if(!user)return<Gate onAuth={onAuth}/>;
 
   // Filter nav based on role + Master-granted menu permissions
-  const navPerms=useDB("settings/portalPerms");
-  const tabAllowed=id=>{const n=ALL_NAV_ITEMS.find(x=>x.id===id);if(!n||!n.master)return true;return isMaster(user.role)||((navPerms&&navPerms[id])===true);};
-  const NAV_ITEMS=ALL_NAV_ITEMS.filter(n=>!n.master||isMaster(user.role)||((navPerms&&navPerms[n.id])===true));
+  const tabAllowed=id=>{const n=ALL_NAV_ITEMS.find(x=>x.id===id);if(!n||!n.master)return true;return isMaster(user&&user.role)||((navPerms&&navPerms[id])===true);};
+  const NAV_ITEMS=ALL_NAV_ITEMS.filter(n=>!n.master||isMaster(user&&user.role)||((navPerms&&navPerms[n.id])===true));
 
   const ini=(user.email&&user.email!=="master")?user.email.charAt(0).toUpperCase():(user.name?user.name.charAt(0).toUpperCase():"J");
 
