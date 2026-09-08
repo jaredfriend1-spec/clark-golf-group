@@ -2929,11 +2929,6 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     if(!dayTeams.length){ alert('Cannot start scoring.\n\nNo teams have been built for '+activeDay+' yet.'); return; }
     write('week/scoringStarted/'+activeDay, Date.now());
   }
-  function changeTeams(){
-    if(!confirm('Unlock teams for '+activeDay+'?\n\nScoring is under way. Any scores already entered are kept, but you will need to press Start Scoring again when you are done.'))return;
-    write('week/scoringStarted/'+activeDay, null);
-    onSwitchTab&&onSwitchTab('teams');
-  }
   function cancelDay(){
     if(!confirm('Cancel '+activeDay+'?\n\nNo round is saved, no attendance is recorded and nothing goes to the tournament fund. This cannot be undone from here.'))return;
     if(prompt('Type CANCEL to confirm.')!=='CANCEL')return;
@@ -3017,8 +3012,13 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
               </div>
             </div>
           ))}
-          <div style={{marginTop:12,fontSize:12,color:'var(--ink-50)',lineHeight:1.5}}>
-            Check the teams are right. Starting scoring locks them so nobody can rebuild or erase them mid-round.
+          <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--hairline-soft)',fontSize:12,color:'var(--ink-50)',lineHeight:1.5}}>
+            Check the teams are right <strong>before</strong> you start. Starting scoring locks them for the day, so nobody can rebuild or erase them mid-round.
+            {canAdmin && (
+              <div style={{marginTop:8}}>
+                <button className="btn btn-outline btn-sm" onClick={()=>onSwitchTab&&onSwitchTab('teams')}>Teams need changing? Edit them first</button>
+              </div>
+            )}
           </div>
         </div>
         {canScore ? (
@@ -3506,10 +3506,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
             </button>
 
             {scoringStarted && !payoutsCalculated && canAdmin && (
-              <div style={{display:'flex',gap:8,marginTop:4}}>
-                <button className="btn btn-outline" style={{flex:1,fontSize:12}} onClick={changeTeams}> Change Teams</button>
-                <button className="btn btn-outline" style={{flex:1,fontSize:12,color:'#b91c1c',borderColor:'#fecaca'}} onClick={cancelDay}> Cancel Day</button>
-              </div>
+              <button className="btn btn-outline" style={{fontSize:12,color:'#b91c1c',borderColor:'#fecaca',marginTop:4}} onClick={cancelDay}>Cancel Day</button>
             )}
             <div style={{fontSize:11,color:'var(--ink-50)',textAlign:'center',marginTop:2}}>
               Scores save automatically as you type. Nothing reaches History until you press Finalize.
@@ -3525,11 +3522,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
                 Saved — remember to Finalize to lock it into History.
               </div>
             )}
-            {scoresSaved && onReopenDay && (
-              <button className="btn btn-ghost btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>
-                Edit Scores
-              </button>
-            )}
+
           </div>
         )}
 
