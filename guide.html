@@ -1,624 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
-<title>Clark Golf Group - How It Works</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
-<style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#F4F1E8;--surface:#FFFFFF;--surface-sunken:#FAF7EE;--hairline:#E5E2DA;
-    --ink:#1A1A1A;--ink-50:rgba(26,26,26,0.5);--ink-40:rgba(26,26,26,0.4);
-    --brand:#1F6B47;--brand-soft:#E8F1EC;--brand-border:#C8DDD0;
-    --info:#1D4ED8;--info-soft:#EFF6FF;--info-border:#BFDBFE;
-    --highlight:#B8651F;--highlight-soft:#FEF3E8;--highlight-border:#F5D5B0;
-    --warn-ink:#92710E;--warn-soft:#FFFBEB;--warn-border:#FDE68A;
-    --money-pos:#1F6B47;--money-neg:#B91C1C;
-  }
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;}
-  .container{max-width:600px;margin:0 auto;background:var(--surface);min-height:100vh;}
-  /* Fixed top nav */
-  .top-nav{position:fixed;top:0;left:0;right:0;z-index:999;background:var(--ink);border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;}
-  .top-nav a{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;font-weight:600;}
-  .top-nav a svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;}
-  .top-nav-label{font-size:12px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.06em;text-transform:uppercase;}
-  .top-nav-close{width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.4);text-decoration:none;font-size:15px;line-height:1;}
-  .spacer{height:53px;}
-  /* Header */
-  .hdr{background:var(--ink);padding:30px 20px 40px;text-align:center;}
-  .hdr-brand{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#fff;}
-  .hdr-brand em{color:#10b981;font-style:normal;}
-  .hdr-sub{color:rgba(255,255,255,0.5);font-size:13px;margin-top:5px;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;}
-  /* Content */
-  .content{padding:0 20px 40px;position:relative;top:-20px;}
-  .section{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
-  .section h2{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--ink);margin-bottom:8px;border-bottom:2px solid var(--brand);padding-bottom:8px;display:inline-block;}
-  .section p{font-size:15px;color:var(--ink-50);margin-bottom:14px;}
-  .feature{margin-bottom:28px;}.feature:last-child{margin-bottom:0;}
-  .feature h3{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
-  .feature-num{background:var(--brand);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:'Barlow Condensed',sans-serif;flex-shrink:0;}
-  .feature-num.gold{background:var(--highlight);}
-  .feature-num.dark{background:var(--ink);}
-  /* Mock UI */
-  .mock-ui{background:var(--surface-sunken);border:1px solid var(--hairline);border-radius:8px;padding:14px;margin-bottom:14px;}
-  .btn-m{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border:none;}
-  .btn-m.green{background:var(--brand);color:#fff;}.btn-m.dark{background:var(--ink);color:#fff;}.btn-m.outline{background:var(--surface);border:1.5px solid var(--hairline);color:var(--ink-50);}.btn-m.red{background:var(--money-neg);color:#fff;font-size:12px;padding:5px 10px;}.btn-m.gold{background:var(--highlight);color:#fff;}
-  .btn-m.full{width:100%;}.btn-m.sm{padding:5px 10px;font-size:12px;}
-  /* Callout boxes */
-  .callout{background:var(--info-soft);border:1px solid var(--info-border);border-radius:8px;padding:14px;margin-top:10px;}
-  .callout strong{color:var(--info);display:block;margin-bottom:4px;font-size:14px;}
-  .callout p{margin:0;font-size:14px;color:var(--ink-50);}
-  .info-m{background:var(--warn-soft);border:1px solid var(--warn-border);border-radius:8px;padding:12px;margin-top:10px;}
-  .info-m strong{color:var(--warn-ink);display:block;margin-bottom:4px;font-size:14px;}
-  .info-m p{margin:0;font-size:14px;color:var(--ink-50);}
-  .confirm-m{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-top:8px;}
-  /* Team card mock */
-  .tc{border:1px solid var(--hairline);border-radius:10px;overflow:hidden;background:var(--surface);margin-top:10px;}
-  .tc-h{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--ink);}
-  .tc-nm{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;}
-  .tc-hcp{font-size:12px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:20px;font-weight:600;}
-  .tc-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--hairline);}
-  .tc-row:last-child{border-bottom:none;}
-  .slot-m{font-size:11px;font-weight:700;background:var(--highlight);color:#fff;padding:2px 6px;border-radius:4px;}
-  .avi-m{width:26px;height:26px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;}
-  /* Nav demo */
-  .nav-demo{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;overflow:hidden;margin:10px 0;}
-  .nav-row{display:flex;border-bottom:1px solid var(--hairline);}
-  .nav-row:last-child{border-bottom:none;background:var(--surface-sunken);}
-  .nav-tab{flex:1;padding:8px 4px;text-align:center;font-size:9px;font-weight:700;color:var(--ink-40);text-transform:uppercase;letter-spacing:0.04em;display:flex;flex-direction:column;align-items:center;gap:3px;border-right:1px solid var(--hairline);}
-  .nav-tab:last-child{border-right:none;}
-  .nav-tab.on{color:var(--brand);}
-  .nav-tab svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;}
-  /* Leaderboard */
-  .lb-grid{display:grid;grid-template-columns:28px 1fr 26px 52px 52px 62px;gap:4px;padding:6px 12px;align-items:center;}
-  .lb-hdr{background:var(--surface-sunken);border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);font-size:9px;font-weight:700;color:var(--ink-40);text-transform:uppercase;letter-spacing:0.06em;}
-  .lb-row{border-bottom:1px solid var(--hairline);font-size:13px;}
-  .lb-row:last-child{border-bottom:none;}
-  .rank-badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:'Barlow Condensed',sans-serif;}
-  /* Pay mock */
-  .pay-m{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--brand-soft);border:1.5px solid var(--brand-border);border-radius:10px;}
-  /* Pot */
-  .pot-m{background:var(--warn-soft);border:1px solid var(--warn-border);border-radius:8px;padding:10px 13px;display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
-  /* PWA steps */
-  .pwa-step{display:flex;align-items:flex-start;gap:10px;background:var(--brand-soft);border:1px solid var(--brand-border);border-radius:10px;padding:10px 13px;margin-bottom:8px;}
-  .pwa-num{background:var(--brand);color:#fff;border-radius:50%;width:22px;height:22px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .pwa-txt{font-size:14px;line-height:1.5;color:var(--ink);}
-  .pwa-txt strong{display:block;font-size:14px;margin-bottom:2px;}
-  /* Links */
-  .link-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
-  .link-row a{flex:1;text-align:center;padding:11px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;min-width:120px;}
-  /* Admin role badge */
-  .role-box{border-radius:10px;padding:12px 14px;margin-bottom:8px;}
-  @media(min-width:768px){
-    .container{max-width:700px;box-shadow:0 0 40px rgba(0,0,0,0.06);}
-    .hdr{padding:40px 24px 50px;}.hdr-brand{font-size:38px;}
-    .content{padding:0 28px 50px;}.section{padding:28px;border-radius:14px;}
-    .section h2{font-size:26px;}.section p{font-size:15px;}
-  }
-</style>
-</head>
-<body>
-<div class="top-nav">
-  <a href="index.html"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Back to App</a>
-  <span class="top-nav-label">User Guide</span>
-  <a href="index.html" class="top-nav-close">✕</a>
-</div>
-<div class="spacer"></div>
-<div class="container">
-  <div class="hdr">
-    <div class="hdr-brand">Clark <em>Golf</em> Group</div>
-    <div class="hdr-sub">How It Works</div>
-  </div>
-  <div class="content">
+<!--
+  REPLACES the existing "7 Score Tab — Score & Finalize" section in guide.html.
 
-    <!-- INSTALL -->
-    <div class="section">
-      <h2>Install the App on Your Phone</h2>
-      <p>The Clark Golf app works like a native app — no App Store needed. Tap a button and it lives on your home screen, opens full-screen, no browser chrome.</p>
-      <div class="feature">
-        <h3><span class="feature-num">1</span> Android (Chrome)</h3>
-        <p>When you open the site, a green banner appears at the top. Tap the big green <b>"Install App on Your Phone"</b> button. Chrome shows a native popup — tap Install. Done.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num">2</span> iPhone (Safari)</h3>
-        <p>You <b>must use Safari</b> — it won't work from Chrome on iPhone.</p>
-        <div class="pwa-step"><div class="pwa-num">1</div><div class="pwa-txt"><strong>Tap the Share button</strong>The box with an arrow pointing up — at the bottom of Safari</div></div>
-        <div class="pwa-step"><div class="pwa-num">2</div><div class="pwa-txt"><strong>Tap "Add to Home Screen"</strong>Scroll down in the share sheet — it has a + icon next to it</div></div>
-        <div class="pwa-step"><div class="pwa-num">3</div><div class="pwa-txt"><strong>Tap "Add" in the top right</strong>The Clark Golf icon appears on your home screen!</div></div>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num">3</span> Dismissed the Banner?</h3>
-        <p>Scroll to the bottom of the landing page and tap <b>"📱 Add App to Home Screen"</b> — it's always there on mobile.</p>
-        <div class="info-m"><strong>Already installed?</strong><p>Once installed, the banner disappears automatically. It comes back after 7 days if you dismissed it before installing.</p></div>
-      </div>
-    </div>
+  Delete everything from  <h3>7 Score Tab — Score &amp; Finalize</h3>
+  down to (but NOT including) the next <h3>, and paste this in its place.
 
-    <!-- SIGNING IN -->
-    <div class="section">
-      
-<h3>🔔 Turn On Push Notifications</h3>
-<p>Once the app is on your home screen, open it from that icon and tap the <b>bell</b> at the top (next to Sign out), then Allow. The bell turns green — you'll get a buzz when teams are posted, results are in, a day is cancelled, and more. A "Get notified" card on the Week tab offers the same thing. <b>iPhone note:</b> notifications only work from the installed home-screen app (iOS 16.4+), not from Safari directly.</p>
-<h2>Signing In</h2>
-      <p>The landing page has three options — pick the right one for you.</p>
-      <div class="mock-ui" style="background:var(--ink);border:none;border-radius:14px;padding:20px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:#fff;text-align:center;margin-bottom:4px;">Clark <em style="color:#10b981;font-style:normal;">Golf</em> Group</div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.35);text-align:center;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:18px;">WEEK OF JUN 12 – JUN 15</div>
-        <div style="background:rgba(16,185,129,0.15);border:1.5px solid #10b981;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
-          <div style="width:36px;height:36px;border-radius:8px;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">🔒</div>
-          <div><div style="font-size:14px;font-weight:700;color:#fff;">Member Sign In</div><div style="font-size:11px;color:rgba(255,255,255,0.5);">Enter last 4 digits of your phone</div></div>
-        </div>
-        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">🛡️</div>
-          <div><div style="font-size:14px;font-weight:700;color:#fff;">Create or Update Your Sign-In</div><div style="font-size:11px;color:rgba(255,255,255,0.5);">Register or update your phone number</div></div>
-        </div>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num">1</span> First Time? Set Up Your Login</h3>
-        <p>Tap <b>"Create or Update Your Sign-In"</b> on the landing page. Find your name in the roster, enter your full phone number, confirm it — the last 4 digits become your PIN. You only do this once.</p>
-        <div class="callout"><strong>The app remembers you</strong><p>Your sign-in stays active until you sign out. Close the app and come back — you're still in.</p></div>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num">2</span> Signing In (after setup)</h3>
-        <p>Tap <b>Member Sign In</b>. Select your name from the dropdown, enter your 4-digit PIN, and tap Continue.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num">3</span> Guests</h3>
-        <p>Guests don't sign in — a member brings them. When you sign up for a day, tap <b>+ Bring a guest</b> and add their name, tees and handicap. There's no separate guest login.</p>
-      </div>
-    </div>
+  The old section described Save Preview, Edit Scores and a two-step flow.
+  All three are gone.
+-->
 
-    <!-- PROFILE -->
-    <div class="section">
-      
-<h3>🙋 Not a Member Yet?</h3>
-<p>Tap <b>"Not a member yet? Request to join"</b> on the sign-in page — name, phone, email, and who you know. An admin reviews it and sets you up with a PIN.</p>
-<h2>Your Profile</h2>
-      <p>Tap your <b>photo or initials in the top-right</b> of any screen to open your profile. Everything here is yours to manage — no admin needed.</p>
+<h3><span>7</span> Score Tab — Start Scoring, then Finalize</h3>
 
-      <div class="feature">
-        <h3><span class="feature-num">1</span> Photo &amp; Login Card</h3>
-        <p>Upload a photo (drag to position, scroll or buttons to zoom, then "Use photo"). Set a short <b>welcome message</b> that shows on your login flash card. Pick a card theme (Default, Gold, Green, or Purple) — the color shows when you sign in.</p>
-      </div>
+<p>The Score tab now works in two stages. This is deliberate: it is what stops a
+round being overwritten or lost.</p>
 
-      <div class="feature">
-        <h3><span class="feature-num">2</span> Default Tees &amp; Handicap</h3>
-        <p>Set the tees and handicap you usually play. These pre-fill your sign-up form automatically, so your next sign-up is just one tap if nothing's changed.</p>
-        <p style="margin-top:8px;">You can still override either one per-round if your handicap changes or you want to play different tees for a specific day. Past sign-ups are never affected — history stays exactly as it was.</p>
-      </div>
+<p><strong>Stage 1 — check the teams.</strong> When you open the Score tab you do
+<em>not</em> get score boxes straight away. You get the teams listed out, with the
+men on each one, and a single green <strong>▶ Start Scoring</strong> button.
+Read the teams. If anything is wrong there is a button to go back to the Teams
+tab and fix it. Once you press Start Scoring the teams are locked for that day.</p>
 
-      <div class="feature">
-        <h3><span class="feature-num">3</span> Email &amp; PIN</h3>
-        <p>Update your email address. Change your sign-in PIN by entering a new phone number twice — the last 4 digits become your PIN. The current PIN is hidden behind a "👁 Show" button so prying eyes don't spot it.</p>
-        <div class="info-m"><strong>Stats summary</strong><p>The top of your profile shows your rounds played, total money won, and net (+/−) for the season. Read-only — just a quick personal snapshot.</p></div>
-      </div>
-
-      <div class="callout"><strong>Name changes</strong><p>Names are admin-only because they're tied to your historical records (sign-ups, teams, wins, attendance). Ask an admin if you need a name fix.</p></div>
-    </div>
-
-    <!-- ANNOUNCEMENTS -->
-    <div class="section">
-      <h2>Announcements</h2>
-      <p>Admins can post announcements that appear at the top of the app for everyone — tournament alerts, schedule changes, new features, etc.</p>
-
-      <div class="feature">
-        <h3><span class="feature-num">1</span> What You'll See</h3>
-        <p>When a new announcement is posted, you'll see one of two styles next time you open the app (or instantly if you're already in it):</p>
-        <p><b>Banner</b> — a colored strip at the top with the icon, title, and message. Tap the ✕ to dismiss. Tap the message to expand if it's long.</p>
-        <p><b>Modal</b> — a centered popup for important messages. Tap <b>Got it</b> to dismiss.</p>
-        <p style="margin-top:8px;">Categories: 🏆 Tournament · 🎉 New Feature · 📅 Schedule · ⚠️ Important · 💬 General. Each has its own color so you know at a glance what kind of message it is.</p>
-        <div class="info-m"><strong>Dismissed forever</strong><p>Most announcements only show once — dismiss and you'll never see them again. A few may reset each session or auto-expire after a set number of days. Either way, you can always dismiss to clear it from your view.</p></div>
-      </div>
-    </div>
-
-    <!-- NAVIGATION -->
-    <div class="section">
-      
-<p><b>New:</b> some announcements also arrive as a <b>push notification</b> on your phone (if notifications are on) — the admin chooses that when posting.</p>
-<h2>Getting Around</h2>
-      <p>The app has a tab bar at the top. On mobile it splits into three rows; on desktop the first two rows merge into one wider row.</p>
-      <div class="nav-demo">
-        <div class="nav-row">
-          <div class="nav-tab on"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Week</div>
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Teams</div>
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Score</div>
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</div>
-        </div>
-        <div class="nav-row" style="background:var(--surface-sunken);">
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Standings</div>
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Attend</div>
-        </div>
-        <div class="nav-row">
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Email</div>
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Admin</div>
-          <div class="nav-tab"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Stats</div>
-        </div>
-      </div>
-      <p style="margin-top:12px;"><b>Row 1</b> — Week, Teams, Score, History. Core tabs, always visible.<br/><b>Row 2 (mobile)</b> — Standings, Attend (members) · Standings, Attend, Email, Admin, Stats (admins).<br/><b>Row 2 (desktop)</b> — All member tabs in one row. Admins see a second row with Email, Admin, Stats.<br/><b>Admin-only</b> — Email, Admin, Stats. Never visible to regular members.</p>
-      <div class="info-m"><strong>Scoring Admins</strong><p>See the same tabs as members, but with Score always unlocked. They do not see Email, Admin, or Stats.</p></div>
-    </div>
-
-    <!-- PLAYERS -->
-    <div class="section">
-      
-<p><b>New:</b> the week can include <b>any day, Friday through Thursday</b>, and each day shows a <b>game pill</b> — a team game or an individual game (like a Stableford). On individual days, the Teams tab becomes the <b>Group Builder</b>.</p>
-<h2>For the Players</h2>
-      <p>No more messy email chains. Sign up in seconds and see the results instantly.</p>
-
-      <div class="feature">
-        <h3><span class="feature-num">1</span> Sign Up for a Day</h3>
-        <p>On the <b>Week tab</b>, tap <b>Sign up</b> on any active day. The modal opens with your name pre-filled, plus your default tees and handicap from your <b>Profile</b> (see Profile section below). Adjust if needed and tap <b>Sign me up</b> — done.</p>
-        <p style="margin-top:8px;">Going alone with no extras? That's it — one screen, one tap.</p>
-        <div class="mock-ui"><div class="btn-m green full">Sign me up</div></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">2</span> Bringing Guests?</h3>
-        <p>In the sign-up modal you'll see two buttons at the bottom: <b>+ Bring a guest</b> and <b>+ Playing a match?</b> Tap <b>Bring a guest</b> to open a focused screen for the guest's name, tees, handicap, and whether you want to be paired on the same team.</p>
-        <p style="margin-top:8px;">After adding a guest, you'll see them as a clean card on the main screen. Tap <b>+ Another guest</b> to add more — up to <b>3 guests total</b>, so one person can sign up a full 4-person team in a single flow.</p>
-        <div class="info-m"><strong>Pair requests</strong><p>Each guest has its own "Pair with me on a team?" toggle. A green "Pair req" badge shows on the guest's row if pairing was requested. The host shows "Host of [Guest Name]" — or "Host of Guest1, Guest2 &amp; Guest3" if multiple.</p></div>
-
-        <h4 style="margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink);">Editing or removing guests</h4>
-        <p>Tap <b>Edit</b> next to your own row — you'll see a card view of your sign-up with each guest as their own card. Tap a guest's <b>Edit</b> button to update their info, or the trash icon to remove them. You can also add another guest from this view.</p>
-        <p style="margin-top:8px;">All changes save together when you tap <b>Save changes</b>. Cancel to discard.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">3</span> Match Play</h3>
-        <p>Playing a formal head-to-head match (a real competition with someone)? Tap <b>+ Playing a match?</b> at the bottom of the sign-up modal. Pick your opponent from the dropdown — if they're not signed up yet, you'll be asked for their tees and handicap so they can be auto-added when you save.</p>
-        <p style="margin-top:8px;">The match shows up as a card with "Match play vs [Opponent]" and a "Pending admin approval" note. Admins approve before teams are built — opponents are placed on the same team.</p>
-        <div class="callout"><strong>This is NOT a pairing request</strong><p>Match play is for actual competitions. Don't use it to just "play with a friend" — the app builds teams to balance handicaps. If you just want to play together, the team builder usually puts familiar players together over time anyway.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">4</span> Tee Time Preference</h3>
-        <p>Need the first or last group? In the sign-up modal, use the <b>Tee time preference</b> picker to choose First tee, Last tee, or No preference. The admin reviews and approves before building teams.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">5</span> Removing a Sign-Up</h3>
-        <p>Tap the red <b>Remove</b> button next to your name on the Week tab. You can remove yourself, any guest you brought, and any match partner you added. Admins can remove anyone.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">6</span> Sign-Ups Locked? Join the Waiting List</h3>
-        <p>When sign-ups are closed, tap <b>"Join Waiting List"</b>. Your name appears in a gold Waiting List section. The admin can add you to the round from the Teams tab. Tap Remove to leave the list anytime.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">7</span> Teams Tab</h3>
-        <p>Once the admin publishes, check the <b>Teams tab</b>. Your name appears highlighted in gold. Badges show any special arrangements:</p>
-        <p><b>⚔️ vs. [Name]</b> — match play pairing<br/><b>🕐 1st tee / 🔚 Last tee</b> — approved tee time request<br/><b>🤝 Guest of [Member]</b> — paired guest</p>
-        <div class="mock-ui" style="padding:0;border:none;background:none;">
-          <div class="tc"><div class="tc-h"><span class="tc-nm">Team One</span><span class="tc-hcp">HCP 35.0</span></div>
-            <div class="tc-row" style="background:rgba(184,101,31,0.05);border-left:2px solid var(--highlight);"><span class="slot-m">A</span><div class="avi-m" style="background:var(--highlight-soft);color:var(--highlight);">JF</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Jared Friend</div><div style="font-size:11px;color:var(--ink-40)">Whites · HCP 8</div></div></div>
-            <div class="tc-row"><span class="slot-m">B</span><div class="avi-m">MC</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Mike Clark</div><div style="font-size:11px;color:var(--ink-40)">Whites · HCP 12</div></div></div>
-            <div class="tc-row" style="border-bottom:none;"><span class="slot-m">C</span><div class="avi-m">SG</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Steve Guest</div><div style="font-size:11px;color:var(--ink-40)">Golds · HCP 18</div></div></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">8</span> History Tab</h3>
-        <p>Every completed round in reverse order. Tap any round to see: teams and players, scores (Front/Back/Overall), payouts with 1st/2nd splits, and a 🏆 Winnings Summary with per-player share.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">9</span> Standings Tab — Season Money</h3>
-        <p>The full season money leaderboard. Four summary cards at the top (Top Net Winner, Most $ Won, Top Donor, Best Return %). The table shows Paid In, Won, and Net for every player.</p>
-        <div style="background:var(--surface);border:1px solid var(--hairline);border-radius:10px;overflow:hidden;margin:10px 0;">
-          <div class="lb-grid lb-hdr"><div>#</div><div>Player</div><div style="text-align:right">Rds</div><div style="text-align:right">Paid In</div><div style="text-align:right;color:var(--info)">Won</div><div style="text-align:right;color:var(--brand)">Net</div></div>
-          <div class="lb-grid lb-row" style="padding:9px 12px;"><div><div class="rank-badge" style="background:#f59e0b;color:#fff;">1</div></div><div style="font-size:13px;font-weight:600;">Chris Allen</div><div style="font-size:11px;color:var(--ink-40);text-align:right;">5</div><div style="font-size:13px;font-weight:600;color:var(--ink-50);text-align:right;">$125</div><div style="font-size:13px;font-weight:600;color:var(--info);text-align:right;">$340</div><div style="font-size:14px;font-weight:800;color:var(--money-pos);text-align:right;">+$215</div></div>
-        </div>
-        <p><b>Sort by Net $$$</b> — profit/loss after entry fees. <b>Sort by Gross Won</b> — total dollars won. <b>👤 Me button</b> — instantly filters to your own row. <b>Tap any row</b> to see your round-by-round breakdown.</p>
-        <div class="callout"><strong>Visible to everyone</strong><p>Members, admins, and guests can all see Standings.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">10</span> Attend Tab — Attendance</h3>
-        <p>Tracks who's played and when across the season. Season standings ranked by rounds played, tap any player to see every date they played.</p>
-      </div>
-    </div>
-
-    <!-- ADMINS -->
-    <div class="section">
-      
-<h3>⛳ Individual Game Days (Stableford)</h3>
-<ul>
-<li><b>Groups, not teams:</b> groups are who you play with — <b>Group 1 tees off first</b>. Extra tee times (🕐 chips) pair with each group in order.</li>
-<li><b>Your target:</b> declare a points target when signing up; results show points vs target, e.g. <i>40 (tgt 34, +6)</i>.</li>
-<li><b>Money:</b> paid spots split the pool (ties split evenly), plus optional individual skins — on the Score tab, History, and the email.</li>
-</ul>
-<h3>🌧 Cancelled Days</h3>
-<p>Rainout? You'll get a push and a <b>cancelled card stays on the Week tab</b>; sign-ups clear automatically. The app also blocks duplicate sign-ups and auto-corrects typo'd names to the roster spelling.</p>
-
-<h3>📊 Browse Past Seasons</h3>
-<p>The History, Standings, Stats, and Attend tabs now have a <b>Season selector</b>. Pick an archived season to browse every round, all the money, and full stats from that year — exactly like the current season. An amber chip reminds you when you're viewing an archive.</p>
-<h3>🎯 Points on Stableford Days</h3>
-<p>On individual game days you may see a blue <b>Points</b> row on the day card (e.g. <i>Eagle 4 · Birdie 3 · Par 2 · Bogey 1</i>) — that's the scoring table for that day's game. It also appears on the Score tab. Values can differ from day to day, so check the chips.</p>
-<h3>🔄 The App Updates Itself</h3>
-<p>You never need to reinstall or re-add the icon. When a new version comes out, the app quietly updates the next time you open it. If you happen to have it open at that exact moment, an amber bar appears — just tap it once.</p>
-<h2>For the Admins</h2>
-      <p>The app does the heavy lifting. You just set up, publish, and close out.</p>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">★</span> Admin Roles</h3>
-        <div class="role-box" style="background:var(--highlight-soft);border:1px solid var(--highlight-border);">
-          <div style="font-size:11px;font-weight:700;color:var(--highlight);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">⭐ Master Admin (Jared)</div>
-          <div style="font-size:13px;color:var(--ink-50);">Full access to everything — all tabs, Stats dashboard, Admin Portal. Cannot be changed by other admins.</div>
-        </div>
-        <div class="role-box" style="background:var(--info-soft);border:1px solid var(--info-border);">
-          <div style="font-size:11px;font-weight:700;color:var(--info);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">🛡️ Super Admin</div>
-          <div style="font-size:13px;color:var(--ink-50);">Sees Email, Admin, and all player tabs. Manages days, teams, roster, notes, scores. Has portal access with a separate password.</div>
-        </div>
-        <div class="role-box" style="background:var(--surface-sunken);border:1px solid var(--hairline);">
-          <div style="font-size:11px;font-weight:700;color:var(--ink-50);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">📊 Scoring Admin</div>
-          <div style="font-size:13px;color:var(--ink-50);">Player tabs only + Score tab unlocked. Can enter scores and publish results. Cannot see Email, Admin, or Stats. Easy to toggle on/off week to week.</div>
-        </div>
-        <div class="callout"><strong>Two sign-up buttons for admins</strong><p><b style="color:var(--brand);">+ Sign me up</b> — green, pre-fills your own name. <b style="color:var(--info);">+ Sign up someone</b> — blue, opens the full roster picker.</p></div>
-        <div class="info-m"><strong>Managing admin roles</strong><p>Done through the <b>Admin Portal</b> (portal.html). See the Admin Portal section below.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">⛳</span> Game Modes — Team or Individual (Stableford)</h3>
-        <p>Every day plays a <b>game mode</b>. The group default is <b>Regular Team Game</b> — new days wear it automatically, no clicks needed. Days can each play a different game: Friday team, Saturday individual, Sunday team.</p>
-        <div class="callout"><strong>Where modes come from</strong><p><b>Templates</b> are created and managed only in the <b>Admin Portal → Game Modes</b> (buy-in, fund, pots, skins, and for individual games: ranking, paid spots, tie rule). A <b>one-day custom</b> can be built in the app during day setup — it applies to that day only and clears at End Week.</p></div>
-        <div class="info-m"><strong>Setting a day's game (admins)</strong><p>Two places: the <b>day setup panel</b> in Manage Week (current game shown in the colored box; "Switch to a saved game" or configure a custom), or <b>tap the game pill</b> on the Week tab day card for a quick picker. Changing the game <b>never touches sign-ups</b>. Once scores exist, the mode locks (🔒).</p></div>
-        <div class="info-m"><strong>Members</strong><p>Tap the game pill on any day to see what's being played and the money: buy-in, fund, pots — or for individual games, the ranking and paid spots.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">🏌️</span> Individual Days — Groups &amp; Stableford Scoring</h3>
-        <p>On an individual day, the Teams tab becomes <b>Groups</b> — just who plays together and who tees off first. No handicap balancing, no team slots.</p>
-        <div class="info-m"><strong>Building groups (admins)</strong><p><b>Build groups</b> deals everyone randomly into even groups (6 players → 3+3, 7 → 4+3, 10 → 4+3+3). Guest pairs stay together; first-tee requests land in Group 1, last-tee in the last group. <b>Shuffle groups</b> re-deals; drag anyone to rearrange. Groups can hold 5. <b>Publish Groups</b> when set — Group 1 goes off first.</p></div>
-        <div class="info-m"><strong>Scoring (Stableford)</strong><p>The Score tab shows one row per player: <b>Stableford points</b> and a <b>target</b> (from the roster, editable per round — default 36). Ranking is by the mode's setting: <b>net to target</b> (points minus target) or <b>raw total</b>. If the mode has individual skins, tap − / + per player.</p></div>
-        <div class="info-m"><strong>Payouts</strong><p>Collected − tournament fund (a <b>toggle</b> — turn it off for real tournaments) − skins pot = the payout pool, split across the mode's <b>paid spots</b>. Every spot is editable; the app <b>blocks Finalize until money in = money out</b>. Ties split the pooled spot money evenly; all rounding goes to the tournament fund.</p></div>
-        <div class="callout"><strong>Finalize works the same as team days</strong><p>One button saves scores, payouts, and <b>the day's full game rules</b> to History. Changing a template later never changes a finished round.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">1</span> Set Up Your Days — Admin Tab</h3>
-        <p>The Admin tab opens to <b>Manage Days</b>. Tap <b>Set up [Day]</b> to activate it — the wizard walks through tee time, locking sign-ups, and team building. An inline checklist shows progress per day (⚡ 2/4 or ✓ 4/4).</p>
-        <div class="mock-ui"><div class="btn-m green full">Set up Saturday</div></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">★</span> Posting Announcements</h3>
-        <p>Below Manage Days in the Admin tab is the <b>Announcements</b> section. Tap <b>+ New announcement</b> to compose a message visible to all members.</p>
-        <p style="margin-top:8px;"><b>Pick a category</b> (Tournament, New Feature, Schedule, Important, General), enter a title (60 chars) and message (400 chars), and choose how it displays:</p>
-        <p><b>Banner</b> — colored strip at the top, dismissable.<br/><b>Modal</b> — full popup with "Got it" button, forces attention.</p>
-        <p style="margin-top:8px;"><b>Dismissal options:</b></p>
-        <p>• <em>Stays until each user dismisses it</em> — they tap ✕ once, it's gone forever for them.<br/>• <em>Resets every time the app opens</em> — comes back next session even if dismissed.<br/>• <em>Auto-removes for everyone after X days</em> — admin sets a cutoff date, users can still dismiss early.</p>
-        <div class="info-m"><strong>Pause, edit, or delete</strong><p>Active announcements show in the admin list with Pause / Edit / Delete buttons. When editing, check <b>"Re-notify everyone"</b> to reset all dismissals — useful when you've made a meaningful update and want everyone to see it again.</p></div>
-        <p style="margin-top:8px;">The same Announcements tab is also available in the <b>Portal</b> — admins can post from either place. All posts are real-time: members see them within a second of publishing.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">2</span> Build Teams</h3>
-        <p><b>Auto-generate</b> sorts by handicap into balanced A/B/C/D groups. <b>Manual build</b> lets you hand-pick each player. Drag the handle (⋮) to move players between teams. The algorithm checks history to avoid repeating the same pairings.</p>
-        <div class="callout"><strong>Slots always re-sort</strong><p>After any move, A/B/C/D reassigns automatically by handicap. You can't accidentally put a low HCP in slot D.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">3</span> Approvals Before Building</h3>
-        <p>Before auto-generate, any pending requests appear for review:</p>
-        <p><b>Tee time requests</b> — approve/deny first/last group.<br/><b>Guest pairing requests</b> — approve to keep guest with their member.<br/><b>Match pairing requests</b> — approve to place opponents on the same team.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">4</span> Balance Button</h3>
-        <p>Available before <em>and</em> after publishing. Tap <b>⚖️ Balance</b> to see the current handicap spread and the top swap suggestions to improve it. Shows current spread, projected new spread, and up to three swap options. Apply one at a time — re-check after each.</p>
-        <div class="info-m"><strong>Constraints respected</strong><p>Guest pairs, match partners, and tee preference players are never suggested for swaps — they stay locked.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">5</span> Lock Sign-Ups</h3>
-        <p>On each day card in the Week tab, the <b>Lock sign-ups</b> button closes the day to new sign-ups. Once locked, members see "Join Waiting List" instead of "Sign me up." Admins can unlock any time.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">6</span> Publish &amp; Lock Teams</h3>
-        <p>Hit <b>Publish &amp; Lock</b>. Teams get official names (Team One, Team Two…) and are visible to all members. <b>Copy teams</b> pastes a clean plain-text version into iMessage or Gmail — includes day header, tee time, player list with slots, any match/tee/guest badges, and a matches summary at the bottom.</p>
-        <p style="margin-top:8px;"><b>Clear teams</b> — appears before publishing. Wipes the current draft and starts fresh — sign-ups are preserved.<br/><b>Reset Teams</b> — appears after publishing. Unpublishes and clears teams so you can rebuild from scratch.</p>
-        <div class="info-m"><strong>Promote from Waitlist</strong><p>In the Teams tab, a gold Waiting List panel shows anyone on the waitlist for that day. Tap <b>Add to Round</b> to move them into sign-ups and unlock the day for rebuilding.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">7</span> Score Tab — Score &amp; Finalize</h3>
-        <p>Enter team scores (Front, Back, Overall) and tap Skins buttons. The app calculates the pot, splits ties, and shows exact dollar payouts. Once all scores are entered a 🏆 Winnings Summary appears with team totals and per-player share. Payment tracking lets you mark who has paid with one tap.</p>
-        <p style="margin-top:8px;"><b>Skins surplus note:</b> Until you tap at least one skin, the payout preview shows the full skins pot as a "rounding surplus." This is normal — it clears automatically once skins are entered.</p>
-        <p style="margin-top:8px;">When the round is done, two buttons close it out:</p>
-        <p><b>Finalize Round — Save to History</b> — the one-step finish. Saves the scores, calculates payouts, and moves the round into History in a single tap (with a confirmation). This is the normal way to end every round — players view the results in the <b>History tab</b>.<br/><b>Save Preview (not finalized)</b> — optional. Saves and shows the payouts <em>without</em> finalizing, so you can double-check the numbers first. A preview is not in History yet — remember to hit Finalize when you're happy with it.</p>
-        <div class="callout"><strong>One step, no limbo</strong><p>Finalize replaces the old two-step "Save &amp; Publish → Move to History" flow. A finalized round is in History immediately — there's no in-between state where a scored round can be lost.</p></div>
-        <p style="margin-top:8px;"><b>Edit Scores</b> — reopens a saved preview for corrections before finalizing.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">✎</span> Fixing a Round Already in History</h3>
-        <p>Tap <b>Edit</b> on any round in the History tab. The round opens in the Score tab for corrections — and the original entry <b>stays safely in History</b> the whole time. An amber banner on the Score tab reminds you you're editing a past round.</p>
-        <p style="margin-top:8px;">Two ways out:</p>
-        <p><b>Finalize Round</b> — saves your corrections and replaces the old History entry with the updated one (the swap is instant — the round is never missing from History).<br/><b>Cancel Edit — keep History version</b> — discards your changes and leaves the original round in History exactly as it was. Use this if you tapped Edit by accident.</p>
-        <div class="info-m"><strong>While editing</strong><p>The round shows in both History (the original) and the Score tab (your working copy) until you Finalize or Cancel. The Teams tab may show a "Teams are out of date" warning on an edited round — ignore it and do <b>not</b> tap Reset Teams; just Finalize or Cancel from the Score tab.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">8</span> Weekly Notes &amp; Announcements</h3>
-        <p>In the Admin tab under <b>Weekly Notes &amp; Announcements</b>, add per-day notes and upcoming events (with B/I/U formatting). Notes appear as a gold callout on the Week tab for members. Upcoming Events persist across End Week — clear manually when done.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">9</span> Roster Management</h3>
-        <p>Under <b>Roster</b> in the Admin tab: copy every roster email (or just the registered ones), search and manage players, and add new players — <b>an email address is now required</b> when adding anyone, and it syncs to the group email list automatically. Deeper cleanup lives in the portal.</p>
-        <div class="info-m"><strong>Phone number format</strong><p>Enter any format — the app strips everything and stores only the last 4 digits as the PIN.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">10</span> Activity Log</h3>
-        <p>The <b>Activity Log</b> (Admin tab, above End Week) records every meaningful action — sign-ups, removals, team publishes, day setup, roster changes — with timestamps and who did it.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">★</span> Stats Tab</h3>
-        <p>Accessible from the <b>Stats tab</b> (second nav row). Master Admin sees the full dashboard — 14 collapsible sections of season intelligence:</p>
-        <p><b>Season overview</b> · <b>Avg players by day</b> · <b>Scoring analytics</b> · <b>Pot analytics</b> · <b>Money stats</b> (full player ledger, same as Standings with round breakdown) · <b>Top rounds played</b> · <b>Handicap trends</b> · <b>Tee stats</b> · <b>Player requests</b> · <b>Team chemistry</b> · <b>Member engagement</b> · <b>Sign-up timing</b> · <b>Activity log</b> · <b>Login activity</b></p>
-        <div class="callout"><strong>Access control</strong><p>Master Admin can open Stats to all members or specific players via the Admin tab. Members with access see a public view of the stats. Lock to nobody to keep it admin-only. All 14 sections filterable by month.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num">11</span> End of Week — Start the Next Week</h3>
-        <p>Tap <b>End Week &amp; Start Fresh</b> at the bottom of the Admin tab. Type <b>END</b> to confirm. The board resets for next week, attendance updates, and Upcoming Events persist — only day notes and subject line clear.</p>
-        <p style="margin-top:8px;">Since each round is finalized to History from the Score tab as it finishes, End Week is now just the week rollover — it isn't how scores get to History anymore.</p>
-        <div class="info-m"><strong>Safety net</strong><p>If a scored day was somehow never finalized (e.g., left as a preview), End Week automatically sweeps it into History before resetting — a scored round can't be wiped by the rollover. But don't rely on this: Finalize each round from the Score tab as your normal habit.</p></div>
-        <div class="mock-ui"><div class="btn-m dark full">End Week &amp; Start Fresh</div></div>
-      </div>
-    </div>
-
-    <!-- EMAIL -->
-    <div class="section">
-      
-<h3>📅 Day Setup Panel (Manage Tab)</h3>
-<p>One card per day: <b>Game</b>, <b>Tee time</b>, <b>More tee times</b> (dropdown picks or Quick-fill consecutive times — they pair with Groups 1, 2, 3… and follow reorders), <b>Day note</b>, and the <b>Sign-ups lock</b>. For days you're not running, <b>"Show note on Week tab"</b> pins a note without activating the day — the editor opens right there.</p>
-<h3>🌧 Cancel vs Remove</h3>
-<p><b>Cancel</b> (rainouts): type CANCEL, optional reason — members get a push, sign-ups clear, a cancelled card stays on the Week tab, and everything is logged forever in <b>Admin → Cancelled Days</b>. <b>Remove</b> quietly deactivates — no log, no banner.</p>
-<h3>🙋 Join Requests &amp; ⚠ Alerts</h3>
-<p>Join requests light a <b>red badge</b> on Admin and push to admins — <b>Approve</b> creates roster entry + PIN in one step (app or portal). Post-publish drop-outs push to admins and appear in the "Needs attention" banner with Dismiss.</p>
-<h3>⚙️ App Settings &amp; 📣 Push Announcements</h3>
-<p><b>Admin → App Settings</b>: guest/pairing/match/tee-preference switches and max guests — same as the portal, no portal needed. Announcements can check <b>"Send as push notification"</b> to buzz everyone.</p>
-
-<h3>🔔 Push Subscribers &amp; Push Controls</h3>
-<p>Two new Admin cards: <b>Push Subscribers</b> lists everyone who's turned on notifications (name, devices, date) — your adoption scoreboard and troubleshooting tool. <b>Push Controls</b> holds the switches: toggle each automatic push (teams published, results, cancellations, join requests, drop-outs, waitlist joins) on or off, choose its audience (Everyone or Admins only), and send a <b>push-only message</b> — a phone buzz with no in-app banner, perfect for testing (send to "Admins only") or quick broadcasts like a frost delay.</p>
-<h3>🎯 Stableford Points Table</h3>
-<p>When setting up an individual game — in the portal's Game Modes templates or the app's custom game editor — you can key in the points for Albatross, Hole-in-1, Eagle, Birdie, Par, Bogey, and Double+. It's informational only (shown to players on the day card and above the pot on the Score tab), and each game can carry its own values.</p>
-<h3>🗄️ End of Season (Portal, Master)</h3>
-<p>The portal's Season tab manages the season's end: set the season name and end date (players see a countdown on the Week tab in the final weeks), then <b>Archive</b> when it's over — one typed word snapshots everything, verifies the copy, logs the fund, clears the live season, and rolls to the new year. Roster, PINs, and game templates carry over untouched. Archived seasons stay browsable in the app forever; archives can't be deleted without downloading a backup first, and a restore option exists as the emergency undo.</p>
-<h2>Weekly Email</h2>
-      <p>Generate a polished weekly email and copy it straight into Gmail. No email service needed.</p>
-      <div class="feature">
-        <h3><span class="feature-num dark">1</span> Open the Email Tab</h3>
-        <p>Tap <b>Email</b> in the second admin nav row. The tab shows upcoming play days, status of each (locked, teams published), and the editable subject line.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num dark">2</span> Day Notes &amp; Upcoming Events</h3>
-        <p>Each day has a text area for notes (game format, special instructions). Below that, a large <b>Upcoming Events</b> block with B/I/U formatting — tournament schedules, event announcements, anything not day-specific. Events persist across weeks.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num dark">3</span> Preview &amp; Copy</h3>
-        <p>Tap <b>Preview Email</b> to see exactly what recipients will see. Two copy buttons at the bottom:</p>
-        <p><b>Copy Formatted</b> — styled HTML, paste into Gmail.<br/><b>Copy Plain Text</b> — clean text with aligned columns, for iMessage or group texts.</p>
-        <div class="mock-ui"><div style="display:flex;gap:8px;"><div class="btn-m dark" style="flex:1;">Copy Formatted</div><div class="btn-m outline" style="flex:1;">Copy Plain Text</div></div></div>
-      </div>
-    </div>
-
-    <!-- ADMIN PORTAL -->
-    <div class="section">
-      
-<p><b>New:</b> the Email tab is a <b>read-only preview of the actual email</b>. Day notes are edited in <b>Manage Week</b>; upcoming events in <b>Admin</b>. Results — team and individual — stay in the email even after a round is finalized.</p>
-<h2>Admin Portal</h2>
-      <p>A separate management tool at <b>portal.html</b> for running the group behind the scenes. Master Admin and Super Admins with a portal password can access it.</p>
-      <div class="feature">
-        <h3><span class="feature-num dark">1</span> What's in the Portal?</h3>
-        <p><b>Dashboard</b> — active days, player counts, tournament pot, system health, Firebase inspector (master only), activity log, login log.<br/><br/><b>Week</b> — manage days and sign-ups, day checklists, weekly notes, End Week (master only).<br/><br/><b>Communications</b> — the weekly email builder.<br/><br/><b>Roster</b> — the 🧹 <b>Cleanup session</b> at the top (backup button, then buckets: no email · add to Clark's list · delete candidates · never registered), then the roster itself: email coverage, copy buttons, Clark's-list filter, and every player with rounds played and registration status. One <b>Delete</b> per player with a 🗑 Deleted list you can restore from. Past rounds always stay counted — deleting a player never changes the fund or old standings.<br/><br/><b>Awards</b> — the season awards workbench (see below).<br/><br/><b>Access</b> — manage admin roles. Add admins, switch between Super Admin and Scoring Admin, remove access. Set portal passwords for Super Admins.<br/><br/><b>History</b> — view and manage completed rounds. Delete moves to trash (recoverable from main app).<br/><br/><b>Attend</b> — log rounds, edit attendance, view standings.<br/><br/><b>Tournament</b> — the whole tournament: config, field &amp; pay-ins, payouts, GO LIVE, and 🏁 Close out &amp; archive. Master only for launch controls.<br/><br/><b>Season</b> — season name and end date (the date that splits one season from the next). Master only.<br/><br/><b>Settings</b> — Firebase auth setup, tournament fund balance, master password. Master only.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num dark">2</span> Managing Admin Roles</h3>
-        <p>Go to the <b>Access tab</b> in the portal. Search for a player → tap <b>+ Add as Scoring Admin</b>. Change role with the per-person dropdown (Super Admin / Scoring Admin). Remove with the ✕ button. Set a portal password for Super Admins to give them portal access.</p>
-        <div class="info-m"><strong>New admins default to Scoring Admin</strong><p>Actively promote to Super Admin if you want them to have full access.</p></div>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num dark">3</span> Accessing the Portal</h3>
-        <p>Tap <b>Admin Portal →</b> at the bottom of the app landing page. Sign in with the master password or your portal password.</p>
-        <div class="callout"><strong>Shared Firebase database</strong><p>Changes in the portal write to the same database as the main app. Add an admin in the portal — they see their new access in the main app immediately.</p></div>
-      </div>
-    </div>
-
-    <!-- ATTENDANCE -->
-    <div class="section">
-      <h2>Season Attendance</h2>
-      <p>Tracks every player across the whole season — rounds played and the year-end tournament pot.</p>
-      <div class="feature">
-        <h3><span class="feature-num gold">1</span> Automatic Tracking</h3>
-        <p>Every time a round is finalized to History (or a week is closed out), player names are pushed to attendance automatically. No duplicate counting — same date pushed twice replaces rather than duplicates.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num gold">2</span> Season Standings</h3>
-        <p>Searchable leaderboard ranked by rounds played. Tap any player to see every date they played. Gold/silver/bronze badges for top three.</p>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num gold">3</span> Year-End Tournament Pot</h3>
-        <p>Tracks $1 per player per round automatically, always visible at the top of the Attend tab.</p>
-        <div class="mock-ui" style="padding:0;border:none;background:none;"><div class="pot-m"><div><div style="font-size:11px;font-weight:700;color:var(--warn-ink);text-transform:uppercase;">Year-End Tournament Pot</div><div style="font-size:10px;color:var(--ink-40);">$1 per player per round</div></div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--highlight);">$217</div></div></div>
-      </div>
-      <div class="feature">
-        <h3><span class="feature-num gold">4</span> Admin Controls</h3>
-        <p>Admins can log rounds manually — pick a date, select players from the full roster, add guests by name. Edit or delete existing rounds via the Attend tab or the Admin Portal.</p>
-      </div>
-    </div>
-
-    <!-- TOURNAMENT -->
-    <div class="section">
-      <h2>The Tournament</h2>
-      <p>The year-end tournament runs inside the app — invites, teams, scoring and money, all in the 🏆 <b>Tourney</b> tab.</p>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">1</span> The Fund You've Already Paid Into</h3>
-        <p>All season, <b>$1 from every player every round</b> goes into the tournament fund. It's real money already collected, and it grows every week we play up to the season end date.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">2</span> Your Invite</h3>
-        <p>When invites open you'll get a <b>pop-up</b> the next time you open the app: the dates, what you owe, and four buttons — <b>Saturday only</b>, <b>Sunday only</b>, <b>Both days</b>, or <b>Can't make it</b>. Tap one and you're done.</p>
-        <p style="margin-top:8px;">Not ready? Tap <b>I'll decide later</b>. The invite card stays at the top of the Week tab and the 🏆 tab carries a red dot until you answer — and the pop-up returns once more three days before the deadline.</p>
-        <div class="callout"><strong>Change your mind any time</strong><p>Tap a different day on the 🏆 tab right up to the response deadline. After that the app locks and changes go through Clark directly.</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">3</span> What It Costs</h3>
-        <p>Entry is a set amount minus <b>$1 for every round you've played</b> this season — so it keeps dropping every Friday you show up. <b>The same entry covers one day or both.</b> Pay Clark before you tee off.</p>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">4</span> The Tourney Tab</h3>
-        <p><b>🏆 Board</b> — the scoreboard: pot now, projected, and potential, plus who's in for each day.<br/><b>👥 Who's in</b> — counts and alphabetical lists per day.<br/><b>⛳ Teams</b> — your team once published, drawn fresh each day and handicap-balanced from whoever is playing that day.<br/><b>📋 Scores</b> — live scoring and results.</p>
-        <div class="info-m"><strong>Admins also see</strong><p><b>⚙ Config</b> (name, dates, deadline, entry bar, payout split) and <b>💵 Field</b> (place anyone in or out per day, fix handicaps and tees, mark payments, and ✉ Invite anyone under the rounds bar).</p></div>
-      </div>
-
-      <div class="feature">
-        <h3><span class="feature-num gold">5</span> After the Tournament</h3>
-        <p>Once every team is scored, the master admin runs <b>🏁 Close out &amp; archive</b> in the portal. Everything is saved to that year, a backup file is downloaded, and the live slot empties for next year. <b>The Tourney tab keeps showing the results</b> — with a year picker as tournaments stack up. Nothing is ever deleted.</p>
-      </div>
-    </div>
-
-    <!-- SEASON BOUNDARY -->
-    <div class="section">
-      <h2>Seasons</h2>
-      <p>The season has an <b>end date</b>, set in the portal. It's the line that separates one year from the next.</p>
-      <p style="margin-top:8px;">Rounds played <b>on or before</b> that date count toward this season's standings and this year's tournament fund. Rounds after it start counting toward <b>next</b> season and next year's fund — automatically, on the date, with nothing to press.</p>
-      <div class="info-m"><strong>In the app</strong><p>The Attend tab has <b>This season</b> and <b>All-time</b> views. Nothing is ever archived away — old rounds stay on the books forever.</p></div>
-    </div>
-
-    <!-- AWARDS -->
-    <div class="section">
-      <h2>Season Awards</h2>
-      <p>At the end of the season, an <b>🏆 Awards</b> tab appears in the app with the year's honours — computed from every round played.</p>
-      <p style="margin-top:8px;">🏋️ The Iron Man · 💰 Money List Champion · 🔪 The Skinner · 🩸 Most Generous Donor · 💐 Always the Bridesmaid · 🤝 The Social Butterfly · 📅 Perfect Attendance · 🐓 First Man In · 🐌 The Procrastinator · 🚪 The Ambassador · 🌅 Best Front Nine · 🌇 Best Back Nine · 👑 Round of the Year — and the ones nobody wants: 🧨 Worst Front Nine · 🕳️ Worst Back Nine · 🔥 Round Best Forgotten.</p>
-      <div class="info-m"><strong>Admins</strong><p>The portal's <b>Awards</b> tab computes every leaderboard from real data. Edit titles and blurbs, tap a name to crown a winner, add your own custom awards, then <b>Publish to the app</b> or <b>Copy for email</b>. Nothing is visible to members until you publish.</p></div>
-    </div>
-
-    <!-- PREVIEW MODE -->
-    <div class="section">
-      <h2>Showing Someone the App</h2>
-      <p>Want to show the app to someone without giving them a login? The master admin can set a <b>preview code</b> (portal → App Settings). On the sign-in screen they tap <b>Preview the app</b>, enter the code, and browse the real app with a <b>view-only</b> banner.</p>
-      <div class="callout"><strong>Truly read-only</strong><p>Nothing they tap can change anything — sign-ups, RSVPs and every save are disabled at the plumbing, not just hidden. Clear the code to switch the option off.</p></div>
-    </div>
-
-    <div class="link-row" style="justify-content:center;">
-      <a href="index.html" style="background:var(--ink);color:#fff;min-width:140px;">← Back to App</a>
-    </div>
-
-    <div style="text-align:center;margin-top:20px;padding-bottom:10px;font-size:11px;color:var(--ink-40);">App by <strong>Jared Friend</strong></div>
-
-  </div>
+<div class="callout">
+  <strong>The app checks the date here.</strong> If the day's date is not part of
+  the current week, or is more than a couple of days old, Start Scoring will
+  refuse and tell you to fix it in Manage Days. This catches a wrong date
+  <em>before</em> anyone plays, instead of after the whole round is scored.
 </div>
 
-</body>
-</html>
+<p><strong>Stage 2 — score as teams come in.</strong> Press Start Scoring and the
+score boxes appear. Enter each team's Front, Back and Overall and tap their skins
+as they finish — you do not have to wait for everyone. A strip across the top
+shows where you are:</p>
+
+<p><em>Team One ✓ scored · Team Two waiting · Team Three waiting</em></p>
+
+<p><strong>Your scores save themselves.</strong> Every change is saved about a
+second after you stop typing. There is no Save button any more because you do not
+need one. Close the browser, lose signal, or hand the phone to someone else —
+what you entered is already saved.</p>
+
+<div class="callout">
+  <strong>Saving is not publishing.</strong> Nothing reaches History until you
+  press Finalize. You can save as many times as you like and it cannot touch a
+  finished round. This is the change that stops rounds disappearing.
+</div>
+
+<p><strong>Finishing the round.</strong> <strong>Finalize &amp; Publish — Save to
+History</strong> only becomes available once every team has a score. Until then it
+is greyed out and tells you who you are still waiting on. When you press it you
+get a confirmation, and if no skins have been recorded for the whole round it will
+ask whether that is right — there is normally at least one.</p>
+
+<p>Once published, the button is <em>gone</em>. It is replaced by
+<strong>✓ Round saved</strong> with the date. There is nothing left to press twice,
+and the day drops off the Score tab because it is now in History.</p>
+
+<p><strong>Skins surplus note:</strong> until you tap at least one skin, the payout
+preview shows the full skins pot as a "rounding surplus." This is normal and clears
+once skins are entered.</p>
+
+<p><strong>If something is wrong mid-round:</strong> use <strong>Cancel Day</strong>
+at the bottom of the Score tab. It asks you to confirm and then makes you type
+CANCEL, so it cannot happen by accident. No round is saved, no attendance is
+recorded, and nothing goes to the tournament fund.</p>
+
+<div class="callout">
+  <strong>Gone from this tab:</strong> Save Preview / Update Preview (the app saves
+  on its own now) and Edit Scores (scores stay editable right up until you press
+  Finalize, so there is nothing to reopen).
+</div>

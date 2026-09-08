@@ -2727,6 +2727,7 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
 
 function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings, targetsByName }){
   const [activeDay, setActiveDay] = useState(null);
+  const [savedNote, setSavedNote] = useState('');   // confirmation shown after Finalize
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
   const [sk, setSk] = useState({});        // skinCounts: {teamId: count}
   const [fp, setFp] = useState(1);         // front places (1 or 2)
@@ -2820,7 +2821,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     write('week/paid/'+day+'/'+playerName, paid);
   }
 
-  function handleSaveAndPublish(){
+  function handleSaveAndPublish(isAutosave){
     const useFv=fv||String(pot.front); const useBv=bv||String(pot.back);
     const useOv=ov||String(pot.overall); const useSv=sv||String(pot.skins);
     if(!fv)setFv(useFv); if(!bv)setBv(useBv); if(!ov)setOv(useOv); if(!sv)setSv(useSv);
@@ -2834,19 +2835,28 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
       b1:parseFloat(b1v)||0, b2:parseFloat(b2v)||0,
       o1:parseFloat(o1v)||0, o2:parseFloat(o2v)||0,
       tournFund:pc, playerCount:pc, drawAdj:da,
-      savedAt:Date.now(), payoutsCalculated:true, payoutsAt:Date.now(),
+      savedAt:Date.now(),
+      // Autosave writes scores ONLY. payoutsCalculated is the published flag —
+      // setting it here would retire the Finalize button before anyone pressed it.
+      payoutsCalculated: isAutosave ? !!payoutsCalculated : true,
+      payoutsAt: isAutosave ? (dayScores&&dayScores.payoutsAt)||null : Date.now(),
     };
-    update({['week/scores/'+activeDay]: data, ['week/complete/'+activeDay]: true});
-    setJustSaved(true); setTimeout(()=>setJustSaved(false),2500);
+    update({['week/scores/'+activeDay]: data, ['week/complete/'+activeDay]: !isAutosave});
+    if(!isAutosave){ setJustSaved(true); setTimeout(()=>setJustSaved(false),2500); }
     return data;
   }
 
   function handleFinalize(){
+    if(!allScored){
+      alert('Not ready to publish.\n\nStill waiting on: '+unscoredTeams.map(t=>t.name||('Team '+t.id)).join(', ')+'.'); return;
+    }
+    if(totalSkins===0 && !window.confirm('No skins recorded for any team.\n\nThat is unusual \u2014 there is normally at least one. Publish anyway?'))return;
     if(!window.confirm('Finalize this round?\n\nScores and payouts will be saved and the round will move to History in one step. Players can view results in the History tab.\n\n(Corrections afterward: History → Edit.)'))return;
     // ONE-STEP FINALIZE: save + archive atomically from the caller's side.
     // The exact data object we just wrote is handed to archiveDay directly,
     // so the archive can never capture stale state.
     const data=handleSaveAndPublish();
+    setSavedNote(activeDay+((effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' — '+effectiveWeek.dates[activeDay]):''));
     if(onArchiveDay)onArchiveDay(activeDay, data);
   }
 
@@ -2896,6 +2906,132 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   }
   if(activeDay && dayModeCfg && (dayModeCfg.type==='individual'||savedIsInd)){
     return <IndividualScoringV2 targetsByName={targetsByName||{}} currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
+  }
+
+  // ── DAY PHASE ───────────────────────────────────────────────────────────
+  // week/scoringStarted/<day> is the gate. Until it is set the score inputs
+  // are inert and Teams stays editable; once set, teams are frozen and the
+  // only way back is the explicit Change Teams button below.
+  const scoringStarted = !!(effectiveWeek&&effectiveWeek.scoringStarted&&effectiveWeek.scoringStarted[activeDay]);
+  const canAdmin = isAdmin;                       // master/admin only
+  const canScore = isAdmin || (currentUser&&currentUser.role==='scoring');
+
+  function startScoring(){
+    const d=(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])||'';
+    const known=Object.values((effectiveWeek&&effectiveWeek.dates)||{});
+    const daysOld=Math.round((Date.parse(td())-Date.parse(d))/86400000);
+    if(!d||known.indexOf(d)<0){
+      alert('Cannot start scoring.\n\n'+activeDay+' has no valid date set. Fix it in Manage Days first.'); return;
+    }
+    if(!isNaN(daysOld)&&daysOld>2){
+      alert('Cannot start scoring.\n\n'+activeDay+' is dated '+d+', which is '+daysOld+' days ago.\n\nThe week\u2019s dates were probably never rolled forward. Fix the date in Manage Days, then start scoring.'); return;
+    }
+    if(!dayTeams.length){ alert('Cannot start scoring.\n\nNo teams have been built for '+activeDay+' yet.'); return; }
+    write('week/scoringStarted/'+activeDay, Date.now());
+  }
+  function cancelDay(){
+    if(!confirm('Cancel '+activeDay+'?\n\nNo round is saved, no attendance is recorded and nothing goes to the tournament fund. This cannot be undone from here.'))return;
+    if(prompt('Type CANCEL to confirm.')!=='CANCEL')return;
+    write('week/scoringStarted/'+activeDay, null);
+    write('week/cancelled/'+activeDay, Date.now());
+    onSwitchTab&&onSwitchTab('home');
+  }
+
+  // After a round is finalized its day leaves activeDays. Without this the
+  // Score tab kept rendering the dead day: 0 players, 0 teams, "Waiting on"
+  // with nothing after it. Move to a day that still exists.
+  useEffect(()=>{
+    if(!activeDay||!activeDays.length)return;
+    if(activeDays.indexOf(activeDay)<0)setActiveDay(activeDays[0]);
+  },[activeDays,activeDay]);
+
+  // ── PIECE 2: AUTOSAVE ───────────────────────────────────────────────────
+  // Every change to a team's score is written after a short pause. Saving is
+  // NOT publishing — this only touches week/scores, never history. Press save
+  // fifty times, close the browser, hand the phone over: nothing can be lost
+  // and nothing can overwrite a published round.
+  const autoRef = useRef({t:null,sig:''});
+  useEffect(()=>{
+    if(!scoringStarted||payoutsCalculated||!activeDay)return;
+    if(!dayTeams.some(t=>ts&&ts[t.id]))return;   // nothing entered yet
+    const sig=JSON.stringify({ts,sk,fv,bv,ov,sv,fp,bp,op});
+    if(sig===autoRef.current.sig)return;
+    autoRef.current.sig=sig;
+    if(autoRef.current.t)clearTimeout(autoRef.current.t);
+    autoRef.current.t=setTimeout(()=>{ try{ handleSaveAndPublish(true); }catch(e){ console.warn('[autosave] failed',e); } },1200);
+    return()=>{ if(autoRef.current.t)clearTimeout(autoRef.current.t); };
+  },[ts,sk,fv,bv,ov,sv,fp,bp,op,scoringStarted,payoutsCalculated,activeDay]);
+
+  // Which teams have a score in yet — drives the progress strip and gates Finalize.
+  const teamScored = t=>{ const r=ts&&ts[t.id]; if(!r)return false;
+    return ['front','back','overall'].some(k=>r[k]!==''&&r[k]!==undefined&&r[k]!==null&&!isNaN(parseFloat(r[k]))); };
+  const scoredTeams   = dayTeams.filter(teamScored);
+  const unscoredTeams = dayTeams.filter(t=>!teamScored(t));
+  const allScored     = dayTeams.length>0 && unscoredTeams.length===0;
+  const totalSkins    = dayTeams.reduce((n,t)=>n+(parseInt(sk&&sk[t.id],10)||0),0);
+
+  // ── START SCORING GATE ──────────────────────────────────────────────────
+  // Teams exist but scoring has not been started: show the teams read-only
+  // with one button. Score inputs do not exist yet, so nothing can be typed
+  // against a line-up someone is still adjusting.
+  if(dayTeams.length>0 && !scoringStarted && !payoutsCalculated){
+    return(
+      <main className="content">
+      {savedNote && (
+        <div style={{margin:'0 12px 12px',padding:'12px 14px',borderRadius:10,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontSize:13.5,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+          <span>✓ Round saved {savedNote} — it is now in History.</span>
+          <button onClick={()=>setSavedNote('')} style={{border:'none',background:'transparent',color:'#15803d',fontSize:16,cursor:'pointer',fontFamily:'inherit'}}>&times;</button>
+        </div>
+      )}
+        <div className="page-eyebrow">Scoring</div>
+        <div className="page-title">Score &amp; Payouts</div>
+        <div className="page-sub">
+          <strong>{activeDay}</strong>{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' \u00b7 '+effectiveWeek.dates[activeDay]):''} · teams built · not yet scoring
+        </div>
+        {activeDays.length>1 && (
+          <div style={{padding:'0 12px 12px',display:'flex',gap:6}}>
+            {activeDays.map(d=>(
+              <button key={d} onClick={()=>setActiveDay(d)} style={{flex:1,padding:'8px 4px',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:'1px solid var(--hairline)',background:d===activeDay?'var(--ink)':'var(--surface)',color:d===activeDay?'#fff':'var(--ink)'}}>{d}</button>
+            ))}
+          </div>
+        )}
+        <div className="card" style={{margin:'0 12px 12px',padding:14}}>
+          <div style={{fontSize:11,fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--ink-50)',marginBottom:12}}>Teams for {activeDay}</div>
+          {dayTeams.map((t,ti)=>(
+            <div key={t.id} style={{padding:'11px 0',borderTop:ti===0?'none':'1px solid var(--hairline-soft)'}}>
+              <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:5}}>
+                <span style={{fontSize:13.5,fontWeight:800}}>{t.name||('Team '+t.id)}</span>
+                <span style={{fontSize:11,color:'var(--ink-50)'}}>{safeArray(t.players).length} players{t.totalHcp!=null?(' \u00b7 '+t.totalHcp+' hcp'):''}</span>
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                {safeArray(t.players).filter(p=>p&&p.name).map((p,pi)=>(
+                  <span key={pi} style={{fontSize:12,padding:'3px 9px',borderRadius:20,background:'var(--surface-2, rgba(0,0,0,0.04))',border:'1px solid var(--hairline-soft)'}}>
+                    {p.name}{p.handicap!=null?(<span style={{color:'var(--ink-50)'}}> {p.handicap}</span>):null}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--hairline-soft)',fontSize:12,color:'var(--ink-50)',lineHeight:1.5}}>
+            Check the teams are right <strong>before</strong> you start. Starting scoring locks them for the day, so nobody can rebuild or erase them mid-round.
+            {canAdmin && (
+              <div style={{marginTop:8}}>
+                <button className="btn btn-outline btn-sm" onClick={()=>onSwitchTab&&onSwitchTab('teams')}>Teams need changing? Edit them first</button>
+              </div>
+            )}
+          </div>
+        </div>
+        {canScore ? (
+          <div style={{padding:'0 12px 24px'}}>
+            <button onClick={startScoring} style={{width:'100%',padding:'14px',borderRadius:10,border:'none',background:'#16a34a',color:'#fff',fontFamily:'inherit',fontSize:15,fontWeight:800,cursor:'pointer'}}>
+              ▶ Start Scoring
+            </button>
+          </div>
+        ) : (
+          <div style={{padding:'0 12px 24px',fontSize:12,color:'var(--ink-50)'}}>Waiting for an admin to start scoring.</div>
+        )}
+      </main>
+    );
   }
 
   return(
@@ -3344,19 +3480,37 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
         })()}
 
         {/* ── FINALIZE (one-step: save + move to history) ── */}
-        {isAdmin && (
+        {isAdmin && payoutsCalculated && (
+          <div style={{padding:'14px',borderRadius:10,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontSize:14,fontWeight:800,textAlign:'center',marginBottom:16}}>
+            ✓ Round saved{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' — '+effectiveWeek.dates[activeDay]):''}
+          </div>
+        )}
+        {isAdmin && !payoutsCalculated && (
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
             {week?.editingKeys?.[activeDay] && (
               <div style={{padding:'9px 14px',background:'#fef7ed',border:'1px solid #f0d9b5',borderRadius:8,fontSize:12.5,fontWeight:600,color:'#8a5a00'}}>
                 Editing a round from History — the original stays safe in History until you Finalize (which replaces it) or Cancel.
               </div>
             )}
-            <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700}} onClick={handleFinalize}>
-              Finalize Round — Save to History
+            <div style={{display:'flex',gap:6,marginBottom:2}}>
+              {dayTeams.map(t=>(
+                <div key={t.id} style={{flex:1,padding:'7px 4px',borderRadius:8,textAlign:'center',fontSize:11,fontWeight:800,border:'1px solid '+(teamScored(t)?'#86efac':'var(--hairline)'),background:teamScored(t)?'#f0fdf4':'var(--surface)',color:teamScored(t)?'#15803d':'var(--ink-50)'}}>
+                  {(t.name||('Team '+t.id))}<br/>{teamScored(t)?'\u2713 scored':'waiting'}
+                </div>
+              ))}
+            </div>
+            <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700,opacity:allScored?1:0.45,cursor:allScored?'pointer':'not-allowed'}} onClick={handleFinalize} disabled={!allScored}>
+              {allScored
+                ? 'Finalize \u0026 Publish \u2014 Save to History'
+                : ('Waiting on '+unscoredTeams.map(t=>t.name||('Team '+t.id)).join(', '))}
             </button>
-            <button className="btn btn-outline btn-full" onClick={handleSaveAndPublish}>
-              {scoresSaved?'Update Preview (not finalized)':'Save Preview (not finalized)'}
-            </button>
+
+            {scoringStarted && !payoutsCalculated && canAdmin && (
+              <button className="btn btn-outline" style={{fontSize:12,color:'#b91c1c',borderColor:'#fecaca',marginTop:4}} onClick={cancelDay}>Cancel Day</button>
+            )}
+            <div style={{fontSize:11,color:'var(--ink-50)',textAlign:'center',marginTop:2}}>
+              Scores save automatically as you type. Nothing reaches History until you press Finalize.
+            </div>
             {week?.editingKeys?.[activeDay] && onCancelEdit && (
               <button className="btn btn-outline btn-full" style={{color:'#8a5a00',borderColor:'#f0d9b5'}} onClick={()=>onCancelEdit(activeDay)}>
                 Cancel Edit — keep History version
@@ -3368,11 +3522,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
                 Saved — remember to Finalize to lock it into History.
               </div>
             )}
-            {scoresSaved && onReopenDay && (
-              <button className="btn btn-ghost btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>onReopenDay(activeDay)}>
-                Edit Scores
-              </button>
-            )}
+
           </div>
         )}
 
@@ -10119,6 +10269,9 @@ function App(){
       });
     }).catch(()=>{delete ARCHIVE_IN_FLIGHT[flightKey];});
     pushToAttendance(day,dayTeams);
+    // The day is finished: clear the scoring gate so the Score tab does not
+    // keep showing a day that no longer has teams, scores or an active slot.
+    write('week/scoringStarted/'+day, null);
     const newWeek={...week};
     if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
     newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
