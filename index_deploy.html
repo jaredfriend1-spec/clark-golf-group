@@ -678,6 +678,10 @@ const PUSH_VAPID = IS_PROD_HOST ? PUSH_VAPID_PROD : PUSH_VAPID_TEST;
 const PUSH_READY = PUSH_VAPID.indexOf("PASTE_") !== 0;
 const NOTIFY_KEY = "cgg-notify-2026"; // must match NOTIFY_KEY env var in Vercel
 let PUSH_TRIGGERS_CACHE=null;
+// Guards against archiveDay running twice for the same day+date. Module scope
+// on purpose: a ref would be a hook, and hooks are what blanked the portal.
+const ARCHIVE_IN_FLIGHT={};
+const DAY_BACKUP_SIG={};
 function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';if(t==='waitlist')return 'waitlist';if(t==='weekready')return 'weekready';if(t.indexOf('teetime-')===0)return 'teetime';return null;}
 // Collision-aware PIN derivation. <=5 digits = a chosen PIN (verbatim).
 // Longer = a phone number: store last 4, or last 5/6 if taken by someone else.
@@ -2787,7 +2791,12 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
 
   const dayTeams = safeArray(effectiveWeek?.teams?.[activeDay]);
   const daySignups = Object.values(effectiveWeek?.signups||{}).filter(s=>s.day===activeDay);
-  const pc = daySignups.length;
+  // Signups are CLEARED during team-building (endWeek documents this), so
+  // daySignups can be empty for a round that really had 17 players. With no
+  // fallback, pc became 0 -> playerCount 0 and tournFund 0 were saved into
+  // history, and those rounds contributed $0 to the tournament fund.
+  // Confirmed against Jun 5, Jul 19, Aug 28 and Sep 4.
+  const pc = daySignups.length || dayTeams.reduce((s,t)=>s+safeArray(t&&t.players).length,0);
   const pot = calcPot(pc);
   const dayScores = (effectiveWeek?.scores?.[activeDay]) || {};
   const scoresSaved = !!dayScores.savedAt;
@@ -9779,6 +9788,36 @@ function App(){
 
   const fullRoster = useMemo(()=>[...effectiveRoster, ...safeArray(extra).filter(p=>p.id>96 && !p.isGuest)].filter(p=>!(rosterDeleted&&rosterDeleted[p.id])), [effectiveRoster, extra, rosterDeleted]);
 
+  // ── DAY BACKUP ────────────────────────────────────────────────────────
+  // Teams and scores are mirrored to dayBackup/<date>__<day> the moment they
+  // change. archiveDay clears week.teams/week.signups/week.scores when it
+  // finishes; this node is never cleared, so a round can always be rebuilt
+  // even if the week has already been emptied. Writes only on real change.
+  useEffect(()=>{
+    if(!week||isDemo)return;
+    const days=Object.keys(week.dates||{});
+    days.forEach(day=>{
+      const date=week.dates[day]; if(!date)return;
+      const teams=safeArray(week.teams&&week.teams[day]);
+      const scores=(week.scores&&week.scores[day])||null;
+      if(!teams.length&&!scores)return;
+      const payload={date,day,teams,scores,
+        signupCount:Object.values(week.signups||{}).filter(s=>s&&s.day===day).length,
+        playerCount:teams.reduce((s,t)=>s+safeArray(t&&t.players).length,0),
+        ts:Date.now()};
+      const k=date+'__'+day;
+      const sig=JSON.stringify({t:payload.teams,s:payload.scores,c:payload.signupCount});
+      if(DAY_BACKUP_SIG[k]===sig)return;   // nothing changed — skip the write
+      DAY_BACKUP_SIG[k]=sig;
+      try{ write('dayBackup/'+k,payload);
+        // Every distinct set of teams is kept forever under versions/<ts>.
+        // Rebuilding or overwriting teams can no longer lose the previous
+        // line-up — it is recoverable from here even weeks later.
+        if(payload.teams.length)write('dayBackup/'+k+'/versions/v'+Date.now(),{teams:payload.teams,scores:payload.scores,at:Date.now()});
+      }catch(e){ console.warn('[backup] failed for '+k,e); }
+    });
+  },[week,isDemo]);
+
   // Demo: use fake data, fake roster — NEVER Firebase
   const activeWeek = week; // preview always uses real data
   const activeRoster = effectiveRoster; // preview uses real roster
@@ -9891,14 +9930,27 @@ function App(){
   function toggleNoteOnly(day,val){ update({['week/showNoteOnly/'+day]:val||null}); }
   function clearLoginLog(){ del('activityLog'); }
 
-  function pushToAttendance(day){
-    const dayTeams=safeArray(week?.teams?.[day]);
+  function pushToAttendance(day, teamsOverride){
+    const dayTeams=safeArray(teamsOverride&&teamsOverride.length?teamsOverride:week?.teams?.[day]);
     const dayDate=(week?.dates&&week.dates[day])||td();
     const playerNames=dayTeams.flatMap(t=>safeArray(t.players).map(p=>p.name)).sort();
     if(!playerNames.length)return;
     read('attendance/rounds',existing=>{
       const arr=Array.isArray(existing)?existing:Object.values(existing||{});
       const existingIdx=arr.findIndex(r=>r.date===dayDate);
+      // GUARD 5 — pushToAttendance replaces by date. On Sept 6 that wiped a
+      // 20-name Aug 30 record and replaced it with 8 unrelated names. Only
+      // replace when it is recognisably the same group, or larger.
+      if(existingIdx>=0){
+        const prev=(arr[existingIdx]&&arr[existingIdx].players)||[];
+        const lower=new Set(playerNames.map(n=>String(n).toLowerCase().trim()));
+        let shared=0; prev.forEach(n=>{ if(lower.has(String(n).toLowerCase().trim()))shared++; });
+        const overlap=prev.length?shared/prev.length:1;
+        if(prev.length>playerNames.length&&overlap<0.5){
+          console.warn('[guard] attendance for '+dayDate+' already has '+prev.length+' different names — refusing to replace with '+playerNames.length+'.');
+          return;
+        }
+      }
       if(existingIdx>=0){arr[existingIdx]={date:dayDate,players:playerNames};}
       else{arr.push({date:dayDate,players:playerNames});}
       write('attendance/rounds',arr.sort((a,b)=>b.date.localeCompare(a.date)));
@@ -9949,33 +10001,124 @@ function App(){
 
   function archiveDay(day, scoresOverride){
     if(!week)return;
+    // Load this day's backup FIRST. If the week was already cleared by an
+    // earlier archive, the backup is the only surviving copy of teams and
+    // scores — rebuilding from it is what stops a round going in blank.
+    const _dd=(week.dates&&week.dates[day])||td();
+    readOnce('dayBackup/'+_dd+'__'+day,(bk)=>archiveDayFrom(day,scoresOverride,bk));
+  }
+  function archiveDayFrom(day, scoresOverride, bk){
+    if(!week)return;
     const daySignups=Object.values(week.signups||{}).filter(s=>s.day===day);
-    const dayTeams=safeArray(week.teams?.[day]);
+    const _wkTeams=safeArray(week.teams?.[day]);
+    const dayTeams=_wkTeams.length?_wkTeams:safeArray(bk&&bk.teams);
     // scoresOverride: when finalizing in one step, the caller passes the exact
     // just-saved scores object — App state may not have received it yet (race).
-    const dayScores=scoresOverride||(week.scores&&week.scores[day])||null;
+    const dayScores=scoresOverride||(week.scores&&week.scores[day])||(bk&&bk.scores)||null;
     const dayDate=(week.dates&&week.dates[day])||td();
     // playerCount: signups may be absent for rounds pulled back from history via Edit —
     // fall back to team roster count, then the score record's own stored playerCount.
     const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
-    const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
+    const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||(bk&&bk.playerCount)||0;
     const roundData={day,date:dayDate,teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
+
+    // GUARD 1 — never archive an empty shell. endWeek already refuses this;
+    // archiveDay did not. When a second call lands after the first has run
+    // write('week',...) and cleared week.teams[day]/week.scores[day], dayTeams
+    // is [] and dayScores is null. Writing that and then running the sweep
+    // below deletes the REAL round and leaves a round with attendance but no
+    // players, scores, winnings or pots. That is the no-scores bug.
+    // A real round always has PLAYERS. Confirmed against the Aug 28 and Sep 4
+    // losses: on a second Finalize the scores object is still fully populated
+    // from component state (teamScores, skinCounts and pots all intact) while
+    // week.signups and week.teams have already been cleared by the first
+    // archive — so pc=0, playerCount=0, tournFund=0 and teams is empty.
+    // Scores alone are therefore NOT proof that a round happened.
+    const indPlayers=(dayScores&&dayScores.indScores)?Object.keys(dayScores.indScores).length:0;
+    if(!(dayTeams.length>0||daySignups.length>0||indPlayers>0)){
+      console.warn('[guard] archiveDay: no players for '+day+' '+dayDate+' (teams=0, signups=0, individual=0) — refusing. Already archived?');
+      return;
+    }
+
+    // GUARD 1b — DATE SANITY. Sept 6 2026: week.dates.Sunday was still stale at
+    // 2026-08-30, so the round archived onto the previous Sunday. Its sweep then
+    // deleted the real Aug 30 round (20 players) and pushToAttendance overwrote
+    // Aug 30's attendance. A perfectly valid-looking round aimed at the wrong day.
+    // Two checks: the date must belong to the current week, and it must not be
+    // far in the past relative to today.
+    const _today=td();
+    const _knownDates=Object.values((week&&week.dates)||{});
+    const _daysOld=Math.round((Date.parse(_today)-Date.parse(dayDate))/86400000);
+    if(!dayDate||_knownDates.indexOf(dayDate)<0){
+      console.warn('[guard] archiveDay: '+dayDate+' is not one of this week\u2019s dates — refusing.');
+      alert('Cannot save this round.\n\nThe date for '+day+' ('+dayDate+') is not part of the current week. Fix the date in Manage Days, then finalize again.');
+      return;
+    }
+    if(!isNaN(_daysOld)&&_daysOld>2){
+      console.warn('[guard] archiveDay: '+dayDate+' is '+_daysOld+' days old — refusing.');
+      alert('Cannot save this round.\n\n'+day+' is dated '+dayDate+', which is '+_daysOld+' days ago. That usually means the week\u2019s dates were never rolled forward. Fix the date in Manage Days, then finalize again.');
+      return;
+    }
+
+    // GUARD 2 — re-entrancy. Double-tap, or two admins finalizing at once.
+    const flightKey=day+'|'+dayDate;
+    if(ARCHIVE_IN_FLIGHT[flightKey]&&Date.now()-ARCHIVE_IN_FLIGHT[flightKey]<30000){
+      console.warn('[guard] archiveDay already running for '+flightKey+' — ignoring duplicate');
+      return;
+    }
+    ARCHIVE_IN_FLIGHT[flightKey]=Date.now();
+
+    // GUARD 3 — the sweep may only delete entries no richer than this one.
+    const rank=r=>((r&&r.scores&&Object.keys(r.scores).length?2:0)+(safeArray(r&&r.teams).length?1:0));
+    // GUARD 4 — a twin is only the SAME round if it involves the same men.
+    // On Sept 6 the sweep deleted a 20-player round to make room for an
+    // 8-player one purely because the dates matched. Never again.
+    const nameSet=r=>new Set(safeArray(r&&r.teams).flatMap(t=>safeArray(t&&t.players).map(p=>String((p&&p.name)||'').toLowerCase().trim())).filter(Boolean));
+    const myNames=nameSet(roundData);
+    const sameRound=r=>{
+      const o=nameSet(r); if(!o.size||!myNames.size)return true;   // can't tell — fall back to rank rules
+      let hit=0; o.forEach(n=>{ if(myNames.has(n))hit++; });
+      return hit/Math.max(o.size,myNames.size)>=0.5;               // half the field in common
+    };
+    const myRank=rank(roundData);
     sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day,vars:{day:day}});
     // Replace, never duplicate: the push wrapper resolves to the NEW entry's key
     // (it returns a Promise<string>, NOT a ref — treating it as a ref nulled the
     // key and made the sweep delete its own round; July 31 near-disaster).
     // The sweep only runs once the real key is known, and never without one.
     const oldKey=week.editingKeys&&week.editingKeys[day];
+    // NOTHING here deletes a history round outright any more. Every automatic
+    // removal copies the round to historyTrash FIRST, so a bad archive can
+    // always be undone from the Deleted list instead of being gone forever.
+    const retire=(k,rec,why)=>{
+      if(!k)return;
+      try{ write('historyTrash/'+k, Object.assign({}, rec||{}, {trashedAt:Date.now(), trashedBy:'archiveDay', reason:why||'auto'})); }
+      catch(e){ console.warn('[guard] could not trash '+k+' — leaving it in place'); return; }
+      del('history/'+k);
+    };
     Promise.resolve(push('history',roundData)).then((newKey)=>{
-      if(oldKey)del('history/'+oldKey);
-      if(!newKey||typeof newKey!=='string'||newKey==='blocked'){console.warn('[guard] no history key — dup sweep skipped for safety');return;}
+      if(!newKey||typeof newKey!=='string'||newKey==='blocked'){console.warn('[guard] no history key — sweep skipped for safety');delete ARCHIVE_IN_FLIGHT[flightKey];return;}
       readOnce('history',(h)=>{
-        Object.entries(h||{}).forEach(([k,r])=>{
-          if(k!==newKey&&k!==oldKey&&r&&r.day===day&&r.date===dayDate)del('history/'+k);
+        const all=h||{};
+        // Keep the RICHEST version of this day and retire everything else to
+        // historyTrash. Previously a poorer re-archive was simply left in
+        // place alongside the good one, leaving a junk duplicate; and before
+        // that it could delete the good one outright. Neither can happen now.
+        const twins=Object.entries(all).filter(([k,r])=>r&&(k===newKey||(r.day===day&&r.date===dayDate))||(k===oldKey&&r));
+        let bestKey=newKey, bestRank=myRank;
+        twins.forEach(([k,r])=>{ if(k===oldKey)return; const rk=rank(r); if(rk>bestRank){bestRank=rk;bestKey=k;} });
+        twins.forEach(([k,r])=>{
+          if(k===bestKey)return;
+          if(k!==newKey&&k!==oldKey&&!sameRound(r)){
+            console.warn('[guard] '+k+' shares the date but a different field of players — leaving it alone.');
+            return;
+          }
+          retire(k,r,k===oldKey?'replaced-by-edit':(k===newKey?'superseded-by-better':'duplicate-archive'));
         });
+        delete ARCHIVE_IN_FLIGHT[flightKey];
       });
-    });
-    pushToAttendance(day);
+    }).catch(()=>{delete ARCHIVE_IN_FLIGHT[flightKey];});
+    pushToAttendance(day,dayTeams);
     const newWeek={...week};
     if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
     newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
