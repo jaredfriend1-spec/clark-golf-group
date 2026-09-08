@@ -2727,6 +2727,7 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
 
 function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings, targetsByName }){
   const [activeDay, setActiveDay] = useState(null);
+  const [savedNote, setSavedNote] = useState('');   // confirmation shown after Finalize
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
   const [sk, setSk] = useState({});        // skinCounts: {teamId: count}
   const [fp, setFp] = useState(1);         // front places (1 or 2)
@@ -2855,6 +2856,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     // The exact data object we just wrote is handed to archiveDay directly,
     // so the archive can never capture stale state.
     const data=handleSaveAndPublish();
+    setSavedNote(activeDay+((effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' — '+effectiveWeek.dates[activeDay]):''));
     if(onArchiveDay)onArchiveDay(activeDay, data);
   }
 
@@ -2940,6 +2942,14 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     onSwitchTab&&onSwitchTab('home');
   }
 
+  // After a round is finalized its day leaves activeDays. Without this the
+  // Score tab kept rendering the dead day: 0 players, 0 teams, "Waiting on"
+  // with nothing after it. Move to a day that still exists.
+  useEffect(()=>{
+    if(!activeDay||!activeDays.length)return;
+    if(activeDays.indexOf(activeDay)<0)setActiveDay(activeDays[0]);
+  },[activeDays,activeDay]);
+
   // ── PIECE 2: AUTOSAVE ───────────────────────────────────────────────────
   // Every change to a team's score is written after a short pause. Saving is
   // NOT publishing — this only touches week/scores, never history. Press save
@@ -2972,6 +2982,12 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   if(dayTeams.length>0 && !scoringStarted && !payoutsCalculated){
     return(
       <main className="content">
+      {savedNote && (
+        <div style={{margin:'0 12px 12px',padding:'12px 14px',borderRadius:10,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontSize:13.5,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+          <span>✓ Round saved {savedNote} — it is now in History.</span>
+          <button onClick={()=>setSavedNote('')} style={{border:'none',background:'transparent',color:'#15803d',fontSize:16,cursor:'pointer',fontFamily:'inherit'}}>&times;</button>
+        </div>
+      )}
         <div className="page-eyebrow">Scoring</div>
         <div className="page-title">Score &amp; Payouts</div>
         <div className="page-sub">
@@ -3488,9 +3504,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
                 ? 'Finalize \u0026 Publish \u2014 Save to History'
                 : ('Waiting on '+unscoredTeams.map(t=>t.name||('Team '+t.id)).join(', '))}
             </button>
-            <button className="btn btn-outline btn-full" onClick={handleSaveAndPublish}>
-              {scoresSaved?'Update Preview (not finalized)':'Save Preview (not finalized)'}
-            </button>
+
             {scoringStarted && !payoutsCalculated && canAdmin && (
               <div style={{display:'flex',gap:8,marginTop:4}}>
                 <button className="btn btn-outline" style={{flex:1,fontSize:12}} onClick={changeTeams}> Change Teams</button>
@@ -10262,6 +10276,9 @@ function App(){
       });
     }).catch(()=>{delete ARCHIVE_IN_FLIGHT[flightKey];});
     pushToAttendance(day,dayTeams);
+    // The day is finished: clear the scoring gate so the Score tab does not
+    // keep showing a day that no longer has teams, scores or an active slot.
+    write('week/scoringStarted/'+day, null);
     const newWeek={...week};
     if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
     newWeek.activeDays=safeArray(newWeek.activeDays).filter(d=>d!==day);
