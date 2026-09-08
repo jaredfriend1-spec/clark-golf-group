@@ -2929,12 +2929,9 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     if(!dayTeams.length){ alert('Cannot start scoring.\n\nNo teams have been built for '+activeDay+' yet.'); return; }
     write('week/scoringStarted/'+activeDay, Date.now());
   }
-  function cancelDay(){
-    if(!confirm('Cancel '+activeDay+'?\n\nNo round is saved, no attendance is recorded and nothing goes to the tournament fund. This cannot be undone from here.'))return;
-    if(prompt('Type CANCEL to confirm.')!=='CANCEL')return;
+  function stopScoring(){
+    if(!confirm('Stop scoring for '+activeDay+'?\n\nThis unlocks the teams so you can fix them. Sign-ups, teams and any scores you have already entered are all kept. Press Start Scoring again when you are done.'))return;
     write('week/scoringStarted/'+activeDay, null);
-    write('week/cancelled/'+activeDay, Date.now());
-    onSwitchTab&&onSwitchTab('home');
   }
 
   // After a round is finalized its day leaves activeDays. Without this the
@@ -3506,7 +3503,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
             </button>
 
             {scoringStarted && !payoutsCalculated && canAdmin && (
-              <button className="btn btn-outline" style={{fontSize:12,color:'#b91c1c',borderColor:'#fecaca',marginTop:4}} onClick={cancelDay}>Cancel Day</button>
+              <button className="btn btn-outline" style={{fontSize:12,marginTop:4}} onClick={stopScoring}>Stop Scoring — unlock teams</button>
             )}
             <div style={{fontSize:11,color:'var(--ink-50)',textAlign:'center',marginTop:2}}>
               Scores save automatically as you type. Nothing reaches History until you press Finalize.
