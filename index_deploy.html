@@ -8282,7 +8282,7 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
 
 // ═══════════════ STATS VIEW V2 ═══════════════
 function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, rosterDeleted, currentUser, settings, publicMode, onSwitchTab }){
-  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)].filter(p=>p&&!p.hidden&&!(rosterHidden&&rosterHidden[p.id])&&!(rosterDeleted&&rosterDeleted[p.id]));
+  const roster=[...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)].filter(p=>p&&!p.hidden&&!(rosterDeleted&&rosterDeleted[p.id]));
   const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
   const msDay=86400000;
@@ -9794,7 +9794,7 @@ function App(){
   // finishes; this node is never cleared, so a round can always be rebuilt
   // even if the week has already been emptied. Writes only on real change.
   useEffect(()=>{
-    if(!week||isDemo)return;
+    if(!week)return;   // preview safety lives in write() via window.__cgPreview
     const days=Object.keys(week.dates||{});
     days.forEach(day=>{
       const date=week.dates[day]; if(!date)return;
@@ -9809,14 +9809,14 @@ function App(){
       const sig=JSON.stringify({t:payload.teams,s:payload.scores,c:payload.signupCount});
       if(DAY_BACKUP_SIG[k]===sig)return;   // nothing changed — skip the write
       DAY_BACKUP_SIG[k]=sig;
-      try{ write('dayBackup/'+k,payload);
+      try{ if(payload.teams.length)write('dayBackup/'+k+'/versions/v'+Date.now(),{teams:payload.teams,scores:payload.scores,at:Date.now()});
         // Every distinct set of teams is kept forever under versions/<ts>.
         // Rebuilding or overwriting teams can no longer lose the previous
         // line-up — it is recoverable from here even weeks later.
-        if(payload.teams.length)write('dayBackup/'+k+'/versions/v'+Date.now(),{teams:payload.teams,scores:payload.scores,at:Date.now()});
+        ['date','day','teams','scores','signupCount','playerCount','ts'].forEach(f=>write('dayBackup/'+k+'/'+f,payload[f]));
       }catch(e){ console.warn('[backup] failed for '+k,e); }
     });
-  },[week,isDemo]);
+  },[week]);
 
   // Demo: use fake data, fake roster — NEVER Firebase
   const activeWeek = week; // preview always uses real data
