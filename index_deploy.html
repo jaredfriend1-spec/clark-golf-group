@@ -894,6 +894,7 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
 
 // ═══════════════ LANDING ═══════════════
 function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullRoster,savePinFn,settings,playerCards,week,push}){
+  const [showLegal,setShowLegal]=useState(false);
   const [showJoinReq,setShowJoinReq]=useState(false);
   const [jr,setJr]=useState({name:'',phone:'',email:'',referredBy:''});
   const [jrSent,setJrSent]=useState(false);
@@ -1160,12 +1161,36 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
         </div>
         <div style={{textAlign:'center',marginTop:14,marginBottom:2}}>
           <span style={{fontSize:11,color:'rgba(255,255,255,0.18)',letterSpacing:'0.06em'}}>App by <span style={{color:'rgba(255,255,255,0.32)',fontWeight:600}}>Jared Friend</span></span>
+          <div style={{marginTop:5}}>
+            <button onClick={()=>setShowLegal(true)} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',fontSize:10.5,color:'rgba(255,255,255,0.22)',letterSpacing:'0.04em',textDecoration:'underline',textUnderlineOffset:3}}>
+              &copy; {new Date().getFullYear()} Jared Friend. All rights reserved.
+            </button>
+          </div>
         </div>
         <div id="pwa-land-install" style={{textAlign:'center',marginTop:8}}>
           <button id="pwa-land-btn" style={{background:'none',border:'1px solid rgba(255,255,255,0.07)',borderRadius:24,padding:'7px 16px',color:'rgba(255,255,255,0.2)',fontSize:11,cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'inline-flex',alignItems:'center',gap:5}}>
             <span style={{fontSize:12}}>&#128242;</span> Add to Home Screen
           </button>
         </div>
+        {showLegal && (
+          <div onClick={()=>setShowLegal(false)} style={{position:'fixed',inset:0,background:'rgba(2,6,23,0.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'#0f172a',border:'1px solid rgba(255,255,255,0.12)',borderRadius:16,maxWidth:520,width:'100%',maxHeight:'82vh',overflowY:'auto',padding:'22px 22px 18px'}}>
+              <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:22,fontWeight:700,color:'#fff',marginBottom:2}}>Ownership &amp; Licence</div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:16}}>Clark Golf Group &middot; &copy; {new Date().getFullYear()} Jared Friend</div>
+              {[
+                'Clark Golf Group is an original software application conceived, designed, built and owned solely by Jared Friend. This includes its source code, database design, scoring and payout engines, user interface, visual design, and all supporting materials.',
+                'No other person or party holds any ownership interest in this application. Providing scorecards, spreadsheets, game formats, rules, feedback, feature requests or testing does not create any claim to the software, in whole or in part.',
+                'Access is a personal, non-exclusive, non-transferable licence to use the application as provided. It grants no right of ownership, may be modified or withdrawn at any time at the owner\u2019s sole discretion, and ends when the owner says it ends.',
+                'The application may not be copied, modified, distributed, published, sold, sublicensed, reverse-engineered, or used to create a competing or derivative product, in whole or in part, without the owner\u2019s express written consent.',
+                'Scores, handicaps and other information you enter remain yours. The software that stores, calculates and presents them does not.',
+                'Questions about use or licensing: contact the owner directly.'
+              ].map((t,i)=>(
+                <p key={i} style={{fontSize:13,lineHeight:1.62,color:'rgba(255,255,255,0.68)',margin:'0 0 12px'}}>{t}</p>
+              ))}
+              <button onClick={()=>setShowLegal(false)} style={{width:'100%',marginTop:6,padding:'11px',borderRadius:10,border:'1px solid rgba(255,255,255,0.14)',background:'rgba(255,255,255,0.06)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,cursor:'pointer'}}>Close</button>
+            </div>
+          </div>
+        )}
         <div style={{textAlign:'center',marginTop:10}}>
           <a href="portal.html" style={{display:'inline-block',fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.2)',letterSpacing:'0.05em',textDecoration:'none',padding:'6px 14px',borderRadius:20,border:'1px solid rgba(255,255,255,0.08)'}}>Admin Portal →</a>
         </div>
