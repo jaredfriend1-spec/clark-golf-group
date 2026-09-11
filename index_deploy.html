@@ -5257,7 +5257,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const hdr={fontSize:12,fontWeight:900,color:'var(--ink)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:9,paddingBottom:5,borderBottom:'2px solid '+GOLD_BORDER,display:'inline-block'};
   const stBtn={width:36,height:36,borderRadius:9,border:'1.5px solid var(--hairline)',background:'var(--surface)',fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'inherit',color:'var(--ink)',lineHeight:1};
   const pill=(id,label)=>(
-    <button key={id} onClick={()=>setSub(id)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'1px solid',borderColor:sub===id?GOLD:'var(--hairline)',background:sub===id?GOLD_SOFT:'transparent',color:sub===id?GOLD:'var(--ink-40)',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+    <button key={id} onClick={()=>setSub(id)} style={{flex:id==='config'?'0 0 40px':1,padding:'8px 0',borderRadius:8,border:'none',background:sub===id?'var(--surface)':'transparent',boxShadow:sub===id?'0 1px 2px rgba(0,0,0,0.07)':'none',color:sub===id?GOLD:'var(--ink-40)',fontWeight:sub===id?800:700,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
   );
   const dayPills=dayKeys.length>1&&(
     <div style={{display:'flex',gap:7,margin:'0 0 12px'}}>
@@ -5304,30 +5304,40 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
   return (
     <div>
-      <div style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'16px 18px',marginBottom:14,display:'flex',alignItems:'center',gap:14,boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
-        <div style={{width:46,height:46,borderRadius:13,background:'rgba(184,137,26,0.18)',border:'1px solid rgba(184,137,26,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>🏆</div>
+      <div style={{background:DARK,borderRadius:(sub==='board'&&(live||isAdmin))?'16px 16px 0 0':16,padding:'15px 18px',marginBottom:(sub==='board'&&(live||isAdmin))?0:14,display:'flex',alignItems:'center',gap:13}}>
+        <div style={{width:42,height:42,borderRadius:12,background:'rgba(184,137,26,0.18)',border:'1px solid rgba(184,137,26,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:21,flexShrink:0}}>&#127942;</div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:10.5,fontWeight:800,color:'rgba(184,137,26,0.95)',textTransform:'uppercase',letterSpacing:'0.12em'}}>Clark Golf Group · Tournament</div>
-          <div style={{fontSize:19,fontWeight:900,color:'#fff',lineHeight:1.15,marginTop:2,letterSpacing:'-0.01em'}}>{cfg.name||'The Tournament'}</div>
-          <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.72)',marginTop:3}}>{cfg.date1?(fd(cfg.date1)+(cfg.date2?(' – '+fd(cfg.date2)):'')):'Dates coming soon'}{live?<span style={{marginLeft:8,fontSize:10,fontWeight:800,color:'#0f2f22',background:'#d6b34a',borderRadius:6,padding:'2px 7px',verticalAlign:'middle'}}>INVITES OPEN</span>:null}</div>
+          <div style={{fontSize:16.5,fontWeight:800,color:'#fff',lineHeight:1.2,letterSpacing:'-0.01em'}}>{cfg.name||'The Tournament'}</div>
+          <div style={{fontSize:11.5,fontWeight:600,color:'rgba(255,255,255,0.55)',marginTop:2}}>{cfg.date1?(fd(cfg.date1)+(cfg.date2?(' \u2013 '+fd(cfg.date2)):'')):'Dates coming soon'}{live?<span style={{color:'#4ade80',marginLeft:7}}>&#9679; Live</span>:null}</div>
         </div>
+        {sub==='board'&&(live||isAdmin)&&(
+          <div style={{textAlign:'right',flexShrink:0}}>
+            <div style={{fontSize:9.5,fontWeight:800,color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'0.09em'}}>Pot now</div>
+            <div style={{fontSize:27,fontWeight:900,color:'#d6b34a',lineHeight:1.05,letterSpacing:'-0.02em'}}>${fundTotal+paidTotalAll}</div>
+          </div>
+        )}
       </div>
       {sub==='board'&&(live||isAdmin)&&(
-        <div style={{background:DARK,borderRadius:16,padding:'14px 14px 12px',margin:'-24px 0 14px',paddingTop:24,boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
-          <div style={{display:'flex',gap:8}}>
-            {[['Pot now',fundTotal+paidTotalAll],['Projected',fundTotal+payinsDue],['Potential',fundTotal+potentialDue]].map(([l,v])=>(
-              <div key={l} style={{flex:1,textAlign:'center',padding:'10px 6px',borderRadius:12,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(184,137,26,0.35)'}}>
-                <div style={{fontSize:9.5,fontWeight:800,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
-                <div style={{fontSize:24,fontWeight:900,color:'#d6b34a',letterSpacing:'-0.01em',marginTop:2}}>${v}</div>
+        <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
+          {[['Projected',fundTotal+payinsDue,'if everyone opted in pays'],['Potential',fundTotal+potentialDue,'if everyone invited played']].map(([l,v,note],i)=>(
+            <React.Fragment key={l}>
+              {i>0&&<div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:10.5,color:'var(--ink-40)',fontWeight:700}}>{l}</div>
+                <div style={{fontSize:17,fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em'}}>${v}</div>
+                <div style={{fontSize:10.5,color:'var(--ink-40)',marginTop:1}}>{note}</div>
               </div>
-            ))}
+            </React.Fragment>
+          ))}
+          <div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>
+          <div style={{flex:1.05,minWidth:0}}>
+            <div style={{fontSize:10.5,color:'var(--ink-40)',fontWeight:700,marginBottom:5}}>Replies</div>
+            <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+              {(twoDay?[[d1Label,inFieldFor('day1').length,1],[d2Label,inFieldFor('day2').length,1]]:[['In',inField.length,1]]).concat([['Out',declinedAll,0]]).map(([l,n,good])=>(
+                <span key={l} style={{fontSize:11.5,fontWeight:800,padding:'3px 9px',borderRadius:20,background:good?GOLD_SOFT:'var(--surface-2, rgba(0,0,0,0.04))',border:'1px solid '+(good?GOLD_BORDER:'var(--hairline)'),color:good?GOLD:'var(--ink-40)'}}>{n} {l}</span>
+              ))}
+            </div>
           </div>
-          <div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap',justifyContent:'center'}}>
-            {(twoDay?[[d1Label,inFieldFor('day1').length],[d2Label,inFieldFor('day2').length]]:[['In',inField.length]]).concat([["Can't",declinedAll]]).map(([l,n])=>(
-              <div key={l} style={{fontSize:12,fontWeight:800,color:'rgba(255,255,255,0.85)',background:'rgba(184,137,26,0.16)',border:'1px solid rgba(184,137,26,0.4)',borderRadius:20,padding:'5px 12px'}}><span style={{color:'#d6b34a'}}>{n}</span> {l}</div>
-            ))}
-          </div>
-          <div style={{fontSize:10.5,color:'rgba(255,255,255,0.45)',textAlign:'center',marginTop:8}}>Pot now = fund banked + cash in hand · Projected = if every opted-in player pays · Potential = if everyone invited played</div>
         </div>
       )}
       {archYears.length>0&&(
@@ -5341,7 +5351,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
       {isArchived&&(
         <div style={{margin:'0 0 12px',padding:'9px 13px',borderRadius:11,background:GOLD_SOFT,border:'1px solid '+GOLD_BORDER,fontSize:12,fontWeight:700,color:GOLD}}>🏁 {effYear} — final results. This tournament is closed.</div>
       )}
-      <div style={{display:'flex',gap:7,margin:'0 0 14px'}}>
+      <div style={{display:'flex',gap:2,margin:'0 0 14px',padding:3,borderRadius:10,background:'var(--surface-2, rgba(0,0,0,0.045))'}}>
         {isAdmin&&!isArchived&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&!isArchived&&pill('field','💵 Field')}
       </div>
 
