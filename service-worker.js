@@ -1,7 +1,7 @@
 // Clark Golf Group — Service Worker
 // Enables PWA "Add to Home Screen" and basic offline support
 
-const CACHE_NAME = 'clark-golf-v2';   // bumped: purges any stale v1 entries on activate
+const CACHE_NAME = 'clark-golf-v3';   // bumped: purges any stale v1 entries on activate
 
 // Files to cache for offline use
 const PRECACHE_URLS = [
