@@ -684,6 +684,23 @@ let PUSH_TRIGGERS_CACHE=null;
 // coordinates are plenty. Open-Meteo needs no key and no account.
 const COURSE_LAT=39.2121, COURSE_LON=-77.1428;
 const WX_CACHE={at:0,data:null};
+// One avatar used by the sign-up list and the team cards. Photo when the man
+// has uploaded one, otherwise the same initials treatment used in the header —
+// deliberately NOT a placeholder, so a list of mixed photos and initials reads
+// as intentional rather than half-finished.
+function PlayerAvatar({ name, logo, size, isAdmin, onClick, title }){
+  const sz=size||26;
+  const ini=String(name||'').trim().split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+  const inner = logo
+    ? <img src={logo} alt="" style={{width:sz,height:sz,borderRadius:'50%',objectFit:'cover',display:'block'}}/>
+    : <div style={{width:sz,height:sz,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
+        fontSize:Math.max(9,Math.round(sz*0.38)),fontWeight:700,lineHeight:1,
+        background:isAdmin?'rgba(184,101,31,0.2)':'rgba(31,107,71,0.22)',
+        color:isAdmin?'#B8651F':'#1F6B47',
+        border:'1px solid '+(isAdmin?'rgba(184,101,31,0.35)':'rgba(31,107,71,0.4)')}}>{ini}</div>;
+  if(!onClick)return <span style={{flexShrink:0,display:'inline-flex'}}>{inner}</span>;
+  return <button onClick={onClick} title={title||'My profile'} style={{background:'none',border:'none',padding:0,margin:0,cursor:'pointer',flexShrink:0,display:'inline-flex',borderRadius:'50%'}}>{inner}</button>;
+}
 // WMO weather codes -> a small inline glyph. Deliberately not emoji: emoji
 // render differently on iPhone and Android and make the row look untidy.
 function wxGlyph(code){
@@ -1899,7 +1916,19 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+  // Sign-ups carry names, playerCards are keyed by roster id — bridge the two once.
+  const cardByName=useMemo(()=>{
+    const m={};
+    safeArray(fullRoster).forEach(pl=>{
+      if(!pl||!pl.name)return;
+      const c=playerCards&&playerCards[pl.id];
+      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id};
+    });
+    return m;
+  },[fullRoster,playerCards]);
+  const avatarFor=n=>cardByName[String(n||'').toLowerCase().trim()]||null;
+
   // ── WEATHER ───────────────────────────────────────────────────────────
   // One Open-Meteo call covers the whole week. Cached for 30 minutes so tab
   // switching doesn't re-request. Read-only: it never writes anything.
@@ -2158,6 +2187,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         <DayCardV2
           key={day.day}
           day={day}
+          avatarFor={avatarFor}
+          onOpenProfile={onOpenProfile}
           wx={wxFor(day.dateISO||week?.dates?.[day.day],(day.tee&&day.tee.state==='set')?day.tee.time:null)}
           teeInfo={week?.teeTimesInfo?.[day.day]}
           pubGroups={week?.teamsPublished?.[day.day]?safeArray(week?.teams?.[day.day]):null}
@@ -2256,7 +2287,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, wx, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onToggleLock }){
+function DayCardV2({ day, wx, avatarFor, onOpenProfile, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onToggleLock }){
   const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
@@ -2429,6 +2460,12 @@ function DayCardV2({ day, wx, modeInfo, modesList, dayCustom, teeInfo, pubGroups
             const canEdit = isMe || isAdmin || (p.isGuest && p.guestOf === currentUser?.name);
             return (
               <div className="player-line" key={p.key||p.name}>
+                {(()=>{const a=avatarFor&&avatarFor(p.name);if(!a&&!p.name)return null;
+                  return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
+                    <PlayerAvatar name={p.name} logo={a&&a.logo} size={26}
+                      isAdmin={!!(a&&isAdmin&&isMe)}
+                      onClick={(isMe&&onOpenProfile)?onOpenProfile:null}/>
+                  </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
                     {isMe&&youSignedUp&&<span style={{width:15,height:15,borderRadius:'50%',background:'var(--brand)',color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginRight:1}}><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
@@ -3765,7 +3802,7 @@ function MovePlayerSheet({ playerName, teams, fromTeamIdx, onMove, onClose }){
 }
 
 // ═══════════════ TEAMS VIEW V2 ═══════════════
-function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
+function TeamsViewV2({ avatarFor, onOpenProfile, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
   // Demo mode is ALWAYS opt-in via button — never touches live data
   const effectiveWeek = week;
   const effectivePairings = livePairings || {};
@@ -4661,6 +4698,11 @@ function TeamsViewV2({ currentUser, week, history, isAdmin, matchPairings: liveP
                       {isAdmin && !published && (
                         <span style={{color:'var(--ink-20)',cursor:'grab',fontSize:16,flexShrink:0,marginRight:2,userSelect:'none'}}>⋮</span>
                       )}
+                      {(()=>{const a=avatarFor&&avatarFor(p.name);
+                        return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
+                          <PlayerAvatar name={p.name} logo={a&&a.logo} size={30}
+                            onClick={(isMe&&onOpenProfile)?onOpenProfile:null}/>
+                        </span>;})()}
 
                       {/* Slot badge */}
                       {!indMode&&<span style={{fontSize:9,fontWeight:700,background:'var(--highlight)',color:'#fff',padding:'2px 5px',borderRadius:4,flexShrink:0,minWidth:18,textAlign:'center'}}>{p.slot||'?'}</span>}
@@ -10100,6 +10142,18 @@ function App(){
   const activeRoster = effectiveRoster; // preview uses real roster
   const activeFullRoster = fullRoster; // preview uses real roster
 
+  // Name -> photo bridge, shared by the Week and Teams tabs.
+  const avatarForApp=useMemo(()=>{
+    const m={};
+    safeArray(activeFullRoster).forEach(pl=>{
+      if(!pl||!pl.name)return;
+      const c=playerCards&&playerCards[pl.id];
+      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id};
+    });
+    return n=>m[String(n||'').toLowerCase().trim()]||null;
+  },[activeFullRoster,playerCards]);
+  const openMyProfile=()=>{loadDeferred('rosterEmails');loadDeferred('history');setShowProfile(true);};
+
   // Demo-safe write wrappers — when isDemo=true these are ALL no-ops, NEVER touch Firebase
   const safeWrite  = write;
   const safePush   = push;
@@ -10729,8 +10783,8 @@ function App(){
           </div>
         </div>
       )}
-      {tab === 'home' && <WeekViewV2 cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
-      {tab === 'teams' && <TeamsViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
+      {tab === 'home' && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
+      {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
         <div style={{maxWidth:'var(--maxw, 980px)',margin:'0 auto',padding:'10px 16px 0',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
