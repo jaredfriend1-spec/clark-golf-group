@@ -9814,6 +9814,45 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
             </div>
           )}
 
+          {/* Notifications — the only place to turn push on once the banner has
+              been dismissed. Previously it lived solely on an unlabelled bell. */}
+          {typeof PUSH_READY!=='undefined' && PUSH_READY && (
+            <div className="form-group">
+              <label className="form-label">Notifications</label>
+              {(()=>{
+                const supported = 'Notification' in window;
+                const granted = supported && Notification.permission==='granted';
+                const blocked = supported && Notification.permission==='denied';
+                const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+                const standalone = (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone;
+                const on = granted && (()=>{try{return localStorage.getItem('cgPushOn')==='1';}catch(e){return false;}})();
+                return (
+                  <div style={{display:'flex',alignItems:'center',gap:12,padding:'11px 13px',borderRadius:10,border:'1px solid var(--hairline)',background:'var(--surface-sunken)'}}>
+                    <span style={{width:9,height:9,borderRadius:'50%',flexShrink:0,background:on?'#16a34a':'#f59e0b'}}></span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{on?'On':'Off'}</div>
+                      <div style={{fontSize:11.5,color:'var(--ink-50)',lineHeight:1.45,marginTop:1}}>
+                        {on
+                          ? 'You get an alert when teams are posted and results are in.'
+                          : blocked
+                          ? 'Blocked in your browser settings — allow notifications for this site, then come back.'
+                          : (isIOS&&!standalone)
+                          ? 'On iPhone: tap Share, then Add to Home Screen. Open the app from that icon and turn this on there.'
+                          : 'Know the moment teams are posted and results are in.'}
+                      </div>
+                    </div>
+                    {!on && !blocked && !(isIOS&&!standalone) && (
+                      <button className="btn btn-primary btn-sm" style={{flexShrink:0}} onClick={async()=>{
+                        try{ await enablePushForUser(currentUser, currentUser&&currentUser.role==='admin'); window.alert('Notifications are on.'); onClose&&onClose(); }
+                        catch(e){ window.alert('Notifications: '+((e&&e.message)||e)); }
+                      }}>Turn on</button>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Photo section */}
           <div className="form-group">
             <label className="form-label">Photo</label>
@@ -10672,8 +10711,9 @@ function App(){
             {isScoring && <span className="user-role admin">Scoring</span>}
           </div>
           <button title={pushOn?'Notifications on':'Turn on notifications'} onClick={async()=>{try{await enablePushForUser(currentUser,isAdmin);setPushOn(true);}catch(e){window.alert('Notifications: '+e.message);}}}
-            style={{background:'none',border:'none',cursor:'pointer',padding:'4px 6px',marginRight:2,color:pushOn?'#36A56F':'rgba(255,255,255,0.45)'}}>
+            style={{background:'none',border:'none',cursor:'pointer',padding:'4px 6px',marginRight:2,position:'relative',color:pushOn?'#36A56F':'rgba(255,255,255,0.55)',display:'inline-flex',alignItems:'center'}}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill={pushOn?'currentColor':'none'} stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            {!pushOn && <span style={{position:'absolute',top:2,right:3,width:7,height:7,borderRadius:'50%',background:'#f59e0b',border:'1.5px solid #14532d'}}></span>}
           </button>
           <button className="user-signout" onClick={logoutUser}>Sign out</button>
         </div>
