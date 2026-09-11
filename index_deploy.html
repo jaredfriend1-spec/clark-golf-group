@@ -2483,6 +2483,10 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, modeInfo, modesList, day
                       </span>
                     )}
                   </div>
+                  <span className="player-meta">
+                    <span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
+                    {p.tee} · HCP {p.handicap}
+                  </span>
                   {hasExtraLine && (
                     <div className="player-extra">
                       {matchPartner && (
@@ -2500,10 +2504,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, modeInfo, modesList, day
                     </div>
                   )}
                 </div>
-                <span className="player-meta">
-                  <span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
-                  {p.tee} · HCP {p.handicap}
-                </span>
+
                 {canEdit && (
                   <div className="player-actions">
                     {confirmRemove === p.key ? (
@@ -6616,7 +6617,7 @@ function StandingsViewV2({ history, currentUser }){
             return(
               <div key={p.name} style={{borderBottom:'1px solid var(--hairline-soft)',background:isMe?'rgba(184,101,31,0.04)':'transparent'}}>
                 <div
-                  style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',alignItems:'center',padding:'10px 12px',gap:4,cursor:breakdown.length?'pointer':'default'}}
+                  style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) 24px 46px 46px 50px',alignItems:'center',padding:'10px 10px',gap:3,cursor:breakdown.length?'pointer':'default'}}
                   onClick={()=>breakdown.length&&setExpandedPlayer(isExpanded?null:p.name)}>
                   {/* Rank badge */}
                   <div style={{width:22,height:22,borderRadius:'50%',
@@ -6626,7 +6627,7 @@ function StandingsViewV2({ history, currentUser }){
                     {rank}
                   </div>
                   {/* Name */}
-                  <div style={{fontSize:13,fontWeight:isMe?700:500,color:isMe?'var(--highlight)':'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:5}}>
+                  <div style={{fontSize:13,fontWeight:isMe?700:500,color:isMe?'var(--highlight)':'var(--ink)',minWidth:0,overflowWrap:'anywhere',lineHeight:1.25,display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
                     {p.name}
                     {isMe&&<span style={{fontSize:11,fontWeight:700,color:'var(--highlight)',background:'var(--highlight-soft)',padding:'1px 5px',borderRadius:20,flexShrink:0,textTransform:'uppercase'}}>you</span>}
                     {breakdown.length>0&&<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-20)" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0,transform:isExpanded?'rotate(180deg)':'none',transition:'transform 0.15s'}}><polyline points="6 9 12 15 18 9"/></svg>}
@@ -10970,7 +10971,7 @@ extraStyles.textContent = `
 .player-name .tag.last{background:var(--warn-soft);color:var(--warn-ink);border:1px solid var(--warn-border)}
 .player-name .tag.team{background:var(--surface-sunken);color:var(--ink-70);border:1px solid var(--hairline)}
 .player-name .tag.team svg{width:8px;height:8px;stroke:var(--brand);stroke-width:3.5;fill:none;margin-right:3px;vertical-align:-1px;display:inline-block}
-.player-meta{font-size:11px;color:var(--ink-50);font-variant-numeric:tabular-nums;font-weight:500;flex-shrink:0;display:flex;align-items:center;gap:5px;white-space:nowrap;align-self:flex-start;padding-top:2px}
+.player-meta{font-size:11px;color:var(--ink-50);font-variant-numeric:tabular-nums;font-weight:500;display:flex;align-items:center;gap:5px;white-space:nowrap;align-self:flex-start;flex-shrink:0}
 .tee-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .player-extra{font-size:11px;color:var(--ink-50);font-weight:500;margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;letter-spacing:-0.005em}
 .player-extra .extra-pair{color:var(--brand);font-weight:500;display:inline-flex;align-items:center;gap:4px}
