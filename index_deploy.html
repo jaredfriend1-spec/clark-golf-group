@@ -4894,8 +4894,14 @@ function TeamsViewV2({ avatarFor, onOpenProfile, currentUser, week, history, isA
 }
 
 // ═══════════════ HISTORY VIEW V2 ═══════════════
-function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelete, onRecover, onPermanentDelete, onEditRound }){
+function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSoftDelete, onRecover, onPermanentDelete, onEditRound }){
   const [open, setOpen] = useState(null);
+  // Two rounds (28 Aug, 4 Sep) lost their team line-ups. Scores and pots survived
+  // but the teams did not, so they rendered empty. Attendance still holds who
+  // played — show that rather than nothing.
+  const [attRounds,setAttRounds]=useState(null);
+  useEffect(()=>{ if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read]);
+  const attByDate=useMemo(()=>{const m={};safeArray(attRounds).forEach(a=>{if(a&&a.date&&safeArray(a.players).length)m[a.date]=safeArray(a.players).filter(Boolean);});return m;},[attRounds]);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [showTrash, setShowTrash] = useState(false);
@@ -4953,7 +4959,7 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
 
         {rounds.map(([k,r])=>{
           const isOpen = open === k;
-          const pc = r.playerCount || safeArray(r.teams).reduce((s,t)=>s+safeArray(t.players).length,0);
+          const pc = r.playerCount || safeArray(r.teams).reduce((s,t)=>s+safeArray(t.players).length,0) || ((r.date&&attByDate[r.date])||[]).length;
           const hasScores = !!(r.scores && r.scores.savedAt);
           return(
             <div key={k} className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
@@ -5025,7 +5031,16 @@ function HistoryViewV2({ history, historyTrash, isAdmin, write, del, onSoftDelet
                     );
                   })()}
 
-                  {/* Teams */}
+                  {/* Teams — or, if the line-ups were lost, who played */}
+                  {(!r.teams || r.teams.length === 0) && r.date && attByDate[r.date] && (
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Players ({attByDate[r.date].length})</div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
+                        {attByDate[r.date].map((n,i)=>(<span key={i} style={{fontSize:12,padding:'3px 9px',borderRadius:20,background:'var(--surface-sunken)',border:'1px solid var(--hairline)'}}>{n}</span>))}
+                      </div>
+                      <div style={{fontSize:11,color:'var(--ink-40)',lineHeight:1.45,padding:'8px 10px',borderRadius:8,background:'var(--surface-sunken)',border:'1px solid var(--hairline)'}}>Team line-ups were not recorded for this round. Players shown are from the attendance record; scores and payouts below are unaffected.</div>
+                    </div>
+                  )}
                   {r.teams && r.teams.length > 0 && (
                     <div style={{marginBottom:14}}>
                       <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{r.scores&&r.scores.gameMode==='individual'?'Groups · tee-off order':'Teams'}</div>
@@ -10872,7 +10887,7 @@ function App(){
           {seasonBanner&&<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)'}}>Viewing archived: {seasonBanner}{seasonData?'':' — loading…'}</span>}
         </div>
       )}
-      {tab === 'history' && <HistoryViewV2 history={effHistory} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
+      {tab === 'history' && <HistoryViewV2 read={read} history={effHistory} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
       {tab === 'leaderboard' && <StandingsViewV2 history={effHistory} currentUser={currentUser}/>}
 
       {tab === 'master' && (()=>{
