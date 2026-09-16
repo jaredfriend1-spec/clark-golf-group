@@ -8601,7 +8601,7 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
 
 
 // ═══════════════ STATS VIEW V2 ═══════════════
-function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, rosterDeleted, currentUser, settings, publicMode, onSwitchTab }){
+function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, rosterDeleted, currentUser, settings, publicMode, onSwitchTab }){
   const roster=[...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)].filter(p=>p&&!p.hidden&&!(rosterDeleted&&rosterDeleted[p.id]));
   const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -8613,7 +8613,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const [playerSearch,setPlayerSearch]=useState('');
   const [open,setOpen]=useState({overview:true,avgday:false,pots:false,scores:false,players:false,money:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false,behavior:false,logins:false});
   const [expandedTee,setExpandedTee]=useState(null);
-  const [showAllPlayers,setShowAllPlayers]=useState(false);
   const [showStatsControl,setShowStatsControl]=useState(false);
   const toggle=k=>setOpen(o=>({...o,[k]:!o[k]}));
 
@@ -8638,10 +8637,45 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const seasonStartFmt=seasonStart?new Date(seasonStart+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
   const totalRounds=activeHist.length;
   const avgField=totalRounds?Math.round(activeHist.reduce((s,r)=>s+(r.playerCount||0),0)/totalRounds):0;
+  // Stats counts players from each round's TEAMS. The Aug 28 and Sep 4 rounds
+  // lost their teams, so everyone who played them vanished from these numbers
+  // while Attendance still had them. Fall back to the attendance record for any
+  // round with no teams, so Stats and Attendance agree.
+  const [attRounds,setAttRounds]=useState(null);
+  useEffect(()=>{ if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read]);
+  const attByDate=useMemo(()=>{
+    const m={};
+    safeArray(attRounds).forEach(a=>{ if(a&&a.date&&safeArray(a.players).length)m[a.date]=safeArray(a.players).filter(Boolean); });
+    return m;
+  },[attRounds]);
+
+  // Sign-up lead time. stats/signupLog records the round date AND the moment the
+  // man signed up, so we can measure how far ahead each one books.
+  const [signupLog,setSignupLog]=useState(null);
+  useEffect(()=>{ if(!read)return; return read('stats/signupLog', v=>setSignupLog(v||null)); },[read]);
+  const leadStats=useMemo(()=>{
+    const by={};
+    safeArray(signupLog).forEach(e=>{
+      if(!e||!e.name||!e.date||!e.ts)return;
+      const tee=Date.parse(e.date+'T09:00:00');
+      if(isNaN(tee))return;
+      const hrs=(tee-e.ts)/3600000;
+      if(hrs<0||hrs>60*24)return;
+      const k=String(e.name).trim();
+      (by[k]=by[k]||[]).push(hrs);
+    });
+    return Object.entries(by)
+      .filter(([,v])=>v.length>=3)
+      .map(([name,v])=>({name,n:v.length,avg:v.reduce((a,b)=>a+b,0)/v.length}))
+      .sort((a,b)=>b.avg-a.avg);
+  },[signupLog]);
+  const fmtLead=h=>h>=48?(Math.round(h/24)+' days'):(h>=24?'1 day':(Math.round(h)+'h'));
+
   const roundPlayerNames=(r)=>{
     const fromTeams=Object.values(r.teams||{}).flatMap(t=>safeArray(t&&t.players).map(p=>p&&p.name)).filter(Boolean);
     if(fromTeams.length)return fromTeams;
     if(r.scores&&r.scores.gameMode==='individual')return Object.keys(r.scores.indScores||{});
+    if(r.date&&attByDate[r.date])return attByDate[r.date];
     return [];
   };
   const teamHist=activeHist.filter(r=>!(r.scores&&r.scores.gameMode==='individual'));
@@ -8678,7 +8712,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
       for(let i=0;i<players.length;i++)for(let j=i+1;j<players.length;j++){const key=[players[i].name,players[j].name].sort().join('|');teamPairs[key]=(teamPairs[key]||0)+1;}
     });
   });
-  const topPlayers=Object.entries(playerRounds).sort((a,b)=>b[1]-a[1]);
   const topPairs=Object.entries(teamPairs).sort((a,b)=>b[1]-a[1]).slice(0,12);
   const uniquePlayerCount=Object.keys(playerRounds).length;
   const totalOfficialTeams=activeHist.reduce((s,r)=>s+Object.values(r.teams||{}).length,0);
@@ -8720,7 +8753,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
   const lastTeePlayers=Object.entries(playerTeePrefs).filter(([,v])=>v.last>0).sort((a,b)=>b[1].last-a[1].last).slice(0,5);
   const topGuestBringers=Object.entries(playerGuestCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const signupByPlayer={};activeLog.filter(e=>e.action==='signup'&&e.name&&!e.isGuest).forEach(e=>{const player=e.by&&e.by!=='player'&&e.by!=='admin'?e.by:e.name;signupByPlayer[player]=(signupByPlayer[player]||0)+1;});
-  const topSignupPlayers=Object.entries(signupByPlayer).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
 
 
@@ -8844,7 +8876,7 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
                     {[['var(--info)','👤 Member View',id=>curSections[id]!==false,(id,val)=>writeStats('statsPlayerSections/'+id,val)],['var(--highlight)','🛡️ Admin View',id=>curAdminSections[id]!==false,(id,val)=>writeStats('statsAdminSections/'+id,val)]].map(([color,heading,isOn,onToggle])=>(
                       <div key={heading} style={{marginBottom:16}}>
                         <div style={{fontSize:11,fontWeight:700,color:color,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8,paddingBottom:4,borderBottom:'1px solid var(--hairline)'}}>{heading}</div>
-                        {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['players','🏆 Top Rounds Played'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
+                        {[['overview','📊 Season Overview'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['pots','💰 Pot Analytics'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['teams','🤝 Team Chemistry'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
                           const on=isOn(id);
                           return(
                             <div key={id} onClick={()=>onToggle(id,!on)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer'}}>
@@ -9024,30 +9056,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
           </div>
         </S>}
 
-        {/* ── 6. Top Rounds Played ── */}
-        {showSec('players')&&<S id="players" icon="🏆" title="Top Rounds Played" color="#8b5cf6" borderColor="#8b5cf6" summary={'Top: '+(topPlayers[0]?.[0]??'—')+' ('+topPlayers[0]?.[1]+' rounds)'}>
-          <div style={{paddingTop:6}}>
-            {(showAllPlayers?topPlayers:topPlayers.slice(0,20)).map(([name,cnt],i)=>{
-              const hcpArr=(playerHcps[name]||[]);const currHcp=hcpArr.length?hcpArr[hcpArr.length-1].hcp:null;
-              const topTee=playerTees[name]?Object.entries(playerTees[name]).sort((a,b)=>b[1]-a[1])[0][0]:null;
-              const isMe=meName&&name===meName;
-              return(<div key={name} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',background:isMe?'rgba(184,101,31,0.04)':'transparent'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-                  <div style={{width:22,height:22,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'var(--surface-sunken)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:i<3?'#fff':'var(--ink-40)',flexShrink:0}}>{i+1}</div>
-                  <div style={{flex:1,fontSize:14,fontWeight:600,color:isMe?'var(--highlight)':'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}{isMe&&<span style={{fontSize:11,fontWeight:700,color:'var(--highlight)',background:'var(--highlight-soft)',padding:'1px 5px',borderRadius:20,marginLeft:5}}>you</span>}</div>
-                  <div style={{fontSize:18,fontWeight:700,color:'#8b5cf6',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{cnt}</div>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:6,paddingLeft:30}}>
-                  <div style={{flex:1}}><Bar pct={cnt/topPlayers[0][1]*100} color="#8b5cf6" h={4}/></div>
-                  {currHcp!=null&&<span style={{fontSize:11,color:'var(--ink-40)',flexShrink:0}}>HCP {currHcp}</span>}
-                  {topTee&&<span style={{fontSize:11,color:TC[topTee]||'var(--ink-40)',flexShrink:0}}>● {topTee}</span>}
-                </div>
-              </div>);
-            })}
-            {topPlayers.length>20&&<button onClick={()=>setShowAllPlayers(v=>!v)} className="btn btn-ghost" style={{width:'100%',marginTop:8,fontSize:12}}>{showAllPlayers?'Show Top 20 ↑':'Show All '+topPlayers.length+' ↓'}</button>}
-          </div>
-        </S>}
-
         {/* ── 7. Handicap Trends ── */}
         {showSec('hcp')&&<S id="hcp" icon="📈" title="Handicap Trends" color="var(--info)" borderColor="var(--info)" summary={hcpTrends.filter(p=>p.trend<0).length+' improving · '+hcpTrends.filter(p=>p.trend>0).length+' trending up'}>
           <div style={{paddingTop:6}}>
@@ -9146,7 +9154,6 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
                 <div style={{fontSize:11,color:'var(--ink-40)',marginTop:3}}>{inactive.length} inactive</div>
               </div>
             </div>
-            {topSignupPlayers.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'var(--highlight)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Most Sign-ups</div><SmallList items={topSignupPlayers}/>{divider}</>}
             {notRegistered.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'var(--highlight)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Not Registered ({notRegistered.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>{notRegistered.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'var(--warn-soft)',color:'var(--warn-ink)',border:'1px solid var(--warn-border)'}}>{p.name}</span>)}</div></>}
             {inactive.length>0&&<><div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>Inactive 60+ Days ({inactive.length})</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{inactive.map(p=><span key={p.id} style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'var(--surface-sunken)',color:'var(--ink-50)',border:'1px solid var(--hairline)'}}>{p.name}</span>)}</div></>}
           </div>
@@ -9164,6 +9171,32 @@ function StatsViewV2({ week, history, rosterPins, rosterAdmins, activityLog, eff
               <div style={{flex:1}}><Bar pct={maxCnt>0?cnt/maxCnt*100:0} color={isActive?'var(--highlight)':'var(--hairline)'} h={10}/></div>
               <div style={{fontSize:16,fontWeight:700,color:isActive?'var(--highlight)':'var(--ink-50)',width:28,textAlign:'right',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{cnt}</div>
             </div>);})}
+            {leadStats.length>0&&(
+              <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid var(--hairline)'}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--brand)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Books Earliest</div>
+                <div style={{fontSize:11,color:'var(--ink-40)',marginBottom:7}}>Average time between signing up and the round</div>
+                {leadStats.slice(0,5).map((r,i)=>(
+                  <div key={r.name} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <div style={{width:16,fontSize:11,color:'var(--ink-40)',flexShrink:0}}>{i+1}</div>
+                    <div style={{flex:1,minWidth:0,fontSize:13,overflowWrap:'anywhere'}}>{r.name}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--brand)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{fmtLead(r.avg)}</div>
+                    <div style={{fontSize:11,color:'var(--ink-40)',width:30,textAlign:'right',flexShrink:0}}>{r.n}x</div>
+                  </div>
+                ))}
+                <div style={{marginTop:14}}></div>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--money-neg)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>Last Minute</div>
+                <div style={{fontSize:11,color:'var(--ink-40)',marginBottom:7}}>Cutting it finest, on average</div>
+                {leadStats.slice(-5).reverse().map((r,i)=>(
+                  <div key={r.name} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <div style={{width:16,fontSize:11,color:'var(--ink-40)',flexShrink:0}}>{i+1}</div>
+                    <div style={{flex:1,minWidth:0,fontSize:13,overflowWrap:'anywhere'}}>{r.name}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--money-neg)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{fmtLead(r.avg)}</div>
+                    <div style={{fontSize:11,color:'var(--ink-40)',width:30,textAlign:'right',flexShrink:0}}>{r.n}x</div>
+                  </div>
+                ))}
+                <div style={{fontSize:11,color:'var(--ink-40)',marginTop:8,lineHeight:1.45}}>Needs 3+ logged sign-ups to appear. Only counts sign-ups made in the app.</div>
+              </div>
+            )}
           </div>
         </S>}
 
@@ -10845,10 +10878,10 @@ function App(){
       {tab === 'master' && (()=>{
         const isMasterAdmin=!!(rosterAdmins&&currentUser&&rosterAdmins[currentUser.id]==='master');
         if(isMasterAdmin){
-          return <StatsViewV2 rosterDeleted={rosterDeleted} cancelledDays={cancelledDays} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={false} onSwitchTab={setTab}/>;
+          return <StatsViewV2 read={read} rosterDeleted={rosterDeleted} cancelledDays={cancelledDays} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={false} onSwitchTab={setTab}/>;
         }
         if(canSeeMemberStats){
-          return <StatsViewV2 rosterDeleted={rosterDeleted} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
+          return <StatsViewV2 read={read} rosterDeleted={rosterDeleted} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
         }
         return null;
       })()}
