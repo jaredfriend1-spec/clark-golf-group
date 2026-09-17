@@ -85,7 +85,7 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 }
 .user-strip{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.06);max-width:760px;margin:0 auto}
 .user-strip-left{display:flex;align-items:center;gap:10px;min-width:0}
-.user-avatar{width:38px;height:38px;border-radius:50%;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:0.02em}
+.user-avatar{width:38px;height:38px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:0.02em}
 .user-avatar.admin{background:rgba(184,101,31,0.2);color:#E8C9A6;border:1px solid rgba(184,101,31,0.35)}
 .user-avatar.member{background:rgba(31,107,71,0.25);color:#A8D5BE;border:1px solid rgba(31,107,71,0.4)}
 .user-name{font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1078,7 +1078,7 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
             <div style={{position:'relative',background:'linear-gradient(145deg,#0f172a,#1e1b4b)',borderRadius:28,padding:'32px 36px 28px',boxShadow:'0 0 0 1px rgba(245,158,11,0.3), 0 0 60px rgba(245,158,11,0.12), 0 30px 80px rgba(0,0,0,0.5)'}}>
               <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
                 {cardLogo
-                  ? <img src={cardLogo} alt={ini} style={{width:110,height:110,borderRadius:'50%',objectFit:'cover',border:'3px solid rgba(245,158,11,0.5)',boxShadow:'0 0 30px rgba(245,158,11,0.2)'}}/>
+                  ? <img src={cardLogo} alt={ini} style={{width:110,height:110,borderRadius:28,objectFit:'cover',border:'3px solid rgba(245,158,11,0.5)',boxShadow:'0 0 30px rgba(245,158,11,0.2)'}}/>
                   : <div style={{width:110,height:110,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
                 }
               </div>
@@ -1094,7 +1094,7 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
           <div style={{background:'#fff',borderRadius:28,padding:'48px 64px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)',minWidth:320}}>
             <div style={{display:'flex',justifyContent:'center',marginBottom:14}}>
               {cardLogo
-                ? <img src={cardLogo} style={{width:120,height:120,borderRadius:'50%',objectFit:'cover',border:'3px solid #e2e8f0'}}/>
+                ? <img src={cardLogo} style={{width:120,height:120,borderRadius:30,objectFit:'cover',border:'3px solid #e2e8f0'}}/>
                 : <div style={{width:120,height:120,borderRadius:'50%',background:welcomeData.role==='admin'?'linear-gradient(135deg,#f59e0b,#d97706)':'linear-gradient(135deg,#10b981,#059669)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:44,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
               }
             </div>
@@ -10806,7 +10806,7 @@ function App(){
               const cardLogo=(playerCards&&currentUser?.id)?playerCards[currentUser.id]?.logo||(String(currentUser.id)==='22'?HCL:null):null;
               const isGuestUser = currentUser?.role === 'guest';
               const avatarEl = cardLogo
-                ? <img src={cardLogo} alt={currentUser.ini} style={{width:46,height:46,borderRadius:'50%',objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
+                ? <img src={cardLogo} alt={currentUser.ini} style={{width:46,height:46,borderRadius:12,objectFit:'cover',border:'2px solid rgba(54,165,111,0.5)',flexShrink:0}}/>
                 : <div className={'user-avatar ' + (isAdmin ? 'admin' : 'member')}>{currentUser.ini}</div>;
               if(isGuestUser) return avatarEl;
               return (
