@@ -690,16 +690,62 @@ const WX_CACHE={at:0,data:null};
 // as intentional rather than half-finished.
 function PlayerAvatar({ name, logo, size, isAdmin, onClick, title }){
   const sz=size||26;
+  // Rounded square, not a circle. The stored photos are already square-cropped
+  // at 128x128, so a circle was clipping the corners off every one of them —
+  // and a square sits flush in a list row instead of floating in it.
+  const rad=Math.max(6,Math.round(sz*0.26));
   const ini=String(name||'').trim().split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
   const inner = logo
-    ? <img src={logo} alt="" style={{width:sz,height:sz,borderRadius:'50%',objectFit:'cover',display:'block'}}/>
-    : <div style={{width:sz,height:sz,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',
-        fontSize:Math.max(11,Math.round(sz*0.40)),fontWeight:700,lineHeight:1,
+    ? <img src={logo} alt="" style={{width:sz,height:sz,borderRadius:rad,objectFit:'cover',display:'block'}}/>
+    : <div style={{width:sz,height:sz,borderRadius:rad,display:'flex',alignItems:'center',justifyContent:'center',
+        fontSize:Math.max(11,Math.round(sz*0.38)),fontWeight:700,lineHeight:1,
         background:isAdmin?'rgba(184,101,31,0.2)':'rgba(31,107,71,0.22)',
         color:isAdmin?'#B8651F':'#1F6B47',
         border:'1px solid '+(isAdmin?'rgba(184,101,31,0.35)':'rgba(31,107,71,0.4)')}}>{ini}</div>;
   if(!onClick)return <span style={{flexShrink:0,display:'inline-flex'}}>{inner}</span>;
-  return <button onClick={onClick} title={title||'My profile'} style={{background:'none',border:'none',padding:0,margin:0,cursor:'pointer',flexShrink:0,display:'inline-flex',borderRadius:'50%'}}>{inner}</button>;
+  return <button onClick={onClick} title={title||''} style={{background:'none',border:'none',padding:0,margin:0,cursor:'pointer',flexShrink:0,display:'inline-flex',borderRadius:rad}}>{inner}</button>;
+}
+
+// Full-screen viewer for a player's photo. Rendered at the ROOT of App, never
+// inside a card — so it is positioned against the viewport and cannot be
+// clipped by a scrolling container or pushed off screen. Honours the iPhone
+// safe areas and locks the page behind it.
+function AvatarLightbox({ view, onClose, onEditProfile }){
+  useEffect(()=>{
+    if(!view)return;
+    const prev=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    const esc=e=>{ if(e.key==='Escape')onClose(); };
+    window.addEventListener('keydown',esc);
+    return()=>{ document.body.style.overflow=prev; window.removeEventListener('keydown',esc); };
+  },[view,onClose]);
+  if(!view)return null;
+  const big=Math.min(240,Math.round((typeof window!=='undefined'?window.innerWidth:360)*0.62));
+  return (
+    <div onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:10000,
+      background:'rgba(8,10,14,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+      padding:'max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom))',
+      WebkitBackdropFilter:'blur(3px)',backdropFilter:'blur(3px)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14,maxWidth:'100%'}}>
+        {view.logo
+          ? <img src={view.logo} alt="" style={{width:big,height:big,maxWidth:'82vw',maxHeight:'52vh',borderRadius:Math.round(big*0.12),objectFit:'cover',display:'block',boxShadow:'0 10px 34px rgba(0,0,0,0.5)'}}/>
+          : <div style={{width:big,height:big,maxWidth:'82vw',borderRadius:Math.round(big*0.12),display:'flex',alignItems:'center',justifyContent:'center',
+              fontSize:Math.round(big*0.34),fontWeight:700,color:'#9FE1CB',background:'rgba(31,107,71,0.3)',border:'1px solid rgba(255,255,255,0.14)'}}>
+              {String(view.name||'').trim().split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase()}
+            </div>}
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:17,fontWeight:800,color:'#fff'}}>
+            {view.name}{view.isMe&&<span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:20,background:'rgba(255,255,255,0.15)',marginLeft:7,verticalAlign:'middle'}}>You</span>}
+          </div>
+          {view.meta&&<div style={{fontSize:13,color:'rgba(255,255,255,0.6)',marginTop:3}}>{view.meta}</div>}
+        </div>
+        {view.isMe&&onEditProfile&&(
+          <button onClick={()=>{onClose();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.1)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
+        )}
+        <div style={{fontSize:11.5,color:'rgba(255,255,255,0.42)'}}>Tap anywhere to close</div>
+      </div>
+    </div>
+  );
 }
 // WMO weather codes -> a small inline glyph. Deliberately not emoji: emoji
 // render differently on iPhone and Android and make the row look untidy.
@@ -1916,7 +1962,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, onShowAvatar, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
   // Sign-ups carry names, playerCards are keyed by roster id — bridge the two once.
   const cardByName=useMemo(()=>{
     const m={};
@@ -2189,6 +2235,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           day={day}
           avatarFor={avatarFor}
           onOpenProfile={onOpenProfile}
+          onShowAvatar={onShowAvatar}
           wx={wxFor(day.dateISO||week?.dates?.[day.day],(day.tee&&day.tee.state==='set')?day.tee.time:null)}
           teeInfo={week?.teeTimesInfo?.[day.day]}
           pubGroups={week?.teamsPublished?.[day.day]?safeArray(week?.teams?.[day.day]):null}
@@ -2287,7 +2334,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   );
 }
 
-function DayCardV2({ day, wx, avatarFor, onOpenProfile, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onToggleLock }){
+function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onToggleLock }){
   const [showModePicker,setShowModePicker]=useState(false);
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
@@ -2462,9 +2509,10 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, modeInfo, modesList, day
               <div className="player-line" key={p.key||p.name}>
                 {(()=>{const a=avatarFor&&avatarFor(p.name);if(!a&&!p.name)return null;
                   return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
-                    <PlayerAvatar name={p.name} logo={a&&a.logo} size={26}
+                    <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
-                      onClick={(isMe&&onOpenProfile)?onOpenProfile:null}/>
+                      title={isMe?'You':p.name}
+                      onClick={(isMe||(a&&a.logo))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -3803,7 +3851,7 @@ function MovePlayerSheet({ playerName, teams, fromTeamIdx, onMove, onClose }){
 }
 
 // ═══════════════ TEAMS VIEW V2 ═══════════════
-function TeamsViewV2({ avatarFor, onOpenProfile, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
+function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
   // Demo mode is ALWAYS opt-in via button — never touches live data
   const effectiveWeek = week;
   const effectivePairings = livePairings || {};
@@ -4703,8 +4751,9 @@ function TeamsViewV2({ avatarFor, onOpenProfile, currentUser, week, history, isA
                       )}
                       {(()=>{const a=avatarFor&&avatarFor(p.name);
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
-                          <PlayerAvatar name={p.name} logo={a&&a.logo} size={30}
-                            onClick={(isMe&&onOpenProfile)?onOpenProfile:null}/>
+                          <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
+                            title={isMe?'You':p.name}
+                            onClick={(isMe||(a&&a.logo))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -10243,6 +10292,10 @@ function App(){
     return n=>m[String(n||'').toLowerCase().trim()]||null;
   },[activeFullRoster,playerCards]);
   const openMyProfile=()=>{loadDeferred('rosterEmails');loadDeferred('history');setShowProfile(true);};
+  // Photo viewer state lives here, at the root, so the overlay is positioned
+  // against the viewport rather than inside whatever card was tapped.
+  const [avatarView,setAvatarView]=useState(null);
+  const showAvatar=(o)=>{ if(o&&(o.logo||o.isMe))setAvatarView(o); };
 
   // Demo-safe write wrappers — when isDemo=true these are ALL no-ops, NEVER touch Firebase
   const safeWrite  = write;
@@ -10874,8 +10927,8 @@ function App(){
           </div>
         </div>
       )}
-      {tab === 'home' && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
-      {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
+      {tab === 'home' && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
+      {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
         <div style={{maxWidth:'var(--maxw, 980px)',margin:'0 auto',padding:'10px 16px 0',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
@@ -10934,6 +10987,7 @@ settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin
         onGoTo={setTab} onLogout={()=>{setCurrentUser(null);try{localStorage.removeItem('cgCurrentUser');}catch{}}}
       />}
 
+      <AvatarLightbox view={avatarView} onClose={()=>setAvatarView(null)} onEditProfile={openMyProfile}/>
       {showProfile && currentUser && currentUser.role !== 'guest' && (
         <ProfileModal
           currentUser={currentUser}
