@@ -8698,6 +8698,9 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const curSections=settings?.statsPlayerSections||SHAREABLE_SECTIONS.reduce((a,k)=>{a[k]=true;return a;},{});
 
   function writeStats(path,val){
+    // This bypassed the guarded write() wrapper, so it was one of the few things
+    // an admin preview could genuinely change. Honour the preview lock here too.
+    if(window.__cgPreview){try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}return;}
     if(typeof firebase==='undefined')return;
     firebase.database().ref('settings/'+path).set(val);
   }
@@ -8922,7 +8925,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
                               const hasAccess=!!(curAllowed[p.id]);
                               const isAdm=!!(rosterAdmins&&rosterAdmins[p.id]);
                               return(
-                                <div key={p.id} onClick={()=>{const newVal=hasAccess?null:true;if(typeof firebase==='undefined')return;firebase.database().ref('settings/statsAllowedPlayers/'+p.id).set(newVal);}}
+                                <div key={p.id} onClick={()=>{const newVal=hasAccess?null:true;if(window.__cgPreview){try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}return;}if(typeof firebase==='undefined')return;firebase.database().ref('settings/statsAllowedPlayers/'+p.id).set(newVal);}}
                                   style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer',background:hasAccess?'var(--brand-soft)':'transparent'}}>
                                   <div style={{width:16,height:16,borderRadius:4,border:'2px solid',borderColor:hasAccess?'var(--brand)':'var(--hairline)',background:hasAccess?'var(--brand)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                                     {hasAccess&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -8939,7 +8942,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
                             </>);
                           })()}
                         </div>
-                        {Object.keys(curAllowed).length>0&&<button onClick={()=>{if(typeof firebase!=='undefined')firebase.database().ref('settings/statsAllowedPlayers').set(null);}} style={{marginTop:8,fontSize:11,color:'var(--money-neg)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Clear all access</button>}
+                        {Object.keys(curAllowed).length>0&&<button onClick={()=>{if(window.__cgPreview){try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}return;}if(typeof firebase!=='undefined')firebase.database().ref('settings/statsAllowedPlayers').set(null);}} style={{marginTop:8,fontSize:11,color:'var(--money-neg)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Clear all access</button>}
                       </div>
                     )}
                   </div>
@@ -10483,6 +10486,9 @@ function App(){
   }
 
   function logActivity(action,details){
+    // preview_view is worth recording; every other action in a preview session
+    // never actually happened, so keep it out of the audit log.
+    if(window.__cgPreview && action!=='preview_view')return;
     const entry={action,ts:Date.now(),...(details||{})};
     push('activityLog',entry);
   }
