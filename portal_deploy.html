@@ -2702,6 +2702,28 @@ function AppSettingsTab({user}){
         </div>
       );
     })()}
+    {user&&user.role==="master"&&(()=>{
+      const [admDraft,setAdmDraft]=React.useState(null);
+      const cur=(settings&&settings.adminGuestCode)||"";
+      const val=admDraft==null?cur:admDraft;
+      return (
+        <div className="card">
+          <div className="card-hdr"><span className="card-title">Admin preview code</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>Master only</span></div>
+          <div style={{padding:"12px 14px"}}>
+            <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:10}}>Same <strong>Preview the app</strong> button on the sign-in screen, but this code shows every <strong>admin</strong> screen instead of the member view. Still completely read-only — every save, publish and delete is a no-op. Give it to someone you want to show the admin side to without handing over an account.</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <input className="inp" style={{width:180,fontFamily:"monospace",letterSpacing:"0.08em"}} placeholder="e.g. ADMINTOUR26" value={val} onChange={e=>setAdmDraft(e.target.value)}/>
+              <button className="btn btn-sm" disabled={admDraft==null||admDraft.trim()===cur} onClick={()=>{wr("settings/adminGuestCode",admDraft.trim()||null);setAdmDraft(null);showToast("Admin preview code saved");}}>Save</button>
+              {cur&&<button className="btn btn-sm btn-ghost" onClick={()=>{if(window.confirm("Turn off the admin preview code? It stops working immediately."))wr("settings/adminGuestCode",null);setAdmDraft(null);}}>Turn off</button>}
+              <span style={{fontSize:11,color:cur?"#4ade80":"rgba(255,255,255,0.3)",fontWeight:700}}>{cur?"On":"Off"}</span>
+            </div>
+            {cur&&(settings&&settings.guestCode)&&String(cur).trim().toLowerCase()===String(settings.guestCode).trim().toLowerCase()&&(
+              <div style={{marginTop:8,fontSize:11.5,color:"#fca5a5",fontWeight:700}}>This is the same as the member preview code — make them different or the admin view will never show.</div>
+            )}
+          </div>
+        </div>
+      );
+    })()}
     <div className="card">
       <div className="card-hdr"><span className="card-title">🔔 Automatic Push Notifications</span></div>
       <div className="info-box"><strong>Control which events buzz phones automatically.</strong> Applies to everyone with notifications on. Manual pushes and checked announcements always send.</div>

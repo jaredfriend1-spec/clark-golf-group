@@ -1240,7 +1240,15 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
           </button>
           
           {settings&&settings.guestCode&&(
-            <button onClick={()=>{const c=window.prompt('Preview code (view-only access):');if(c==null)return;if(String(c).trim().toLowerCase()!==String(settings.guestCode).trim().toLowerCase()){alert('That code isn\u2019t right.');return;}onPreview&&onPreview();}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
+            <button onClick={()=>{const c=window.prompt('Preview code (view-only access):');if(c==null)return;
+              const typed=String(c).trim().toLowerCase();
+              const player=String(settings.guestCode||'').trim().toLowerCase();
+              const adm=String(settings.adminGuestCode||'').trim().toLowerCase();
+              // Two codes, one prompt. The admin code reveals every admin screen
+              // but writes stay dead: window.__cgPreview no-ops them at the source.
+              if(adm&&typed===adm){onPreview&&onPreview(true);return;}
+              if(player&&typed===player){onPreview&&onPreview(false);return;}
+              alert('That code isn\u2019t right.');}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
               <div style={{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,0.04)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:16}}>👀</div>
               <div style={{flex:1}}><div style={{fontSize:13.5,fontWeight:700,color:'rgba(255,255,255,0.6)'}}>Preview the app</div><div style={{fontSize:11.5,color:'rgba(255,255,255,0.3)'}}>View only — needs a preview code</div></div>
             </button>
@@ -10737,17 +10745,17 @@ function App(){
       savePinFn={saveMemberPin}
       push={safePush}
       onPlayer={()=>loginUser({name:'Guest',id:'guest',role:'guest',ini:'?'})}
-      onPreview={()=>{try{logActivity('preview_view',{ts:Date.now()});}catch(e){}loginUser({name:'Preview',id:'preview',role:'preview',ini:'👀'});}}
+      onPreview={(asAdmin)=>{try{logActivity('preview_view',{ts:Date.now(),asAdmin:!!asAdmin});}catch(e){}loginUser(asAdmin?{name:'Preview (admin)',id:'preview',role:'previewAdmin',ini:'👀'}:{name:'Preview',id:'preview',role:'preview',ini:'👀'});}}
       onMemberLogin={loginUser}
     />;
   }
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'previewAdmin';   // previewAdmin SEES every admin screen; __cgPreview blocks every write
   const isScoring = currentUser.role === 'scoring';
   const isGuest = currentUser.role === 'guest';
   const inviteFinalPush = !!(tournCfg&&tournCfg.rsvpDeadline&&daysUntil(tournCfg.rsvpDeadline)<=3);
   const showInviteModal = tournUnanswered && (inviteModalSeen==='' || (inviteFinalPush && inviteModalSeen!=='final'));
-  const isPreview = currentUser.role === 'preview' || currentUser.id === 'preview';   // by id too: no role-sync can rewrite it away
+  const isPreview = currentUser.role === 'preview' || currentUser.role === 'previewAdmin' || currentUser.id === 'preview';   // by id too: no role-sync can rewrite it away
   window.__cgPreview = isPreview;
 
   const statsAccess = settings?.statsAccess || 'none';
