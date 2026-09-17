@@ -3832,15 +3832,19 @@ function LoginCardsTab(){
     const canvas=cropCanvasRef.current;
     if(!canvas)return;
     // Export at 128×128
+      // Export at 320×320. 128 was visibly soft in the app's 40px avatars and
+      // unusable expanded. Kept in step with index_deploy.html.
+      const OUT_SIZE=320;
     const out=document.createElement('canvas');
-    out.width=128;out.height=128;
+      out.width=OUT_SIZE;out.height=OUT_SIZE;
     const ctx=out.getContext('2d');
-    const ratio=128/CROP_SIZE;
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      const ratio=OUT_SIZE/CROP_SIZE;
     ctx.drawImage(cropImgEl,
       cropOffset.x*ratio, cropOffset.y*ratio,
       cropImgEl.width*cropScale*ratio, cropImgEl.height*cropScale*ratio
     );
-    setEditLogo(out.toDataURL('image/jpeg',0.85));
+    setEditLogo(out.toDataURL('image/jpeg',0.86));
     setCropModal(false);
   }
 
