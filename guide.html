@@ -1,70 +1,321 @@
-<!--
-  REPLACES the existing "7 Score Tab — Score & Finalize" section in guide.html.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>Clark Golf Group — How It Works</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f3ee; --surface:#ffffff; --sunken:#faf9f6;
+    --ink:#14100c; --ink-70:rgba(20,16,12,0.70); --ink-50:rgba(20,16,12,0.50); --ink-35:rgba(20,16,12,0.35);
+    --hair:rgba(20,16,12,0.10); --hair-soft:rgba(20,16,12,0.06);
+    --brand:#1F6B47; --brand-soft:rgba(31,107,71,0.09); --brand-border:rgba(31,107,71,0.28);
+    --gold:#B8891A; --gold-soft:rgba(184,137,26,0.10); --gold-border:rgba(184,137,26,0.30);
+    --warn:#B45309; --warn-soft:rgba(180,83,9,0.09); --warn-border:rgba(180,83,9,0.25);
+    --danger:#B91C1C; --danger-soft:rgba(185,28,28,0.07); --danger-border:rgba(185,28,28,0.22);
+  }
+  *{box-sizing:border-box;-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-size:15px;line-height:1.62;padding-bottom:64px}
+  .wrap{max-width:780px;margin:0 auto;padding:0 18px}
 
-  Delete everything from  <h3>7 Score Tab — Score &amp; Finalize</h3>
-  down to (but NOT including) the next <h3>, and paste this in its place.
+  header{background:#0d2b1e;color:#fff;padding:40px 0 34px;margin-bottom:26px}
+  header .wrap{text-align:left}
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.45)}
+  header h1{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;line-height:1.05;margin:6px 0 8px;letter-spacing:-0.01em}
+  header p{margin:0;font-size:15px;color:rgba(255,255,255,0.62);max-width:56ch}
 
-  The old section described Save Preview, Edit Scores and a two-step flow.
-  All three are gone.
--->
+  nav.toc{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:16px 18px;margin-bottom:30px}
+  nav.toc h2{font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-50);margin:0 0 10px}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px}
+  nav.toc li{margin-bottom:5px;font-size:13.5px;break-inside:avoid}
+  nav.toc a{color:var(--brand);text-decoration:none;font-weight:600}
+  nav.toc a:hover{text-decoration:underline}
+  @media(max-width:560px){nav.toc ol{columns:1}}
 
-<h3><span>7</span> Score Tab — Start Scoring, then Finalize</h3>
+  h2.sec{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--ink-50);margin:44px 0 14px;padding-bottom:9px;border-bottom:2px solid var(--hair)}
+  h3{font-size:19px;font-weight:800;margin:30px 0 8px;letter-spacing:-0.01em;scroll-margin-top:18px}
+  h3 .num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
+    background:var(--brand-soft);color:var(--brand);font-size:13px;font-weight:800;margin-right:9px;vertical-align:2px}
+  h4{font-size:15px;font-weight:800;margin:22px 0 6px}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 12px;padding-left:22px}
+  li{margin-bottom:6px}
+  strong{font-weight:700}
+  code{background:var(--sunken);border:1px solid var(--hair);border-radius:5px;padding:1px 6px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
-<p>The Score tab now works in two stages. This is deliberate: it is what stops a
-round being overwritten or lost.</p>
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:18px 20px;margin:0 0 16px}
+  .callout{border-radius:12px;padding:14px 16px;margin:14px 0;font-size:14px;border:1px solid}
+  .callout.tip{background:var(--brand-soft);border-color:var(--brand-border)}
+  .callout.warn{background:var(--warn-soft);border-color:var(--warn-border)}
+  .callout.stop{background:var(--danger-soft);border-color:var(--danger-border)}
+  .callout.gold{background:var(--gold-soft);border-color:var(--gold-border)}
+  .callout strong:first-child{display:inline}
+  .callout p:last-child{margin-bottom:0}
 
-<p><strong>Stage 1 — check the teams.</strong> When you open the Score tab you do
-<em>not</em> get score boxes straight away. You get the teams listed out, with the
-men on each one, and a single green <strong>▶ Start Scoring</strong> button.
-Read the teams. If anything is wrong there is a button to go back to the Teams
-tab and fix it. Once you press Start Scoring the teams are locked for that day.</p>
+  table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--hair-soft);vertical-align:top}
+  th{font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-50);
+    background:var(--sunken);white-space:nowrap}
+  td:first-child{font-weight:600;white-space:nowrap}
 
-<div class="callout">
-  <strong>The app checks the date here.</strong> If the day's date is not part of
-  the current week, or is more than a couple of days old, Start Scoring will
-  refuse and tell you to fix it in Manage Days. This catches a wrong date
-  <em>before</em> anyone plays, instead of after the whole round is scored.
+  .steps{counter-reset:s;list-style:none;padding:0;margin:0 0 16px}
+  .steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:13px}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;
+    background:var(--brand);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+  .pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;
+    padding:2px 9px;border-radius:20px;border:1px solid;vertical-align:1px;margin-left:6px}
+  .pill.member{background:var(--brand-soft);color:var(--brand);border-color:var(--brand-border)}
+  .pill.admin{background:var(--gold-soft);color:var(--gold);border-color:var(--gold-border)}
+
+  .money{background:var(--sunken);border:1px solid var(--hair);border-radius:12px;padding:16px 18px;margin:0 0 16px}
+  .money .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--hair-soft);font-size:14px}
+  .money .row:last-child{border-bottom:none;font-weight:800;padding-top:10px}
+
+  footer{margin-top:54px;padding-top:22px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--ink-35)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Clark Golf Group</div>
+    <h1>How the app works</h1>
+    <p>Everything you need, whether you just want to sign up and see your team, or you run the scoring on a Friday afternoon.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#signin">Signing in</a></li>
+    <li><a href="#signup">Signing up to play</a></li>
+    <li><a href="#guests">Bringing a guest</a></li>
+    <li><a href="#teams-m">Seeing your team</a></li>
+    <li><a href="#results">Results and payouts</a></li>
+    <li><a href="#money">How the money works</a></li>
+    <li><a href="#profile">Your profile and photo</a></li>
+    <li><a href="#notifs">Notifications</a></li>
+    <li><a href="#install">Putting it on your phone</a></li>
+    <li><a href="#tourney">The season tournament</a></li>
+    <li><a href="#roles">Admin roles</a></li>
+    <li><a href="#week">Setting up the week</a></li>
+    <li><a href="#build">Building teams</a></li>
+    <li><a href="#score">Scoring a round</a></li>
+    <li><a href="#fix">When something goes wrong</a></li>
+    <li><a href="#endweek">Ending the week</a></li>
+    <li><a href="#faq">Common questions</a></li>
+  </ol>
+</nav>
+
+<h2 class="sec">For everyone</h2>
+
+<h3 id="signin"><span class="num">1</span>Signing in<span class="pill member">Member</span></h3>
+<p>Open the app and tap <strong>Member Sign In</strong>. Your PIN is the <strong>last 4 digits of your phone number</strong>. Find your name, enter those four digits, and you're in.</p>
+<p>The app remembers you on that device, so you only do this once per phone.</p>
+<div class="callout tip"><strong>Two men with the same last 4?</strong> The app spots it and asks which of you it is. Pick your name and carry on.</div>
+
+<h3 id="signup"><span class="num">2</span>Signing up to play<span class="pill member">Member</span></h3>
+<p>The <strong>Week</strong> tab is the front page. Each day we're playing gets a card showing the date, the tee time, the weather, and who has signed up so far.</p>
+<ol class="steps">
+  <li>Tap the day you want to play.</li>
+  <li>Check your tees and handicap — they're pre-filled from last time. Fix them if they're wrong, because teams are built off those numbers.</li>
+  <li>Confirm. Your name appears in the list straight away.</li>
+</ol>
+<p>Changed your mind? Tap your own name in the list and remove yourself. Do it early if you can — once teams are built, taking someone out means the admin has to rebuild.</p>
+<div class="callout warn"><strong>If the day is full</strong> you'll join the waiting list instead. If someone drops out, the first man on the list moves up automatically and the admins are told.</div>
+
+<h3 id="guests"><span class="num">3</span>Bringing a guest<span class="pill member">Member</span></h3>
+<p>When you sign up you can add a guest at the same time. You'll need their name and their course handicap for the tees they'll play.</p>
+<p>Your guest counts as a player: they go into a team, they pay in, and they can win. You're responsible for their money.</p>
+
+<h3 id="teams-m"><span class="num">4</span>Seeing your team<span class="pill member">Member</span></h3>
+<p>Teams appear on the <strong>Teams</strong> tab once an admin publishes them — you'll get a notification the moment they do. Until then the tab tells you they aren't out yet.</p>
+<p>Teams are balanced by combined handicap, so every group has a fair shout. You'll see your team, the other teams, and the tee-off order.</p>
+<div class="callout tip"><strong>Faces, not just names.</strong> If a man has added a photo it shows next to his name. Tap any photo to see it bigger — handy when you're looking for someone on the first tee.</div>
+
+<h3 id="results"><span class="num">5</span>Results and payouts<span class="pill member">Member</span></h3>
+<p>Scores go in as groups come off the course. When the round is finished and published you'll get a notification, and the <strong>Score</strong> tab shows the full breakdown: front nine, back nine, overall, skins, and exactly what each man is owed.</p>
+<p>Older rounds live on the <strong>History</strong> tab. <strong>Standings</strong> shows the season money list, and <strong>Attend</strong> shows who has played how often.</p>
+
+<h3 id="money"><span class="num">6</span>How the money works<span class="pill member">Member</span></h3>
+<p>Everyone puts in <strong>$25</strong>. It splits the same way every week, based on how many are playing:</p>
+<div class="money">
+  <div class="row"><span>Front nine</span><span>$5 a man</span></div>
+  <div class="row"><span>Back nine</span><span>$5 a man</span></div>
+  <div class="row"><span>Overall</span><span>$5 a man</span></div>
+  <div class="row"><span>Skins</span><span>$10 a man</span></div>
+  <div class="row"><span>Tournament fund</span><span>$1 a man, taken out of skins</span></div>
+  <div class="row"><span>Total in</span><span>$25 a man</span></div>
 </div>
+<p>So with 20 players: $100 on the front, $100 on the back, $100 overall, and $200 in skins — less $20 to the tournament fund, leaving $180 of skins to be won.</p>
+<p>Payouts are rounded down to whole dollars, and any odd change left over goes to the tournament fund as well. The fund line is shown on both the scoring screen and in History, so you can always see where it stands.</p>
+<div class="callout gold"><strong>That $1 a week is what pays for the season tournament.</strong> You've been contributing to it since the first round of the year.</div>
 
-<p><strong>Stage 2 — score as teams come in.</strong> Press Start Scoring and the
-score boxes appear. Enter each team's Front, Back and Overall and tap their skins
-as they finish — you do not have to wait for everyone. A strip across the top
-shows where you are:</p>
+<h3 id="profile"><span class="num">7</span>Your profile and photo<span class="pill member">Member</span></h3>
+<p>Tap your own picture — either at the top of the screen, or next to your name on the Week or Teams tab — to open your profile. From there you can:</p>
+<ul>
+  <li>Add or change your photo</li>
+  <li>Set your default tees and handicap, so sign-ups are pre-filled</li>
+  <li>Add your email address</li>
+  <li>Turn notifications on</li>
+  <li>Write the short welcome message that greets you when you sign in</li>
+</ul>
+<p>Photos are cropped square. Frame your face in the middle and it'll look right everywhere in the app.</p>
 
+<h3 id="notifs"><span class="num">8</span>Notifications<span class="pill member">Member</span></h3>
+<p>Worth turning on. You'll get an alert when:</p>
+<ul>
+  <li>A new week opens for sign-ups</li>
+  <li>Teams are published</li>
+  <li>A lottery tee time is finally set</li>
+  <li>Results are posted</li>
+  <li>A day gets cancelled</li>
+</ul>
+<p>To switch them on, open your profile and use the <strong>Notifications</strong> row. The bell at the top of the screen shows an amber dot while they're off.</p>
+<div class="callout warn"><strong>On iPhone this only works if you add the app to your Home Screen first.</strong> Tap Share, then Add to Home Screen, then open the app from that icon and turn notifications on there. It will not work in Safari.</div>
+
+<h3 id="install"><span class="num">9</span>Putting it on your phone<span class="pill member">Member</span></h3>
+<p>It isn't in the App Store — it installs straight from the web and behaves the same way.</p>
+<p><strong>iPhone:</strong> open the app in Safari, tap the Share button, then <strong>Add to Home Screen</strong>.</p>
+<p><strong>Android:</strong> open it in Chrome, tap the three dots, then <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
+<p>It then opens full-screen with no browser bar, and notifications work properly.</p>
+
+<h3 id="tourney"><span class="num">10</span>The season tournament<span class="pill member">Member</span></h3>
+<p>The <strong>Tourney</strong> tab covers the end-of-season event. It shows the dates, the pot as it stands, who's in, and what you personally owe.</p>
+<p><strong>Entry is $45, less $1 for every round you've played this season.</strong> Play more Fridays and you owe less. Your exact figure is on that tab.</p>
+<p>When invitations go out you'll see a banner until you answer. Tap it, choose which days you can play, confirm your handicap and tees, and you're entered. You can change your answer any time before the deadline.</p>
+<div class="callout gold"><strong>One entry fee covers the whole tournament</strong> — the same $45 whether you play one day or both.</div>
+
+<h2 class="sec">For admins</h2>
+
+<p>Three extra tabs appear if you're an admin: <strong>Manage</strong>, <strong>Email</strong> and <strong>Admin</strong>. Everything below happens in those, or on the Teams and Score tabs.</p>
+
+<h3 id="roles"><span class="num">11</span>Admin roles<span class="pill admin">Admin</span></h3>
+<table>
+  <tr><th>Role</th><th>What they can do</th></tr>
+  <tr><td>Master</td><td>Everything, including roles, deletions, exports and the settings only one person should touch.</td></tr>
+  <tr><td>Super Admin</td><td>Run the week: set up days, build teams, score, publish, end the week.</td></tr>
+  <tr><td>Scoring Admin</td><td>The Score tab only. Start scoring, enter scores, finalise. Cannot build teams or cancel a day.</td></tr>
+  <tr><td>Member</td><td>Sign up, see teams, see results.</td></tr>
+</table>
+<p>The Scoring Admin role is for the rare Friday when no admin is playing — somebody needs to put the cards in without being handed the keys to everything.</p>
+
+<h4>Showing someone the app</h4>
+<p>There are two view-only codes, both set in the portal under App Settings. Whoever uses them can navigate freely and <strong>cannot change a single thing</strong> — every save, publish and delete is dead, and no notifications can be sent.</p>
+<ul>
+  <li><strong>Preview code</strong> — shows the app as a member sees it.</li>
+  <li><strong>Admin preview code</strong> — shows every admin screen, still completely read-only.</li>
+</ul>
+<div class="callout warn"><strong>The admin preview shows real data</strong>, including the roster with email addresses. Read-only, but visible. Think before you hand that code out.</div>
+
+<h3 id="week"><span class="num">12</span>Setting up the week<span class="pill admin">Admin</span></h3>
+<p><strong>Manage → Manage Days.</strong> For each day you're playing:</p>
+<ol class="steps">
+  <li>Turn the day on and <strong>set the date</strong>.</li>
+  <li>Set the tee time, or mark it as a <strong>lottery</strong> if you don't know it yet.</li>
+  <li>Add any extra tee times for information.</li>
+</ol>
+<div class="callout stop"><strong>The date is the single most important field on this screen.</strong> A stale date once filed a round under the previous week and wiped the round that was already there. The app now refuses to start scoring on a date that isn't part of the current week, or is more than two days old — but it's far easier to set it correctly than to explain the refusal later.</div>
+<p>When the lottery result comes in, come back and set the real time. Everyone gets a notification automatically.</p>
+
+<h3 id="build"><span class="num">13</span>Building teams<span class="pill admin">Admin</span></h3>
+<p>Once sign-ups are in, go to the <strong>Teams</strong> tab and pick the day.</p>
+<ol class="steps">
+  <li><strong>Build</strong> — the app draws teams balanced by combined handicap, honouring pairing requests and do-not-pair rules.</li>
+  <li><strong>Adjust</strong> — drag men between teams, add a late arrival, remove a no-show. Rebuild as often as you like; every previous line-up is saved.</li>
+  <li><strong>Publish</strong> — teams go live, the day locks to new sign-ups, and everyone gets a notification.</li>
+</ol>
+<div class="callout tip"><strong>This is the phase where changes belong.</strong> Nothing here is risky — rebuild ten times if you want.</div>
+
+<h3 id="score"><span class="num">14</span>Scoring a round<span class="pill admin">Admin</span></h3>
+<p>The Score tab works in two stages, and the split is deliberate — it's what stops a round being lost.</p>
+
+<h4>Stage one — check the teams, then start</h4>
+<p>Open the <strong>Score</strong> tab and you won't see score boxes yet. You'll see the teams laid out and one green <strong>Start Scoring</strong> button.</p>
+<p>Read the teams. If something's wrong there's a button to go back and fix it. Press Start Scoring and the teams <strong>lock for the day</strong> — nobody can rebuild or erase them mid-round.</p>
+<div class="callout tip"><strong>The date is checked here.</strong> If it's wrong you're told now, before anyone tees off, instead of after the whole round is scored.</div>
+
+<h4>Stage two — score as groups come in</h4>
+<p>Enter each team's front, back and overall, and tap their skins, as they finish. You don't wait for everyone. A strip across the top shows where you are:</p>
 <p><em>Team One ✓ scored · Team Two waiting · Team Three waiting</em></p>
+<div class="callout tip"><strong>Your scores save themselves</strong> about a second after you stop typing. There's no Save button because you don't need one. Close the browser, lose signal, hand the phone to someone else — what you entered is already safe.</div>
+<div class="callout gold"><strong>Saving is not publishing.</strong> Nothing reaches History until you press Finalize. Save as often as you like; it cannot touch a finished round.</div>
 
-<p><strong>Your scores save themselves.</strong> Every change is saved about a
-second after you stop typing. There is no Save button any more because you do not
-need one. Close the browser, lose signal, or hand the phone to someone else —
-what you entered is already saved.</p>
+<h4>Finishing</h4>
+<p><strong>Finalize &amp; Publish</strong> only lights up once every team has a score — until then it's greyed out and tells you who you're waiting on. Press it and you get a confirmation; if no skins have been recorded for the whole round it asks whether that's right.</p>
+<p>Then the round goes to History, attendance is recorded, payouts are calculated, and everyone gets a notification.</p>
+<div class="callout stop"><strong>Once published, the button is gone.</strong> Not greyed out — gone. It's replaced by <em>Round saved</em> and the date. There is nothing left to press twice.</div>
 
-<div class="callout">
-  <strong>Saving is not publishing.</strong> Nothing reaches History until you
-  press Finalize. You can save as many times as you like and it cannot touch a
-  finished round. This is the change that stops rounds disappearing.
+<h3 id="fix"><span class="num">15</span>When something goes wrong<span class="pill admin">Admin</span></h3>
+<table>
+  <tr><th>Situation</th><th>What to do</th></tr>
+  <tr><td>Teams wrong, not started</td><td>Use the button on the Score screen to go back to Teams and fix them.</td></tr>
+  <tr><td>Teams wrong, already started</td><td><strong>Stop Scoring — unlock teams</strong> at the bottom of the Score tab. Sign-ups, teams and any scores you've entered are all kept. Press Start Scoring again when you're done.</td></tr>
+  <tr><td>Rained off</td><td>Cancel the day from <strong>Manage Days</strong>. That clears the sign-ups and notifies everyone — right for a washout, wrong for a team mix-up.</td></tr>
+  <tr><td>Wrong date</td><td>Fix it in Manage Days, then start scoring.</td></tr>
+  <tr><td>Wrong score published</td><td>Open the round in History and edit it. The original is kept.</td></tr>
+  <tr><td>Round deleted by mistake</td><td>It's in the Deleted list in History. Recover it.</td></tr>
+</table>
+<div class="callout gold"><strong>Nothing is ever destroyed.</strong> Every version of the teams is kept, every score save is kept, and anything removed goes to a recoverable trash rather than being erased. Mistakes are corrections, not losses.</div>
+
+<h3 id="endweek"><span class="num">16</span>Ending the week<span class="pill admin">Admin</span></h3>
+<p><strong>End Week &amp; Start Fresh</strong> sits at the very bottom of the Admin tab, on its own, deliberately out of the way.</p>
+<p>It archives any day that still has data, clears the week, and opens the next one. You have to <strong>type END</strong> to confirm.</p>
+<div class="callout warn"><strong>Finalise your rounds first.</strong> End Week will archive a day that was never scored, and that's a round you'd have to reconstruct by hand.</div>
+<p>Weekly notes and the events line carry over to the new week. Everything else starts clean.</p>
+
+<h4>The rest of the Admin tab</h4>
+<table>
+  <tr><th>Section</th><th>What it's for</th></tr>
+  <tr><td>Manage Days</td><td>Dates, tee times, cancellations, day setup.</td></tr>
+  <tr><td>Day Checklists</td><td>Tick-off list so nothing gets missed on the day.</td></tr>
+  <tr><td>Notes &amp; Announcements</td><td>Messages shown to everyone in the app.</td></tr>
+  <tr><td>Manage Sign-Ups</td><td>Add or remove men from a day by hand.</td></tr>
+  <tr><td>Roster</td><td>Add players, fix names, set handicaps and tees, hand out roles.</td></tr>
+  <tr><td>Export Data</td><td>Download the season for your own records.</td></tr>
+  <tr><td>End Week</td><td>Bottom of the page. Type END.</td></tr>
+</table>
+
+<h2 class="sec">Reference</h2>
+
+<h3 id="faq"><span class="num">17</span>Common questions</h3>
+
+<h4>I can't sign in.</h4>
+<p>Your PIN is the last 4 digits of the phone number we have for you. If it's an old number, ask an admin to check the roster.</p>
+
+<h4>The app looks out of date.</h4>
+<p>Close it completely — swipe it away rather than backgrounding it — and reopen. If you're in a browser, pull down to refresh.</p>
+
+<h4>Why can't I see Stats?</h4>
+<p>Stats visibility is set by the Master. Some sections are admin-only by design.</p>
+
+<h4>I signed up but I'm not on a team.</h4>
+<p>Either teams aren't published yet, or you signed up after they were built. Speak to an admin — you can still be added.</p>
+
+<h4>Why is the tee time blank?</h4>
+<p>It's a lottery day and the result isn't in. You'll be notified the moment it's set.</p>
+
+<h4>Do I have to pay through the app?</h4>
+<p>No. The app works out what's owed and what's won. Money changes hands the way it always has.</p>
+
+<h4>Why does a round show players but no teams?</h4>
+<p>Two rounds from late August and early September lost their team line-ups to a bug that has since been fixed. The scores and payouts are intact, and the players are shown from the attendance record. Only who played with whom is gone.</p>
+
+<h4>Something's wrong and it isn't covered here.</h4>
+<p>Tell Jared. If it's a round or the money, tell him before the next week is started — it's far easier to fix while the week is still open.</p>
+
+<footer>
+  <p><strong>Clark Golf Group</strong> — app and guide by Jared Friend. This guide covers the app as it stands today; it's updated when the app changes.</p>
+</footer>
+
 </div>
-
-<p><strong>Finishing the round.</strong> <strong>Finalize &amp; Publish — Save to
-History</strong> only becomes available once every team has a score. Until then it
-is greyed out and tells you who you are still waiting on. When you press it you
-get a confirmation, and if no skins have been recorded for the whole round it will
-ask whether that is right — there is normally at least one.</p>
-
-<p>Once published, the button is <em>gone</em>. It is replaced by
-<strong>✓ Round saved</strong> with the date. There is nothing left to press twice,
-and the day drops off the Score tab because it is now in History.</p>
-
-<p><strong>Skins surplus note:</strong> until you tap at least one skin, the payout
-preview shows the full skins pot as a "rounding surplus." This is normal and clears
-once skins are entered.</p>
-
-<p><strong>If something is wrong mid-round:</strong> use <strong>Cancel Day</strong>
-at the bottom of the Score tab. It asks you to confirm and then makes you type
-CANCEL, so it cannot happen by accident. No round is saved, no attendance is
-recorded, and nothing goes to the tournament fund.</p>
-
-<div class="callout">
-  <strong>Gone from this tab:</strong> Save Preview / Update Preview (the app saves
-  on its own now) and Edit Scores (scores stay editable right up until you press
-  Finalize, so there is nothing to reopen).
-</div>
+</body>
+</html>

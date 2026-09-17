@@ -683,6 +683,33 @@ let PUSH_TRIGGERS_CACHE=null;
 // Laytonsville, MD — the course. Forecast grids are miles across so town-level
 // coordinates are plenty. Open-Meteo needs no key and no account.
 const COURSE_LAT=39.2121, COURSE_LON=-77.1428;
+// ── PREVIEW HARD LOCK ──────────────────────────────────────────────────────
+// Guards at individual call sites are only as good as the developer's memory,
+// and four of them were missed. So the SDK's own write methods are patched once,
+// globally: while window.__cgPreview is true, set/update/remove/push/transaction
+// resolve without touching Firebase. Reads are untouched. This catches every
+// write path in the app, including any added later that forgets to check.
+(function installPreviewLock(){
+  try{
+    if(typeof firebase==='undefined'||!firebase.database||firebase.database.__cgLocked)return;
+    const proto=firebase.database.Reference&&firebase.database.Reference.prototype;
+    if(!proto)return;
+    ['set','update','remove','push','setWithPriority','transaction'].forEach(function(m){
+      const orig=proto[m];
+      if(typeof orig!=='function')return;
+      proto[m]=function(){
+        if(window.__cgPreview){
+          try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}
+          console.log('[preview] blocked '+m+' on '+(this&&this.toString?this.toString():'?'));
+          return m==='push' ? Object.assign(Promise.resolve({key:null}),{key:null}) : Promise.resolve();
+        }
+        return orig.apply(this,arguments);
+      };
+    });
+    firebase.database.__cgLocked=true;
+  }catch(e){ console.warn('[preview] could not install the hard lock',e); }
+})();
+
 const WX_CACHE={at:0,data:null};
 // One avatar used by the sign-up list and the team cards. Photo when the man
 // has uploaded one, otherwise the same initials treatment used in the header —
