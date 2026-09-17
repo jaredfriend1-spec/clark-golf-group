@@ -2102,7 +2102,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
 
   async function handleSetTeeTime(dayName, time){
     const prevTee=week?.teeTimes?.[dayName];
-    const wasLottery=!!(prevTee&&typeof prevTee==='object'&&prevTee.lottery&&!prevTee.time);
+    const wasLottery=!!(prevTee&&typeof prevTee==='object'&&prevTee.lottery&&(!prevTee.time||String(prevTee.time).toUpperCase()==='LOTTERY'));   // Manage Days stores a lottery as {time:'LOTTERY',lottery:true}, so the old !prevTee.time test was never true and this push never fired.
     await write('week/teeTimes/' + dayName, { time, lottery: false });
     // Push ONLY on the lottery-result moment: lottery was checked (no time) → actual time set.
     // Routine sets (Friday's standing time, or a blank non-lottery day getting a time) stay silent.
@@ -3913,7 +3913,9 @@ function TeamsViewV2({ avatarFor, onOpenProfile, currentUser, week, history, isA
 
   function publishTeams(day, teams){
     write('week/teams/'+day, teams).then(()=>write('week/teamsPublished/'+day, true));
-    update({['week/locked/'+day]:true});
+    // `update` is not a prop of TeamsViewV2 — this line threw a ReferenceError,
+    // so the lock, the onTeamsPublished callback and the push below never ran.
+    write('week/locked/'+day, true);
     if(onTeamsPublished) onTeamsPublished(day, teams);
     sendPushNotify({audience:'all',title:(indMode?'Groups':'Teams')+' for '+day+' are out!',body:indMode?'See your group and tee-off order.':'See your team and slot.',url:'/',tag:'pub-'+day,vars:{day:day}});
   }
@@ -10292,7 +10294,7 @@ function App(){
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
   function updateTeeTime(day,data){
     const prevTee=week?.teeTimes?.[day];
-    const wasLottery=!!(prevTee&&typeof prevTee==='object'&&prevTee.lottery&&!prevTee.time);
+    const wasLottery=!!(prevTee&&typeof prevTee==='object'&&prevTee.lottery&&(!prevTee.time||String(prevTee.time).toUpperCase()==='LOTTERY'));   // Manage Days stores a lottery as {time:'LOTTERY',lottery:true}, so the old !prevTee.time test was never true and this push never fired.
     const nowTime=data&&typeof data==='object'&&data.time&&!data.lottery?data.time:null;
     const tt={...(week?.teeTimes||{})};if(data===null)delete tt[day];else tt[day]=data;write('week',{...week,teeTimes:tt});
     // Lottery-result moment only: lottery (no time) → an actual time. Routine sets stay silent.
