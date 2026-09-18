@@ -2579,8 +2579,8 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     {isMe && <span className="tag you">You</span>}
                     {p.isGuest && <span className="tag guest">Guest of {p.guestOf||'?'}</span>}
                     {p.pairWithGuest && <span className="tag pair">Pair req</span>}
-                    {p.teePreference === 'first' && <span className="tag first" title={(isAdmin&&p.teePreferenceReason)||''}>1st tee</span>}
-                    {p.teePreference === 'last' && <span className="tag last" title={(isAdmin&&p.teePreferenceReason)||''}>Last tee</span>}
+                    {p.teePreference === 'first' && <span className="tag first">1st tee</span>}
+                    {p.teePreference === 'last' && <span className="tag last">Last tee</span>}
                     {modeInfo&&modeInfo.type==='individual'&&p.stableTarget!=null&&<span className="tag" style={{background:'var(--info-soft)',color:'var(--info)',border:'1px solid var(--info-border)'}}>Tgt {p.stableTarget}</span>}
                     {teamName && (
                       <span className="tag team">
@@ -2593,9 +2593,6 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
                     {p.tee} · HCP {p.handicap}
                   </span>
-                  {isAdmin && p.teePreferenceReason && (
-                    <div style={{fontSize:11,color:'var(--ink-40)',fontStyle:'italic',lineHeight:1.4,marginTop:1}}>“{p.teePreferenceReason}”</div>
-                  )}
                   {hasExtraLine && (
                     <div className="player-extra">
                       {matchPartner && (
@@ -4326,9 +4323,12 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                 </div>
                 {teeRequests.map(([key,s])=>(
                   <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
-                    <div>
+                    <div style={{flex:1,minWidth:0,paddingRight:10}}>
                       <span style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>{s.name}</span>
                       <span style={{display:'inline-block',padding:'1px 6px',background:s.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',color:s.teePreference==='first'?'var(--info)':'var(--warn-ink)',borderRadius:20,fontSize:11,fontWeight:600,marginLeft:6,border:'1px solid '+(s.teePreference==='first'?'var(--info-border)':'var(--warn-border)')}}>{s.teePreference==='first'?'First group':'Last group'}</span>
+                      {s.teePreferenceReason
+                        ? <div style={{fontSize:11.5,color:'var(--ink-50)',fontStyle:'italic',lineHeight:1.45,marginTop:3,overflowWrap:'anywhere'}}>“{s.teePreferenceReason}”</div>
+                        : <div style={{fontSize:11,color:'var(--ink-35)',marginTop:3}}>No reason given — requested before reasons were required.</div>}
                     </div>
                     <div style={{display:'flex',gap:4}}>
                       <button onClick={()=>setApprovals(a=>({...a,[key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===true?'var(--brand)':'var(--hairline)',background:approvals[key]===true?'var(--brand-soft)':'var(--surface)',color:approvals[key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals[key]===true?'✓ Approved':'Approve'}</button>
@@ -4830,7 +4830,7 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                         </div>
                         <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3}}>
                           {matchOpp&&<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>⚡ vs. {matchOpp}</span>}
-                          {p.teePreference&&<span title={(isAdmin&&p.teePreferenceReason)||''} style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:p.teePreference==='first'?'var(--info)':'var(--warn-ink)',background:p.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',border:'1px solid '+(p.teePreference==='first'?'var(--info-border)':'var(--warn-border)'),borderRadius:5,padding:'1px 6px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>}
+                          {p.teePreference&&<span style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:p.teePreference==='first'?'var(--info)':'var(--warn-ink)',background:p.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',border:'1px solid '+(p.teePreference==='first'?'var(--info-border)':'var(--warn-border)'),borderRadius:5,padding:'1px 6px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>}
                           {indMode&&<span style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>Tgt {targetOf(p.name)}</span>}
                         </div>
                         {/* Inline edit form */}
