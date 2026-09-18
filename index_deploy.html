@@ -3168,6 +3168,34 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
       || (dayModeCfg&&dayModeCfg.type==='individual'?dayModeCfg:null)
       || {type:'individual',name:'Individual game',buyIn:savedDayScores.buyIn||25,fundEnabled:savedDayScores.fundEnabled!==false,fundPerPlayer:savedDayScores.fundPerPlayer||1,ranking:savedDayScores.ranking||'net',paidSpots:safeArray(savedDayScores.spots).length||3,tieRule:savedDayScores.tieRule||'split',skinsEnabled:!!savedDayScores.skinsEnabled,skinsPerPlayer:0};
   }
+  // These hooks MUST sit above the individual-mode early return below.
+  // dayModeCfg is null on the first render and populated once data loads, so the
+  // component takes the long path first and the early-return path second. Hooks
+  // after that return made the count drop between renders and blanked the tab.
+  // After a round is finalized its day leaves activeDays. Without this the
+  // Score tab kept rendering the dead day: 0 players, 0 teams, "Waiting on"
+  // with nothing after it. Move to a day that still exists.
+  useEffect(()=>{
+    if(!activeDay||!activeDays.length)return;
+    if(activeDays.indexOf(activeDay)<0)setActiveDay(activeDays[0]);
+  },[activeDays,activeDay]);
+  // ── PIECE 2: AUTOSAVE ───────────────────────────────────────────────────
+  // Every change to a team's score is written after a short pause. Saving is
+  // NOT publishing — this only touches week/scores, never history. Press save
+  // fifty times, close the browser, hand the phone over: nothing can be lost
+  // and nothing can overwrite a published round.
+  const autoRef = useRef({t:null,sig:''});
+  useEffect(()=>{
+    if(!scoringStarted||payoutsCalculated||!activeDay)return;
+    if(!dayTeams.some(t=>ts&&ts[t.id]))return;   // nothing entered yet
+    const sig=JSON.stringify({ts,sk,fv,bv,ov,sv,fp,bp,op});
+    if(sig===autoRef.current.sig)return;
+    autoRef.current.sig=sig;
+    if(autoRef.current.t)clearTimeout(autoRef.current.t);
+    autoRef.current.t=setTimeout(()=>{ try{ handleSaveAndPublish(true); }catch(e){ console.warn('[autosave] failed',e); } },1200);
+    return()=>{ if(autoRef.current.t)clearTimeout(autoRef.current.t); };
+  },[ts,sk,fv,bv,ov,sv,fp,bp,op,scoringStarted,payoutsCalculated,activeDay]);
+
   if(activeDay && dayModeCfg && (dayModeCfg.type==='individual'||savedIsInd)){
     return <IndividualScoringV2 targetsByName={targetsByName||{}} currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
   }
@@ -3198,30 +3226,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     write('week/scoringStarted/'+activeDay, null);
   }
 
-  // After a round is finalized its day leaves activeDays. Without this the
-  // Score tab kept rendering the dead day: 0 players, 0 teams, "Waiting on"
-  // with nothing after it. Move to a day that still exists.
-  useEffect(()=>{
-    if(!activeDay||!activeDays.length)return;
-    if(activeDays.indexOf(activeDay)<0)setActiveDay(activeDays[0]);
-  },[activeDays,activeDay]);
 
-  // ── PIECE 2: AUTOSAVE ───────────────────────────────────────────────────
-  // Every change to a team's score is written after a short pause. Saving is
-  // NOT publishing — this only touches week/scores, never history. Press save
-  // fifty times, close the browser, hand the phone over: nothing can be lost
-  // and nothing can overwrite a published round.
-  const autoRef = useRef({t:null,sig:''});
-  useEffect(()=>{
-    if(!scoringStarted||payoutsCalculated||!activeDay)return;
-    if(!dayTeams.some(t=>ts&&ts[t.id]))return;   // nothing entered yet
-    const sig=JSON.stringify({ts,sk,fv,bv,ov,sv,fp,bp,op});
-    if(sig===autoRef.current.sig)return;
-    autoRef.current.sig=sig;
-    if(autoRef.current.t)clearTimeout(autoRef.current.t);
-    autoRef.current.t=setTimeout(()=>{ try{ handleSaveAndPublish(true); }catch(e){ console.warn('[autosave] failed',e); } },1200);
-    return()=>{ if(autoRef.current.t)clearTimeout(autoRef.current.t); };
-  },[ts,sk,fv,bv,ov,sv,fp,bp,op,scoringStarted,payoutsCalculated,activeDay]);
 
   // Which teams have a score in yet — drives the progress strip and gates Finalize.
   const teamScored = t=>{ const r=ts&&ts[t.id]; if(!r)return false;
@@ -4828,7 +4833,28 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                           {p.isGuest && <span className="tag guest">Guest of {p.guestOf}</span>}
                           {p.fromDraw && <span style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:20,padding:'1px 6px',flexShrink:0}}>draw</span>}
                         </div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3}}>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3,alignItems:'center'}}>
+                          {indMode && isAdmin && !published && (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 5px'}}
+                                  onClick={e=>e.stopPropagation()}>
+                              Target
+                              <input type="number" inputMode="numeric" step="1" min="0" max="99"
+                                value={targetOf(p.name)}
+                                onChange={e=>{
+                                  const v=e.target.value;
+                                  const k=Object.keys(effectiveWeek?.signups||{}).find(kk=>{
+                                    const sg=effectiveWeek.signups[kk];
+                                    return sg&&sg.day===activeDay&&normName(sg.name)===normName(p.name);
+                                  });
+                                  if(!k)return;
+                                  write('week/signups/'+k+'/stableTarget', v===''?null:parseFloat(v));
+                                }}
+                                style={{width:42,padding:'1px 4px',fontSize:11,fontWeight:700,border:'1px solid var(--info-border)',borderRadius:4,background:'var(--surface)',color:'var(--info)',fontFamily:'inherit'}}/>
+                            </span>
+                          )}
+                          {indMode && (!isAdmin || published) && (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>Target {targetOf(p.name)}</span>
+                          )}
                           {matchOpp&&<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>⚡ vs. {matchOpp}</span>}
                           {p.teePreference&&<span style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:p.teePreference==='first'?'var(--info)':'var(--warn-ink)',background:p.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',border:'1px solid '+(p.teePreference==='first'?'var(--info-border)':'var(--warn-border)'),borderRadius:5,padding:'1px 6px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>}
                           {indMode&&<span style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>Tgt {targetOf(p.name)}</span>}
@@ -4876,8 +4902,8 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                   );
                 })}
 
-                {/* Blind draw row */}
-                {blindDraw && (
+                {/* Blind draw row — team play only */}
+                {!indMode && blindDraw && (
                   <div style={{borderTop:'1px dashed var(--hairline)',marginTop:4,paddingTop:8}}>
                     <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>
                       {blindDraw.suggested?'Suggested draw':'Blind draw'}
@@ -4901,7 +4927,7 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                 )}
 
                 {/* No blind draw yet but team is short */}
-                {isAdmin && !published && !blindDraw && playerCount < Math.ceil(cnt/currentDisplay.length) && (
+                {!indMode && isAdmin && !published && !blindDraw && playerCount < Math.ceil(cnt/currentDisplay.length) && (
                   <div style={{borderTop:'1px dashed var(--hairline)',marginTop:4,paddingTop:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     <span style={{fontSize:11,color:'var(--warn-ink)',fontWeight:600}}>Short team — needs a draw</span>
                     <button onClick={()=>setBlindModal({teamIdx:ti})} style={{padding:'4px 9px',borderRadius:6,border:'1.5px solid var(--warn-border)',background:'var(--warn-soft)',color:'var(--warn-ink)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Assign draw</button>
