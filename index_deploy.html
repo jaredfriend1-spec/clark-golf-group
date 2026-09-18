@@ -1412,6 +1412,12 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
            : (defaultHcp != null ? String(defaultHcp) : '')
   );
   const [pref, setPref] = useState(isEdit ? (existingSignup.teePreference || 'none') : 'none');
+  // A first/last tee request now needs a reason. Pre-filled on edit so someone
+  // opening the modal to change their handicap isn't asked to justify a request
+  // they already explained.
+  const [prefReason, setPrefReason] = useState(isEdit ? (existingSignup.teePreferenceReason || '') : '');
+  const prefNeedsReason = ALLOW_TEEPREFS && (pref === 'first' || pref === 'last');
+  const prefReasonOk = !prefNeedsReason || prefReason.trim().length >= 2;
   const [stTarget, setStTarget] = useState(isEdit && existingSignup.stableTarget!=null ? String(existingSignup.stableTarget) : '');
   const rosterTargetFor = (nm)=>{ // roster default for the person being signed up
     const match=(fullRoster||[]).find(p=>normName(p.name)===normName(nm||''));
@@ -1552,17 +1558,20 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
     const entry = isEditingGuest ? {
       day: day.day, name: finalName, tee, handicap: hcpNum,
       isGuest: true, guestOf: existingSignup.guestOf,
+      teePreferenceReason: pref === 'none' ? null : (prefReason.trim() || null),
       pairWithGuest: existingSignup.pairWithGuest || null,
       addedAt: existingSignup.addedAt || Date.now(),
     } : isGuestUser ? {
       day: day.day, name: finalName, tee, handicap: hcpNum,
       isGuest: true, guestOf,
       teePreference: pref === 'none' ? null : pref,
+      teePreferenceReason: pref === 'none' ? null : (prefReason.trim() || null),
       stableTarget: isIndividualDay ? (stTarget!==''&&!isNaN(parseFloat(stTarget))?parseFloat(stTarget):(rosterTargetFor(finalName)??null)) : null,
       addedAt: Date.now(),
     } : {
       day: day.day, name: finalName, tee, handicap: hcpNum,
       teePreference: pref === 'none' ? null : pref,
+      teePreferenceReason: pref === 'none' ? null : (prefReason.trim() || null),
       stableTarget: isIndividualDay ? (stTarget!==''&&!isNaN(parseFloat(stTarget))?parseFloat(stTarget):(rosterTargetFor(finalName)??null)) : null,
       addedAt: existingSignup?.addedAt || Date.now(),
     };
@@ -1864,10 +1873,24 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
                 <div className="form-group">
                   <label className="form-label">Tee time preference</label>
                   <div className="pref-opts">
-                    <button className={'pref-opt'+(pref==='none'?' on':'')} onClick={()=>setPref('none')}>No preference</button>
+                    <button className={'pref-opt'+(pref==='none'?' on':'')} onClick={()=>{setPref('none');setPrefReason('');}}>No preference</button>
                     <button className={'pref-opt'+(pref==='first'?' on':'')} onClick={()=>setPref('first')}>First tee</button>
                     <button className={'pref-opt'+(pref==='last'?' on':'')} onClick={()=>setPref('last')}>Last tee</button>
                   </div>
+                  {prefNeedsReason && (
+                    <div style={{marginTop:10}}>
+                      <label className="form-label" style={{display:'block',marginBottom:4}}>
+                        Why? <span style={{color:'var(--money-neg)',fontWeight:800}}>*</span>
+                      </label>
+                      <textarea className="form-input" rows={2} maxLength={200}
+                        placeholder={pref==='first'?'e.g. Have to be back by noon':'e.g. Coming straight from work'}
+                        value={prefReason} onChange={e=>setPrefReason(e.target.value)}
+                        style={{resize:'vertical',lineHeight:1.45}}/>
+                      <div style={{fontSize:11,color:prefReasonOk?'var(--ink-40)':'var(--money-neg)',marginTop:3}}>
+                        {prefReasonOk?'Only the admins see this.':'Please give a short reason \u2014 the admins need it to build the tee sheet.'}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -1943,7 +1966,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
         </div>
         <div className="modal-foot">
           <button className="btn btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving||!prefReasonOk}>
             {saving ? 'Saving…' : (isEdit ? 'Save changes' : 'Sign me up')}
           </button>
         </div>
@@ -2556,8 +2579,8 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     {isMe && <span className="tag you">You</span>}
                     {p.isGuest && <span className="tag guest">Guest of {p.guestOf||'?'}</span>}
                     {p.pairWithGuest && <span className="tag pair">Pair req</span>}
-                    {p.teePreference === 'first' && <span className="tag first">1st tee</span>}
-                    {p.teePreference === 'last' && <span className="tag last">Last tee</span>}
+                    {p.teePreference === 'first' && <span className="tag first" title={(isAdmin&&p.teePreferenceReason)||''}>1st tee</span>}
+                    {p.teePreference === 'last' && <span className="tag last" title={(isAdmin&&p.teePreferenceReason)||''}>Last tee</span>}
                     {modeInfo&&modeInfo.type==='individual'&&p.stableTarget!=null&&<span className="tag" style={{background:'var(--info-soft)',color:'var(--info)',border:'1px solid var(--info-border)'}}>Tgt {p.stableTarget}</span>}
                     {teamName && (
                       <span className="tag team">
@@ -2570,6 +2593,9 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
                     {p.tee} · HCP {p.handicap}
                   </span>
+                  {isAdmin && p.teePreferenceReason && (
+                    <div style={{fontSize:11,color:'var(--ink-40)',fontStyle:'italic',lineHeight:1.4,marginTop:1}}>“{p.teePreferenceReason}”</div>
+                  )}
                   {hasExtraLine && (
                     <div className="player-extra">
                       {matchPartner && (
@@ -4804,7 +4830,7 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                         </div>
                         <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:3}}>
                           {matchOpp&&<span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>⚡ vs. {matchOpp}</span>}
-                          {p.teePreference&&<span style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:p.teePreference==='first'?'var(--info)':'var(--warn-ink)',background:p.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',border:'1px solid '+(p.teePreference==='first'?'var(--info-border)':'var(--warn-border)'),borderRadius:5,padding:'1px 6px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>}
+                          {p.teePreference&&<span title={(isAdmin&&p.teePreferenceReason)||''} style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:p.teePreference==='first'?'var(--info)':'var(--warn-ink)',background:p.teePreference==='first'?'var(--info-soft)':'var(--warn-soft)',border:'1px solid '+(p.teePreference==='first'?'var(--info-border)':'var(--warn-border)'),borderRadius:5,padding:'1px 6px'}}>{p.teePreference==='first'?'🕐 1st tee':'🔚 Last tee'}</span>}
                           {indMode&&<span style={{display:'inline-flex',alignItems:'center',fontSize:11,fontWeight:700,color:'var(--info)',background:'var(--info-soft)',border:'1px solid var(--info-border)',borderRadius:5,padding:'1px 6px'}}>Tgt {targetOf(p.name)}</span>}
                         </div>
                         {/* Inline edit form */}
@@ -10974,7 +11000,11 @@ function App(){
           </div>
         </div>
       )}
-      {tab === 'home' && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:currentUser.tee||'Whites',handicap:parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||'Whites',handicap:parseFloat(ws.handicap||0),day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
+      {tab === 'home' && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
+  // tee on it, so the old `currentUser.hcp||0` put everyone on the waitlist at 0
+  // off the Whites. Look the man up in the roster, same as a normal sign-up.
+  const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
+  const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:(me&&me.tee)||currentUser.tee||'Whites',handicap:(me&&me.handicap!=null&&!isNaN(parseFloat(me.handicap)))?parseFloat(me.handicap):parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;const wme=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(ws.playerId||''));const wh=(ws.handicap!=null&&!isNaN(parseFloat(ws.handicap))&&parseFloat(ws.handicap)!==0)?parseFloat(ws.handicap):((wme&&wme.handicap!=null&&!isNaN(parseFloat(wme.handicap)))?parseFloat(wme.handicap):parseFloat(ws.handicap||0));addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||(wme&&wme.tee)||'Whites',handicap:wh,day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
       {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
