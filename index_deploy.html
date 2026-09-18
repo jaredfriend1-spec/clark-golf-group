@@ -2840,16 +2840,34 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
       playerCount:pc, savedAt:Date.now(), payoutsCalculated:true, payoutsAt:Date.now(),
     };
   }
-  function handleSavePreview(){
+  function handleSavePreview(isAutosave){
     const data=buildData();
-    update({['week/scores/'+day]:data,['week/complete/'+day]:true});
-    setJustSaved(true); setTimeout(()=>setJustSaved(false),2500);
+    // Autosave writes the working scores only. It must NOT mark the day complete
+    // — that is what the manual save means, and it is what Finalize relies on.
+    update(isAutosave?{['week/scores/'+day]:data}:{['week/scores/'+day]:data,['week/complete/'+day]:true});
+    if(!isAutosave){ setJustSaved(true); setTimeout(()=>setJustSaved(false),2500); }
     return data;
   }
+
+  // ── AUTOSAVE ─────────────────────────────────────────────────────────────
+  // Individual days had no save at all short of publishing to History, so a
+  // closed browser lost the card. Same behaviour as team scoring: written a
+  // beat after you stop typing, and never a publish.
+  const indAutoRef = useRef({t:null,sig:''});
+  useEffect(()=>{
+    if(!day||hydratedFor!==day)return;                 // don't fire while hydrating
+    if(!players.some(n=>rows[n]&&rows[n].total!==''))return;   // nothing entered yet
+    const sig=JSON.stringify({rows,skinCounts,spotVals,fundOn});
+    if(sig===indAutoRef.current.sig)return;
+    indAutoRef.current.sig=sig;
+    if(indAutoRef.current.t)clearTimeout(indAutoRef.current.t);
+    indAutoRef.current.t=setTimeout(()=>{ try{ handleSavePreview(true); }catch(e){ console.warn('[autosave] individual failed',e); } },1200);
+    return()=>{ if(indAutoRef.current.t)clearTimeout(indAutoRef.current.t); };
+  },[rows,skinCounts,spotVals,fundOn,day,hydratedFor]);
   function handleFinalize(){
     if(!balanced){window.alert('Payout spots exceed the pool — fix the amounts first.');return;}
     if(!window.confirm('Finalize this individual round?\n\nScores, payouts and the game rules will be saved to History in one step.\n\n(Corrections afterward: History → Edit.)'))return;
-    const data=handleSavePreview();
+    const data=handleSavePreview(false);
     if(onArchiveDay)onArchiveDay(day,data);
   }
   const scoresSaved = !!savedInd;
@@ -2968,7 +2986,7 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
             <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700}} onClick={handleFinalize} disabled={board.length===0}>
               Finalize Round — Save to History
             </button>
-            <button className="btn btn-outline btn-full" onClick={handleSavePreview} disabled={board.length===0}>
+            <button className="btn btn-outline btn-full" onClick={()=>handleSavePreview(false)} disabled={board.length===0}>
               {scoresSaved?'Update Preview (not finalized)':'Save Preview (not finalized)'}
             </button>
             {editingKey&&onCancelEdit&&(
