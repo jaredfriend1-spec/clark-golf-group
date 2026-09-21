@@ -1380,7 +1380,7 @@ function RosterTab(){
             <select className="input" value={apr.tee} onChange={e=>setApr({...apr,tee:e.target.value})}>{["Whites","Blues","Golds","Reds"].map(t=><option key={t}>{t}</option>)}</select>
             <input className="input" type="number" placeholder="HCP" value={apr.hcp} onChange={e=>setApr({...apr,hcp:e.target.value})}/>
           </div>
-          <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="PIN (4\u20135 digits)" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,5)})}/>
+          <input className="input" style={{marginBottom:8,width:"100%",boxSizing:"border-box"}} type="number" placeholder="PIN (4–5 digits)" value={apr.pin} onChange={e=>setApr({...apr,pin:e.target.value.slice(0,5)})}/>
           {(()=>{const v=String(apr.pin||"").replace(/\D/g,"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([,pv])=>String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:8}}>⚠ Same PIN as <b>{who?who.name:"another member"}</b> — use the last 5 of their phone instead.</div>);})()}
           <input className="input" style={{marginBottom:12,width:"100%",boxSizing:"border-box"}} placeholder="Email" value={apr.email} onChange={e=>setApr({...apr,email:e.target.value})}/>
           <div style={{display:"flex",gap:8}}>
@@ -1485,7 +1485,7 @@ function RosterTab(){
               <div className="lbl" style={{marginBottom:4}}>Phone # <span style={{color:"rgba(255,255,255,0.3)",fontWeight:400}}>(sets their PIN)</span></div>
               <input className="inp" placeholder="e.g. 301-555-1234" value={newP.phone} onChange={e=>setNewP(p=>({...p,phone:e.target.value}))} type="tel"/>
         {(()=>{const r=derivePin(newP.phone,rosterPins,null);if(!r.pin||r.pin.length<4)return null;
-        if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:"#4ade80",background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.18)",borderRadius:8,padding:"6px 10px",marginTop:6}}>\u2713 Last 4 is taken — the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
+        if(r.auto)return(<div style={{fontSize:11,fontWeight:600,color:"#4ade80",background:"rgba(54,165,111,0.08)",border:"1px solid rgba(54,165,111,0.18)",borderRadius:8,padding:"6px 10px",marginTop:6}}>✓ Last 4 is taken — the <b>last {r.n} digits ({r.pin})</b> will be stored automatically.</div>);
         if(r.collides)return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginTop:6}}>⚠ "{r.pin}" is already in use — pick different digits.</div>);
         return null;})()}
         <input className="inp" type="email" placeholder="Email (optional — for the weekly email list)" value={newP.email} onChange={e=>setNewP(p=>({...p,email:e.target.value}))} style={{marginTop:8}}/>
@@ -1653,7 +1653,7 @@ function RosterTab(){
         <div className="modal">
           <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>Set PIN for {confirmSetPin.name}</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.45)",marginBottom:14,lineHeight:1.6}}>Enter a new PIN (4+ digits). The player can then log into the main app with it.</div>
-          <input className="inp" type="text" inputMode="numeric" value={newPinVal} onChange={e=>setNewPinVal(e.target.value.replace(/[^0-9]/g,""))} placeholder="New PIN (4\u20135 digits)" autoFocus style={{marginBottom:6,fontSize:18,textAlign:"center",letterSpacing:"0.2em"}}/>
+          <input className="inp" type="text" inputMode="numeric" value={newPinVal} onChange={e=>setNewPinVal(e.target.value.replace(/[^0-9]/g,""))} placeholder="New PIN (4–5 digits)" autoFocus style={{marginBottom:6,fontSize:18,textAlign:"center",letterSpacing:"0.2em"}}/>
           {(()=>{const v=String(newPinVal||"");if(v.length<4)return null;const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(confirmResetPin&&confirmResetPin.id)&&String(pv)===v);if(!hit)return null;const who=(all||[]).find(p=>String(p.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:10}}>⚠ Already <b>{who?who.name:"another member"}</b>’s PIN — try the last 5 of the phone.</div>);})()}
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-g" style={{flex:1}} onClick={()=>setPin(confirmSetPin.id,newPinVal)} disabled={!newPinVal||newPinVal.length<4}>Set PIN</button>
@@ -2107,11 +2107,11 @@ function ManualRoundEntry({user}){
         <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
           {done&&(
             <div style={{padding:"11px 13px",borderRadius:10,background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.4)",color:"#6ee7b7",fontSize:13,fontWeight:700}}>
-              \u2713 Saved {done.day} {done.date} \u2014 {done.pc} players, fund +${done.fund}.{done.replaced?" The earlier entry for that date is in trash.":""} It now counts in the fund, standings, stats and attendance.
+              ✓ Saved {done.day} {done.date} — {done.pc} players, fund +${done.fund}.{done.replaced?" The earlier entry for that date is in trash.":""} It now counts in the fund, standings, stats and attendance.
             </div>
           )}
           <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",lineHeight:1.55}}>
-            Enter the teams and their scores. Pots and the tournament fund are worked out from the number of players, the same way the app does it. Saving writes the round to History and records attendance \u2014 the fund, standings and stats all read from those, so they update on their own.
+            Enter the teams and their scores. Pots and the tournament fund are worked out from the number of players, the same way the app does it. Saving writes the round to History and records attendance — the fund, standings and stats all read from those, so they update on their own.
           </div>
 
           <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end"}}>
@@ -2126,7 +2126,7 @@ function ManualRoundEntry({user}){
             <div>
               <div style={lab}>Teams</div>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <button className="btn btn-sm btn-ghost" onClick={()=>setTeamCount(nTeams-1)}>\u2212</button>
+                <button className="btn btn-sm btn-ghost" onClick={()=>setTeamCount(nTeams-1)}>−</button>
                 <span style={{fontSize:14,fontWeight:800,minWidth:18,textAlign:"center"}}>{nTeams}</span>
                 <button className="btn btn-sm btn-ghost" onClick={()=>setTeamCount(nTeams+1)}>+</button>
               </div>
@@ -2135,7 +2135,7 @@ function ManualRoundEntry({user}){
 
           {needsReplace&&(
             <div style={{padding:"10px 12px",borderRadius:9,background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.35)",fontSize:12,color:"#fde68a",lineHeight:1.5}}>
-              <strong>A round is already filed for {date}</strong> ({existingRounds.length}). Saving will move it to trash \u2014 recoverable, not deleted. Type <strong>REPLACE</strong> to allow this.
+              <strong>A round is already filed for {date}</strong> ({existingRounds.length}). Saving will move it to trash — recoverable, not deleted. Type <strong>REPLACE</strong> to allow this.
               <input className="inp" value={replaceTyped} onChange={e=>setReplaceTyped(e.target.value)} placeholder="REPLACE" style={{width:130,marginLeft:8,fontFamily:"monospace"}}/>
             </div>
           )}
@@ -2194,7 +2194,7 @@ function ManualRoundEntry({user}){
 
           {problems.length>0&&(
             <div style={{fontSize:12,color:"#fca5a5",lineHeight:1.6}}>
-              {problems.map((p,i)=><div key={i}>\u2022 {p}</div>)}
+              {problems.map((p,i)=><div key={i}>• {p}</div>)}
             </div>
           )}
           <button className="btn" disabled={!!problems.length||busy} onClick={save}
@@ -2991,7 +2991,7 @@ function AppSettingsTab({user}){
         });})()}
         {tmplOpen&&(()=>{const def=({publish:{title:"Teams/Groups for {day} are out!",body:"See your team or group and tee-off order."},results:{title:"\u26f3 {day} results are in!",body:"Payouts and the leaderboard are posted — tap to see how you did."},cancel:{title:"\ud83c\udf27 {day} is cancelled",body:"{reason} — sign-ups for {day} have been cleared."},join:{title:"New join request",body:"{name} wants to join Clark Golf Group."},drops:{title:"⚠ Post-publish drop",body:"{name} dropped {day} after teams were published."},waitlist:{title:"\u23f3 Waitlist: {name}",body:"{name} joined the {day} waitlist."},weekready:{title:"\u26f3 New week is up — sign-ups open!",body:"This week: {day}. Tap to sign up."},teetime:{title:"\ud83d\udd50 {day} tee time is set!",body:"{day} tees off at {time}."}})[tmplOpen]||{};return(
           <div style={{margin:"10px 0",padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>\u270f\ufe0f Custom text — blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code> <code style={{color:"#4ade80"}}>{"{time}"}</code></div>
+            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>✏️ Custom text — blank fields use the default. Tokens: <code style={{color:"#4ade80"}}>{"{day}"}</code> <code style={{color:"#4ade80"}}>{"{name}"}</code> <code style={{color:"#4ade80"}}>{"{reason}"}</code> <code style={{color:"#4ade80"}}>{"{time}"}</code></div>
             <div className="lbl">Title</div>
             <input className="inp" placeholder={def.title} value={tmplT} onChange={e=>setTmplT(e.target.value)} style={{marginBottom:8}}/>
             <div className="lbl">Message</div>
@@ -4142,7 +4142,7 @@ function LoginCardsTab(){
     <div className="main">
       <div className="pg-eyebrow">Master Admin</div>
       <div className="pg-title">Login Cards</div>
-      <div className="pg-sub">Set a custom logo and welcome message for each player. Shows on their flash card at login. Leave blank to use default initials.</div>
+      <div className="pg-sub">Set a custom logo and tagline for each player. Shows on their flash card at login and when anyone taps their photo in the app. Leave blank to use default initials.</div>
 
       <input className="inp" placeholder="Search players..." value={q} onChange={e=>setQ(e.target.value)} style={{marginBottom:16,width:'100%',boxSizing:'border-box'}}/>
 
@@ -4219,9 +4219,9 @@ function LoginCardsTab(){
               <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Any format. Drag to reposition after upload.</div>
 
               {/* Message */}
-              <div className="lbl" style={{marginBottom:6}}>Welcome Message</div>
+              <div className="lbl" style={{marginBottom:6}}>Tagline</div>
               <input className="inp" placeholder='e.g. "Welcome back Cory! 🔥"' value={editMsg} onChange={e=>setEditMsg(e.target.value)} style={{marginBottom:6}}/>
-              <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Shows below their name every time they log in. Leave blank for no message.</div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.25)',marginBottom:16}}>Shows below their name at login and when other players tap their photo. Leave blank for none.</div>
 
               {/* Theme */}
               <div className="lbl" style={{marginBottom:8}}>Card Theme</div>

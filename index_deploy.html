@@ -784,6 +784,15 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
           </div>
           {view.meta&&<div style={{fontSize:13,color:'rgba(255,255,255,0.6)',marginTop:3}}>{view.meta}</div>}
         </div>
+        {view.tagline&&(
+          <div style={{maxWidth:'min(320px, 86vw)',textAlign:'center',fontSize:15,lineHeight:1.4,fontStyle:'italic',color:'rgba(255,255,255,0.92)',
+            padding:'10px 16px',borderRadius:12,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',overflowWrap:'anywhere'}}>
+            “{view.tagline}”
+          </div>
+        )}
+        {view.isMe&&!view.tagline&&onEditProfile&&(
+          <div style={{fontSize:12.5,color:'rgba(255,255,255,0.55)',textAlign:'center'}}>Add a tagline in your profile — everyone sees it here.</div>
+        )}
         {view.isMe&&onEditProfile&&(
           <button onClick={()=>{onClose();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.1)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
         )}
@@ -2045,7 +2054,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     safeArray(fullRoster).forEach(pl=>{
       if(!pl||!pl.name)return;
       const c=playerCards&&playerCards[pl.id];
-      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id};
+      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id,tagline:(c&&typeof c.message==='string'&&c.message.trim())||null};
     });
     return m;
   },[fullRoster,playerCards]);
@@ -2315,7 +2324,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           return (
             <div style={{margin:'0 12px 8px',padding:'11px 13px',borderRadius:10,background:'var(--money-neg-soft, rgba(185,28,28,0.07))',border:'1px solid rgba(185,28,28,0.28)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
               <div style={{flex:1,minWidth:180}}>
-                <div style={{fontSize:13,fontWeight:800,color:'#b91c1c'}}>{day.day}\u2019s date is wrong</div>
+                <div style={{fontSize:13,fontWeight:800,color:'#b91c1c'}}>{day.day}’s date is wrong</div>
                 <div style={{fontSize:12,color:'var(--ink-70)',marginTop:2,lineHeight:1.45}}>{v.reason}. Scores entered against it would be filed under the wrong day.</div>
               </div>
               {fresh&&<button className="btn btn-sm" style={{background:'#b91c1c',color:'#fff',border:'none',flexShrink:0}}
@@ -2608,7 +2617,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
                       title={isMe?'You':p.name}
-                      onClick={(isMe||(a&&a.logo))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                      onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -4875,7 +4884,7 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                           <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                             title={isMe?'You':p.name}
-                            onClick={(isMe||(a&&a.logo))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                            onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -7426,17 +7435,17 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
       <div onClick={()=>setOpen(o=>!o)} style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'var(--brand-soft)'}}>
         <div style={{flex:1}}>
           <div style={{fontSize:13.5,fontWeight:800,color:'var(--brand)'}}>A round is missing from History?</div>
-          <div style={{fontSize:12,color:'var(--ink-50)',marginTop:2}}>Use this if a round was played but never saved. It can\u2019t change a round that\u2019s already there.</div>
+          <div style={{fontSize:12,color:'var(--ink-50)',marginTop:2}}>Use this if a round was played but never saved. It can’t change a round that’s already there.</div>
         </div>
         <span style={{fontSize:14,color:'var(--ink-50)'}}>{open?'\u25B4':'\u25BE'}</span>
       </div>
       {open&&(
         <div style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:16}}>
           {done&&<div style={{padding:'11px 13px',borderRadius:10,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',color:'var(--brand)',fontSize:13,fontWeight:700}}>
-            \u2713 {done.day} {done.date} saved \u2014 {done.pc} players, fund +${done.fund}. It now shows in History, Attend, Standings and Stats.</div>}
+            ✓ {done.day} {done.date} saved — {done.pc} players, fund +${done.fund}. It now shows in History, Attend, Standings and Stats.</div>}
 
           <div>
-            <div style={lab}>1 \u00b7 Which day?</div>
+            <div style={lab}>1 · Which day?</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
               {quick.map(([d,dt])=>(
                 <button key={d} onClick={()=>pickDate(dt)} style={{...chip,fontWeight:700,background:date===dt?'var(--brand)':'var(--surface)',color:date===dt?'#fff':'var(--ink)',borderColor:date===dt?'var(--brand)':'var(--hairline)'}}>{d} {dt.slice(5)}</button>
@@ -7453,9 +7462,9 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
           {exists===false&&(<>
             <div>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-                <div style={lab}>2 \u00b7 Teams</div>
+                <div style={lab}>2 · Teams</div>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <button style={step} onClick={()=>setCount(teams.length-1)}>\u2212</button>
+                  <button style={step} onClick={()=>setCount(teams.length-1)}>−</button>
                   <span style={{fontSize:13,fontWeight:800,minWidth:14,textAlign:'center'}}>{teams.length}</span>
                   <button style={step} onClick={()=>setCount(teams.length+1)}>+</button>
                 </div>
@@ -7469,13 +7478,13 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
                     {t.length===0&&<div style={{fontSize:11.5,color:'var(--ink-40)'}}>Empty</div>}
                     {t.map((p,pi)=>(
                       <div key={pi} onClick={e=>{e.stopPropagation();removeFrom(ti,pi);}} style={{fontSize:12.5,padding:'3px 0',display:'flex',justifyContent:'space-between',gap:6}}>
-                        <span>{p.name}</span><span style={{color:'var(--ink-40)'}}>{p.handicap} \u2715</span>
+                        <span>{p.name}</span><span style={{color:'var(--ink-40)'}}>{p.handicap} ✕</span>
                       </div>
                     ))}
                   </div>
                 ))}
               </div>
-              <input className="form-input" placeholder="Search players\u2026" value={q} onChange={e=>setQ(e.target.value)} style={{marginTop:10}}/>
+              <input className="form-input" placeholder="Search players…" value={q} onChange={e=>setQ(e.target.value)} style={{marginTop:10}}/>
               {poolSigned.length>0&&<><div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-50)',margin:'10px 0 6px'}}>Signed up for {weekDay}</div>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{poolSigned.map(n=><button key={n} style={chip} onClick={()=>addTo(n)}>{n}</button>)}</div></>}
               <div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-50)',margin:'10px 0 6px'}}>{poolSigned.length?'Everyone else':'Roster'}</div>
@@ -7484,16 +7493,16 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
 
             {filled.length>0&&(
               <div>
-                <div style={lab}>3 \u00b7 Scores</div>
+                <div style={lab}>3 · Scores</div>
                 {filled.map(({i})=>(
                   <div key={i} style={{border:'1px solid var(--hairline)',borderRadius:10,padding:'9px 10px',marginBottom:8}}>
-                    <div style={{fontSize:12.5,fontWeight:800,marginBottom:7}}>Team {i+1} <span style={{fontWeight:500,color:'var(--ink-40)'}}>\u00b7 {teams[i].length} players</span></div>
+                    <div style={{fontSize:12.5,fontWeight:800,marginBottom:7}}>Team {i+1} <span style={{fontWeight:500,color:'var(--ink-40)'}}>· {teams[i].length} players</span></div>
                     <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6}}>
                       {[['front','Front'],['back','Back'],['overall','Overall'],['skins','Skins']].map(([k,l])=>(
                         <div key={k} style={{textAlign:'center'}}>
                           <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:3}}>{l}</div>
                           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:3}}>
-                            <button style={{...step,width:26,height:26,fontSize:14}} onClick={()=>bump(i,k,-1)}>\u2212</button>
+                            <button style={{...step,width:26,height:26,fontSize:14}} onClick={()=>bump(i,k,-1)}>−</button>
                             <input value={(scores[i]||{})[k]==null?'':(scores[i]||{})[k]} onChange={e=>setScore(i,k,e.target.value)} inputMode="numeric" className="form-input"
                               style={{width:38,padding:'4px 2px',textAlign:'center',fontWeight:700}}/>
                             <button style={{...step,width:26,height:26,fontSize:14}} onClick={()=>bump(i,k,1)}>+</button>
@@ -7504,12 +7513,12 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
                   </div>
                 ))}
                 <div style={{fontSize:12.5,color:'var(--ink-70)',lineHeight:1.6,padding:'9px 11px',borderRadius:9,background:'var(--surface-sunken)'}}>
-                  {pc} players \u00b7 Front ${pot.front} \u00b7 Back ${pot.back} \u00b7 Overall ${pot.overall} \u00b7 Skins ${pot.skins} \u00b7 <strong>Fund +${pot.fund}</strong> \u00b7 {totalSkins} skins
+                  {pc} players · Front ${pot.front} · Back ${pot.back} · Overall ${pot.overall} · Skins ${pot.skins} · <strong>Fund +${pot.fund}</strong> · {totalSkins} skins
                 </div>
               </div>
             )}
 
-            {problems.length>0&&filled.length>0&&<div style={{fontSize:12,color:'var(--money-neg)',lineHeight:1.6}}>{problems.map((p,i)=><div key={i}>\u2022 {p}</div>)}</div>}
+            {problems.length>0&&filled.length>0&&<div style={{fontSize:12,color:'var(--money-neg)',lineHeight:1.6}}>{problems.map((p,i)=><div key={i}>• {p}</div>)}</div>}
             <button className="btn btn-primary" disabled={!!problems.length||busy} onClick={save} style={{padding:'13px',fontSize:14,fontWeight:800,opacity:problems.length||busy?0.45:1}}>
               {busy?'Saving\u2026':'Save round to History'}
             </button>
@@ -8283,7 +8292,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                           </div>
                           <div className="form-group" style={{marginBottom:8}}>
                             <label className="form-label">Phone # (PIN)</label>
-                            <input className="form-input" placeholder="Phone (last 4 kept) — or type a 4\u20135 digit PIN" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/>
+                            <input className="form-input" placeholder="Phone (last 4 kept) — or type a 4–5 digit PIN" value={editRosterPinVal} onChange={e=>setEditRosterPinVal(e.target.value)}/>
                             {(()=>{const digits=String(editRosterPinVal||'').replace(/\D/g,'');if(!digits||digits.length<4)return null;const stored=digits.length<=5?digits:digits.slice(-4);const hit=Object.entries(rosterPins||{}).find(([pid,pv])=>String(pid)!==String(p.id)&&String(pv)===stored);if(!hit)return null;const who=(fullRoster||[]).find(x=>String(x.id)===String(hit[0]));return(<div style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginTop:6}}>⚠ "{stored}" is already <b>{who?who.name:'another member'}</b>'s PIN — type the <b>last 5 of the phone</b> instead.</div>);})()}
                           </div>
                           {editRosterRole==='master' ? (
@@ -8494,14 +8503,14 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
           return(
             <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',padding:'10px 14px',marginBottom:12,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:12}}>
               <div style={{flex:1,minWidth:200}}>
-                <div style={{fontSize:12.5,fontWeight:700,color:'var(--brand)'}}>\ud83d\udce3 Announce this week</div>
-                <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' \u00b7 ')} \u2014 sign-ups are open!"</div>
+                <div style={{fontSize:12.5,fontWeight:700,color:'var(--brand)'}}>📣 Announce this week</div>
+                <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' \u00b7 ')} — sign-ups are open!"</div>
               </div>
               <button className="btn btn-primary btn-sm" onClick={()=>{
                 sendPushNotify({audience:'all',title:'\u26f3 New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' \u00b7 ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
                 setWeekAnnounced(new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
               }}>Send it</button>
-              {weekAnnounced&&<span style={{fontSize:11,fontWeight:600,color:'var(--brand)'}}>Sent {weekAnnounced} \u2713</span>}
+              {weekAnnounced&&<span style={{fontSize:11,fontWeight:600,color:'var(--brand)'}}>Sent {weekAnnounced} ✓</span>}
             </div>
           );
         })()}
@@ -10174,7 +10183,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
       return;
     }
     if(msg.length > 80){
-      setErr('Welcome message too long (max 80 characters)'); return;
+      setErr('Tagline too long (max 80 characters)'); return;
     }
 
     setSaving(true);
@@ -10343,7 +10352,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
 
           {/* Welcome message */}
           <div className="form-group">
-            <label className="form-label">Welcome message (shown on login)</label>
+            <label className="form-label">Tagline (shown on login and when people tap your photo)</label>
             <input className="form-input" type="text" placeholder="e.g. Let's play golf!" value={msg} onChange={e=>{setMsg(e.target.value);setErr('');}} maxLength={80}/>
             <div style={{fontSize:11,color:'var(--ink-40)',marginTop:4,textAlign:'right'}}>{msg.length}/80</div>
           </div>
@@ -10655,7 +10664,7 @@ function App(){
     safeArray(activeFullRoster).forEach(pl=>{
       if(!pl||!pl.name)return;
       const c=playerCards&&playerCards[pl.id];
-      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id};
+      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id,tagline:(c&&typeof c.message==='string'&&c.message.trim())||null};
     });
     return n=>m[String(n||'').toLowerCase().trim()]||null;
   },[activeFullRoster,playerCards]);
@@ -10663,7 +10672,7 @@ function App(){
   // Photo viewer state lives here, at the root, so the overlay is positioned
   // against the viewport rather than inside whatever card was tapped.
   const [avatarView,setAvatarView]=useState(null);
-  const showAvatar=(o)=>{ if(o&&(o.logo||o.isMe))setAvatarView(o); };
+  const showAvatar=(o)=>{ if(o&&(o.logo||o.isMe||o.tagline))setAvatarView(o); };
 
   // Demo-safe write wrappers — when isDemo=true these are ALL no-ops, NEVER touch Firebase
   const safeWrite  = write;
