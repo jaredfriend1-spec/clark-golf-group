@@ -1980,6 +1980,234 @@ function AccessTab({user}){
 }
 
 // ── HISTORY TAB ───────────────────────────────────────────────────────────────
+// ── ADD A MISSED ROUND ─────────────────────────────────────────────────────
+// For a round that was played but never reached History (a lost save, a day
+// cancelled to protect other data, etc.). Writes exactly two records:
+//   history/<key>        the round, in the same shape the app itself archives
+//   attendance/rounds    who played that date
+// The tournament fund, standings, stats and awards are all CALCULATED from those
+// two, so nothing else needs writing — they pick the round up automatically.
+function ManualRoundEntry({user}){
+  const history=useDB("history");
+  const attendance=useDB("attendance/rounds");
+  const extra=useDB("extraPlayers");
+  const rosterEdits=useDB("rosterEdits");
+  const rosterHcp=useDB("rosterHcp");
+  const rosterTee=useDB("rosterTee");
+  const rosterDeleted=useDB("rosterDeleted");
+  const [open,setOpen]=useState(false);
+  const [date,setDate]=useState("");
+  const [nTeams,setNTeams]=useState(4);
+  const blankTeam=()=>({players:[{name:"",handicap:"",tee:"Whites"},{name:"",handicap:"",tee:"Whites"},{name:"",handicap:"",tee:"Whites"},{name:"",handicap:"",tee:"Whites"}],front:"",back:"",overall:"",skins:"0"});
+  const [teams,setTeams]=useState(()=>Array.from({length:4},blankTeam));
+  const [replaceTyped,setReplaceTyped]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [done,setDone]=useState(null);
+
+  // live roster, same assembly as the Roster tab
+  const roster=useMemo(()=>{
+    const base=ROSTER.map(p=>({id:p.id,name:(rosterEdits&&rosterEdits[p.id])||p.name,
+      handicap:(rosterHcp&&rosterHcp[p.id]!=null)?rosterHcp[p.id]:p.hcp,tee:(rosterTee&&rosterTee[p.id])||p.tee||"Whites"}));
+    const ex=Object.values(extra||{}).filter(Boolean).map(p=>({id:p.id,name:p.name,handicap:p.handicap!=null?p.handicap:p.hcp,tee:p.tee||"Whites"}));
+    return [...base,...ex].filter(p=>p&&p.name&&!(rosterDeleted&&rosterDeleted[p.id])).sort((a,b)=>a.name.localeCompare(b.name));
+  },[extra,rosterEdits,rosterHcp,rosterTee,rosterDeleted]);
+  const byName=useMemo(()=>{const m={};roster.forEach(p=>{m[p.name.toLowerCase()]=p;});return m;},[roster]);
+
+  function setTeamCount(n){
+    n=Math.max(2,Math.min(8,n));setNTeams(n);
+    setTeams(t=>{const c=[...t];while(c.length<n)c.push(blankTeam());return c.slice(0,n);});
+  }
+  function setPlayer(ti,pi,field,val){
+    setTeams(t=>{const c=t.map(x=>({...x,players:x.players.map(p=>({...p}))}));
+      const pl=c[ti].players[pi]; pl[field]=val;
+      if(field==="name"){const hit=byName[String(val).trim().toLowerCase()];
+        if(hit){pl.name=hit.name;if(pl.handicap===""||pl.handicap==null)pl.handicap=String(hit.handicap!=null?hit.handicap:"");pl.tee=hit.tee||pl.tee;}}
+      return c;});
+  }
+  function setTeamField(ti,field,val){setTeams(t=>{const c=t.map(x=>({...x}));c[ti][field]=val;return c;});}
+  function addSlot(ti){setTeams(t=>{const c=t.map(x=>({...x,players:[...x.players]}));c[ti].players.push({name:"",handicap:"",tee:"Whites"});return c;});}
+
+  // ── derived ──
+  const dayName=useMemo(()=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return "";
+    const d=new Date(date+"T12:00:00");return isNaN(d)?"":d.toLocaleDateString("en-US",{weekday:"long"});
+  },[date]);
+  const filled=teams.map(t=>t.players.filter(p=>p.name&&p.name.trim()));
+  const allNames=filled.flat().map(p=>p.name.trim());
+  const dupNames=allNames.filter((n,i)=>allNames.findIndex(x=>x.toLowerCase()===n.toLowerCase())!==i);
+  const unknown=allNames.filter(n=>!byName[n.toLowerCase()]);
+  const pc=allNames.length;
+  const pot={front:pc*5,back:pc*5,overall:pc*5,skins:pc*10,fund:pc};
+  const num=v=>v===""||v==null||isNaN(parseFloat(v))?null:parseFloat(v);
+  const scoredTeams=teams.map((t,i)=>({i,f:num(t.front),b:num(t.back),o:num(t.overall),sk:parseInt(t.skins,10)||0})).filter((t,i)=>filled[i].length);
+  const totalSkins=scoredTeams.reduce((s,t)=>s+t.sk,0);
+  const winners=seg=>{const v=scoredTeams.filter(t=>t[seg]!=null);if(!v.length)return[];const lo=Math.min(...v.map(t=>t[seg]));return v.filter(t=>t[seg]===lo).map(t=>t.i);};
+  const today=new Date();today.setHours(23,59,59,999);
+  const dateObj=/^\d{4}-\d{2}-\d{2}$/.test(date)?new Date(date+"T12:00:00"):null;
+
+  // collisions with what is already stored
+  const existingRounds=useMemo(()=>Object.entries(history||{}).filter(([,r])=>r&&r.date===date),[history,date]);
+  const attList=Array.isArray(attendance)?attendance:Object.values(attendance||{});
+  const existingAtt=attList.find(a=>a&&a.date===date)||null;
+
+  const problems=[];
+  if(!dateObj||isNaN(dateObj))problems.push("Pick the date the round was played.");
+  else if(dateObj>today)problems.push("That date is in the future. This is for rounds already played.");
+  if(filled.filter(t=>t.length).length<2)problems.push("Enter at least two teams.");
+  teams.forEach((t,i)=>{if(!filled[i].length)return;
+    if(num(t.front)==null||num(t.back)==null||num(t.overall)==null)problems.push("Team "+(i+1)+" needs front, back and overall.");});
+  if(dupNames.length)problems.push("On more than one team: "+[...new Set(dupNames)].join(", ")+".");
+  if(unknown.length)problems.push("Not on the roster: "+[...new Set(unknown)].join(", ")+". Pick from the list so stats match.");
+  const needsReplace=existingRounds.length>0;
+  if(needsReplace&&replaceTyped!=="REPLACE")problems.push("A round already exists for "+date+". Type REPLACE below to move it to trash and save this one instead.");
+
+  function save(){
+    if(problems.length||busy)return;
+    if(totalSkins===0&&!window.confirm("No skins recorded for any team. Save anyway?"))return;
+    if(!window.confirm("Save "+dayName+" "+date+" to History?\n\n"+pc+" players, "+filled.filter(t=>t.length).length+" teams.\nFund +$"+pot.fund+".\n\nThis writes the round and its attendance."))return;
+    setBusy(true);
+    const now=Date.now();
+    const kept=teams.map((t,i)=>({t,i})).filter(x=>filled[x.i].length);
+    const teamsOut=kept.map((x,idx)=>{
+      const pl=filled[x.i].map((p,pi)=>({name:p.name.trim(),handicap:num(p.handicap)!=null?num(p.handicap):0,tee:p.tee||"Whites",day:dayName,slot:"ABCDEFGH"[pi]||"",addedAt:now}));
+      return {id:idx+1,name:"Team "+["One","Two","Three","Four","Five","Six","Seven","Eight"][idx],players:pl,
+        totalHcp:Math.round(pl.reduce((s,p)=>s+(parseFloat(p.handicap)||0),0)*10)/10};
+    });
+    const teamScores={};const skinCounts=[null];
+    kept.forEach((x,idx)=>{teamScores[String(idx+1)]={front:num(x.t.front),back:num(x.t.back),overall:num(x.t.overall)};skinCounts.push(parseInt(x.t.skins,10)||0);});
+    const round={date,day:dayName,teams:teamsOut,playerCount:pc,archivedAt:now,
+      manualEntry:true,enteredBy:(user&&(user.name||user.email))||"portal",
+      scores:{teamScores,skinCounts,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,
+        tournFund:pot.fund,playerCount:pc,frontPlaces:1,backPlaces:1,overallPlaces:1,
+        f1:0,f2:0,b1:0,b2:0,o1:0,o2:0,drawAdj:0,payoutsCalculated:true,savedAt:now,payoutsAt:now}};
+    const key="manual_"+date.replace(/-/g,"")+"_"+dayName.toLowerCase()+"_"+now;
+    const updates={["history/"+key]:round};
+    // anything already filed under this date goes to trash, never deleted
+    existingRounds.forEach(([k,r])=>{updates["historyTrash/"+k]={...r,deletedAt:now,deletedBy:"portal-manual-replace"};updates["history/"+k]=null;});
+    // attendance: replace this date's entry, keep every other date
+    const names=[...new Set(allNames)].sort();
+    const nextAtt=[...attList.filter(a=>a&&a.date!==date),{date,players:names}].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    updates["attendance/rounds"]=nextAtt;
+    Promise.resolve(upd(updates)).then(()=>{
+      setBusy(false);setDone({date,day:dayName,pc,fund:pot.fund,replaced:existingRounds.length});
+      setTeams(Array.from({length:nTeams},blankTeam));setDate("");setReplaceTyped("");
+    }).catch(e=>{setBusy(false);window.alert("Save failed: "+((e&&e.message)||e));});
+  }
+
+  const lab={fontSize:10.5,fontWeight:800,letterSpacing:"0.07em",textTransform:"uppercase",color:"rgba(255,255,255,0.45)",marginBottom:4};
+  const box={background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"11px 12px"};
+  return(
+    <div className="card" style={{marginBottom:18,borderColor:"rgba(16,185,129,0.35)"}}>
+      <div className="card-hdr" style={{cursor:"pointer"}} onClick={()=>setOpen(o=>!o)}>
+        <span className="card-title">+ Add a missed round</span>
+        <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginLeft:10}}>For a round that was played but never saved</span>
+        <span style={{marginLeft:"auto",fontSize:14,color:"rgba(255,255,255,0.5)"}}>{open?"\u25B4":"\u25BE"}</span>
+      </div>
+      {open&&(
+        <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
+          {done&&(
+            <div style={{padding:"11px 13px",borderRadius:10,background:"rgba(16,185,129,0.12)",border:"1px solid rgba(16,185,129,0.4)",color:"#6ee7b7",fontSize:13,fontWeight:700}}>
+              \u2713 Saved {done.day} {done.date} \u2014 {done.pc} players, fund +${done.fund}.{done.replaced?" The earlier entry for that date is in trash.":""} It now counts in the fund, standings, stats and attendance.
+            </div>
+          )}
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",lineHeight:1.55}}>
+            Enter the teams and their scores. Pots and the tournament fund are worked out from the number of players, the same way the app does it. Saving writes the round to History and records attendance \u2014 the fund, standings and stats all read from those, so they update on their own.
+          </div>
+
+          <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end"}}>
+            <div>
+              <div style={lab}>Date played</div>
+              <input type="date" className="inp" value={date} onChange={e=>setDate(e.target.value)} style={{width:170}}/>
+            </div>
+            <div>
+              <div style={lab}>Day</div>
+              <div style={{fontSize:14,fontWeight:800,color:dayName?"#fff":"rgba(255,255,255,0.3)",padding:"7px 0"}}>{dayName||"\u2014"}</div>
+            </div>
+            <div>
+              <div style={lab}>Teams</div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <button className="btn btn-sm btn-ghost" onClick={()=>setTeamCount(nTeams-1)}>\u2212</button>
+                <span style={{fontSize:14,fontWeight:800,minWidth:18,textAlign:"center"}}>{nTeams}</span>
+                <button className="btn btn-sm btn-ghost" onClick={()=>setTeamCount(nTeams+1)}>+</button>
+              </div>
+            </div>
+          </div>
+
+          {needsReplace&&(
+            <div style={{padding:"10px 12px",borderRadius:9,background:"rgba(234,179,8,0.1)",border:"1px solid rgba(234,179,8,0.35)",fontSize:12,color:"#fde68a",lineHeight:1.5}}>
+              <strong>A round is already filed for {date}</strong> ({existingRounds.length}). Saving will move it to trash \u2014 recoverable, not deleted. Type <strong>REPLACE</strong> to allow this.
+              <input className="inp" value={replaceTyped} onChange={e=>setReplaceTyped(e.target.value)} placeholder="REPLACE" style={{width:130,marginLeft:8,fontFamily:"monospace"}}/>
+            </div>
+          )}
+          {existingAtt&&!needsReplace&&(
+            <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)"}}>Attendance already has {safeArr(existingAtt.players).length} names for {date}. Saving replaces that list with the players entered here.</div>
+          )}
+
+          <datalist id="mre-roster">{roster.map(p=><option key={p.id} value={p.name}/>)}</datalist>
+
+          {teams.map((t,ti)=>(
+            <div key={ti} style={box}>
+              <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:8}}>
+                <span style={{fontSize:13.5,fontWeight:800}}>Team {ti+1}</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{filled[ti].length} players{filled[ti].length?(" \u00b7 "+Math.round(filled[ti].reduce((s,p)=>s+(parseFloat(p.handicap)||0),0)*10)/10+" hcp"):""}</span>
+              </div>
+              {t.players.map((p,pi)=>(
+                <div key={pi} style={{display:"flex",gap:6,marginBottom:5}}>
+                  <input className="inp" list="mre-roster" placeholder={"Player "+(pi+1)} value={p.name} onChange={e=>setPlayer(ti,pi,"name",e.target.value)} style={{flex:1,minWidth:0}}/>
+                  <input className="inp" type="number" step="0.1" placeholder="Hcp" value={p.handicap} onChange={e=>setPlayer(ti,pi,"handicap",e.target.value)} style={{width:64}}/>
+                  <select className="inp" value={p.tee} onChange={e=>setPlayer(ti,pi,"tee",e.target.value)} style={{width:84}}>
+                    {["Whites","Golds","SGA","Blends","Blues","Reds"].map(x=><option key={x} value={x}>{x}</option>)}
+                  </select>
+                </div>
+              ))}
+              <button className="btn btn-sm btn-ghost" onClick={()=>addSlot(ti)} style={{marginBottom:8}}>+ Add player</button>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6}}>
+                {[["front","Front"],["back","Back"],["overall","Overall"],["skins","Skins"]].map(([k,l])=>(
+                  <div key={k}>
+                    <div style={lab}>{l}</div>
+                    <input className="inp" type="number" step={k==="skins"?"1":"1"} value={t[k]} onChange={e=>setTeamField(ti,k,e.target.value)} style={{width:"100%"}}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div style={box}>
+            <div style={lab}>What will be saved</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,fontSize:12.5}}>
+              <div>Players <strong>{pc}</strong></div>
+              <div>Front pot <strong>${pot.front}</strong></div>
+              <div>Back pot <strong>${pot.back}</strong></div>
+              <div>Overall pot <strong>${pot.overall}</strong></div>
+              <div>Skins pot <strong>${pot.skins}</strong></div>
+              <div>To fund <strong style={{color:"#fbbf24"}}>${pot.fund}</strong></div>
+            </div>
+            {scoredTeams.length>=2&&(
+              <div style={{marginTop:9,fontSize:12,color:"rgba(255,255,255,0.6)",lineHeight:1.6}}>
+                Front: Team {winners("f").map(i=>i+1).join(" & ")||"\u2014"}
+                {" \u00b7 "}Back: Team {winners("b").map(i=>i+1).join(" & ")||"\u2014"}
+                {" \u00b7 "}Overall: Team {winners("o").map(i=>i+1).join(" & ")||"\u2014"}
+                {" \u00b7 "}{totalSkins} skins
+              </div>
+            )}
+          </div>
+
+          {problems.length>0&&(
+            <div style={{fontSize:12,color:"#fca5a5",lineHeight:1.6}}>
+              {problems.map((p,i)=><div key={i}>\u2022 {p}</div>)}
+            </div>
+          )}
+          <button className="btn" disabled={!!problems.length||busy} onClick={save}
+            style={{padding:"12px",fontSize:14,fontWeight:800,opacity:problems.length||busy?0.45:1}}>
+            {busy?"Saving\u2026":"Save round to History"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function HistoryTab({user}){
   const history=useDB("history");
   const [open,setOpen]=useState(null);
@@ -2002,6 +2230,7 @@ function HistoryTab({user}){
     <div className="pg-eyebrow">Archive</div>
     <div className="pg-title">Round History</div>
     <div className="pg-sub">{rounds.length} rounds on record</div>
+    <ManualRoundEntry user={user}/>
     {isMaster(user.role)&&<div className="warn"><strong>Caution:</strong> Deleting a round moves it to trash — recoverable from the main app History tab. Every delete requires typing "DELETE" to confirm.</div>}
     {rounds.length===0&&<div className="info-box">No history yet. End Week archives current week sign-ups here.</div>}
     {rounds.map(([key,r])=>{
