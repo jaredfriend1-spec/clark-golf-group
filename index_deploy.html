@@ -7317,6 +7317,210 @@ function EmailViewV2({ week, isAdmin, history }){
 
 
 // ═══════════════ ADMIN VIEW V2 ═══════════════
+// ── A ROUND IS MISSING FROM HISTORY? ───────────────────────────────────────
+// Master and super admins only. ADD-ONLY: it refuses any date that already has a
+// round, because existing rounds are corrected through History > Edit. It never
+// replaces or deletes anything. Writes the round and that date's attendance —
+// the fund, standings, stats and awards are all calculated from those two.
+// History is lazy-loaded in the app, so every "does a round exist" check reads
+// FRESH from the database rather than trusting what happens to be in memory.
+function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
+  const [open,setOpen]=useState(false);
+  const [date,setDate]=useState('');
+  const [checking,setChecking]=useState(false);
+  const [exists,setExists]=useState(null);     // null = unchecked, false = clear, object = a round is there
+  const [teams,setTeams]=useState([[],[],[],[]]);
+  const [scores,setScores]=useState([{},{},{},{}]);
+  const [sel,setSel]=useState(0);
+  const [q,setQ]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [done,setDone]=useState(null);
+
+  const once=(path)=>new Promise(res=>{ let un=null; let fired=false;
+    un=read(path,v=>{ if(fired)return; fired=true; res(v); setTimeout(()=>{try{un&&un();}catch(e){}},0); }); });
+
+  const today=localDateStr(new Date());
+  const dayOf=d=>{ if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return ''; const x=new Date(d+'T12:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{weekday:'long'}); };
+  const dayName=dayOf(date);
+  const weekDay=Object.keys(week?.dates||{}).find(k=>week.dates[k]===date)||null;
+  const weekTeams=weekDay?safeArray(week?.teams?.[weekDay]).filter(t=>t&&safeArray(t.players).length):[];
+  const quick=Object.entries(week?.dates||{}).filter(([,d])=>d&&d<=today).sort((a,b)=>String(b[1]).localeCompare(String(a[1])));
+
+  async function pickDate(d){
+    setDate(d); setExists(null); setDone(null);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>today)return;
+    setChecking(true);
+    const h=await once('history');
+    const hit=Object.values(h||{}).find(r=>r&&r.date===d);
+    setExists(hit||false); setChecking(false);
+  }
+
+  // who can be added: that day's sign-ups first, then the rest of the roster
+  const placed=new Set(teams.flat().map(p=>p.name.toLowerCase()));
+  const signed=weekDay?Object.values(week?.signups||{}).filter(s=>s&&s.day===weekDay&&s.name):[];
+  const signedSet=new Set(signed.map(s=>s.name.toLowerCase()));
+  const rosterByName={}; safeArray(fullRoster).forEach(p=>{ if(p&&p.name)rosterByName[p.name.toLowerCase()]=p; });
+  const asPlayer=n=>{ const s=signed.find(x=>x.name.toLowerCase()===n.toLowerCase()); const r=rosterByName[n.toLowerCase()];
+    return {name:(r&&r.name)||n, handicap:parseFloat(s&&s.handicap!=null?s.handicap:(r&&r.handicap!=null?r.handicap:0))||0, tee:(s&&s.tee)||(r&&r.tee)||'Whites'}; };
+  const match=n=>!q||n.toLowerCase().includes(q.toLowerCase());
+  const poolSigned=signed.map(s=>s.name).filter(n=>!placed.has(n.toLowerCase())&&match(n));
+  const poolRoster=safeArray(fullRoster).map(p=>p&&p.name).filter(n=>n&&!placed.has(n.toLowerCase())&&!signedSet.has(n.toLowerCase())&&match(n)).sort();
+
+  function addTo(n){ setTeams(t=>{ const c=t.map(x=>[...x]); c[sel].push(asPlayer(n)); return c; }); setQ(''); }
+  function removeFrom(ti,pi){ setTeams(t=>{ const c=t.map(x=>[...x]); c[ti].splice(pi,1); return c; }); }
+  function setCount(n){ n=Math.max(2,Math.min(8,n)); setTeams(t=>{ const c=t.map(x=>[...x]); while(c.length<n)c.push([]); return c.slice(0,n); });
+    setScores(s=>{ const c=[...s]; while(c.length<n)c.push({}); return c.slice(0,n); }); setSel(v=>Math.min(v,n-1)); }
+  function loadWeekTeams(){
+    const t=weekTeams.map(tm=>safeArray(tm.players).filter(p=>p&&p.name).map(p=>({name:p.name,handicap:parseFloat(p.handicap)||0,tee:p.tee||'Whites'})));
+    setTeams(t); setScores(t.map(()=>({}))); setSel(0);
+  }
+  function bump(ti,k,d){ setScores(s=>{ const c=s.map(x=>({...x})); const cur=c[ti][k]; const base=(cur===''||cur==null||isNaN(cur))?0:Number(cur); c[ti][k]=base+d; return c; }); }
+  function setScore(ti,k,v){ setScores(s=>{ const c=s.map(x=>({...x})); c[ti][k]=v===''?'':(isNaN(parseFloat(v))?'':parseFloat(v)); return c; }); }
+
+  const filled=teams.map((t,i)=>({t,i})).filter(x=>x.t.length);
+  const pc=teams.flat().length;
+  const pot=calcPot(pc);
+  const has=v=>v!==''&&v!=null&&!isNaN(v);
+  const problems=[];
+  if(!date)problems.push('Pick the date the round was played.');
+  else if(date>today)problems.push('That date is in the future.');
+  else if(checking)problems.push('Checking History\u2026');
+  else if(exists)problems.push('A round is already saved for this date.');
+  if(filled.length<2)problems.push('Put players on at least two teams.');
+  filled.forEach(({i})=>{ const s=scores[i]||{}; if(!has(s.front)||!has(s.back)||!has(s.overall))problems.push('Team '+(i+1)+' needs front, back and overall.'); });
+  const totalSkins=filled.reduce((a,{i})=>a+(parseInt((scores[i]||{}).skins,10)||0),0);
+
+  async function save(){
+    if(problems.length||busy)return;
+    if(totalSkins===0&&!window.confirm('No skins entered for any team. Save anyway?'))return;
+    if(!window.confirm('Save '+dayName+' '+date+' to History?\n\n'+pc+' players, '+filled.length+' teams. Fund +$'+pot.fund+'.'))return;
+    setBusy(true);
+    // re-check against the live database the instant before writing
+    const [h,att]=await Promise.all([once('history'),once('attendance/rounds')]);
+    if(Object.values(h||{}).some(r=>r&&r.date===date)){ setBusy(false); setExists(true); window.alert('A round for '+date+' was saved a moment ago. Nothing was written.'); return; }
+    const now=Date.now();
+    const teamsOut=filled.map(({t},idx)=>{ const pl=t.map((p,pi)=>({name:p.name,handicap:p.handicap,tee:p.tee,day:dayName,slot:'ABCDEFGH'[pi]||'',addedAt:now}));
+      return {id:idx+1,name:'Team '+['One','Two','Three','Four','Five','Six','Seven','Eight'][idx],players:pl,totalHcp:Math.round(pl.reduce((s,p)=>s+(p.handicap||0),0)*10)/10}; });
+    const teamScores={}; const skinCounts=[null];
+    filled.forEach(({i},idx)=>{ const s=scores[i]||{}; teamScores[String(idx+1)]={front:Number(s.front),back:Number(s.back),overall:Number(s.overall)}; skinCounts.push(parseInt(s.skins,10)||0); });
+    const round={date,day:dayName,teams:teamsOut,playerCount:pc,archivedAt:now,manualEntry:true,enteredBy:(currentUser&&currentUser.name)||'admin',
+      scores:{teamScores,skinCounts,frontPot:pot.front,backPot:pot.back,overallPot:pot.overall,skinsPot:pot.skins,tournFund:pot.fund,playerCount:pc,
+        frontPlaces:1,backPlaces:1,overallPlaces:1,f1:0,f2:0,b1:0,b2:0,o1:0,o2:0,drawAdj:0,payoutsCalculated:true,savedAt:now,payoutsAt:now}};
+    const key='manual_'+date.replace(/-/g,'')+'_'+dayName.toLowerCase()+'_'+now;
+    const attList=Array.isArray(att)?att:Object.values(att||{});
+    const names=[...new Set(teams.flat().map(p=>p.name))].sort();
+    const nextAtt=[...attList.filter(a=>a&&a.date!==date),{date,players:names}].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    try{
+      await update({['history/'+key]:round,'attendance/rounds':nextAtt});
+      setDone({date,day:dayName,pc,fund:pot.fund}); setTeams([[],[],[],[]]); setScores([{},{},{},{}]); setDate(''); setExists(null);
+    }catch(e){ window.alert('Save failed: '+((e&&e.message)||e)); }
+    setBusy(false);
+  }
+
+  const chip={fontSize:12.5,padding:'5px 10px',borderRadius:20,border:'1px solid var(--hairline)',background:'var(--surface)',cursor:'pointer',fontFamily:'inherit',color:'var(--ink)'};
+  const step={width:30,height:30,borderRadius:8,border:'1px solid var(--hairline)',background:'var(--surface)',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--ink)'};
+  const lab={fontSize:11,fontWeight:800,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--ink-50)',marginBottom:6};
+
+  return (
+    <div className="day-card" style={{marginBottom:16,overflow:'hidden',border:'1.5px solid var(--brand-border)'}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'var(--brand-soft)'}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13.5,fontWeight:800,color:'var(--brand)'}}>A round is missing from History?</div>
+          <div style={{fontSize:12,color:'var(--ink-50)',marginTop:2}}>Use this if a round was played but never saved. It can\u2019t change a round that\u2019s already there.</div>
+        </div>
+        <span style={{fontSize:14,color:'var(--ink-50)'}}>{open?'\u25B4':'\u25BE'}</span>
+      </div>
+      {open&&(
+        <div style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:16}}>
+          {done&&<div style={{padding:'11px 13px',borderRadius:10,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',color:'var(--brand)',fontSize:13,fontWeight:700}}>
+            \u2713 {done.day} {done.date} saved \u2014 {done.pc} players, fund +${done.fund}. It now shows in History, Attend, Standings and Stats.</div>}
+
+          <div>
+            <div style={lab}>1 \u00b7 Which day?</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
+              {quick.map(([d,dt])=>(
+                <button key={d} onClick={()=>pickDate(dt)} style={{...chip,fontWeight:700,background:date===dt?'var(--brand)':'var(--surface)',color:date===dt?'#fff':'var(--ink)',borderColor:date===dt?'var(--brand)':'var(--hairline)'}}>{d} {dt.slice(5)}</button>
+              ))}
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,color:'var(--ink-50)'}}>
+              or another date <input type="date" max={today} value={date} onChange={e=>pickDate(e.target.value)} className="form-input" style={{width:170,padding:'6px 8px'}}/>
+            </div>
+            {date&&dayName&&<div style={{fontSize:12.5,marginTop:6,color:'var(--ink-70)'}}>{dayName}, {date}{checking?' \u2014 checking History\u2026':exists?'':exists===false?' \u2014 no round saved, good to go':''}</div>}
+            {exists&&<div style={{marginTop:8,padding:'10px 12px',borderRadius:9,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',fontSize:12.5,lineHeight:1.5,color:'var(--ink)'}}>
+              A round is already saved for {date}. To correct it, open it in <strong>History</strong> and use <strong>Edit</strong>. This tool only fills in rounds that are missing.</div>}
+          </div>
+
+          {exists===false&&(<>
+            <div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                <div style={lab}>2 \u00b7 Teams</div>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <button style={step} onClick={()=>setCount(teams.length-1)}>\u2212</button>
+                  <span style={{fontSize:13,fontWeight:800,minWidth:14,textAlign:'center'}}>{teams.length}</span>
+                  <button style={step} onClick={()=>setCount(teams.length+1)}>+</button>
+                </div>
+              </div>
+              {weekTeams.length>0&&<button onClick={loadWeekTeams} className="btn btn-sm" style={{marginBottom:10}}>Use the {weekTeams.length} teams built for {weekDay}</button>}
+              <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:8}}>Tap a team to select it, then tap names below to add them. Tap a name on a team to take him off.</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:8}}>
+                {teams.map((t,ti)=>(
+                  <div key={ti} onClick={()=>setSel(ti)} style={{border:'1.5px solid '+(sel===ti?'var(--brand)':'var(--hairline)'),background:sel===ti?'var(--brand-soft)':'var(--surface)',borderRadius:10,padding:'9px 10px',cursor:'pointer',minHeight:70}}>
+                    <div style={{fontSize:12.5,fontWeight:800,marginBottom:6,color:sel===ti?'var(--brand)':'var(--ink)'}}>Team {ti+1}{sel===ti?' \u2190':''}</div>
+                    {t.length===0&&<div style={{fontSize:11.5,color:'var(--ink-40)'}}>Empty</div>}
+                    {t.map((p,pi)=>(
+                      <div key={pi} onClick={e=>{e.stopPropagation();removeFrom(ti,pi);}} style={{fontSize:12.5,padding:'3px 0',display:'flex',justifyContent:'space-between',gap:6}}>
+                        <span>{p.name}</span><span style={{color:'var(--ink-40)'}}>{p.handicap} \u2715</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <input className="form-input" placeholder="Search players\u2026" value={q} onChange={e=>setQ(e.target.value)} style={{marginTop:10}}/>
+              {poolSigned.length>0&&<><div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-50)',margin:'10px 0 6px'}}>Signed up for {weekDay}</div>
+                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{poolSigned.map(n=><button key={n} style={chip} onClick={()=>addTo(n)}>{n}</button>)}</div></>}
+              <div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-50)',margin:'10px 0 6px'}}>{poolSigned.length?'Everyone else':'Roster'}</div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap',maxHeight:190,overflowY:'auto'}}>{poolRoster.map(n=><button key={n} style={chip} onClick={()=>addTo(n)}>{n}</button>)}</div>
+            </div>
+
+            {filled.length>0&&(
+              <div>
+                <div style={lab}>3 \u00b7 Scores</div>
+                {filled.map(({i})=>(
+                  <div key={i} style={{border:'1px solid var(--hairline)',borderRadius:10,padding:'9px 10px',marginBottom:8}}>
+                    <div style={{fontSize:12.5,fontWeight:800,marginBottom:7}}>Team {i+1} <span style={{fontWeight:500,color:'var(--ink-40)'}}>\u00b7 {teams[i].length} players</span></div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6}}>
+                      {[['front','Front'],['back','Back'],['overall','Overall'],['skins','Skins']].map(([k,l])=>(
+                        <div key={k} style={{textAlign:'center'}}>
+                          <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:3}}>{l}</div>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:3}}>
+                            <button style={{...step,width:26,height:26,fontSize:14}} onClick={()=>bump(i,k,-1)}>\u2212</button>
+                            <input value={(scores[i]||{})[k]==null?'':(scores[i]||{})[k]} onChange={e=>setScore(i,k,e.target.value)} inputMode="numeric" className="form-input"
+                              style={{width:38,padding:'4px 2px',textAlign:'center',fontWeight:700}}/>
+                            <button style={{...step,width:26,height:26,fontSize:14}} onClick={()=>bump(i,k,1)}>+</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{fontSize:12.5,color:'var(--ink-70)',lineHeight:1.6,padding:'9px 11px',borderRadius:9,background:'var(--surface-sunken)'}}>
+                  {pc} players \u00b7 Front ${pot.front} \u00b7 Back ${pot.back} \u00b7 Overall ${pot.overall} \u00b7 Skins ${pot.skins} \u00b7 <strong>Fund +${pot.fund}</strong> \u00b7 {totalSkins} skins
+                </div>
+              </div>
+            )}
+
+            {problems.length>0&&filled.length>0&&<div style={{fontSize:12,color:'var(--money-neg)',lineHeight:1.6}}>{problems.map((p,i)=><div key={i}>\u2022 {p}</div>)}</div>}
+            <button className="btn btn-primary" disabled={!!problems.length||busy} onClick={save} style={{padding:'13px',fontSize:14,fontWeight:800,opacity:problems.length||busy?0.45:1}}>
+              {busy?'Saving\u2026':'Save round to History'}
+            </button>
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAdmin, currentUser, fullRoster, effectiveRoster, extra, joinRequests, alertsDrops, cancelledDays, fcmTokens, dbBuild, onApproveJoin, onDeclineJoin, onDismissDrop, rosterEdits, rosterHidden, rosterTargets, rosterHcpOverrides, rosterTeeOverrides, rosterEmails, rosterPins, rosterAdmins, activityLog, matchPairings, announcements, myDismissals, onEditAnnouncement, onToggleAnnouncementActive, onDeleteAnnouncement, onClearOwnDismissal, write, push, del, update, read, onCreateWeek, onDeactivateDay, onToggleLock, onUpdateTeeTime, onAddSignup, onRemoveSignup, onAddPlayer, onRemovePlayer, onEditRosterName, onHidePlayer, onUnhidePlayer, onEditRosterEmail, onSaveMemberPin, onSaveAdminFlag, onSaveNotes, onSaveEvents, onToggleNoteOnly, onClearLoginLog, onArchiveDay, onEndWeek, onStartNextWeek, onGoTo, onLogout }){
   const [portalUsersReg, setPortalUsersReg] = useState(null);
   const [rosterDeletedAdmin, setRosterDeletedAdmin] = useState({});
@@ -8388,6 +8592,9 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
             )}
           </div>
         )}
+
+        {/* A round is missing from History? — master & super admins (this tab is admin-only) */}
+        {isAdmin && <MissingRoundCard week={week} fullRoster={fullRoster} read={read} update={update} currentUser={currentUser}/>}
 
         {/* ── 6. END WEEK (bottom) ── */}
         <div className="day-card" style={{marginBottom:16,overflow:'hidden',border:'1.5px solid #fecaca'}}>
