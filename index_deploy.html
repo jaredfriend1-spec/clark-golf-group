@@ -755,6 +755,13 @@ function PlayerAvatar({ name, logo, size, isAdmin, onClick, title }){
 // inside a card — so it is positioned against the viewport and cannot be
 // clipped by a scrolling container or pushed off screen. Honours the iPhone
 // safe areas and locks the page behind it.
+const AVATAR_CARD_THEMES={
+  club:   {bg:'linear-gradient(160deg,#1f6b47 0%,#0c2a1c 100%)',accent:'#9FE1CB'},
+  default:{bg:'linear-gradient(160deg,#334155 0%,#0f172a 100%)',accent:'#cbd5e1'},
+  gold:   {bg:'linear-gradient(160deg,#5a4108 0%,#171006 100%)',accent:'#f5b83d'},
+  green:  {bg:'linear-gradient(160deg,#0f4d33 0%,#04140c 100%)',accent:'#34d399'},
+  purple: {bg:'linear-gradient(160deg,#3b2c6b 0%,#120c24 100%)',accent:'#c4b5fd'},
+};
 function AvatarLightbox({ view, onClose, onEditProfile }){
   useEffect(()=>{
     if(!view)return;
@@ -765,38 +772,48 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
     return()=>{ document.body.style.overflow=prev; window.removeEventListener('keydown',esc); };
   },[view,onClose]);
   if(!view)return null;
-  const big=Math.min(240,Math.round((typeof window!=='undefined'?window.innerWidth:360)*0.62));
+  const t=AVATAR_CARD_THEMES[view.theme]||AVATAR_CARD_THEMES.club;
+  const vw=(typeof window!=='undefined'?window.innerWidth:360);
+  const cardW=Math.min(330,Math.round(vw*0.88));
+  const big=cardW-36;
   return (
     <div onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:10000,
-      background:'rgba(8,10,14,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-      padding:'max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom))',
-      WebkitBackdropFilter:'blur(3px)',backdropFilter:'blur(3px)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14,maxWidth:'100%'}}>
+      background:'rgba(8,10,14,0.72)',display:'flex',alignItems:'center',justifyContent:'center',
+      padding:'max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom))',
+      WebkitBackdropFilter:'blur(4px)',backdropFilter:'blur(4px)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:cardW,maxWidth:'100%',maxHeight:'100%',overflowY:'auto',
+        background:t.bg,borderRadius:20,padding:'18px 18px 20px',boxSizing:'border-box',
+        border:'1px solid rgba(255,255,255,0.14)',boxShadow:'0 18px 50px rgba(0,0,0,0.55)',
+        display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
+        <button aria-label="Close" onClick={onClose} style={{position:'absolute',top:10,right:10,zIndex:2,width:36,height:36,borderRadius:'50%',
+          border:'1px solid rgba(255,255,255,0.25)',background:'rgba(0,0,0,0.45)',color:'#fff',cursor:'pointer',padding:0,
+          display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
         {view.logo
-          ? <img src={view.logo} alt="" style={{width:big,height:big,maxWidth:'82vw',maxHeight:'52vh',borderRadius:Math.round(big*0.12),objectFit:'cover',display:'block',boxShadow:'0 10px 34px rgba(0,0,0,0.5)'}}/>
-          : <div style={{width:big,height:big,maxWidth:'82vw',borderRadius:Math.round(big*0.12),display:'flex',alignItems:'center',justifyContent:'center',
-              fontSize:Math.round(big*0.34),fontWeight:700,color:'#9FE1CB',background:'rgba(31,107,71,0.3)',border:'1px solid rgba(255,255,255,0.14)'}}>
+          ? <img src={view.logo} alt="" style={{width:big,height:big,maxHeight:'48vh',borderRadius:14,objectFit:'cover',display:'block',boxShadow:'0 6px 20px rgba(0,0,0,0.4)'}}/>
+          : <div style={{width:big,height:Math.min(big,200),borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',
+              fontSize:Math.round(Math.min(big,200)*0.34),fontWeight:700,color:t.accent,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)'}}>
               {String(view.name||'').trim().split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase()}
             </div>}
         <div style={{textAlign:'center'}}>
-          <div style={{fontSize:17,fontWeight:800,color:'#fff'}}>
-            {view.name}{view.isMe&&<span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:20,background:'rgba(255,255,255,0.15)',marginLeft:7,verticalAlign:'middle'}}>You</span>}
+          <div style={{fontSize:19,fontWeight:800,color:'#fff'}}>
+            {view.name}{view.isMe&&<span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:20,background:'rgba(255,255,255,0.18)',marginLeft:7,verticalAlign:'middle'}}>You</span>}
           </div>
-          {view.meta&&<div style={{fontSize:13,color:'rgba(255,255,255,0.6)',marginTop:3}}>{view.meta}</div>}
+          {view.meta&&<div style={{fontSize:13,fontWeight:600,color:t.accent,marginTop:3}}>{view.meta}</div>}
         </div>
         {view.tagline&&(
-          <div style={{maxWidth:'min(320px, 86vw)',textAlign:'center',fontSize:15,lineHeight:1.4,fontStyle:'italic',color:'rgba(255,255,255,0.92)',
-            padding:'10px 16px',borderRadius:12,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',overflowWrap:'anywhere'}}>
+          <div style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontSize:15,lineHeight:1.4,fontStyle:'italic',color:'#fff',
+            padding:'10px 14px',borderRadius:12,background:'rgba(0,0,0,0.25)',borderLeft:'3px solid '+t.accent,overflowWrap:'anywhere'}}>
             “{view.tagline}”
           </div>
         )}
         {view.isMe&&!view.tagline&&onEditProfile&&(
-          <div style={{fontSize:12.5,color:'rgba(255,255,255,0.55)',textAlign:'center'}}>Add a tagline in your profile — everyone sees it here.</div>
+          <div style={{fontSize:12.5,color:'rgba(255,255,255,0.65)',textAlign:'center'}}>Add a tagline in your profile — everyone sees it here.</div>
         )}
         {view.isMe&&onEditProfile&&(
-          <button onClick={()=>{onClose();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.1)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
+          <button onClick={()=>{onClose();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.12)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
         )}
-        <div style={{fontSize:11.5,color:'rgba(255,255,255,0.42)'}}>Tap anywhere to close</div>
       </div>
     </div>
   );
@@ -2054,7 +2071,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     safeArray(fullRoster).forEach(pl=>{
       if(!pl||!pl.name)return;
       const c=playerCards&&playerCards[pl.id];
-      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id,tagline:(c&&typeof c.message==='string'&&c.message.trim())||null};
+      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id,tagline:(c&&typeof c.message==='string'&&c.message.trim())||null,theme:(c&&c.theme)||null};
     });
     return m;
   },[fullRoster,playerCards]);
@@ -2617,7 +2634,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
                       title={isMe?'You':p.name}
-                      onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                      onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -4884,7 +4901,7 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                           <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                             title={isMe?'You':p.name}
-                            onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                            onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -10664,7 +10681,7 @@ function App(){
     safeArray(activeFullRoster).forEach(pl=>{
       if(!pl||!pl.name)return;
       const c=playerCards&&playerCards[pl.id];
-      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id,tagline:(c&&typeof c.message==='string'&&c.message.trim())||null};
+      m[String(pl.name).toLowerCase().trim()]={logo:(c&&c.logo)||null,id:pl.id,tagline:(c&&typeof c.message==='string'&&c.message.trim())||null,theme:(c&&c.theme)||null};
     });
     return n=>m[String(n||'').toLowerCase().trim()]||null;
   },[activeFullRoster,playerCards]);
