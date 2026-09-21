@@ -413,10 +413,28 @@ function getWeekDates(){
   const tue=new Date(mon);tue.setDate(mon.getDate()+8);
   const wed=new Date(mon);wed.setDate(mon.getDate()+9);
   const thu=new Date(mon);thu.setDate(mon.getDate()+10);
-  const fmt=d=>d.toISOString().split('T')[0];
+  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   // LOCAL, not UTC: toISOString rolled the date forward after 8pm Eastern
   return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(nxtMon),Tuesday:fmt(tue),Wednesday:fmt(wed),Thursday:fmt(thu)};
 }
 function getWeekLabel(week){const wd=getWeekDates();const vals=Object.values(week?.dates||{}).filter(Boolean).sort();if(vals.length)return'Week of '+fmtD(vals[0])+' - '+fmtD(vals[vals.length-1]);return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
+// ── DAY-DATE VALIDATOR ─────────────────────────────────────────────────────
+// A day's date must be that weekday, and must not be from a previous week.
+// Twice a Sunday slot was filled with an old Sunday's date — once from a stale
+// week.dates, once via History > Edit — and the round was filed under the wrong
+// day. Every write and every trusted read now goes through this.
+function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function validDayDate(day,dateStr){
+  if(!dateStr||!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr)))return{ok:false,reason:'No date set'};
+  const d=new Date(dateStr+'T12:00:00');
+  if(isNaN(d.getTime()))return{ok:false,reason:'Not a valid date'};
+  const wk=d.toLocaleDateString('en-US',{weekday:'long'});
+  if(day&&wk!==day)return{ok:false,reason:dateStr+' is a '+wk+', not a '+day};
+  const now=new Date(); const dow=now.getDay();
+  const mon=new Date(now); mon.setDate(now.getDate()-dow+(dow===0?-6:1)); mon.setHours(0,0,0,0);
+  if(d<mon)return{ok:false,reason:dateStr+' is in a previous week'};
+  return{ok:true,reason:''};
+}
+
 function getNextWeekDates(){
   const now=new Date();
   const day=now.getDay();
@@ -429,7 +447,7 @@ function getNextWeekDates(){
   const tue=new Date(fri);tue.setDate(fri.getDate()+4);
   const wed=new Date(fri);wed.setDate(fri.getDate()+5);
   const thu=new Date(fri);thu.setDate(fri.getDate()+6);
-  const fmt=d=>d.toISOString().split('T')[0];
+  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   // LOCAL, not UTC: toISOString rolled the date forward after 8pm Eastern
   return{Friday:fmt(fri),Saturday:fmt(sat),Sunday:fmt(sun),Monday:fmt(mon),Tuesday:fmt(tue),Wednesday:fmt(wed),Thursday:fmt(thu)};
 }
 function getNextWeekLabel(){const wd=getNextWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
@@ -2288,6 +2306,25 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       </div>
 
       {days.map(day => (
+        <React.Fragment key={day.day}>
+        {isAdmin && (()=>{
+          const cur=week?.dates?.[day.day];
+          const v=validDayDate(day.day,cur);
+          if(v.ok)return null;
+          const fresh=getWeekDates()[day.day];
+          return (
+            <div style={{margin:'0 12px 8px',padding:'11px 13px',borderRadius:10,background:'var(--money-neg-soft, rgba(185,28,28,0.07))',border:'1px solid rgba(185,28,28,0.28)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:180}}>
+                <div style={{fontSize:13,fontWeight:800,color:'#b91c1c'}}>{day.day}\u2019s date is wrong</div>
+                <div style={{fontSize:12,color:'var(--ink-70)',marginTop:2,lineHeight:1.45}}>{v.reason}. Scores entered against it would be filed under the wrong day.</div>
+              </div>
+              {fresh&&<button className="btn btn-sm" style={{background:'#b91c1c',color:'#fff',border:'none',flexShrink:0}}
+                onClick={()=>{ if(window.confirm('Change '+day.day+' to '+fresh+'?'))write('week/dates/'+day.day,fresh); }}>
+                Set to {fresh}
+              </button>}
+            </div>
+          );
+        })()}
         <DayCardV2
           key={day.day}
           day={day}
@@ -2322,6 +2359,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           onPromoteWaitlist={onPromoteWaitlist}
           onToggleLock={(dayName, locked) => { write('week/locked/'+dayName, locked); }}
         />
+        </React.Fragment>
       ))}
 
 
@@ -7340,7 +7378,14 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   const eventsRef = useRef(null);
 
   const wd = getWeekDates();
-  const effectiveDates = {...wd,...(week?.dates||{})};
+  // Stored dates used to WIN over this week's computed ones, so a leftover
+  // Sunday from a past week was reused when the day was set up. Only trust a
+  // stored date if it is the right weekday and this week or later.
+  const effectiveDates = (()=>{
+    const out={...wd}; const st=week?.dates||{};
+    Object.keys(st).forEach(d=>{ if(validDayDate(d,st[d]).ok)out[d]=st[d]; });
+    return out;
+  })();
   const activeDays = sortDays(safeArray(week?.activeDays));
   const allSignups = Object.entries(week?.signups||{});
   const allRoster = [...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)]
@@ -7364,7 +7409,9 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   function freshDayWeek(base,day,dateVal){
     // A newly activated day starts CLEAN on the group's default game —
     // strip any stale mode override / custom config left from earlier.
-    const w={...base,activeDays:[...safeArray(base?.activeDays),day],dates:{...(base?.dates||{}),[day]:dateVal}};
+    const safeDate=validDayDate(day,dateVal).ok?dateVal:wd[day];
+    if(safeDate!==dateVal)console.warn('[dates] refused '+dateVal+' for '+day+'; using '+safeDate);
+    const w={...base,activeDays:[...safeArray(base?.activeDays),day],dates:{...(base?.dates||{}),[day]:safeDate}};
     if(w.modes){const m={...w.modes};delete m[day];w.modes=m;}
     if(w.modeConfig){const mc={...w.modeConfig};delete mc[day];w.modeConfig=mc;}
     return w;
@@ -7382,7 +7429,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
 
   function handleSetupDay(day){
     const isAct=activeDays.includes(day);
-    if(!isAct) onCreateWeek(freshDayWeek(week,day,effectiveDates[day]));
+    if(!isAct) onCreateWeek(freshDayWeek(week,day,validDayDate(day,effectiveDates[day]).ok?effectiveDates[day]:wd[day]));
     setWizDay(wizDay===day?null:day);
   }
 
@@ -10570,6 +10617,22 @@ function App(){
     // We track its key in week.editingKeys; archiveDay/endWeek replace the old
     // entry atomically (push new first, then delete old). The round is never
     // absent from history — an interrupted edit can no longer lose data.
+    // GUARD: editing loads the old round into THIS week's slot for its weekday.
+    // If that slot is live — active, with sign-ups, teams or scores — the old
+    // date, teams and scores would overwrite it. That is how a Sunday in play
+    // suddenly showed a round from weeks earlier. Refuse instead.
+    if(week){
+      const d=round.day;
+      const live=safeArray(week.activeDays).includes(d);
+      const hasSignups=Object.values(week.signups||{}).some(s=>s&&s.day===d);
+      const hasTeams=safeArray(week.teams&&week.teams[d]).length>0;
+      const hasScores=!!(week.scores&&week.scores[d]);
+      const curDate=week.dates&&week.dates[d];
+      if(live&&(hasSignups||hasTeams||hasScores)&&curDate!==round.date){
+        window.alert('Can\u2019t edit this round right now.\n\n'+d+' is in use this week ('+(curDate||'no date')+'). Editing the '+round.date+' round would overwrite it.\n\nFinish or cancel this week\u2019s '+d+' first, or correct the old round from the portal.');
+        return;
+      }
+    }
     const newWeek=week?{...week}:{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{}};
     if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];
     newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};
