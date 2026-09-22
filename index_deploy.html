@@ -755,13 +755,21 @@ function PlayerAvatar({ name, logo, size, isAdmin, onClick, title }){
 // inside a card — so it is positioned against the viewport and cannot be
 // clipped by a scrolling container or pushed off screen. Honours the iPhone
 // safe areas and locks the page behind it.
-const AVATAR_CARD_THEMES={
-  club:   {bg:'linear-gradient(160deg,#1f6b47 0%,#0c2a1c 100%)',accent:'#9FE1CB'},
-  default:{bg:'linear-gradient(160deg,#334155 0%,#0f172a 100%)',accent:'#cbd5e1'},
-  gold:   {bg:'linear-gradient(160deg,#5a4108 0%,#171006 100%)',accent:'#f5b83d'},
-  green:  {bg:'linear-gradient(160deg,#0f4d33 0%,#04140c 100%)',accent:'#34d399'},
-  purple: {bg:'linear-gradient(160deg,#3b2c6b 0%,#120c24 100%)',accent:'#c4b5fd'},
-};
+const CARD_THEMES=[
+  {id:'default',label:'Club',  swatch:'#1f6b47',bg:'linear-gradient(160deg,#1f6b47 0%,#0c2a1c 100%)',accent:'#9FE1CB',backdrop:'rgba(15,23,42,0.85)'},
+  {id:'green', label:'Emerald',swatch:'#10b981',bg:'linear-gradient(160deg,#0f5c3c 0%,#03140c 100%)',accent:'#34d399',backdrop:'rgba(0,20,10,0.92)'},
+  {id:'gold',  label:'Gold',   swatch:'#f59e0b',bg:'linear-gradient(160deg,#5a4108 0%,#171006 100%)',accent:'#f5b83d',backdrop:'rgba(10,14,26,0.92)'},
+  {id:'red',   label:'Red',    swatch:'#dc2626',bg:'linear-gradient(160deg,#8b1c1c 0%,#1f0606 100%)',accent:'#fca5a5',backdrop:'rgba(26,6,6,0.92)'},
+  {id:'blue',  label:'Navy',   swatch:'#2563eb',bg:'linear-gradient(160deg,#1e3a8a 0%,#08112b 100%)',accent:'#93c5fd',backdrop:'rgba(6,12,32,0.92)'},
+  {id:'orange',label:'Sunset', swatch:'#f97316',bg:'linear-gradient(160deg,#9a3412 0%,#210b03 100%)',accent:'#fdba74',backdrop:'rgba(28,10,3,0.92)'},
+  {id:'teal',  label:'Ocean',  swatch:'#14b8a6',bg:'linear-gradient(160deg,#0f5f5a 0%,#031716 100%)',accent:'#5eead4',backdrop:'rgba(3,22,20,0.92)'},
+  {id:'black', label:'Blackout',swatch:'#27272a',bg:'linear-gradient(160deg,#3f3f46 0%,#050505 100%)',accent:'#e4e4e7',backdrop:'rgba(0,0,0,0.9)'},
+  {id:'purple',label:'Purple', swatch:'#a78bfa',bg:'linear-gradient(160deg,#3b2c6b 0%,#120c24 100%)',accent:'#c4b5fd',backdrop:'rgba(15,10,30,0.92)',retired:true},
+];
+const cardTheme=id=>CARD_THEMES.find(t=>t.id===id)||CARD_THEMES[0];
+// Retired themes stay renderable for players who already chose them, but are
+// only offered in the picker to the player currently using one.
+const pickableThemes=current=>CARD_THEMES.filter(t=>!t.retired||t.id===current);
 function AvatarLightbox({ view, onClose, onEditProfile }){
   useEffect(()=>{
     if(!view)return;
@@ -772,7 +780,7 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
     return()=>{ document.body.style.overflow=prev; window.removeEventListener('keydown',esc); };
   },[view,onClose]);
   if(!view)return null;
-  const t=AVATAR_CARD_THEMES[view.theme]||AVATAR_CARD_THEMES.club;
+  const t=cardTheme(view.theme);
   const vw=(typeof window!=='undefined'?window.innerWidth:360);
   const cardW=Math.min(330,Math.round(vw*0.88));
   const big=cardW-36;
@@ -781,7 +789,7 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
       background:'rgba(8,10,14,0.72)',display:'flex',alignItems:'center',justifyContent:'center',
       padding:'max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom))',
       WebkitBackdropFilter:'blur(4px)',backdropFilter:'blur(4px)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:cardW,maxWidth:'100%',maxHeight:'100%',overflowY:'auto',
+      <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:cardW,maxWidth:'100%',maxHeight:'100%',overflowY:'auto',overflowX:'hidden',
         background:t.bg,borderRadius:20,padding:'18px 18px 20px',boxSizing:'border-box',
         border:'1px solid rgba(255,255,255,0.14)',boxShadow:'0 18px 50px rgba(0,0,0,0.55)',
         display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
@@ -791,8 +799,8 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
         {view.logo
-          ? <img src={view.logo} alt="" style={{width:big,height:big,maxHeight:'48vh',borderRadius:14,objectFit:'cover',display:'block',boxShadow:'0 6px 20px rgba(0,0,0,0.4)'}}/>
-          : <div style={{width:big,height:Math.min(big,200),borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',
+          ? <img src={view.logo} alt="" style={{width:'100%',maxWidth:big,aspectRatio:'1 / 1',height:'auto',maxHeight:'48vh',borderRadius:14,objectFit:'cover',display:'block',boxShadow:'0 6px 20px rgba(0,0,0,0.4)'}}/>
+          : <div style={{width:'100%',height:Math.min(big,200),boxSizing:'border-box',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',
               fontSize:Math.round(Math.min(big,200)*0.34),fontWeight:700,color:t.accent,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)'}}>
               {String(view.name||'').trim().split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase()}
             </div>}
@@ -804,7 +812,7 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
         </div>
         {view.tagline&&(
           <div style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontSize:15,lineHeight:1.4,fontStyle:'italic',color:'#fff',
-            padding:'10px 14px',borderRadius:12,background:'rgba(0,0,0,0.25)',borderLeft:'3px solid '+t.accent,overflowWrap:'anywhere'}}>
+            padding:'2px 8px 4px',overflowWrap:'anywhere',textShadow:'0 1px 2px rgba(0,0,0,0.35)'}}>
             “{view.tagline}”
           </div>
         )}
@@ -1138,8 +1146,8 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
     const HCL=JF_LOGO;
     const cardLogo=card?.logo||(String(welcomeData.id)==='22'?HCL:null);
     const cardMsg=card?.message||null;
-    const themeBgs={gold:'rgba(10,14,26,0.92)',green:'rgba(0,20,10,0.92)',purple:'rgba(15,10,30,0.92)',default:'rgba(15,23,42,0.85)'};
-    const themeBg=isMasterAdm?'rgba(10,14,26,0.92)':(themeBgs[card?.theme]||'rgba(15,23,42,0.85)');
+    const loginTheme=card&&card.theme?cardTheme(card.theme):null;
+    const themeBg=isMasterAdm?'rgba(10,14,26,0.92)':(loginTheme?loginTheme.backdrop:'rgba(15,23,42,0.85)');
     const ini=welcomeData.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     return(
       <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:9998,backdropFilter:'blur(16px)',background:themeBg}}>
@@ -1162,17 +1170,17 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
             </div>
           </div>
         ):(
-          <div style={{background:'#fff',borderRadius:28,padding:'48px 64px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)',minWidth:320}}>
+          <div style={{background:loginTheme?loginTheme.bg:'#fff',border:loginTheme?'1px solid rgba(255,255,255,0.14)':'none',borderRadius:28,padding:'48px 64px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)',minWidth:320,maxWidth:'92vw',boxSizing:'border-box'}}>
             <div style={{display:'flex',justifyContent:'center',marginBottom:14}}>
               {cardLogo
-                ? <img src={cardLogo} style={{width:120,height:120,borderRadius:30,objectFit:'cover',border:'3px solid #e2e8f0'}}/>
+                ? <img src={cardLogo} style={{width:120,height:120,borderRadius:30,objectFit:'cover',border:loginTheme?'3px solid rgba(255,255,255,0.25)':'3px solid #e2e8f0'}}/>
                 : <div style={{width:120,height:120,borderRadius:'50%',background:welcomeData.role==='admin'?'linear-gradient(135deg,#f59e0b,#d97706)':'linear-gradient(135deg,#10b981,#059669)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:44,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{ini}</div>
               }
             </div>
-            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:56,fontWeight:800,color:'#0f172a'}}>{welcomeData.name}</div>
+            <div style={{fontFamily:'Barlow Condensed,sans-serif',fontSize:56,fontWeight:800,color:loginTheme?'#fff':'#0f172a'}}>{welcomeData.name}</div>
             {cardMsg
-              ? <div style={{fontSize:19,color:'#475569',marginTop:12,fontStyle:'italic',lineHeight:1.5}}>"{cardMsg}"</div>
-              : <div style={{fontSize:17,color:'#94a3b8',marginTop:10,fontWeight:600}}>{welcomeData.role==='admin'?'Admin Access':'Welcome back! ⛳'}</div>
+              ? <div style={{fontSize:19,color:loginTheme?'rgba(255,255,255,0.9)':'#475569',marginTop:12,fontStyle:'italic',lineHeight:1.5}}>"{cardMsg}"</div>
+              : <div style={{fontSize:17,color:loginTheme?loginTheme.accent:'#94a3b8',marginTop:10,fontWeight:600}}>{welcomeData.role==='admin'?'Admin Access':'Welcome back! ⛳'}</div>
             }
           </div>
         )}
@@ -10267,12 +10275,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
     }
   }
 
-  const THEMES = [
-    {id:'default',label:'Default',bg:'rgba(15,23,42,0.85)',swatch:'#1e293b'},
-    {id:'gold',label:'Gold',bg:'rgba(10,14,26,0.92)',swatch:'#f59e0b'},
-    {id:'green',label:'Green',bg:'rgba(0,20,10,0.92)',swatch:'#10b981'},
-    {id:'purple',label:'Purple',bg:'rgba(15,10,30,0.92)',swatch:'#a78bfa'},
-  ];
+  const THEMES = pickableThemes(currentTheme);
 
   const initials = (currentUser?.name||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
@@ -10376,11 +10379,11 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
 
           {/* Theme picker */}
           <div className="form-group">
-            <label className="form-label">Login card theme</label>
-            <div style={{display:'flex',gap:6}}>
+            <label className="form-label">Card theme (login card and your photo card)</label>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
               {THEMES.map(t=>(
                 <button key={t.id} onClick={()=>setTheme(t.id)}
-                  style={{flex:1,padding:'8px 4px',borderRadius:8,border:'1.5px solid',borderColor:theme===t.id?'var(--brand)':'var(--hairline)',background:theme===t.id?'var(--brand-soft)':'var(--surface)',color:theme===t.id?'var(--brand)':'var(--ink-70)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                  style={{padding:'8px 4px',borderRadius:8,border:'1.5px solid',borderColor:theme===t.id?'var(--brand)':'var(--hairline)',background:theme===t.id?'var(--brand-soft)':'var(--surface)',color:theme===t.id?'var(--brand)':'var(--ink-70)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
                   <span style={{display:'inline-block',width:14,height:14,borderRadius:'50%',background:t.swatch,border:'1px solid rgba(0,0,0,0.1)'}}></span>
                   {t.label}
                 </button>
