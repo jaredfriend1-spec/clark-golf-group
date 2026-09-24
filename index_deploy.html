@@ -398,6 +398,11 @@ button.dc-game{background:none;border:none;padding:0;font-family:inherit;text-al
    that STANDINGS fits without clipping. */
 @media(max-width:599px){.tabs-six .tab{font-size:10px;letter-spacing:0.01em;padding-left:1px;padding-right:1px}}
 
+/* A guest listed under the member who brought him: indented, joined to the
+   row above by a thin rule instead of a full divider. */
+.player-line.guest-under{padding-left:26px;padding-top:6px;position:relative}
+.player-line.guest-under::before{content:'';position:absolute;left:10px;top:0;height:22px;width:10px;border-left:1.5px solid var(--hairline);border-bottom:1.5px solid var(--hairline);border-bottom-left-radius:6px}
+
 </style>
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -2706,6 +2711,22 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
 
 function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, modesList, dayCustom, teeInfo, pubGroups, onSetMode, onGoManage, modeLocked, currentUser, isAdmin, matchPairings, expanded, onToggle, onSignup, onEditSignup, onRemoveSignup, onAdminAdd, onSetTeeTime, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onToggleLock }){
   const [showModePicker,setShowModePicker]=useState(false);
+  // Display order only: each member's guests sit directly under him, however
+  // late they were added. Stored order (first come, first served for caps and
+  // the waitlist) is untouched. A guest whose host isn't on this day's list
+  // stays where he was.
+  const orderedSignups = (()=>{
+    const list = safeArray(day.signups);
+    const key = n => normName(n||'');
+    const hosts = new Set(list.filter(p=>!p.isGuest).map(p=>key(p.name)));
+    const out = [];
+    list.forEach(p=>{
+      if(p.isGuest && p.guestOf && hosts.has(key(p.guestOf))) return;      // placed under the host
+      out.push(p);
+      if(!p.isGuest) list.filter(g=>g.isGuest && g.guestOf && key(g.guestOf)===key(p.name)).forEach(g=>out.push({...g,_underHost:true}));
+    });
+    return out;
+  })();
   const count = day.signups.length;
   const isLottery = day.tee.state === 'lottery';
   const isTeeUnset = day.tee.state === 'unset';
@@ -2867,7 +2888,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
         <div className="day-card-body">
           {day.signups.length === 0 ? (
             <div className="empty-msg">No sign-ups yet for {day.day}.</div>
-          ) : day.signups.map((p,pIdx) => {
+          ) : orderedSignups.map((p,pIdx) => {
             const isMe = currentUser?.name === p.name;
             const teamName = day.teamsPublished && day.teamMap[p.name];
             const matchPair = Object.values(matchPairings||{}).find(m =>
@@ -2875,11 +2896,11 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
             );
             const matchPartner = matchPair ? (matchPair.requester === p.name ? matchPair.partner : matchPair.requester) : null;
             const hostedGuests = day.signups.filter(g => g.isGuest && g.guestOf === p.name);
-            const isHost = hostedGuests.length > 0;
+            const isHost = false;   // guests are shown directly under their host now
             const hasExtraLine = matchPartner || isHost;
             const canEdit = isMe || isAdmin || (p.isGuest && p.guestOf === currentUser?.name);
             return (
-              <div className={'player-line m-in'+(leaving[p.key]?' m-leaving':'')} key={p.key||p.name}
+              <div className={'player-line m-in'+(p._underHost?' guest-under':'')+(leaving[p.key]?' m-leaving':'')} key={p.key||p.name}
                    style={{animationDelay:(Math.min(pIdx,7)*28)+'ms'}}>
                 {(()=>{const a=avatarFor&&avatarFor(p.name);if(!a&&!p.name)return null;
                   return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
