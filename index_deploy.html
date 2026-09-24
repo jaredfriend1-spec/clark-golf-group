@@ -7106,28 +7106,33 @@ function StandingsViewV2({ history, currentUser }){
       <div style={{padding:'0 12px'}}>
 
         {/* Summary cards */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+        {/* Four highlights as compact cards: label, then name and number on one
+            line. The small print moves into the tooltip — the table below has it. */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
           {[
             {icon:'🏆',label:'Top Net Winner',name:topNet?.name,val:(topNet?.net>=0?'+':'')+f$(Math.abs(topNet?.net||0)),desc:'after '+f$(topNet?.paid||0)+' paid in',bg:'var(--brand-soft)',border:'var(--brand-border)',col:'var(--brand)'},
             {icon:'💰',label:'Most $ Won',name:topGross?.name,val:f$(topGross?.won||0),desc:topGross?.rounds+' rounds',bg:'var(--info-soft)',border:'var(--info-border)',col:'var(--info)'},
             {icon:'😅',label:'Top Donor',name:topDonor?.name,val:'−'+f$(Math.abs(topDonor?.net||0)),desc:topDonor?.rounds+' rounds · '+f$(topDonor?.won||0)+' won',bg:'var(--money-neg-soft)',border:'#fecaca',col:'var(--money-neg)'},
             {icon:'📈',label:'Best Return',name:topReturn?.name,val:(topReturn?.returnPct||0)+'%',desc:f$(topReturn?.won||0)+' won on '+f$(topReturn?.paid||0),bg:'var(--warn-soft)',border:'var(--warn-border)',col:'var(--warn-ink)'},
           ].map(({icon,label,name,val,desc,bg,border,col})=>(
-            <div key={label} style={{background:bg,border:'1.5px solid '+border,borderRadius:12,padding:'12px 12px 10px'}}>
-              <div style={{fontSize:11,fontWeight:700,color:col,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:3}}>{icon} {label}</div>
-              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{name||'—'}</div>
-              <div style={{fontSize:22,fontWeight:800,color:col,lineHeight:1,marginBottom:3}}>{val}</div>
-              <div style={{fontSize:11,color:'var(--ink-50)'}}>{desc}</div>
+            <div key={label} title={(name||'')+' — '+desc} style={{background:bg,border:'1px solid '+border,borderRadius:10,padding:'8px 9px',minWidth:0}}>
+              <div style={{fontSize:9.5,fontWeight:800,color:col,textTransform:'uppercase',letterSpacing:'0.07em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{icon} {label}</div>
+              <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:5,marginTop:2}}>
+                <span style={{fontSize:12.5,fontWeight:700,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{name||'—'}</span>
+                <span style={{fontSize:14,fontWeight:800,color:col,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{val}</span>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Sort + find me controls */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
-          <div style={{padding:'10px 12px',display:'flex',alignItems:'center',gap:6}}>
-            <button onClick={()=>setLbSort('net')} style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid',borderColor:lbSort==='net'?'var(--brand)':'var(--hairline)',background:lbSort==='net'?'var(--brand-soft)':'var(--surface)',color:lbSort==='net'?'var(--brand)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Net $$$</button>
-            <button onClick={()=>setLbSort('gross')} style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid',borderColor:lbSort==='gross'?'var(--info)':'var(--hairline)',background:lbSort==='gross'?'var(--info-soft)':'var(--surface)',color:lbSort==='gross'?'var(--info)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Gross Won</button>
-            {meName && <button onClick={()=>setShowMe(v=>!v)} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid',borderColor:showMe?'var(--highlight-border)':'var(--hairline)',background:showMe?'var(--highlight-soft)':'var(--surface)',color:showMe?'var(--highlight)':'var(--ink-40)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>{showMe?'✕ Me':'👤 Me'}</button>}
+          <div style={{padding:'8px 10px',display:'flex',alignItems:'center',gap:6}}>
+            <div className="seg" style={{flex:1}}>
+              <button style={{flex:1}} className={lbSort==='net'?'on':''} onClick={()=>setLbSort('net')}>Net $</button>
+              <button style={{flex:1}} className={lbSort==='gross'?'on':''} onClick={()=>setLbSort('gross')}>Gross won</button>
+            </div>
+            {meName && <div className="seg"><button className={showMe?'on':''} onClick={()=>setShowMe(v=>!v)} title="Show only me">👤 Me</button></div>}
           </div>
 
           {/* Column headers */}
