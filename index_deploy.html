@@ -290,6 +290,41 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 @media(min-width:1400px){
   .user-strip,.tabs-inner,.content,.day-tiles,.brand-row{max-width:1400px}
 }
+/* ═══════════════ MOTION ═══════════════
+   One rule governs everything here: nothing is REVEALED by an animation.
+   Every element's resting state is the visible one; an animation only moves it
+   from an offset to that resting state. If an animation never runs — reduced
+   motion, an old browser, a mid-animation re-render — the UI still looks right.
+   Nothing here changes layout, blocks a tap, or gates content behind a timer. */
+@keyframes mRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes mRowOut{from{opacity:1;max-height:160px}to{opacity:0;max-height:0;transform:translateX(-12px);padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0;border-width:0}}
+@keyframes mFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes mShimmer{from{background-position:-460px 0}to{background-position:460px 0}}
+@keyframes mReady{0%,100%{box-shadow:0 2px 4px rgba(15,15,15,0.06),0 8px 20px rgba(15,15,15,0.05),0 0 0 0 rgba(31,107,71,0)}50%{box-shadow:0 2px 4px rgba(15,15,15,0.06),0 8px 20px rgba(15,15,15,0.05),0 0 0 5px rgba(31,107,71,0.12)}}
+@keyframes mLockIn{from{transform:rotate(-30deg) scale(0.7);opacity:0}to{transform:none;opacity:1}}
+.m-in{animation:mRowIn 0.22s cubic-bezier(0.22,0.8,0.3,1) both}
+.m-leaving{overflow:hidden;pointer-events:none;animation:mRowOut 0.2s ease-in forwards}
+.content{animation:mFadeIn 0.2s ease-out}
+.m-press{transition:transform 0.12s ease-out}
+.m-press:active{transform:scale(0.97)}
+.day-card-head{transition:transform 0.12s ease-out}
+.day-card-head:active{transform:scale(0.993)}
+.day-card.m-ready{animation:mReady 2.8s ease-in-out infinite}
+.m-lock{display:inline-flex;animation:mLockIn 0.3s cubic-bezier(0.22,0.8,0.3,1) both}
+/* Tab underline grows from the middle instead of jumping between tabs. */
+.tab{position:relative}
+.tab::after{content:'';position:absolute;left:12%;right:12%;bottom:-2px;height:2px;border-radius:2px;background:var(--brand);transform:scaleX(0);transition:transform 0.22s cubic-bezier(0.22,0.8,0.3,1)}
+.tab.on{border-bottom-color:transparent}
+.tab.on::after{transform:scaleX(1)}
+/* Loading placeholders: the shape of the page arrives before the data does. */
+.skel{background:linear-gradient(90deg,var(--hairline-soft) 25%,var(--hairline) 37%,var(--hairline-soft) 63%);background-size:920px 100%;animation:mShimmer 1.5s linear infinite;border-radius:8px}
+.skel-line{height:12px;margin-bottom:8px}
+/* Both switches are honoured: the phone's own setting, and ours in the profile. */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.001ms!important;animation-iteration-count:1!important;transition-duration:0.001ms!important}
+}
+body.no-motion *,body.no-motion *::before,body.no-motion *::after{animation-duration:0.001ms!important;animation-iteration-count:1!important;transition-duration:0.001ms!important}
+
 </style>
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -733,6 +768,39 @@ const WX_CACHE={at:0,data:null};
 // has uploaded one, otherwise the same initials treatment used in the header —
 // deliberately NOT a placeholder, so a list of mixed photos and initials reads
 // as intentional rather than half-finished.
+// Motion preference. Two switches feed this: the phone's own "reduce motion"
+// setting (handled in CSS) and the toggle in the profile (stored per device).
+// prefersLessMotion() is for the JS-driven animations, which CSS can't reach.
+function motionOff(){ try{ return localStorage.getItem('cg_motion')==='off'; }catch(e){ return false; } }
+function prefersLessMotion(){
+  if(motionOff())return true;
+  try{ return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
+}
+function applyMotionPref(){ try{ document.body.classList.toggle('no-motion',motionOff()); }catch(e){} }
+
+// A number that counts to its new value instead of blinking to it. Falls back
+// to the plain number whenever motion is off, and always ends on the real value.
+function CountUp({ value, prefix, suffix, style, className, ms }){
+  const target=Number(value)||0;
+  const [shown,setShown]=useState(target);
+  const fromRef=React.useRef(target);
+  const rafRef=React.useRef(null);
+  useEffect(()=>{
+    const from=fromRef.current;
+    if(from===target||prefersLessMotion()){ fromRef.current=target; setShown(target); return; }
+    const dur=ms||550, t0=(window.performance&&performance.now)?performance.now():Date.now();
+    const step=(now)=>{
+      const p=Math.min(1,((now||Date.now())-t0)/dur);
+      const e=1-Math.pow(1-p,3);
+      setShown(Math.round(from+(target-from)*e));
+      if(p<1)rafRef.current=requestAnimationFrame(step); else { fromRef.current=target; setShown(target); }
+    };
+    rafRef.current=requestAnimationFrame(step);
+    return()=>{ if(rafRef.current)cancelAnimationFrame(rafRef.current); fromRef.current=target; };
+  },[target,ms]);
+  return <span className={className} style={style}>{prefix||''}{shown}{suffix||''}</span>;
+}
+
 function PlayerAvatar({ name, logo, size, isAdmin, onClick, title }){
   const sz=size||26;
   // Rounded square, not a circle. The stored photos are already square-cropped
@@ -748,7 +816,9 @@ function PlayerAvatar({ name, logo, size, isAdmin, onClick, title }){
         color:isAdmin?'#B8651F':'#1F6B47',
         border:'1px solid '+(isAdmin?'rgba(184,101,31,0.35)':'rgba(31,107,71,0.4)')}}>{ini}</div>;
   if(!onClick)return <span style={{flexShrink:0,display:'inline-flex'}}>{inner}</span>;
-  return <button onClick={onClick} title={title||''} style={{background:'none',border:'none',padding:0,margin:0,cursor:'pointer',flexShrink:0,display:'inline-flex',borderRadius:rad}}>{inner}</button>;
+  // The click carries the photo's rectangle so the card can grow out of it.
+  const handle=e=>{ let r=null; try{ r=e.currentTarget.getBoundingClientRect(); }catch(err){} onClick(r); };
+  return <button className="m-press" onClick={handle} title={title||''} style={{background:'none',border:'none',padding:0,margin:0,cursor:'pointer',flexShrink:0,display:'inline-flex',borderRadius:rad}}>{inner}</button>;
 }
 
 // Full-screen viewer for a player's photo. Rendered at the ROOT of App, never
@@ -770,30 +840,97 @@ const cardTheme=id=>CARD_THEMES.find(t=>t.id===id)||CARD_THEMES[0];
 // Retired themes stay renderable for players who already chose them, but are
 // only offered in the picker to the player currently using one.
 const pickableThemes=current=>CARD_THEMES.filter(t=>!t.retired||t.id===current);
+// The shape of the Week page while the first Firebase read is in flight. It is
+// never a gate: App renders it only when `weekLoaded` is false, and weekLoaded
+// is forced true after 6s no matter what the network does.
+function WeekSkeleton(){
+  return (
+    <main className="content" aria-hidden="true">
+      <div style={{padding:'16px 12px 0'}}>
+        <div className="skel" style={{height:22,width:'52%',marginBottom:10}}></div>
+        <div className="skel" style={{height:13,width:'34%',marginBottom:22}}></div>
+      </div>
+      {[0,1,2].map(i=>(
+        <div key={i} className="day-card" style={{opacity:1-(i*0.18)}}>
+          <div style={{display:'flex',alignItems:'center',gap:14,padding:'18px 18px 16px'}}>
+            <div className="skel" style={{width:46,height:46,borderRadius:12,flexShrink:0}}></div>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="skel skel-line" style={{width:'46%'}}></div>
+              <div className="skel skel-line" style={{width:'30%',height:10,marginBottom:0}}></div>
+            </div>
+            <div className="skel" style={{width:34,height:26,borderRadius:8}}></div>
+          </div>
+        </div>
+      ))}
+    </main>
+  );
+}
+
 function AvatarLightbox({ view, onClose, onEditProfile }){
+  // The card grows out of the photo that was tapped and shrinks back into it.
+  // Everything about that is decoration: `phase` only drives a transform, and
+  // the close path runs on a timer that cannot be blocked by it. Escape, the ✕
+  // and the backdrop all call requestClose, and a second press closes at once.
+  const [phase,setPhase]=useState('enter');   // enter -> open -> closing
+  const closedRef=React.useRef(false);
+  const quick=prefersLessMotion();
+
+  const finish=React.useCallback(()=>{ if(closedRef.current)return; closedRef.current=true; onClose(); },[onClose]);
+  const requestClose=React.useCallback(()=>{
+    if(closedRef.current)return;
+    if(quick||phase==='closing'){ finish(); return; }
+    setPhase('closing');
+    setTimeout(finish,170);
+  },[quick,phase,finish]);
+
   useEffect(()=>{
     if(!view)return;
+    closedRef.current=false; setPhase('enter');
+    const raf=requestAnimationFrame(()=>setPhase('open'));
     const prev=document.body.style.overflow;
     document.body.style.overflow='hidden';
-    const esc=e=>{ if(e.key==='Escape')onClose(); };
+    const esc=e=>{ if(e.key==='Escape')requestClose(); };
     window.addEventListener('keydown',esc);
-    return()=>{ document.body.style.overflow=prev; window.removeEventListener('keydown',esc); };
-  },[view,onClose]);
+    // Last resort: however the animation behaves, the page is never left locked.
+    return()=>{ cancelAnimationFrame(raf); document.body.style.overflow=prev; window.removeEventListener('keydown',esc); };
+  },[view]);// eslint-disable-line
+
   if(!view)return null;
   const t=cardTheme(view.theme);
   const vw=(typeof window!=='undefined'?window.innerWidth:360);
+  const vh=(typeof window!=='undefined'?window.innerHeight:640);
   const cardW=Math.min(330,Math.round(vw*0.88));
   const big=cardW-36;
+
+  // Where the tapped photo sits, expressed as an offset and a scale from the
+  // card's resting position in the middle of the screen. No rect (keyboard,
+  // odd layout) simply means a plain fade — never a card stuck off screen.
+  const r=view.rect;
+  let from=null;
+  if(r&&r.width>0&&r.height>0&&!quick){
+    const scale=Math.max(0.12,Math.min(1,r.width/cardW));
+    from='translate('+Math.round((r.left+r.width/2)-vw/2)+'px,'+Math.round((r.top+r.height/2)-vh/2)+'px) scale('+scale.toFixed(3)+')';
+  }
+  const shrunk=phase==='enter'||phase==='closing';
+  const cardStyle={
+    position:'relative',width:cardW,maxWidth:'100%',maxHeight:'100%',overflowY:'auto',overflowX:'hidden',
+    background:t.bg,borderRadius:20,padding:'18px 18px 20px',boxSizing:'border-box',
+    border:'1px solid rgba(255,255,255,0.14)',boxShadow:'0 18px 50px rgba(0,0,0,0.55)',
+    display:'flex',flexDirection:'column',alignItems:'center',gap:12,
+    transform:(from&&shrunk)?from:'none',
+    opacity:(shrunk&&!quick)?(phase==='enter'?0.35:0):1,
+    transformOrigin:'center center',
+    transition:quick?'none':'transform 0.22s cubic-bezier(0.22,0.8,0.3,1), opacity 0.2s ease-out',
+    willChange:'transform'
+  };
   return (
-    <div onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:10000,
+    <div onClick={requestClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:10000,
       background:'rgba(8,10,14,0.72)',display:'flex',alignItems:'center',justifyContent:'center',
       padding:'max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom))',
+      opacity:(phase==='closing'&&!quick)?0:1,transition:quick?'none':'opacity 0.18s ease-out',
       WebkitBackdropFilter:'blur(4px)',backdropFilter:'blur(4px)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:cardW,maxWidth:'100%',maxHeight:'100%',overflowY:'auto',overflowX:'hidden',
-        background:t.bg,borderRadius:20,padding:'18px 18px 20px',boxSizing:'border-box',
-        border:'1px solid rgba(255,255,255,0.14)',boxShadow:'0 18px 50px rgba(0,0,0,0.55)',
-        display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
-        <button aria-label="Close" onClick={onClose} style={{position:'absolute',top:10,right:10,zIndex:2,width:36,height:36,borderRadius:'50%',
+      <div onClick={e=>e.stopPropagation()} style={cardStyle}>
+        <button aria-label="Close" onClick={requestClose} style={{position:'absolute',top:10,right:10,zIndex:2,width:36,height:36,borderRadius:'50%',
           border:'1px solid rgba(255,255,255,0.25)',background:'rgba(0,0,0,0.45)',color:'#fff',cursor:'pointer',padding:0,
           display:'flex',alignItems:'center',justifyContent:'center'}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -820,12 +957,13 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
           <div style={{fontSize:12.5,color:'rgba(255,255,255,0.65)',textAlign:'center'}}>Add a tagline in your profile — everyone sees it here.</div>
         )}
         {view.isMe&&onEditProfile&&(
-          <button onClick={()=>{onClose();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.12)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
+          <button className="m-press" onClick={()=>{finish();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.12)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
         )}
       </div>
     </div>
   );
 }
+
 // WMO weather codes -> a small inline glyph. Deliberately not emoji: emoji
 // render differently on iPhone and Android and make the row look untidy.
 function wxGlyph(code){
@@ -2473,9 +2611,20 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
   const mySignup = day.signups.find(p => p.name === currentUser?.name);
   const youSignedUp = !!mySignup;
   const [confirmRemove, setConfirmRemove] = useState(null); // signupKey pending confirm
+  // Rows animate out before the row is actually removed. The removal itself is
+  // on a timer, so if the animation never runs the row still goes — and the
+  // list below is the real data either way, never this set.
+  const [leaving, setLeaving] = useState({});
+  const removeWithFade = (key) => {
+    setConfirmRemove(null);
+    if(prefersLessMotion()){ onRemoveSignup(key); return; }
+    setLeaving(m=>({...m,[key]:true}));
+    setTimeout(()=>{ onRemoveSignup(key); setLeaving(m=>{const c={...m};delete c[key];return c;}); },190);
+  };
 
+  const isFull = !!(day.cap && count >= day.cap);
   return (
-    <div className="day-card">
+    <div className={'day-card m-in'+(isFull?' m-ready':'')}>
       {isAdmin && needsTime && (
         <div className="day-lottery-banner">
           <span className="day-lottery-banner-text">
@@ -2605,7 +2754,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
             );})()}
           </div>
           <div className="day-count">
-            <div className={'day-count-num' + (count === 0 ? ' zero' : '')}>{count}{day.cap?<span style={{fontSize:12,fontWeight:600,color:'var(--ink-40)'}}>/{day.cap}</span>:null}</div>
+            <div className={'day-count-num' + (count === 0 ? ' zero' : '')}><CountUp value={count} ms={450}/>{day.cap?<span style={{fontSize:12,fontWeight:600,color:'var(--ink-40)'}}>/{day.cap}</span>:null}</div>
             <div className="day-count-label">In</div>
           </div>
           <span className={'day-chev' + (expanded ? ' open' : '')}>
@@ -2624,7 +2773,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
         <div className="day-card-body">
           {day.signups.length === 0 ? (
             <div className="empty-msg">No sign-ups yet for {day.day}.</div>
-          ) : day.signups.map(p => {
+          ) : day.signups.map((p,pIdx) => {
             const isMe = currentUser?.name === p.name;
             const teamName = day.teamsPublished && day.teamMap[p.name];
             const matchPair = Object.values(matchPairings||{}).find(m =>
@@ -2636,13 +2785,14 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
             const hasExtraLine = matchPartner || isHost;
             const canEdit = isMe || isAdmin || (p.isGuest && p.guestOf === currentUser?.name);
             return (
-              <div className="player-line" key={p.key||p.name}>
+              <div className={'player-line m-in'+(leaving[p.key]?' m-leaving':'')} key={p.key||p.name}
+                   style={{animationDelay:(Math.min(pIdx,7)*28)+'ms'}}>
                 {(()=>{const a=avatarFor&&avatarFor(p.name);if(!a&&!p.name)return null;
                   return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                     <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
                       title={isMe?'You':p.name}
-                      onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                      onClick={(isMe||(a&&(a.logo||a.tagline)))?((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -2687,7 +2837,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                   <div className="player-actions">
                     {confirmRemove === p.key ? (
                       <>
-                        <button className="btn btn-danger btn-sm" onClick={()=>{ onRemoveSignup(p.key); setConfirmRemove(null); }}>Remove</button>
+                        <button className="btn btn-danger btn-sm" onClick={()=>removeWithFade(p.key)}>Remove</button>
                         <button className="btn btn-ghost btn-sm" onClick={()=>setConfirmRemove(null)}>Cancel</button>
                       </>
                     ) : (
@@ -2727,7 +2877,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
             </div>
           ) : currentUser && day.locked ? (
             <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',fontSize:12,color:'var(--ink-40)'}}>
-              🔒 Sign-ups are locked for {day.day}
+              <span className="m-lock">🔒</span> Sign-ups are locked for {day.day}
             </div>
           ) : null}
           {/* admin actions: one uniform row */}
@@ -4909,7 +5059,7 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                           <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                             title={isMe?'You':p.name}
-                            onClick={(isMe||(a&&(a.logo||a.tagline)))?(()=>onShowAvatar&&onShowAvatar({name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                            onClick={(isMe||(a&&(a.logo||a.tagline)))?((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -5694,7 +5844,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         {sub==='board'&&(live||isAdmin)&&(
           <div style={{textAlign:'right',flexShrink:0}}>
             <div style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'0.09em'}}>Pot now</div>
-            <div style={{fontSize:27,fontWeight:900,color:'#d6b34a',lineHeight:1.05,letterSpacing:'-0.02em'}}>${fundTotal+paidTotalAll}</div>
+            <div style={{fontSize:27,fontWeight:900,color:'#d6b34a',lineHeight:1.05,letterSpacing:'-0.02em'}}><CountUp value={fundTotal+paidTotalAll} prefix="$" ms={700}/></div>
           </div>
         )}
       </div>
@@ -10050,6 +10200,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
   const [email, setEmail] = useState(currentEmail);
   const [msg, setMsg] = useState(currentMsg);
   const [theme, setTheme] = useState(currentTheme);
+  const [motionTick, setMotionTick] = useState(0);
   const [logo, setLogo] = useState(currentLogo);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -10391,6 +10542,20 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
             </div>
           </div>
 
+          {/* Motion switch. Saved on this device only — it never touches Firebase,
+              so it cannot affect anyone else or any data. */}
+          <div className="form-group">
+            <label className="form-label">Animations</label>
+            <button onClick={()=>{ try{ const off=!motionOff(); localStorage.setItem('cg_motion',off?'off':'on'); }catch(e){} applyMotionPref(); setMotionTick(v=>v+1); }}
+              style={{width:'100%',padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--hairline)',background:'var(--surface)',color:'var(--ink-70)',fontFamily:'inherit',fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+              <span>{motionOff()?'Off — everything appears instantly':'On — things slide and fade'}</span>
+              <span style={{width:40,height:23,borderRadius:20,background:motionOff()?'var(--hairline)':'var(--brand)',position:'relative',flexShrink:0,transition:'background 0.15s'}}>
+                <span style={{position:'absolute',top:2,left:motionOff()?2:19,width:19,height:19,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.3)',transition:'left 0.15s'}}></span>
+              </span>
+            </button>
+            <div style={{fontSize:11,color:'var(--ink-40)',marginTop:4}}>This device only. Your phone's own reduce-motion setting is always respected.</div>
+          </div>
+
           <div style={{height:1,background:'var(--hairline)',margin:'18px 0'}}/>
 
           {/* Default tee */}
@@ -10506,6 +10671,7 @@ function App(){
   const [tab, setTab] = useState('home');
 
   const [week, setWeek] = useState(null);
+  const [weekLoaded, setWeekLoaded] = useState(false);
   const [demoOverrideWeek, setDemoOverrideWeek] = useState(null);
   const [extra, setExtra] = useState([]);
   const [rosterEdits, setRosterEdits] = useState({});
@@ -10558,6 +10724,11 @@ function App(){
   const [editingAnn, setEditingAnn] = useState(null); // {key, ...ann} when editing, or true for new
   const { ready, read, readOnce, write, push, del, update } = useDB();
 
+  // The placeholders can never become the page. Whatever the network does, the
+  // real Week view is rendered after six seconds.
+  useEffect(()=>{ const t=setTimeout(()=>setWeekLoaded(true),6000); return()=>clearTimeout(t); },[]);
+  useEffect(()=>{ applyMotionPref(); },[]);
+
   // Hide splash once app renders
   useEffect(()=>{
     const l = document.getElementById('loader');
@@ -10581,7 +10752,7 @@ function App(){
     if(!ready) return;
     // ── IMMEDIATE: needed for first paint ──
     const u = [];
-    u.push(read('week', v=>setWeek(v)));
+    u.push(read('week', v=>{ setWeek(v); setWeekLoaded(true); }));
     u.push(read('extraPlayers', v=>setExtra(safeArray(v))));
     u.push(read('rosterEdits', v=>setRosterEdits(v||{})));
     u.push(read('rosterHidden', v=>setRosterHidden(v||{})));
@@ -11343,7 +11514,8 @@ function App(){
           </div>
         </div>
       )}
-      {tab === 'home' && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
+      {tab === 'home' && !weekLoaded && <WeekSkeleton/>}
+      {tab === 'home' && weekLoaded && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
   // tee on it, so the old `currentUser.hcp||0` put everyone on the waitlist at 0
   // off the Whites. Look the man up in the roster, same as a normal sign-up.
   const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
