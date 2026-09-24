@@ -9570,7 +9570,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
   // v2 UI helpers — use v2 CSS vars
   const S=({id,icon,title,color,borderColor,summary,children})=>(
-    <div id={'stat-sec-'+id} className="day-card" style={{marginBottom:10,overflow:'hidden',borderLeft:'3px solid '+borderColor,scrollMarginTop:'calc(var(--tabs-h) + 52px)'}}>
+    <div id={'stat-sec-'+id} className="day-card" style={{marginBottom:10,overflow:'hidden',borderLeft:'3px solid '+borderColor,scrollMarginTop:'calc(var(--tabs-h) + 10px)'}}>
       <div onClick={()=>toggle(id)} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',cursor:'pointer',userSelect:'none'}}>
         <span style={{fontSize:15,flexShrink:0}}>{icon}</span>
         <div style={{flex:1,minWidth:0}}>
@@ -9590,14 +9590,8 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
   return(
     <main className="content">
-      {onSwitchTab && (
-        <div style={{position:'sticky',top:'var(--tabs-h)',zIndex:10,background:'var(--bg)',borderBottom:'1px solid var(--hairline)',padding:'8px 14px',display:'flex',alignItems:'center'}}>
-          <button onClick={()=>onSwitchTab(publicMode?'home':'admin')} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:700,color:'var(--ink-50)',padding:'4px 0',WebkitTapHighlightColor:'transparent'}}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            {publicMode ? 'Back' : 'Admin'}
-          </button>
-        </div>
-      )}
+      {/* (A "‹ Admin" back bar used to sit here, from when Stats was opened from
+          inside the Admin tab. Stats has its own tab now, so it was removed.) */}
       <div className="page-eyebrow">{publicMode?'Clark Golf':'Master Admin'}</div>
       <div className="page-title">{publicMode?'📊 Stats':'⭐ Stats Dashboard'}</div>
       <div className="page-sub"><strong>{totalRounds}</strong> rounds · {periodLabel}</div>
