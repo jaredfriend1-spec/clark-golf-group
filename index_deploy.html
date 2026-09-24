@@ -332,22 +332,16 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 }
 body.no-motion *,body.no-motion *::before,body.no-motion *::after{animation-duration:0.001ms!important;animation-iteration-count:1!important;transition-duration:0.001ms!important}
 
-/* ── Condensing top bar ──────────────────────────────────────────────────
-   The header and tabs travel together and stick to the top. Once the page
-   scrolls, the app name, week label and day tiles fold away and the avatar
-   shrinks, leaving a slim bar with the tabs always within reach. Nothing is
-   removed — scroll back up and it all returns. Layout only: if the class
-   never toggles, the bar simply stays at full height as it always was. */
-.topbar{position:sticky;top:0;z-index:8002}
-.topbar .brand-row,.topbar .day-tiles{overflow:hidden;transition:max-height 0.24s ease,opacity 0.18s ease,padding 0.24s ease}
-.topbar .brand-row{max-height:120px}
-.topbar .day-tiles{max-height:120px}
-.topbar.condensed .brand-row,.topbar.condensed .day-tiles{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
-.topbar .user-strip{transition:padding 0.24s ease}
-.topbar.condensed .user-strip{padding-top:5px;padding-bottom:5px}
-.topbar .user-strip-left img,.topbar .user-avatar{transition:width 0.24s ease,height 0.24s ease}
-.topbar.condensed .user-strip-left img,.topbar.condensed .user-avatar{width:32px!important;height:32px!important;font-size:12px}
-@media(min-width:600px){.topbar.condensed .user-strip{padding-top:0;padding-bottom:0}}
+/* ── Sticky tabs ─────────────────────────────────────────────────────────
+   The dark header scrolls away like any other content; the two tab rows stop
+   at the top and stay there. Pure CSS on purpose: an earlier version collapsed
+   the header from JS, which changed the page height, which moved the scroll
+   position, which re-triggered the collapse — that was the bouncing. Nothing
+   here reacts to scrolling, so there is no loop to get into.
+   Row 2 sits directly below row 1, so its offset is row 1's height. */
+.tabs{position:sticky;top:0;z-index:8003}
+.tabs-admin-row{position:sticky;top:54px;z-index:8002}
+@media(min-width:600px){.tabs-admin-row{top:63px}}
 
 </style>
 <!-- PWA -->
@@ -2437,15 +2431,15 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
         const standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
         return(
-          <div style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:'12px 14px',margin:'0 0 14px',display:'flex',alignItems:'flex-start',gap:10}}>
+          <div style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:(isIOS&&!standalone)?'12px 14px':'8px 12px',margin:'0 0 12px',display:'flex',alignItems:(isIOS&&!standalone)?'flex-start':'center',gap:10}}>
             <span style={{fontSize:18,lineHeight:'22px'}}>🔔</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Get notified</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{(isIOS&&!standalone)?'Get notified':'Get notified when teams are posted'}</div>
+              {(isIOS&&!standalone)&&(
               <div style={{fontSize:11.5,color:'var(--ink-50)',lineHeight:1.5,margin:'2px 0 8px'}}>
-                {isIOS&&!standalone
-                  ? 'Know the moment teams and results are posted. On iPhone: tap Share → Add to Home Screen, open the app from that icon, then tap the bell at the top.'
-                  : 'Know the moment teams are posted, results are in, and more.'}
+                Know the moment teams and results are posted. On iPhone: tap Share → Add to Home Screen, open the app from that icon, then tap the bell at the top.
               </div>
+              )}
               {!(isIOS&&!standalone)&&(
                 <button className="btn btn-primary btn-sm" onClick={async()=>{try{await enablePushForUser(currentUser,isAdmin);setPushPromptGone(true);}catch(e){window.alert('Notifications: '+e.message);}}}>
                   Turn on notifications
@@ -2457,7 +2451,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         );
       })()}
       <div className="page-eyebrow">This week</div>
-      <div className="page-title">Sign-ups</div>
+      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',paddingRight:16}}>
+      <div className="page-title" style={{flexShrink:0}}>Sign-ups</div>
       {(()=>{
         const s=settings&&settings.season;
         if(!s||!s.endDate)return null;
@@ -2465,11 +2460,12 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         if(d>42)return null;
         const label=d>1?('Season'+(s.name?(' '+s.name):'')+' ends in '+d+' days'):d===1?'Season ends tomorrow':d===0?'Season ends today':'Season'+(s.name?(' '+s.name):'')+' has ended — awaiting archive';
         return(
-          <div style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11.5,fontWeight:700,padding:'4px 11px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)',margin:'6px 0 10px'}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11.5,fontWeight:700,padding:'4px 11px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)',marginTop:2}}>
             ⛳ {label}
           </div>
         );
       })()}
+      </div>
       {(()=>{
         const active=safeArray(week?.activeDays);
         // Tombstones belong to the CONFIGURED week, not the calendar week — End Week must clear them.
@@ -9244,7 +9240,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const [filterPeriod,setFilterPeriod]=useState('all');
   const [statsUITab,setStatsUITab]=useState('access');
   const [playerSearch,setPlayerSearch]=useState('');
-  const [open,setOpen]=useState({overview:true,avgday:false,pots:false,scores:false,players:false,money:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false,behavior:false,logins:false});
+  const [open,setOpen]=useState({overview:false,avgday:false,pots:false,scores:false,players:false,money:false,hcp:false,tees:false,teams:false,engage:false,timing:false,activity:false,behavior:false,logins:false});
   const [expandedTee,setExpandedTee]=useState(null);
   const [showStatsControl,setShowStatsControl]=useState(false);
   const toggle=k=>setOpen(o=>({...o,[k]:!o[k]}));
@@ -10749,23 +10745,6 @@ function App(){
   const [editingAnn, setEditingAnn] = useState(null); // {key, ...ann} when editing, or true for new
   const { ready, read, readOnce, write, push, del, update } = useDB();
 
-  // Condense the top bar once the page scrolls. Hysteresis (56 down, 24 up)
-  // stops it flickering when a finger rests mid-scroll.
-  const [condensed,setCondensed]=useState(false);
-  useEffect(()=>{
-    let frame=null;
-    const onScroll=()=>{
-      if(frame)return;
-      frame=requestAnimationFrame(()=>{
-        frame=null;
-        const y=window.scrollY||document.documentElement.scrollTop||0;
-        setCondensed(c=>c?(y>24):(y>56));
-      });
-    };
-    window.addEventListener('scroll',onScroll,{passive:true});
-    return()=>{ window.removeEventListener('scroll',onScroll); if(frame)cancelAnimationFrame(frame); };
-  },[]);
-
   // The placeholders can never become the page. Whatever the network does, the
   // real Week view is rendered after six seconds.
   useEffect(()=>{ const t=setTimeout(()=>setWeekLoaded(true),6000); return()=>clearTimeout(t); },[]);
@@ -11417,7 +11396,6 @@ function App(){
     <div className="app">
 
 
-      <div className={'topbar'+(condensed?' condensed':'')}>
       <header className="dark-zone">
         <div className="user-strip">
           <div className="user-strip-brand" style={{display:'none'}}>
@@ -11512,7 +11490,6 @@ function App(){
         </div>
       </nav>
       )}
-      </div>
 
       {/* Active announcement (banner or modal) */}
       {(()=>{
