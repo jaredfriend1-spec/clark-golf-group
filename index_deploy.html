@@ -309,13 +309,21 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 @keyframes mShimmer{from{background-position:-460px 0}to{background-position:460px 0}}
 @keyframes mReady{0%,100%{box-shadow:0 2px 4px rgba(15,15,15,0.06),0 8px 20px rgba(15,15,15,0.05),0 0 0 0 rgba(31,107,71,0)}50%{box-shadow:0 2px 4px rgba(15,15,15,0.06),0 8px 20px rgba(15,15,15,0.05),0 0 0 5px rgba(31,107,71,0.12)}}
 @keyframes mLockIn{from{transform:rotate(-30deg) scale(0.7);opacity:0}to{transform:none;opacity:1}}
-.m-in{animation:mRowIn 0.22s cubic-bezier(0.22,0.8,0.3,1) both}
+.m-in{animation:mRowIn 0.22s cubic-bezier(0.22,0.8,0.3,1) backwards}
+/* Cards fade only. Never animate transform on anything that can contain a
+   modal, a dropdown or anything else positioned against the screen. */
+.m-fade{animation:mFadeIn 0.26s ease-out}
 .m-leaving{overflow:hidden;pointer-events:none;animation:mRowOut 0.2s ease-in forwards}
 .content{animation:mFadeIn 0.2s ease-out}
 .m-press{transition:transform 0.12s ease-out}
 .m-press:active{transform:scale(0.97)}
-.day-card-head{transition:transform 0.12s ease-out}
-.day-card-head:active{transform:scale(0.993)}
+/* The day header holds a popup that positions against the screen, so it must
+   never carry a transform — a transform here (even while a finger is down)
+   makes the header the popup's frame of reference and the popup jumps out from
+   under the finger mid-tap, which reads as "the popup won't close". Press
+   feedback here is a background tint only. */
+.day-card-head{transition:background 0.12s ease-out}
+.day-card-head:active{background:#F5F5F0}
 .day-card.m-ready{animation:mReady 2.8s ease-in-out infinite}
 .m-lock{display:inline-flex;animation:mLockIn 0.3s cubic-bezier(0.22,0.8,0.3,1) both}
 /* Tab underline grows from the middle instead of jumping between tabs. */
@@ -2644,16 +2652,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
 
   const isFull = !!(day.cap && count >= day.cap);
   return (
-    <div className={'day-card m-in'+(isFull?' m-ready':'')}>
-      {isAdmin && needsTime && (
-        <div className="day-lottery-banner">
-          <span className="day-lottery-banner-text">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            {isLottery ? 'Waiting on lottery' : 'Tee time not set'}
-          </span>
-          <button className="day-lottery-banner-btn" onClick={onSetTeeTime}>Set Time</button>
-        </div>
-      )}
+    <div className={'day-card m-fade'+(isFull?' m-ready':'')}>
 
       <div className="day-card-top">
         <div className="day-card-head" onClick={onToggle}>
@@ -2663,11 +2662,10 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
               <span className="day-name">{day.day}</span>
               {(()=>{
                 const pillStyle={fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:20,marginLeft:6,display:'inline-flex',alignItems:'center',gap:4,cursor:'pointer',fontFamily:'inherit',background:modeInfo&&modeInfo.type==='individual'?'var(--info-soft)':'var(--brand-soft)',color:modeInfo&&modeInfo.type==='individual'?'var(--info)':'var(--brand)',border:'1px solid '+(modeInfo&&modeInfo.type==='individual'?'var(--info-border)':'var(--brand-border)')};
-                const canChange=isAdmin&&onSetMode&&!modeLocked;
-                if(!modeInfo&&!canChange) return null;
+                if(!modeInfo) return null;
                 return(
-                  <button onClick={e=>{e.stopPropagation();setShowModePicker(canChange?'pick':'info');}} style={pillStyle} title={canChange?'Tap to change the game':'Tap to see the game details'}>
-                    {modeInfo?modeInfo.name:'Set game'}{modeLocked?' 🔒':''} <span style={{fontSize:11}}>{canChange?'▾':'ⓘ'}</span>
+                  <button onClick={e=>{e.stopPropagation();setShowModePicker('info');}} style={pillStyle} title="Tap to see the game details">
+                    {modeInfo.name}{modeLocked?' 🔒':''} <span style={{fontSize:11}}>ⓘ</span>
                   </button>
                 );
               })()}
