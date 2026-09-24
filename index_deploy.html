@@ -403,6 +403,15 @@ button.dc-game{background:none;border:none;padding:0;font-family:inherit;text-al
 .player-line.guest-under{padding-left:26px;padding-top:6px;position:relative}
 .player-line.guest-under::before{content:'';position:absolute;left:10px;top:0;height:22px;width:10px;border-left:1.5px solid var(--hairline);border-bottom:1.5px solid var(--hairline);border-bottom-left-radius:6px}
 
+.player-meta .meta-sep{color:var(--ink-20,#c9c6bd);margin:0 1px}
+.player-meta .meta-pair{color:var(--brand);font-weight:600}
+
+/* Tees stay together as one unit; on a guest's row the line may wrap (admins
+   have edit buttons taking room), but never runs underneath them. */
+.player-meta .meta-tee{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.player-line.guest-under .player-meta{flex-wrap:wrap;white-space:normal;flex-shrink:1;min-width:0;row-gap:2px;column-gap:6px}
+.player-line.guest-under .player-meta > span{white-space:nowrap}
+
 </style>
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -2914,8 +2923,11 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     {isMe&&youSignedUp&&<span style={{width:15,height:15,borderRadius:'50%',background:'var(--brand)',color:'#fff',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginRight:1}}><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
                     <span className="name-text" style={isMe?{fontWeight:600}:{}}>{p.name}</span>
                     {isMe && <span className="tag you">You</span>}
-                    {p.isGuest && <span className="tag guest">Guest of {p.guestOf||'?'}</span>}
-                    {p.pairWithGuest && <span className="tag pair">Pair req</span>}
+                    {/* Under his host the layout already says whose guest he is, so the
+                        pills give way to the grey detail line below. A guest whose host
+                        isn't playing that day keeps the full pill. */}
+                    {p.isGuest && !p._underHost && <span className="tag guest">Guest of {p.guestOf||'?'}</span>}
+                    {p.pairWithGuest && !p._underHost && <span className="tag pair">Pair req</span>}
                     {p.teePreference === 'first' && <span className="tag first">1st tee</span>}
                     {p.teePreference === 'last' && <span className="tag last">Last tee</span>}
                     {modeInfo&&modeInfo.type==='individual'&&p.stableTarget!=null&&<span className="tag" style={{background:'var(--info-soft)',color:'var(--info)',border:'1px solid var(--info-border)'}}>Tgt {p.stableTarget}</span>}
@@ -2927,8 +2939,10 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     )}
                   </div>
                   <span className="player-meta">
-                    <span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
-                    {p.tee} · HCP {p.handicap}
+                    {p._underHost && <span>Guest</span>}
+                    {p._underHost && p.pairWithGuest && <><span className="meta-sep">·</span><span className="meta-pair">Pair with {String(p.guestOf||'').trim().split(' ')[0]}</span></>}
+                    <span className="meta-tee"><span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
+                    {p.tee} · HCP {p.handicap}</span>
                   </span>
                   {hasExtraLine && (
                     <div className="player-extra">
