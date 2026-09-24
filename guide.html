@@ -111,6 +111,7 @@
     <li><a href="#score">Scoring a round</a></li>
     <li><a href="#fix">When something goes wrong</a></li>
     <li><a href="#endweek">Ending the week</a></li>
+    <li><a href="#stats">The Stats tab</a></li>
     <li><a href="#faq">Common questions</a></li>
   </ol>
 </nav>
@@ -123,7 +124,14 @@
 <div class="callout tip"><strong>Two men with the same last 4?</strong> The app spots it and asks which of you it is. Pick your name and carry on.</div>
 
 <h3 id="signup"><span class="num">2</span>Signing up to play<span class="pill member">Member</span></h3>
-<p>The <strong>Week</strong> tab is the front page. Each day we're playing gets a card showing the date, the tee time, the weather, and who has signed up so far.</p>
+<p>The <strong>Week</strong> tab is the front page. Each day we're playing gets a card:</p>
+<ul>
+  <li><strong>On the left</strong>, the day and date, like a calendar page.</li>
+  <li><strong>At the top</strong>, the tee time, or <em>Tee time TBD</em> if it isn't set yet. Underneath is the game. The everyday team game is in grey; anything unusual, like a Stableford day, is in blue, and you can tap it for the buy-in and how it's scored.</li>
+  <li><strong>Along the bottom</strong>, the weather: temperature, chance of rain and wind. When there's no tee time yet the forecast is for 9–11am, and says so.</li>
+  <li><strong>On the right</strong>, how many are in so far. A day that's full gets a soft green glow around it.</li>
+</ul>
+<p>The tabs stay pinned to the top of the screen as you scroll, so you can always jump elsewhere. Near the end of a season, a line under the last day shows how long is left.</p>
 <ol class="steps">
   <li>Tap the day you want to play.</li>
   <li>Check your tees and handicap — they're pre-filled from last time. Fix them if they're wrong, because teams are built off those numbers.</li>
@@ -168,6 +176,7 @@
   <li>Turn notifications on</li>
   <li>Write a short tagline. It greets you when you sign in, and everyone sees it when they tap your photo</li>
   <li>Pick a card theme (Club, Emerald, Gold, Red, Navy, Sunset, Ocean or Blackout) that colors your login card and your photo card</li>
+  <li>Turn <strong>Animations</strong> off, if you'd rather things appear instantly instead of sliding and fading. It only affects your phone, and the app already respects your phone's own reduce-motion setting.</li>
 </ul>
 <p>Photos are cropped square. Frame your face in the middle and it'll look right everywhere in the app.</p>
 
@@ -197,7 +206,7 @@
 
 <h2 class="sec">For admins</h2>
 
-<p>Three extra tabs appear if you're an admin: <strong>Manage</strong>, <strong>Email</strong> and <strong>Admin</strong>. Everything below happens in those, or on the Teams and Score tabs.</p>
+<p>Extra tabs appear if you're an admin: <strong>Manage</strong>, <strong>Email</strong>, <strong>Admin</strong>, <strong>Tourney</strong> and <strong>Stats</strong>. Everything below happens in those, or on the Teams and Score tabs.</p>
 
 <h3 id="roles"><span class="num">11</span>Admin roles<span class="pill admin">Admin</span></h3>
 <table>
@@ -221,9 +230,11 @@
 <p><strong>Manage → Manage Days.</strong> For each day you're playing:</p>
 <ol class="steps">
   <li>Turn the day on and <strong>set the date</strong>.</li>
-  <li>Set the tee time, or mark it as a <strong>lottery</strong> if you don't know it yet.</li>
+  <li>Tap <strong>Set up</strong> and choose the <strong>game</strong>. This is the only place the game is set: the name on the day card is just a label, so nobody can change it by accident.</li>
+  <li>Set the <strong>tee time</strong>, or tick <strong>Lottery</strong> if you don't know it yet. The time picker opens right under the Tee time row.</li>
   <li>Add any extra tee times for information.</li>
 </ol>
+<p>You can also set a day's tee time from the <strong>Tee time</strong> button in the admin row at the bottom of its card on the Week tab.</p>
 <div class="callout stop"><strong>The date is the single most important field on this screen.</strong> A stale date once filed a round under the previous week and wiped the round that was already there. The app now refuses to start scoring on a date that isn't part of the current week, or is more than two days old — but it's far easier to set it correctly than to explain the refusal later.</div>
 <p>When the lottery result comes in, come back and set the real time. Everyone gets a notification automatically.</p>
 
@@ -234,6 +245,7 @@
   <li><strong>Adjust</strong> — drag men between teams, add a late arrival, remove a no-show. Rebuild as often as you like; every previous line-up is saved.</li>
   <li><strong>Publish</strong> — teams go live, the day locks to new sign-ups, and everyone gets a notification.</li>
 </ol>
+<p><strong>Tee requests.</strong> First-tee and last-tee requests, guest pairings and match pairings each get an <strong>Approve</strong> or <strong>Deny</strong> button on the Teams screen. Your decision is saved, so it's still there after a refresh, and another admin sees the same decisions on their phone. They clear with the week at End Week.</p>
 <div class="callout tip"><strong>This is the phase where changes belong.</strong> Nothing here is risky — rebuild ten times if you want.</div>
 
 <h3 id="score"><span class="num">14</span>Scoring a round<span class="pill admin">Admin</span></h3>
@@ -284,7 +296,7 @@
 <p><strong>End Week &amp; Start Fresh</strong> sits at the very bottom of the Admin tab, on its own, deliberately out of the way.</p>
 <p>It archives any day that still has data, clears the week, and opens the next one. You have to <strong>type END</strong> to confirm.</p>
 <div class="callout warn"><strong>Finalise your rounds first.</strong> End Week will archive a day that was never scored, and that's a round you'd have to reconstruct by hand.</div>
-<p>Weekly notes and the events line carry over to the new week. Everything else starts clean.</p>
+<p>The <strong>Upcoming events</strong> list carries over to the new week. Everything else starts clean, including each day's notes, so add fresh ones for the new week.</p>
 
 <h4>The rest of the Admin tab</h4>
 <table>
@@ -299,9 +311,22 @@
   <tr><td>End Week</td><td>Bottom of the page. Type END.</td></tr>
 </table>
 
+<h3 id="stats"><span class="num">17</span>The Stats tab<span class="pill admin">Admin</span></h3>
+<p>Every section starts closed and shows a one-line summary. Tap one to open it and it scrolls to the top of the screen. The master decides under <strong>Stats Access Control</strong> whether members can see it too.</p>
+<table>
+  <tr><th>Section</th><th>What it shows</th></tr>
+  <tr><td>Season Overview</td><td>Rounds, average field and money paid out.</td></tr>
+  <tr><td>Who Plays With Who</td><td>Pick any player (it starts on you) and see everyone he's been on a team with, how many times, and what share of his rounds that is.</td></tr>
+  <tr><td>Scoring Analytics — Team Game</td><td>Average winning front, back and overall, and skins per round.</td></tr>
+  <tr><td>Stableford Games</td><td>Individual rounds only, with everything shown against each player's target: <strong>+7</strong> means seven points better than the number he plays to. Includes the Stableford pots.</td></tr>
+  <tr><td>Pot Analytics — Team Game</td><td>Biggest and smallest pot, and every team round's pots, newest first.</td></tr>
+  <tr><td>Sign-up Timing</td><td>Which day of the week people tap Sign me up (not the day they play), and who books earliest and latest, measured in days before the round.</td></tr>
+</table>
+<p>Names that were typed with different capitals over the season, like "Frank Mcguire" and "Frank McGuire", are counted as one person everywhere, under the roster's spelling.</p>
+
 <h2 class="sec">Reference</h2>
 
-<h3 id="faq"><span class="num">17</span>Common questions</h3>
+<h3 id="faq"><span class="num">18</span>Common questions</h3>
 
 <h4>I can't sign in.</h4>
 <p>Your PIN is the last 4 digits of the phone number we have for you. If it's an old number, ask an admin to check the roster.</p>

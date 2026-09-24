@@ -296,7 +296,32 @@ let db,auth;
 try{const app=firebase.apps.length?firebase.apps[0]:firebase.initializeApp(FB);db=firebase.database(app);auth=firebase.auth(app);}catch(e){console.error(e);}
 
 const f$=n=>"$"+Math.round(parseFloat(n||0)).toLocaleString();
-const normName=n=>n?n.trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" "):"";
+// ── Names ────────────────────────────────────────────────────────────────
+// normName is the one place a player's name is tidied, for display AND for
+// matching (every comparison normalises both sides). It used to title-case
+// blindly, so "John McCarthy" showed as "John Mccarthy" and "DJ Park" as
+// "Dj Park". Now: if the name is on the built-in roster, use the roster's
+// spelling; otherwise title-case, keeping Mc and O' names intact. Only the static ROSTER is consulted, so the output never
+// changes mid-session and keys built from it stay stable.
+let NAME_CANON=null;
+function nameCanon(){
+  if(NAME_CANON)return NAME_CANON;
+  NAME_CANON={};
+  try{ (typeof ROSTER!=='undefined'?ROSTER:[]).forEach(p=>{ if(p&&p.name){ const t=String(p.name).trim().replace(/\s+/g,' '); NAME_CANON[t.toLowerCase()]=t; } }); }catch(e){}
+  return NAME_CANON;
+}
+// Works from the lower-cased name only, so two spellings that differ just in
+// capitalisation always come out identical and count as the same person.
+function titleName(t){
+  return t.toLowerCase().split(' ').map(w=>{
+    let x=w.charAt(0).toUpperCase()+w.slice(1);
+    x=x.replace(/^Mc([a-z])/,(m,c)=>'Mc'+c.toUpperCase())
+       .replace(/^O'([a-z])/,(m,c)=>"O'"+c.toUpperCase())
+       .replace(/-([a-z])/g,(m,c)=>'-'+c.toUpperCase());
+    return x;
+  }).join(' ');
+}
+const normName=n=>{ if(!n)return''; const t=String(n).trim().replace(/\s+/g,' '); return nameCanon()[t.toLowerCase()]||titleName(t); };
 const fmtD=d=>{if(!d)return"";try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}catch{return d;}};
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const GOLF_DAYS=["Friday","Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday"];
@@ -2363,7 +2388,7 @@ function HistoryTab({user}){
 // ── VERBATIM COPY of the app's Standings leaderboard maths — do not "improve" it.
 function moneyLeaderboard(rounds){
     const safeArray=x=>Array.isArray(x)?x:Object.values(x||{});
-    const normName=n=>{if(!n)return"";return String(n).trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");};
+    // (uses the shared normName above)
     const players = {};
     rounds.forEach(r=>{
       // ── Individual (Stableford) rounds: paid from buy-in, winnings from the
@@ -2450,7 +2475,7 @@ function AwardsTab({user}){
   // ── compute everything once ──
   const S=React.useMemo(()=>{
     const P={};
-    const normName=n=>{if(!n)return"";return String(n).trim().replace(/\s+/g," ").split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(" ");};
+    // (uses the shared normName above)
     const get=n=>{const k=normName(n);if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null,winRounds:0,silverRounds:0,guestsBrought:0,guestNames:new Set(),hcpLog:[],firstTee:0,lastTee:0,prefRounds:0};return P[k];};
     const teamRows=[];
     rounds.filter(inSeason).forEach(r=>{
@@ -2948,6 +2973,10 @@ function AttendTab({user}){
 
 // ── APP SETTINGS TAB (global app behavior) ──────────────────────────────
 function AppSettingsTab({user}){
+  // Hooks at the top: these two drafts were declared inside JSX blocks that only
+  // render for the master, which changes the hook count if the role ever does.
+  const [codeDraft,setCodeDraft]=React.useState(null);
+  const [admDraft,setAdmDraft]=React.useState(null);
   const gameRules=useDB("settings/gameRules");
   const settings=useDB("settings");
   const [toast,showToast]=useToast();
@@ -2974,7 +3003,6 @@ function AppSettingsTab({user}){
     <div className="pg-title">App Settings</div>
     <div className="pg-sub">Global settings that apply to every day and every week. More settings will land here as the app grows.</div>
     {user&&user.role==="master"&&(()=>{
-      const [codeDraft,setCodeDraft]=React.useState(null);
       const cur=(settings&&settings.guestCode)||"";
       const val=codeDraft==null?cur:codeDraft;
       return (
@@ -2993,7 +3021,6 @@ function AppSettingsTab({user}){
       );
     })()}
     {user&&user.role==="master"&&(()=>{
-      const [admDraft,setAdmDraft]=React.useState(null);
       const cur=(settings&&settings.adminGuestCode)||"";
       const val=admDraft==null?cur:admDraft;
       return (
@@ -3323,6 +3350,14 @@ function GameRulesTab({user}){
 // ── SEASON TAB ────────────────────────────────────────────────────────────────
 
 function TournamentTab(){
+  // Close-out state lives here, at the top. It used to be declared inside the
+  // close-out box, which only renders once the tournament has been played — so
+  // the tab's hook count changed as the tournament moved through its stages.
+  const [closeText,setCloseText]=React.useState("");
+  const [closeBusy,setCloseBusy]=React.useState(false);
+  const [closeMsg,setCloseMsg]=React.useState(null);   // {msg, err}
+  // Who is closing it out: the portal's signed-in user, as isMasterUser reads it.
+  const portalUser=(()=>{try{return JSON.parse(localStorage.getItem("portal_user"))||null;}catch(e){return null;}})();
   const t=useDB("tournament")||{};
   const cfg=t.config||{};
   const tp=t.players||{};
@@ -3452,6 +3487,12 @@ function TournamentTab(){
   return(
     <div>
       <div className="pg-head"><div><div className="pg-title">Tournament</div><div className="pg-sub">Plan the Clark tournament with live season data</div></div></div>
+      {/* Close-out result sits at the top: after a successful close the live
+          tournament is cleared and the close-out box disappears with it. */}
+      {closeMsg&&<div style={{fontSize:12.5,fontWeight:700,margin:"0 0 12px",padding:"9px 12px",borderRadius:9,display:"flex",alignItems:"center",gap:10,color:closeMsg.err?"#fca5a5":"#6ee7b7",background:closeMsg.err?"rgba(248,113,113,0.1)":"rgba(16,185,129,0.1)",border:"1px solid "+(closeMsg.err?"rgba(248,113,113,0.25)":"rgba(16,185,129,0.25)")}}>
+        <span style={{flex:1}}>{closeMsg.msg}</span>
+        <button onClick={()=>setCloseMsg(null)} style={{background:"none",border:"none",color:"inherit",cursor:"pointer",fontSize:15,lineHeight:1}}>✕</button>
+      </div>}
       {(()=>{
         const [openHow,setOpenHow]=React.useState(false);
         const H=({t,children})=>(<div style={{marginBottom:10}}><div style={{fontSize:11,fontWeight:800,color:"#4ade80",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>{t}</div><div style={{fontSize:12.5,color:"rgba(255,255,255,0.7)",lineHeight:1.65}}>{children}</div></div>);
@@ -3507,8 +3548,6 @@ function TournamentTab(){
                 <div style={{fontSize:13,fontWeight:800,color:cfg.inviteOpen===true?"#4ade80":"#fbbf24"}}>{cfg.inviteOpen===true?"🟢 LIVE — members can answer":"🔒 NOT LIVE — members see nothing"}</div>
                 <div style={{fontSize:11.5,color:"rgba(255,255,255,0.45)",marginTop:6,lineHeight:1.6}}>Launching, the app-tab stager, RSVP lock, and Take offline are <strong>Master-only</strong>. Everything below — config, field, pay-ins, payouts — is yours to work.</div>
                     {(()=>{
-                  const [closeText,setCloseText]=React.useState("");
-                  const [busy,setBusy]=React.useState(false);
                   const todayIso=(()=>{const x=new Date();return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");})();
                   const lastDay=cfg.date2||cfg.date1||"";
                   const overYet=!!(lastDay&&todayIso>lastDay);
@@ -3527,19 +3566,19 @@ function TournamentTab(){
                   const year=String((cfg.date1||todayIso).slice(0,4));
                   const doClose=()=>{
                     if(closeText.trim().toUpperCase()!=="CLOSE")return;
-                    setBusy(true);
-                    const snap={...(t||{}),closedAt:Date.now(),closedBy:(user&&user.email)||"master",year:year,name:cfg.name||("Tournament "+year),date1:cfg.date1||null,date2:cfg.date2||null};
+                    setCloseBusy(true);
+                    const snap={...(t||{}),closedAt:Date.now(),closedBy:(portalUser&&(portalUser.email||portalUser.name))||"master",year:year,name:cfg.name||("Tournament "+year),date1:cfg.date1||null,date2:cfg.date2||null};
                     const ref=firebase.database().ref("tournaments/"+year);
                     ref.set(snap).then(()=>ref.once("value")).then(s=>{
                       const back=s.val();
                       const okBack=back&&back.closedAt===snap.closedAt&&JSON.stringify(back.config||{})===JSON.stringify(snap.config||{});
-                      if(!okBack){setBusy(false);showToast("Archive did not read back correctly — nothing was cleared","err");return null;}
+                      if(!okBack){setCloseBusy(false);setCloseMsg({msg:"Archive did not read back correctly — nothing was cleared",err:true});return null;}
                       try{const blob=new Blob([JSON.stringify(snap,null,2)],{type:"application/json"});const a2=document.createElement("a");a2.href=URL.createObjectURL(blob);a2.download="tournament-"+year+".json";a2.click();}catch(e){}
                       return firebase.database().ref("tournament").remove().then(()=>{
-                        setBusy(false);setCloseText("");
-                        showToast("Archived to "+year+" — the live slot is empty for next year");
+                        setCloseBusy(false);setCloseText("");
+                        setCloseMsg({msg:"Archived to "+year+" — the live slot is empty for next year",err:false});
                       });
-                    }).catch(err=>{setBusy(false);showToast("Close-out failed: "+((err&&err.message)||err),"err");});
+                    }).catch(err=>{setCloseBusy(false);setCloseMsg({msg:"Close-out failed: "+((err&&err.message)||err),err:true});});
                   };
                   return (
                     <div style={{marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
@@ -3551,7 +3590,7 @@ function TournamentTab(){
                           <div style={{fontSize:11.5,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:8}}>Saves everything — config, field, pay-ins, teams, scores and results — to <b style={{color:"#e2e8f0"}}>{year}</b>, downloads a JSON copy, then empties the live slot so next year starts fresh. The Tourney tab keeps showing {year} as Results. Nothing is deleted.</div>
                           <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                             <input className="inp" style={{width:150,fontFamily:"monospace",letterSpacing:"0.1em"}} placeholder="type CLOSE" value={closeText} onChange={e=>setCloseText(e.target.value)}/>
-                            <button className="btn btn-r btn-sm" disabled={busy||closeText.trim().toUpperCase()!=="CLOSE"} onClick={doClose}>{busy?"Archiving…":"🏁 Close out "+year}</button>
+                            <button className="btn btn-r btn-sm" disabled={closeBusy||closeText.trim().toUpperCase()!=="CLOSE"} onClick={doClose}>{closeBusy?"Archiving…":"🏁 Close out "+year}</button>
                           </div>
                         </div>
                       )}

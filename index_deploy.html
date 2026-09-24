@@ -484,7 +484,32 @@ const lastName=n=>(n||'').split(' ').pop();
 const teamLabel=t=>(safeArray(t.players)).map(p=>lastName(p.name)).join(', ');
 const ini=n=>(n||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 const f$=n=>{const v=parseFloat(n||0);return '$'+(Number.isInteger(v)?v:v.toFixed(2));};
-const normName=n=>{if(!n)return'';return n.trim().replace(/\s+/g,' ').split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');};
+// ── Names ────────────────────────────────────────────────────────────────
+// normName is the one place a player's name is tidied, for display AND for
+// matching (every comparison normalises both sides). It used to title-case
+// blindly, so "John McCarthy" showed as "John Mccarthy" and "DJ Park" as
+// "Dj Park". Now: if the name is on the built-in roster, use the roster's
+// spelling; otherwise title-case, keeping Mc and O' names intact. Only the static ROSTER is consulted, so the output never
+// changes mid-session and keys built from it stay stable.
+let NAME_CANON=null;
+function nameCanon(){
+  if(NAME_CANON)return NAME_CANON;
+  NAME_CANON={};
+  try{ (typeof ROSTER!=='undefined'?ROSTER:[]).forEach(p=>{ if(p&&p.name){ const t=String(p.name).trim().replace(/\s+/g,' '); NAME_CANON[t.toLowerCase()]=t; } }); }catch(e){}
+  return NAME_CANON;
+}
+// Works from the lower-cased name only, so two spellings that differ just in
+// capitalisation always come out identical and count as the same person.
+function titleName(t){
+  return t.toLowerCase().split(' ').map(w=>{
+    let x=w.charAt(0).toUpperCase()+w.slice(1);
+    x=x.replace(/^Mc([a-z])/,(m,c)=>'Mc'+c.toUpperCase())
+       .replace(/^O'([a-z])/,(m,c)=>"O'"+c.toUpperCase())
+       .replace(/-([a-z])/g,(m,c)=>'-'+c.toUpperCase());
+    return x;
+  }).join(' ');
+}
+const normName=n=>{ if(!n)return''; const t=String(n).trim().replace(/\s+/g,' '); return nameCanon()[t.toLowerCase()]||titleName(t); };
 const td=()=>new Date().toISOString().split('T')[0];
 const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy);};
 const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy)+', '+y;};
@@ -3278,7 +3303,29 @@ function IndividualScoringV2({ currentUser, week, isAdmin, write, update, cfg, d
   );
 }
 
-function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings, targetsByName }){
+// Hooks must run in the same order on every render. The "nothing set up yet"
+// message used to be an early return part-way through the real screen, with
+// hooks after it, so the number of hooks changed when days appeared or went
+// away and the screen could go blank. The check lives out here now, where there
+// are no hooks, and the real screen only ever renders when there are days.
+function ScoringViewV2(props){
+  const effectiveWeek = props.week;
+  const activeDays = sortDays(safeArray(effectiveWeek?.activeDays));
+  if (!effectiveWeek || activeDays.length === 0) {
+    return(
+      <main className="content">
+
+        <div className="stub-card">
+          <div className="stub-icon"><svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg></div>
+          <div className="stub-title">No active games</div>
+          <div className="stub-msg">Scores will appear once teams are published for the week.</div>
+        </div>
+      </main>
+    );
+  }
+  return <ScoringViewV2Inner {...props}/>;
+}
+function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings, targetsByName }){
   const [activeDay, setActiveDay] = useState(null);
   const [savedNote, setSavedNote] = useState('');   // confirmation shown after Finalize
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
@@ -3330,18 +3377,6 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
     setJustSaved(false);
   },[activeDay, forceRefresh, effectiveWeek?.scores?.[activeDay]?.savedAt]);
 
-  if(!effectiveWeek || activeDays.length === 0){
-    return(
-      <main className="content">
-
-        <div className="stub-card">
-          <div className="stub-icon"><svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 21 12 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 4H4a2 2 0 00-2 2v1c0 4 3 7 7 7h2c4 0 7-3 7-7V6a2 2 0 00-2-2h-3"/><rect x="7" y="2" width="10" height="5" rx="1"/></svg></div>
-          <div className="stub-title">No active games</div>
-          <div className="stub-msg">Scores will appear once teams are published for the week.</div>
-        </div>
-      </main>
-    );
-  }
 
   const dayTeams = safeArray(effectiveWeek?.teams?.[activeDay]);
   const daySignups = Object.values(effectiveWeek?.signups||{}).filter(s=>s.day===activeDay);
@@ -3473,6 +3508,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   // NOT publishing — this only touches week/scores, never history. Press save
   // fifty times, close the browser, hand the phone over: nothing can be lost
   // and nothing can overwrite a published round.
+  const scoringStarted = !!(effectiveWeek&&effectiveWeek.scoringStarted&&effectiveWeek.scoringStarted[activeDay]);
   const autoRef = useRef({t:null,sig:''});
   useEffect(()=>{
     if(!scoringStarted||payoutsCalculated||!activeDay)return;
@@ -3493,7 +3529,7 @@ function ScoringViewV2({ currentUser, week, isAdmin, write, update, onSwitchTab,
   // week/scoringStarted/<day> is the gate. Until it is set the score inputs
   // are inert and Teams stays editable; once set, teams are frozen and the
   // only way back is the explicit Change Teams button below.
-  const scoringStarted = !!(effectiveWeek&&effectiveWeek.scoringStarted&&effectiveWeek.scoringStarted[activeDay]);
+  // (scoringStarted is declared further up, before the autosave that uses it)
   const canAdmin = isAdmin;                       // master/admin only
   const canScore = isAdmin || (currentUser&&currentUser.role==='scoring');
 
@@ -4203,7 +4239,28 @@ function MovePlayerSheet({ playerName, teams, fromTeamIdx, onMove, onClose }){
 }
 
 // ═══════════════ TEAMS VIEW V2 ═══════════════
-function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
+// Hooks must run in the same order on every render. The "nothing set up yet"
+// message used to be an early return part-way through the real screen, with
+// hooks after it, so the number of hooks changed when days appeared or went
+// away and the screen could go blank. The check lives out here now, where there
+// are no hooks, and the real screen only ever renders when there are days.
+function TeamsViewV2(props){
+  const effectiveWeek = props.week;
+  const activeDays = sortDays(safeArray(effectiveWeek?.activeDays));
+  if (!effectiveWeek || activeDays.length === 0) {
+    return (
+      <main className="content">
+        <div className="stub-card">
+          <div className="stub-icon"><svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <div className="stub-title">No active days</div>
+          <div className="stub-msg">Teams will appear once the admin sets up the week.</div>
+        </div>
+      </main>
+    );
+  }
+  return <TeamsViewV2Inner {...props}/>;
+}
+function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
   // Demo mode is ALWAYS opt-in via button — never touches live data
   const effectiveWeek = week;
   const effectivePairings = livePairings || {};
@@ -4215,7 +4272,12 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
   const [teamSize, setTeamSize] = useState('4');
   const [autoSize, setAutoSize] = useState('4');
   const [showAutoOpts, setShowAutoOpts] = useState(false);
-  const [approvals, setApprovals] = useState({});
+  // Approve/deny decisions for first/last tee requests, guest pairings and match
+  // pairings. These used to live only in this screen's memory, so a refresh or a
+  // second admin's phone lost them. They are now saved under the week, per day,
+  // at week/teeApprovals/<day>/<key>, and cleared with the week at End Week.
+  // `localApprovals` shows a tap instantly while the save is in flight.
+  const [localApprovals, setLocalApprovals] = useState({});
   const [drag, setDrag] = useState(null);
   const [editKey, setEditKey] = useState(null);
   const [editVal, setEditVal] = useState({hcp:'',tee:'Whites'});
@@ -4239,6 +4301,13 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
 
   // ── Individual-mode presentation: same machinery, "Groups" semantics ──
   const dayCfg = resolveDayMode(effectiveWeek, settings, activeDay);
+  const savedApprovals = (activeDay && effectiveWeek && effectiveWeek.teeApprovals && effectiveWeek.teeApprovals[activeDay]) || {};
+  const approvals = { ...savedApprovals, ...(localApprovals[activeDay] || {}) };
+  const setApproval = (key, val) => {
+    if (!activeDay) return;
+    setLocalApprovals(m => ({ ...m, [activeDay]: { ...(m[activeDay] || {}), [key]: val } }));
+    try { if (write) write('week/teeApprovals/' + activeDay + '/' + key, val); } catch (e) {}
+  };
   const indMode = !!(dayCfg && dayCfg.type==='individual');
   const UNIT = indMode ? 'Group' : 'Team';
   const UNITS = indMode ? 'Groups' : 'Teams';
@@ -4253,17 +4322,6 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
 
   function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null), 2500); }
 
-  if (!effectiveWeek || activeDays.length === 0) {
-    return (
-      <main className="content">
-        <div className="stub-card">
-          <div className="stub-icon"><svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
-          <div className="stub-title">No active days</div>
-          <div className="stub-msg">Teams will appear once the admin sets up the week.</div>
-        </div>
-      </main>
-    );
-  }
 
   const daySignups = Object.entries(effectiveWeek.signups||{}).filter(([,s])=>s.day===activeDay).map(([,s])=>s);
   const savedTeams = safeArray(effectiveWeek?.teams?.[activeDay]);
@@ -4625,8 +4683,8 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                         : <div style={{fontSize:11,color:'var(--ink-35)',marginTop:3}}>No reason given — requested before reasons were required.</div>}
                     </div>
                     <div style={{display:'flex',gap:4}}>
-                      <button onClick={()=>setApprovals(a=>({...a,[key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===true?'var(--brand)':'var(--hairline)',background:approvals[key]===true?'var(--brand-soft)':'var(--surface)',color:approvals[key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals[key]===true?'✓ Approved':'Approve'}</button>
-                      <button onClick={()=>setApprovals(a=>({...a,[key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===false?'var(--money-neg)':'var(--hairline)',background:approvals[key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals[key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals[key]===false?'Denied':'Deny'}</button>
+                      <button onClick={()=>setApproval(key,true)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===true?'var(--brand)':'var(--hairline)',background:approvals[key]===true?'var(--brand-soft)':'var(--surface)',color:approvals[key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals[key]===true?'✓ Approved':'Approve'}</button>
+                      <button onClick={()=>setApproval(key,false)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals[key]===false?'var(--money-neg)':'var(--hairline)',background:approvals[key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals[key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals[key]===false?'Denied':'Deny'}</button>
                     </div>
                   </div>
                 ))}
@@ -4649,8 +4707,8 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                       <span style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>{s.guestOf}</span>
                     </div>
                     <div style={{display:'flex',gap:4}}>
-                      <button onClick={()=>setApprovals(a=>({...a,['gp_'+key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===true?'var(--brand)':'var(--hairline)',background:approvals['gp_'+key]===true?'var(--brand-soft)':'var(--surface)',color:approvals['gp_'+key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['gp_'+key]===true?'✓ Approved':'Approve'}</button>
-                      <button onClick={()=>setApprovals(a=>({...a,['gp_'+key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===false?'var(--money-neg)':'var(--hairline)',background:approvals['gp_'+key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals['gp_'+key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['gp_'+key]===false?'Denied':'Deny'}</button>
+                      <button onClick={()=>setApproval('gp_'+key,true)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===true?'var(--brand)':'var(--hairline)',background:approvals['gp_'+key]===true?'var(--brand-soft)':'var(--surface)',color:approvals['gp_'+key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['gp_'+key]===true?'✓ Approved':'Approve'}</button>
+                      <button onClick={()=>setApproval('gp_'+key,false)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['gp_'+key]===false?'var(--money-neg)':'var(--hairline)',background:approvals['gp_'+key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals['gp_'+key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['gp_'+key]===false?'Denied':'Deny'}</button>
                     </div>
                   </div>
                 ))}
@@ -4673,8 +4731,8 @@ function TeamsViewV2({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week
                       <span style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>{m.partner}</span>
                     </div>
                     <div style={{display:'flex',gap:4}}>
-                      <button onClick={()=>setApprovals(a=>({...a,['match_'+key]:true}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['match_'+key]===true?'var(--brand)':'var(--hairline)',background:approvals['match_'+key]===true?'var(--brand-soft)':'var(--surface)',color:approvals['match_'+key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['match_'+key]===true?'✓ Approved':'Approve'}</button>
-                      <button onClick={()=>setApprovals(a=>({...a,['match_'+key]:false}))} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['match_'+key]===false?'var(--money-neg)':'var(--hairline)',background:approvals['match_'+key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals['match_'+key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['match_'+key]===false?'Denied':'Deny'}</button>
+                      <button onClick={()=>setApproval('match_'+key,true)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['match_'+key]===true?'var(--brand)':'var(--hairline)',background:approvals['match_'+key]===true?'var(--brand-soft)':'var(--surface)',color:approvals['match_'+key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['match_'+key]===true?'✓ Approved':'Approve'}</button>
+                      <button onClick={()=>setApproval('match_'+key,false)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['match_'+key]===false?'var(--money-neg)':'var(--hairline)',background:approvals['match_'+key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals['match_'+key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['match_'+key]===false?'Denied':'Deny'}</button>
                     </div>
                   </div>
                 ))}
@@ -9353,11 +9411,9 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
     return out;
   },[signupLog,activeLog]);
   const leadStats=useMemo(()=>{
-    // fold capitalisation variants together, shown under the commonest spelling
-    const spell={};leadSamples.forEach(x=>{const k=x.name.toLowerCase();(spell[k]=spell[k]||{})[x.name]=((spell[k]||{})[x.name]||0)+1;});
-    const show=k=>Object.entries(spell[k]).sort((a,b)=>b[1]-a[1])[0][0];
+    // fold spelling variants together under the app's standard spelling
     const by={};
-    leadSamples.forEach(x=>{ const n=show(x.name.toLowerCase()); (by[n]=by[n]||[]).push(x.hrs); });
+    leadSamples.forEach(x=>{ const n=normName(x.name); (by[n]=by[n]||[]).push(x.hrs); });
     return Object.entries(by)
       .filter(([,v])=>v.length>=3)
       .map(([name,v])=>({name,n:v.length,avg:v.reduce((a,b)=>a+b,0)/v.length}))
@@ -9385,7 +9441,8 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const totalFund=potTotals.fund+startingBalance;
   const potRounds=teamHist.map(r=>({total:(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0),date:r.date?.slice(5)||'',day:r.day||'',players:r.playerCount||0})).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
   const biggestPot=potRounds[0]||null;const smallestPot=potRounds.length>1?potRounds[potRounds.length-1]:null;
-  const potChartData=teamHist.slice(-10).map(r=>({date:r.date?.slice(5)||'',skins:r.scores?.skinsPot||0,front:r.scores?.frontPot||0,back:r.scores?.backPot||0,overall:r.scores?.overallPot||0,players:r.playerCount||0,fp:r.scores?.frontPlaces||1,bp:r.scores?.backPlaces||1,op:r.scores?.overallPlaces||1,f1:r.scores?.f1||0,f2:r.scores?.f2||0,b1:r.scores?.b1||0,b2:r.scores?.b2||0,o1:r.scores?.o1||0,o2:r.scores?.o2||0}));
+  // Every team round, newest first. (Was the last 10 only, oldest first.)
+  const potChartData=[...teamHist].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).map(r=>({date:r.date?.slice(5)||'',skins:r.scores?.skinsPot||0,front:r.scores?.frontPot||0,back:r.scores?.backPot||0,overall:r.scores?.overallPot||0,players:r.playerCount||0,fp:r.scores?.frontPlaces||1,bp:r.scores?.backPlaces||1,op:r.scores?.overallPlaces||1,f1:r.scores?.f1||0,f2:r.scores?.f2||0,b1:r.scores?.b1||0,b2:r.scores?.b2||0,o1:r.scores?.o1||0,o2:r.scores?.o2||0}));
   const maxPotBar=Math.max(...potChartData.map(p=>p.skins+p.front+p.back+p.overall))||1;
 
   const playerRounds={};const playerHcps={};const playerTees={};const teamPairs={};const playerTeePrefs={};const playerGuestCount={};
@@ -9412,11 +9469,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   // History has the same person under different capitalisation ("DJ Park" /
   // "Dj Park", "Frank McGuire" / "Frank Mcguire"). Fold those together and show
   // whichever spelling appears most, so nobody's pairings are split in two.
-  const canonName=useMemo(()=>{
-    const best={};
-    Object.entries(playerRounds).forEach(([n,c])=>{ const k=String(n).trim().toLowerCase(); if(!best[k]||c>best[k].c)best[k]={n:String(n).trim(),c}; });
-    return n=>{ const k=String(n||'').trim().toLowerCase(); return best[k]?best[k].n:String(n||'').trim(); };
-  },[activeHist]);// eslint-disable-line
+  const canonName=normName;   // same spelling rules as the rest of the app
   const pairsByPlayer=useMemo(()=>{
     const m={};
     Object.entries(teamPairs).forEach(([key,cnt])=>{
@@ -9781,7 +9834,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
             {smallestPot&&statCard('$'+smallestPot.total,'Smallest Pot','var(--ink-50)')}
           </div>
           {divider}
-          {divider}
+          <div style={{fontSize:11,color:'var(--ink-40)',marginBottom:6}}>All {potChartData.length} team round{potChartData.length!==1?'s':''}, newest first</div>
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
               <thead><tr style={{borderBottom:'2px solid var(--hairline)'}}>{['Date','Plyrs','Skins','Front','Back','Overall','Total'].map(h=>(<th key={h} style={{textAlign:'right',padding:'4px 6px',color:'var(--ink-40)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
