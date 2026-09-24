@@ -2486,21 +2486,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         );
       })()}
       <div className="page-eyebrow">This week</div>
-      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',paddingRight:16}}>
-      <div className="page-title" style={{flexShrink:0}}>Sign-ups</div>
-      {(()=>{
-        const s=settings&&settings.season;
-        if(!s||!s.endDate)return null;
-        const d=Math.ceil((new Date(s.endDate+'T23:59:59')-new Date())/86400000);
-        if(d>42)return null;
-        const label=d>1?('Season'+(s.name?(' '+s.name):'')+' ends in '+d+' days'):d===1?'Season ends tomorrow':d===0?'Season ends today':'Season'+(s.name?(' '+s.name):'')+' has ended — awaiting archive';
-        return(
-          <div style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11.5,fontWeight:700,padding:'4px 11px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)',marginTop:2}}>
-            ⛳ {label}
-          </div>
-        );
-      })()}
-      </div>
+      <div className="page-title">Sign-ups</div>
       {(()=>{
         const active=safeArray(week?.activeDays);
         // Tombstones belong to the CONFIGURED week, not the calendar week — End Week must clear them.
@@ -2617,6 +2603,22 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           </div>
         );
       })}
+
+      {/* Season countdown — useful (tournament eligibility closes with the
+          season) but not about this week's sign-ups, so it sits quietly under
+          the last day rather than in the page title. */}
+      {(()=>{
+        const s=settings&&settings.season;
+        if(!s||!s.endDate)return null;
+        const d=Math.ceil((new Date(s.endDate+'T23:59:59')-new Date())/86400000);
+        if(d>42)return null;
+        const label=d>1?('Season'+(s.name?(' '+s.name):'')+' ends in '+d+' days'):d===1?'Season ends tomorrow':d===0?'Season ends today':'Season'+(s.name?(' '+s.name):'')+' has ended — awaiting archive';
+        return(
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,margin:'2px 16px 18px',fontSize:12,color:'var(--ink-50)',textAlign:'center'}}>
+            <span>⛳</span><span>{label}{d>=0?(' · '+new Date(s.endDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})):''}</span>
+          </div>
+        );
+      })()}
 
       {/* Upcoming events */}
       {week?.emailEvents && week.emailEvents.trim() && (
