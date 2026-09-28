@@ -3403,7 +3403,8 @@ function TournamentTab(){
   const [emailCopied,setEmailCopied]=React.useState(false);
   const [goLiveOpen,setGoLiveOpen]=React.useState(false);
   const [pushToo,setPushToo]=React.useState(true);
-  const [whatIf,setWhatIf]=React.useState(null);   // what-if pot for the simulation only — never saved
+  const [whatIf,setWhatIf]=React.useState(null);
+  const [showWho,setShowWho]=React.useState(false);   // what-if pot for the simulation only — never saved
 
   // ── payout config w/ defaults ──
   const payMode=cfg.payMode||(twoDay?"perday":"combined");   // perday | combined
@@ -3453,6 +3454,35 @@ function TournamentTab(){
   const simSkins=skinsOn?Math.max(simLeft,0):0;
   const simOver=simLeft<0?-simLeft:0;
   const avgEntry=inPlayers.length?Math.round(payinsDue/inPlayers.length):0;
+  // ── Pot by field size: grow the field from the REAL players who haven't
+  // answered yet, using what each of them would owe (bar − rounds played).
+  const entryOf=p=>Math.max(bar-cnt(p),0);
+  const declinedOf=p=>{const r=tp[p.id];return !!(r&&r.in===false&&r.by);};
+  const maybePool=all.filter(p=>!(tp[p.id]&&tp[p.id].in)&&!declinedOf(p)&&(cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true)));
+  const declinedList=all.filter(p=>declinedOf(p));
+  const owedArr=maybePool.map(entryOf).sort((a,b)=>a-b);
+  const owedSum=owedArr.reduce((a,b)=>a+b,0);
+  const poolAvg=owedArr.length?owedSum/owedArr.length:0;
+  const baseIn=fundTotal+payinsDue+extraPrize;
+  function payAt(pot){
+    const pp=Math.max(pot-ctpTotal,0);
+    const ps=payMode==="perday"?Array.from({length:numDays},()=>Math.floor(pp/numDays)):[pp];
+    const team=ps.reduce((s,pool)=>s+simPool(pool).reduce((s2,c)=>s2+c.places.reduce((s3,pl)=>s3+pl.team$,0),0),0);
+    const cats=simPool(ps[0]);
+    const per=i=>{const v=[...new Set(cats.map(c=>c.places[i]?c.places[i].per$:null).filter(x=>x!=null))];return v.length?v.map(x=>"$"+x).join(" / "):"—";};
+    return {first:per(0),second:placeVals.length>1?per(1):null,third:placeVals.length>2?per(2):null,skinsPer:Math.floor(Math.max(pot-ctpTotal-team,0)/ps.length)};
+  }
+  const fieldRows=(()=>{
+    const c=inPlayers.length,mx=c+owedArr.length;const set=new Set([c,mx]);
+    const step=teamSize*((owedArr.length/teamSize)>12?2:1);
+    let n=Math.ceil((c+1)/teamSize)*teamSize;while(n<mx){set.add(n);n+=step;}
+    return [...set].sort((a,b)=>a-b).map(n=>{const k=n-c;
+      const likely=Math.round(baseIn+k*poolAvg);
+      const low=baseIn+owedArr.slice(0,k).reduce((a,b)=>a+b,0);
+      const high=baseIn+owedArr.slice(owedArr.length-k).reduce((a,b)=>a+b,0);
+      return {n,k,likely,low,high,pay:payAt(likely)};});
+  })();
+  const bucket=(lo,hi)=>owedArr.filter(v=>v>=lo&&v<=hi).length;
   function buildEmail(){
     const L=[];
     L.push((cfg.name||"Clark Group Tournament").toUpperCase());
@@ -3755,6 +3785,75 @@ function TournamentTab(){
       </div>
 
       <div className="card">
+        <div className="card-hdr"><span className="card-title">📈 Pot by Field Size — from who’s still to answer</span></div>
+        <div className="card-body">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:12}}>
+            {[["Fund already banked","$"+fundTotal,"comes in whoever plays"],["In now · "+inPlayers.length+" players","$"+payinsDue,"their entries"],["Not answered · "+maybePool.length+" eligible","$"+owedSum,"if every one of them joins · avg $"+Math.round(poolAvg)],["Out","" + declinedList.length,"said no"]].map(([l,v,sub])=>(
+              <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>
+                <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)"}}>{sub}</div>
+              </div>
+            ))}
+          </div>
+          {owedArr.length>0&&(
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:12,fontSize:11.5,color:"rgba(255,255,255,0.5)"}}>
+              <span style={{fontWeight:800,textTransform:"uppercase",letterSpacing:"0.05em",fontSize:10.5}}>Not answered would pay:</span>
+              {[["$0",0,0],["$1–15",1,15],["$16–30",16,30],["$31–"+bar,31,bar]].map(([l,lo,hi])=>(
+                <span key={l} style={{padding:"3px 9px",borderRadius:20,border:"1px solid rgba(255,255,255,0.12)",color:"#e2e8f0",fontWeight:700}}>{bucket(lo,hi)} × {l}</span>
+              ))}
+            </div>
+          )}
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5,color:"#e2e8f0",fontVariantNumeric:"tabular-nums"}}>
+              <thead><tr style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",textAlign:"right"}}>
+                <th style={{textAlign:"left",padding:"6px 8px"}}>Field</th>
+                <th style={{padding:"6px 8px"}}>Likely pot</th>
+                <th style={{padding:"6px 8px"}}>Range</th>
+                <th style={{padding:"6px 8px"}}>1st / player</th>
+                {placeVals.length>1&&<th style={{padding:"6px 8px"}}>2nd / player</th>}
+                {placeVals.length>2&&<th style={{padding:"6px 8px"}}>3rd / player</th>}
+                <th style={{padding:"6px 8px"}}>Skins{payMode==="perday"&&numDays>1?" / day":""}</th>
+              </tr></thead>
+              <tbody>
+                {fieldRows.map(r=>{const cur=r.k===0;const on=whatIf===r.likely&&!cur;return(
+                  <tr key={r.n} onClick={()=>{setWhatIf(cur?null:r.likely);const el=document.getElementById("sim-payouts");el&&el.scrollIntoView({behavior:"smooth",block:"start"});}}
+                    style={{cursor:"pointer",borderTop:"1px solid rgba(255,255,255,0.06)",background:cur?"rgba(16,185,129,0.08)":on?"rgba(245,158,11,0.08)":"transparent",textAlign:"right"}}>
+                    <td style={{textAlign:"left",padding:"8px"}}><b>{r.n} players</b> <span style={{color:"rgba(255,255,255,0.4)",fontSize:11}}>· {teamSize>0?Math.floor(r.n/teamSize):0} teams{cur?" · in now":" · +"+r.k}</span></td>
+                    <td style={{padding:"8px",fontWeight:800}}>${r.likely}</td>
+                    <td style={{padding:"8px",color:"rgba(255,255,255,0.45)",fontSize:11.5}}>{r.low===r.high?"—":"$"+r.low+"–"+r.high}</td>
+                    <td style={{padding:"8px",fontWeight:800,color:"#4ade80"}}>{r.pay.first}</td>
+                    {placeVals.length>1&&<td style={{padding:"8px"}}>{r.pay.second}</td>}
+                    {placeVals.length>2&&<td style={{padding:"8px"}}>{r.pay.third}</td>}
+                    <td style={{padding:"8px",color:"#60a5fa"}}>${r.pay.skinsPer}</td>
+                  </tr>);})}
+              </tbody>
+            </table>
+          </div>
+          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",marginTop:8,lineHeight:1.5}}>
+            Each row adds players from the {maybePool.length} eligible who haven’t answered. <b style={{color:"rgba(255,255,255,0.55)"}}>Likely</b> uses their average entry (${Math.round(poolAvg)}); the <b style={{color:"rgba(255,255,255,0.55)"}}>range</b> runs from the cheapest joining first to the priciest. Payouts are per player on a team of {teamSize}, per category{payMode==="perday"&&numDays>1?", each day":""}, with today’s splits and places. Tap a row to see its full breakdown below.
+          </div>
+          <button className="btn btn-gh btn-sm" style={{marginTop:10}} onClick={()=>setShowWho(v=>!v)}>{showWho?"Hide":"Show"} who pays what</button>
+          {showWho&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:12,marginTop:10}}>
+              {[["In now",inPlayers,payinsDue,"#4ade80"],["Haven’t answered (eligible)",maybePool,owedSum,"#fbbf24"],["Out",declinedList,null,"#f87171"]].map(([title,list,tot,col])=>(
+                <div key={title} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
+                  <div style={{fontSize:12,fontWeight:800,color:col,marginBottom:6}}>{title} · {list.length}{tot!=null?" · $"+tot:""}</div>
+                  {list.length===0?<div style={{fontSize:11.5,color:"rgba(255,255,255,0.35)"}}>None</div>:
+                    list.slice().sort((a,b)=>entryOf(b)-entryOf(a)||String(a.name).localeCompare(String(b.name))).map(p=>(
+                      <div key={p.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderTop:"1px solid rgba(255,255,255,0.04)"}}>
+                        <span style={{color:"#e2e8f0"}}>{p.name} <span style={{color:"rgba(255,255,255,0.35)",fontSize:10.5}}>{cnt(p)} rds</span></span>
+                        <span style={{fontWeight:700,color:entryOf(p)>0?"#e2e8f0":"rgba(255,255,255,0.4)"}}>${entryOf(p)}</span>
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card" id="sim-payouts">
         <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — {whatIf!=null?"what-if pot":"live from today’s field"}</span></div>
         <div className="card-body">
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:12,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10}}>
@@ -3774,7 +3873,7 @@ function TournamentTab(){
             <div style={{marginBottom:12,fontSize:12,lineHeight:1.5,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"8px 12px"}}>
               <b>What-if only: nothing is saved.</b> Payouts below use a <b>${whatIf}</b> pot, same splits and places.{" "}
               {whatIf>available
-                ? <>That’s <b>${whatIf-available}</b> more than today’s projection (${available}){avgEntry>0?<>: about <b>{Math.ceil((whatIf-available)/avgEntry)} more players</b> at today’s average entry of ${avgEntry}, or ${whatIf-available} of added prize money</>:null}.</>
+                ? <>That’s <b>${whatIf-available}</b> more than today’s projection (${available}){(()=>{const a=owedArr.length?Math.round(poolAvg):avgEntry;return a>0?<>: about <b>{Math.ceil((whatIf-available)/a)} more players</b> at the average entry of ${a}{owedArr.length?" among those still to answer":""}, or ${whatIf-available} of added prize money</>:null;})()}.</>
                 : whatIf<available ? <>That’s ${available-whatIf} less than today’s projection (${available}).</> : null}
               {" "}The invite email and the real payouts still use ${available}.
             </div>
