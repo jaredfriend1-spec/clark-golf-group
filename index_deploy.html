@@ -3381,6 +3381,11 @@ function ScoringViewV2(props){
   return <ScoringViewV2Inner {...props}/>;
 }
 function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitchTab, onReopenDay, onArchiveDay, onCancelEdit, settings, targetsByName }){
+  // Who can SCORE: full admins, and the Scoring Admin role. Scoring means start
+  // scoring, enter scores and skins, set the payout places, preview payouts and
+  // Finalize & Publish. Changing teams, stopping scoring (unlocking teams), the
+  // pot override and marking other players paid stay full-admin only.
+  const isScorer = isAdmin || (currentUser&&currentUser.role==='scoring');
   const [activeDay, setActiveDay] = useState(null);
   const [savedNote, setSavedNote] = useState('');   // confirmation shown after Finalize
   const [ts, setTs] = useState({});        // teamScores: {teamId: {front, back, overall}}
@@ -3452,7 +3457,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
   const tsk = Object.values(sk).reduce((s,c)=>s+parseInt(c||0),0);
   const flooredPerSk = tsk > 0 ? Math.floor(snet/tsk) : 0;
 
-  function tap(id){ if(!isAdmin) return; setSk(p=>({...p,[id]:(parseInt(p[id]||0)+1)})); }
+  function tap(id){ if(!isScorer) return; setSk(p=>({...p,[id]:(parseInt(p[id]||0)+1)})); }
   function untap(id){ setSk(p=>({...p,[id]:Math.max(0,parseInt(p[id]||0)-1)})); }
 
   function autoPot(){
@@ -3521,7 +3526,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
     return{allRows,totalDist,roundingSurplus,totalFund};
   }
 
-  const showPayouts = payoutsCalculated || (isAdmin && (fv||bv||ov||sv));
+  const showPayouts = payoutsCalculated || (isScorer && (fv||bv||ov||sv));
 
   // Winnings summary per team
   function buildWinningSummary(allRows){
@@ -3532,7 +3537,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
     return Object.values(sums).filter(t=>t.total>0).sort((a,b)=>b.total-a.total);
   }
 
-  const canSeeScores = isAdmin || scoresSaved;
+  const canSeeScores = isScorer || scoresSaved;
 
   // ── MODE BRANCH: individual days render the Stableford engine ──
   // The SAVED round is authoritative: a round edited back from History carries
@@ -3577,7 +3582,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
   },[ts,sk,fv,bv,ov,sv,fp,bp,op,scoringStarted,payoutsCalculated,activeDay]);
 
   if(activeDay && dayModeCfg && (dayModeCfg.type==='individual'||savedIsInd)){
-    return <IndividualScoringV2 targetsByName={targetsByName||{}} currentUser={currentUser} week={effectiveWeek} isAdmin={isAdmin} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
+    return <IndividualScoringV2 targetsByName={targetsByName||{}} currentUser={currentUser} week={effectiveWeek} isAdmin={isScorer} write={write} update={update} cfg={dayModeCfg} day={activeDay} days={activeDays} onPickDay={setActiveDay} onSwitchTab={onSwitchTab} onArchiveDay={onArchiveDay} onCancelEdit={onCancelEdit} resolveCfg={(d)=>resolveDayMode(effectiveWeek,settings,d)}/>;
   }
 
   // ── DAY PHASE ───────────────────────────────────────────────────────────
@@ -3586,7 +3591,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
   // only way back is the explicit Change Teams button below.
   // (scoringStarted is declared further up, before the autosave that uses it)
   const canAdmin = isAdmin;                       // master/admin only
-  const canScore = isAdmin || (currentUser&&currentUser.role==='scoring');
+  const canScore = isScorer;
 
   function startScoring(){
     const d=(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])||'';
@@ -3728,7 +3733,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
               <span style={{fontSize:13,fontWeight:600,color:'var(--brand)'}}>Payouts calculated — results are final.</span>
             </div>
-            {!isAdmin && <button onClick={()=>setForceRefresh(n=>n+1)} style={{padding:'4px 10px',borderRadius:6,border:'1px solid var(--brand-border)',background:'var(--surface)',color:'var(--brand)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>Refresh</button>}
+            {!isScorer && <button onClick={()=>setForceRefresh(n=>n+1)} style={{padding:'4px 10px',borderRadius:6,border:'1px solid var(--brand-border)',background:'var(--surface)',color:'var(--brand)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>Refresh</button>}
           </div>
         )}
 
@@ -3802,8 +3807,8 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           </div>
         )}
 
-        {/* ── ADMIN: PAYOUT SPLITS ── */}
-        {isAdmin && (
+        {/* ── PAYOUT SPLITS (full admins and scoring admins) ── */}
+        {isScorer && (
           <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowSplits(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -3972,7 +3977,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                       <ScorePickerV2
                         key={seg}
                         value={ts[t.id]?ts[t.id][seg]:undefined}
-                        readOnly={!isAdmin}
+                        readOnly={!isScorer}
                         onChange={v=>setTs(p=>({...p,[t.id]:{...(p[t.id]||{}),[seg]:v}}))}
                       />
                     ))}
@@ -3995,11 +4000,11 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
               {dayTeams.map((t,ti)=>(
                 <div key={t.id||ti}
                   onClick={()=>tap(t.id)}
-                  style={{padding:'14px 8px',border:'1.5px solid',borderColor:(sk[t.id]||0)>0?'var(--brand)':'var(--hairline)',borderRadius:10,background:(sk[t.id]||0)>0?'var(--brand-soft)':'var(--surface)',cursor:isAdmin?'pointer':'default',textAlign:'center',userSelect:'none'}}>
+                  style={{padding:'14px 8px',border:'1.5px solid',borderColor:(sk[t.id]||0)>0?'var(--brand)':'var(--hairline)',borderRadius:10,background:(sk[t.id]||0)>0?'var(--brand-soft)':'var(--surface)',cursor:isScorer?'pointer':'default',textAlign:'center',userSelect:'none'}}>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.06em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.name||('Group '+(ti+1))}</div>
                   <div style={{fontSize:36,fontWeight:700,color:(sk[t.id]||0)>0?'var(--brand)':'var(--ink-20)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{sk[t.id]||0}</div>
                   <div style={{fontSize:11,color:'var(--ink-40)',marginTop:2}}>skin{(sk[t.id]||0)!==1?'s':''}</div>
-                  {isAdmin&&(sk[t.id]||0)>0&&(
+                  {isScorer&&(sk[t.id]||0)>0&&(
                     <div onClick={e=>{e.stopPropagation();untap(t.id);}} style={{fontSize:11,color:'var(--money-neg)',marginTop:4,cursor:'pointer',fontWeight:700}}>− undo</div>
                   )}
                 </div>
@@ -4022,7 +4027,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
               <div className="day-card" style={{marginBottom:12,padding:'12px 14px'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',marginBottom:10}}>
                   Payout breakdown
-                  {!payoutsCalculated&&isAdmin&&<span style={{fontSize:11,fontWeight:400,color:'var(--ink-40)',marginLeft:6}}>(preview)</span>}
+                  {!payoutsCalculated&&isScorer&&<span style={{fontSize:11,fontWeight:400,color:'var(--ink-40)',marginLeft:6}}>(preview)</span>}
                 </div>
                 {allRows.map(({l,rows})=>{
                   if(!rows.length)return null;
@@ -4126,12 +4131,12 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         })()}
 
         {/* ── FINALIZE (one-step: save + move to history) ── */}
-        {isAdmin && payoutsCalculated && (
+        {isScorer && payoutsCalculated && (
           <div style={{padding:'14px',borderRadius:10,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontSize:14,fontWeight:800,textAlign:'center',marginBottom:16}}>
             ✓ Round saved{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' — '+effectiveWeek.dates[activeDay]):''}
           </div>
         )}
-        {isAdmin && !payoutsCalculated && (
+        {isScorer && !payoutsCalculated && (
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
             {week?.editingKeys?.[activeDay] && (
               <div style={{padding:'9px 14px',background:'#fef7ed',border:'1px solid #f0d9b5',borderRadius:8,fontSize:12.5,fontWeight:600,color:'#8a5a00'}}>
