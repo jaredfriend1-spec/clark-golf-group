@@ -3403,6 +3403,7 @@ function TournamentTab(){
   const [emailCopied,setEmailCopied]=React.useState(false);
   const [goLiveOpen,setGoLiveOpen]=React.useState(false);
   const [pushToo,setPushToo]=React.useState(true);
+  const [whatIf,setWhatIf]=React.useState(null);   // what-if pot for the simulation only — never saved
 
   // ── payout config w/ defaults ──
   const payMode=cfg.payMode||(twoDay?"perday":"combined");   // perday | combined
@@ -3441,6 +3442,17 @@ function TournamentTab(){
   const leftover=available-ctpTotal-teamPayoutTotal;
   const skinsPot=skinsOn?Math.max(leftover,0):0;
   const overAllocated=leftover<0?-leftover:0;
+  // ── What-if simulation: same rules, a pretend pot. Local only — the invite
+  // email, the config and the real payouts keep using `available`.
+  const potentialAll=fundTotal+all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true)).reduce((s,p)=>s+Math.max(bar-cnt(p),0),0);
+  const simAvail=whatIf!=null?whatIf:available;
+  const simPrize=Math.max(simAvail-ctpTotal,0);
+  const simPools=payMode==="perday"?Array.from({length:numDays},()=>Math.floor(simPrize/numDays)):[simPrize];
+  const simTeamTotal=simPools.reduce((s,pool)=>s+simPool(pool).reduce((s2,c)=>s2+c.places.reduce((s3,pl)=>s3+pl.team$,0),0),0);
+  const simLeft=simAvail-ctpTotal-simTeamTotal;
+  const simSkins=skinsOn?Math.max(simLeft,0):0;
+  const simOver=simLeft<0?-simLeft:0;
+  const avgEntry=inPlayers.length?Math.round(payinsDue/inPlayers.length):0;
   function buildEmail(){
     const L=[];
     L.push((cfg.name||"Clark Group Tournament").toUpperCase());
@@ -3743,10 +3755,32 @@ function TournamentTab(){
       </div>
 
       <div className="card">
-        <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — live from today’s field</span></div>
+        <div className="card-hdr"><span className="card-title">📊 Simulated Payouts — {whatIf!=null?"what-if pot":"live from today’s field"}</span></div>
         <div className="card-body">
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:12,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10}}>
+            <span style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.05em",marginRight:4}}>What if the pot were</span>
+            {[["Projected $"+available,null],["Everyone invited $"+(potentialAll+extraPrize),potentialAll+extraPrize],["$1,000",1000],["$1,250",1250],["$1,500",1500],["$2,000",2000]].map(([lbl,v])=>{
+              const on=v===null?whatIf===null:whatIf===v;
+              return(<button key={lbl} className="btn btn-sm" onClick={()=>setWhatIf(v)} style={{padding:"5px 10px",fontSize:12,fontWeight:700,border:"1px solid",borderColor:on?"#10b981":"rgba(255,255,255,0.12)",background:on?"rgba(16,185,129,0.15)":"transparent",color:on?"#4ade80":"rgba(255,255,255,0.65)"}}>{lbl}</button>);
+            })}
+            <span style={{display:"inline-flex",alignItems:"center",gap:4,marginLeft:4}}>
+              <span style={{fontSize:12,color:"rgba(255,255,255,0.45)"}}>$</span>
+              <input type="number" min="0" step="50" placeholder="any amount" value={whatIf!=null?whatIf:""}
+                onChange={e=>{const v=e.target.value;setWhatIf(v===""?null:Math.max(0,Math.floor(Number(v)||0)));}}
+                style={{width:96,height:30,padding:"0 8px",borderRadius:7,border:"1px solid rgba(255,255,255,0.15)",background:"rgba(0,0,0,0.25)",color:"#e2e8f0",fontSize:13,fontWeight:700}}/>
+            </span>
+          </div>
+          {whatIf!=null&&(
+            <div style={{marginBottom:12,fontSize:12,lineHeight:1.5,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"8px 12px"}}>
+              <b>What-if only: nothing is saved.</b> Payouts below use a <b>${whatIf}</b> pot, same splits and places.{" "}
+              {whatIf>available
+                ? <>That’s <b>${whatIf-available}</b> more than today’s projection (${available}){avgEntry>0?<>: about <b>{Math.ceil((whatIf-available)/avgEntry)} more players</b> at today’s average entry of ${avgEntry}, or ${whatIf-available} of added prize money</>:null}.</>
+                : whatIf<available ? <>That’s ${available-whatIf} less than today’s projection (${available}).</> : null}
+              {" "}The invite email and the real payouts still use ${available}.
+            </div>
+          )}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
-            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0))],["Projected — opted in","$"+(fundTotal+payinsDue)],["Potential — everyone invited","$"+(fundTotal+all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true)).reduce((s,p)=>s+Math.max(bar-cnt(p),0),0))],["Collected / due (opted in)","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)+" / $"+payinsDue],["Team payouts","$"+teamPayoutTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+Math.max(leftover,0)]].map(([l,v])=>(
+            {[["Players in",inPlayers.length],["Teams of "+teamSize,String(teams)],["Pot now","$"+(fundTotal+inPlayers.reduce((s,p)=>s+paidOf(p),0))],["Projected — opted in","$"+(fundTotal+payinsDue)],["Potential — everyone invited","$"+(fundTotal+all.filter(p=>cnt(p)>=minRounds||(tp[p.id]&&tp[p.id].invited===true)).reduce((s,p)=>s+Math.max(bar-cnt(p),0),0))],["Collected / due (opted in)","$"+inPlayers.reduce((s,p)=>s+paidOf(p),0)+" / $"+payinsDue],["Team payouts","$"+simTeamTotal],[skinsOn?"Skins pot (leftover)":"Unallocated leftover","$"+simSkins]].map(([l,v])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em",minHeight:24}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>
@@ -3754,7 +3788,7 @@ function TournamentTab(){
             ))}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
-            {pools.map((pool,i)=>(
+            {simPools.map((pool,i)=>(
               <div key={i} style={{background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:12,padding:"12px 14px"}}>
                 <div style={{fontSize:13,fontWeight:800,color:"#4ade80",marginBottom:8}}>{poolLabel(i)} — ${pool+(payMode==="perday"?ctpPerDayTotal:ctpTotal)} <span style={{fontWeight:600,color:"rgba(255,255,255,0.4)",fontSize:11}}>(${pool} payouts{(payMode==="perday"?ctpPerDayTotal:ctpTotal)>0?" + $"+(payMode==="perday"?ctpPerDayTotal:ctpTotal)+" CTP":""})</span></div>
                 {simPool(pool).map(c=>(
@@ -3771,19 +3805,20 @@ function TournamentTab(){
                     </div>
                   </div>
                 ))}
+                {skinsOn&&simSkins>0&&<div style={{fontSize:11.5,fontWeight:700,color:"#60a5fa",marginBottom:4}}>Skins ≈ ${Math.floor(simSkins/simPools.length)}{simPools.length>1?" this day":""} <span style={{fontWeight:600,color:"rgba(255,255,255,0.4)",fontSize:10.5}}>split by skins won</span></div>}
                 {ctpPerDayTotal>0&&<div style={{fontSize:10.5,color:"rgba(255,255,255,0.4)"}}>+ CTP ${ctpPerDayTotal} this day</div>}
               </div>
             ))}
           </div>
-          {overAllocated>0&&(
+          {simOver>0&&(
             <div style={{marginTop:10,fontSize:12,fontWeight:700,color:"#f87171",background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.25)",borderRadius:10,padding:"9px 13px"}}>
-              🚨 Over-allocated by ${overAllocated} — payouts + CTP exceed the money in. Lower percentages, trim CTP, or add extra prize money.
+              🚨 Over-allocated by ${simOver} — payouts + CTP exceed the money in. Lower percentages, trim CTP, or add extra prize money.
             </div>
           )}
           {ctpPerDayTotal>0&&(
             <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",marginTop:8}}>CTP: {CTP_HOLES.map((h,i)=>ctpAmts[i]>0?"Hole "+h+" $"+ctpAmts[i]:null).filter(Boolean).join(" · ")} per day{numDays>1?" × 2 days = $"+ctpTotal+" total":""}.</div>
           )}
-          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:6}}>All amounts round down; simulation assumes today’s {inPlayers.length}-player field all settled at the ${bar} bar. Toggle players in/out below and watch it recalc.</div>
+          <div style={{fontSize:10.5,color:"rgba(255,255,255,0.3)",marginTop:6}}>All amounts round down; {whatIf!=null?<>what-if uses a ${whatIf} pot with the same splits and places.</>:<>simulation assumes today’s {inPlayers.length}-player field all settled at the ${bar} bar.</>} Toggle players in/out below and watch it recalc.</div>
         </div>
       </div>
 
