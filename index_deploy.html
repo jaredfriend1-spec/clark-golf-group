@@ -7145,7 +7145,7 @@ function StandingsViewV2({ history, currentUser }){
             line. The small print moves into the tooltip — the table below has it. */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
           {[
-            {icon:'🏆',label:'Top Net Winner',name:topNet?.name,val:(topNet?.net>=0?'+':'')+f$(Math.abs(topNet?.net||0)),desc:'after '+f$(topNet?.paid||0)+' paid in',bg:'var(--brand-soft)',border:'var(--brand-border)',col:'var(--brand)'},
+            {icon:'🏆',label:'Top Net Winner',name:topNet?.name,val:((topNet?.net||0)>=0?'+':'−')+f$(Math.abs(topNet?.net||0)),desc:'after '+f$(topNet?.paid||0)+' paid in',bg:'var(--brand-soft)',border:'var(--brand-border)',col:'var(--brand)'},
             {icon:'💰',label:'Most $ Won',name:topGross?.name,val:f$(topGross?.won||0),desc:topGross?.rounds+' rounds',bg:'var(--info-soft)',border:'var(--info-border)',col:'var(--info)'},
             {icon:'😅',label:'Top Donor',name:topDonor?.name,val:'−'+f$(Math.abs(topDonor?.net||0)),desc:topDonor?.rounds+' rounds · '+f$(topDonor?.won||0)+' won',bg:'var(--money-neg-soft)',border:'#fecaca',col:'var(--money-neg)'},
             {icon:'📈',label:'Best Return',name:topReturn?.name,val:(topReturn?.returnPct||0)+'%',desc:f$(topReturn?.won||0)+' won on '+f$(topReturn?.paid||0),bg:'var(--warn-soft)',border:'var(--warn-border)',col:'var(--warn-ink)'},
