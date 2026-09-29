@@ -1135,8 +1135,15 @@ function daysUntil(iso){try{const t=new Date();const d=new Date(iso+'T12:00:00')
 // ═══════════════ STREAKS & MILESTONES ═══════════════
 // Per-round winnings per player. Mirrors the Standings math (playerBreakdowns)
 // so a streak can never disagree with the money table.
-function roundWinnings(r){
-  const out={};const add=(nm,amt)=>{const k=normName(nm);out[k]=(out[k]||0)+amt;};
+function roundWinnings(r,into){
+  // EXACT same arithmetic as the Standings leaderboard, per round: fractional
+  // per-player amounts, floored only where Standings floors. Rounding happens
+  // once, on the season total — never per round — so card nets can never
+  // drift from the Standings NET column.
+  // `into`: optional season accumulator. Adding each event straight into it,
+  // in the same event order as the Standings loop, keeps the season total
+  // BIT-identical to Standings — even at exact 50-cent rounding boundaries.
+  const out={};const add=(nm,amt)=>{const k=normName(nm);out[k]=(out[k]||0)+amt;if(into)into[k]=(into[k]||0)+amt;};
   try{
     if(r.scores.gameMode==='individual'){
       Object.keys(r.scores.indScores||{}).forEach(nm=>{const k=normName(nm);if(out[k]==null)out[k]=0;});
@@ -1146,52 +1153,70 @@ function roundWinnings(r){
     }
     const teams=safeArray(r.teams);
     teams.forEach(t=>safeArray(t.players).forEach(p=>{const k=normName(p.name);if(out[k]==null)out[k]=0;}));
+    [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,k1:'f1',k2:'f2'},
+     {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1,k1:'b1',k2:'b2'},
+     {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,k1:'o1',k2:'o2'}
+    ].forEach(({seg,pot:segPot,pl,k1,k2})=>{
+      const p=parseFloat(segPot||0); if(!p)return;
+      const sc=teams.map(t=>({...t,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+      if(!sc.length)return; sc.sort((a,b)=>a.score-b.score);
+      const best=sc[0].score;
+      const tied1st=sc.filter(t=>t.score===best);
+      const secondScore=(sc.find(t=>t.score!==best)||{}).score;
+      const tied2nd=secondScore!==undefined?sc.filter(t=>t.score===secondScore):[];
+      const c1=r.scores[k1]?parseFloat(r.scores[k1]):0;
+      const c2=r.scores[k2]?parseFloat(r.scores[k2]):0;
+      const first=c1>0?c1:(pl===1?p:p*0.6);
+      const sec=c2>0?c2:p*0.4;
+      if(tied1st.length>1){
+        const split=Math.floor(pl===1?p/tied1st.length:(first+sec)/tied1st.length);
+        tied1st.forEach(t=>safeArray(t.players).forEach(px=>add(px.name,split/safeArray(t.players).length)));
+      } else {
+        safeArray(tied1st[0].players).forEach(px=>add(px.name,Math.floor(first)/safeArray(tied1st[0].players).length));
+        if(pl===2&&tied2nd.length>0){
+          const split2=Math.floor(sec/tied2nd.length);
+          tied2nd.forEach(t=>safeArray(t.players).forEach(px=>add(px.name,split2/safeArray(t.players).length)));
+        }
+      }
+    });
     const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
     const tsk=Object.values(r.scores.skinCounts||{}).reduce((a,x)=>a+x,0);
-    const psk=tsk>0?Math.floor(snet/tsk):0;
-    teams.forEach(team=>{
-      const pc=safeArray(team.players).length; if(!pc)return; let won=0;
-      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,k1:'f1',k2:'f2'},
-       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1,k1:'b1',k2:'b2'},
-       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,k1:'o1',k2:'o2'}
-      ].forEach(({seg,pot:sp,pl,k1,k2})=>{
-        const p=parseFloat(sp||0); if(!p)return;
-        const sc=teams.map(t=>({id:t.id,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
-        if(!sc.length)return; sc.sort((a,b)=>a.score-b.score);
-        const best=sc[0].score; const tied=sc.filter(t=>t.score===best); const second=sc.find(t=>t.score!==best);
-        const c1=r.scores[k1]?parseFloat(r.scores[k1]):0; const c2=r.scores[k2]?parseFloat(r.scores[k2]):0;
-        const first=c1>0?c1:(pl===1?p:p*0.6); const sec=c2>0?c2:p*0.4;
-        if(tied.some(t=>String(t.id)===String(team.id))){
-          won+=Math.floor((tied.length>1?Math.floor(pl===1?p/tied.length:(first+sec)/tied.length):Math.floor(first))/pc);
-        } else if(pl===2&&second&&String(second.id)===String(team.id)){
-          won+=Math.floor(Math.floor(sec)/pc);
-        }
+    if(tsk>0){
+      const psk=Math.floor(snet/tsk);
+      Object.entries(r.scores.skinCounts||{}).forEach(([tid,cnt])=>{
+        if(!cnt)return;
+        const team=teams.find(t=>String(t.id)===String(tid)); if(!team)return;
+        safeArray(team.players).forEach(px=>add(px.name,(psk*cnt)/safeArray(team.players).length));
       });
-      const skc=(r.scores.skinCounts&&r.scores.skinCounts[team.id])||0;
-      if(skc>0&&psk>0)won+=Math.floor(psk*skc/pc);
-      if(won>0)safeArray(team.players).forEach(p=>add(p.name,won));
-    });
+    }
   }catch(e){}
   return out;
 }
 // history -> per-player streaks. Streaks count PLAYED rounds; weeks running
 // counts calendar weeks in which the group played at all.
 function computeStreaks(history,attRounds){
-  const rounds=Object.values(history||{}).filter(r=>r&&r.date&&r.scores&&(r.teams||r.scores.gameMode==='individual'))
-    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  // NOTE: rounds stay in Object.values order (NOT date-sorted) while money is
+  // summed — Standings sums in that order, and floating-point addition isn't
+  // associative, so matching its order is what keeps every net identical to
+  // the penny. Each player's timeline is date-sorted afterwards for streaks.
+  const rounds=Object.values(history||{}).filter(r=>r&&r.date&&r.scores&&(r.teams||r.scores.gameMode==='individual'));
   const wk=d=>{try{const dt=new Date(d+'T12:00:00');const day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);return dt.toISOString().slice(0,10);}catch(e){return d;}};
-  const by={}; const allWeeks=[];
+  const by={}; let allWeeks=[];
+  const seasonWon={};
   rounds.forEach(r=>{
-    const w=roundWinnings(r); const wkKey=wk(r.date);
+    const w=roundWinnings(r,seasonWon); const wkKey=wk(r.date);
     const buyIn=r.scores.gameMode==='individual'?(parseFloat(r.scores.buyIn)||25):25;
     if(!allWeeks.includes(wkKey))allWeeks.push(wkKey);
+
     Object.entries(w).forEach(([k,won])=>{
       if(!by[k])by[k]={name:k,rounds:0,won:0,paid:0,seq:[],weeks:[],best:null};
-      const p=by[k]; p.rounds++; p.won+=won; p.paid+=buyIn; p.seq.push({date:r.date,won});
+      const p=by[k]; p.rounds++; p.paid+=buyIn; p.seq.push({date:r.date,won});
       if(!p.weeks.includes(wkKey))p.weeks.push(wkKey);
-      if(won>0&&(!p.best||won>p.best.won))p.best={won,date:r.date};
+      if(won>0&&(!p.best||won>p.best.won))p.best={won:Math.round(won),date:r.date};
     });
   });
+  allWeeks=allWeeks.sort();
+  Object.values(by).forEach(p=>{p.seq.sort((a,b)=>String(a.date).localeCompare(String(b.date)));p.weeks.sort();});
   // Rounds-played counts and weeks come from ATTENDANCE when we have it: it
   // holds the whole season including pre-app rounds, so it matches the Attend
   // tab and tournament eligibility. Money stays from scored (history) rounds,
@@ -1215,7 +1240,8 @@ function computeStreaks(history,attRounds){
     const a=attBy[p.name];
     const wkList=useAtt?attWeeksAll:allWeeks; const myWeeks=useAtt?(a?a.weeks:[]):p.weeks;
     let wkS=0; for(let i=wkList.length-1;i>=0;i--){if(myWeeks.includes(wkList[i]))wkS++;else break;}
-    p.hot=hot; p.cold=cold; p.weekStreak=wkS; p.won=Math.round(p.won); p.net=Math.round(p.won-p.paid);
+    const wonRaw=seasonWon[p.name]||0;
+    p.hot=hot; p.cold=cold; p.weekStreak=wkS; p.net=Math.round(wonRaw-p.paid); p.won=Math.round(wonRaw);
     p.roundsAtt=useAtt?((a&&a.n)||p.rounds):p.rounds;
   });
   return {by,roundCount:rounds.length};
