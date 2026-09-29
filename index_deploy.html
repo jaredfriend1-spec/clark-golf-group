@@ -2445,6 +2445,15 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     }
     const rosterMatch=(fullRoster||[]).find(p=>norm(p.name)===norm(entry.name));
     if(rosterMatch&&rosterMatch.name!==entry.name)entry={...entry,name:rosterMatch.name};
+    // Remember the typed handicap on the roster (members only, ids in the base
+    // roster). Sign-ups are where most guys' handicaps live, and losing them at
+    // End Week is why one-tap waitlist joins came up 0.
+    try{
+      if(!entry.isGuest&&rosterMatch&&rosterMatch.id<=96){
+        const hv=parseFloat(entry.handicap);
+        if(!isNaN(hv)&&hv>0&&hv!==parseFloat(rosterMatch.handicap))write('rosterHcp/'+rosterMatch.id,hv);
+      }
+    }catch(e){}
     // Save or update main signup
     if(signupKey){
       await write('week/signups/' + signupKey, {...entry});
@@ -2591,7 +2600,16 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
                 <div style={{fontSize:12,color:'var(--ink-70)',marginTop:2,lineHeight:1.45}}>{v.reason}. Scores entered against it would be filed under the wrong day.</div>
               </div>
               {fresh&&<button className="btn btn-sm" style={{background:'#b91c1c',color:'#fff',border:'none',flexShrink:0}}
-                onClick={()=>{ if(window.confirm('Change '+day.day+' to '+fresh+'?'))write('week/dates/'+day.day,fresh); }}>
+                onClick={()=>{
+                  // Rolling the date = a NEW round. Old lock/cap/tee/scoring state
+                  // belongs to the old date and must not carry over (born-locked
+                  // waitlist bug, and old scores filing under the new date).
+                  const hadScores=!!(week?.scores&&week.scores[day.day])||!!(week?.scoringStarted&&week.scoringStarted[day.day]);
+                  const msg='Change '+day.day+' to '+fresh+'?\n\nThis starts '+day.day+' fresh: the old lock, player cap, tee time and teams are cleared.'+(hadScores?'\n\n\u26a0 '+day.day+' still has scoring state from the old date. It will be cleared too (a copy is kept in dayBackup). Finalize the old round FIRST if it was real.':'');
+                  if(!window.confirm(msg))return;
+                  write('week/dates/'+day.day,fresh);
+                  ['locked','caps','scoringStarted','teams','teamsPublished','scores','complete','teeTimes','teeApprovals'].forEach(k=>write('week/'+k+'/'+day.day,null));
+                }}>
                 Set to {fresh}
               </button>}
             </div>
@@ -8087,8 +8105,13 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
     const safeDate=validDayDate(day,dateVal).ok?dateVal:wd[day];
     if(safeDate!==dateVal)console.warn('[dates] refused '+dateVal+' for '+day+'; using '+safeDate);
     const w={...base,activeDays:[...safeArray(base?.activeDays),day],dates:{...(base?.dates||{}),[day]:safeDate}};
-    if(w.modes){const m={...w.modes};delete m[day];w.modes=m;}
-    if(w.modeConfig){const mc={...w.modeConfig};delete mc[day];w.modeConfig=mc;}
+    // Strip EVERY per-day leftover from the previous week. Sept 26-28 2026: days
+    // were re-activated without End Week, and the old locked:true + cap + scoring
+    // state rode along — so the "new" days were born locked and every sign-up
+    // went straight to the waiting list.
+    ['modes','modeConfig','locked','caps','scoringStarted','teams','teamsPublished','scores','complete','teeTimes','teeApprovals'].forEach(k=>{
+      if(w[k]&&w[k][day]!==undefined){const c={...w[k]};delete c[day];w[k]=c;}
+    });
     return w;
   }
   function handleToggleDay(day){
@@ -11300,12 +11323,39 @@ function App(){
     const rosterMatch=(effectiveRoster||[]).find(p=>norm(p.name)===n);
     if(rosterMatch&&rosterMatch.name!==entry.name)entry={...entry,name:rosterMatch.name};
     logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'}); push('week/signups',entry);
+    // Remember the handicap on the roster. Sign-ups are the only place most guys
+    // ever type one, and End Week used to throw them all away — which is why the
+    // one-tap waitlist join kept coming up 0. Members only, never guests.
+    try{
+      const rhId=entry.playerId||(rosterMatch&&rosterMatch.id);
+      if(!entry.isGuest&&rhId){
+        const hv=parseFloat(entry.handicap);
+        if(!isNaN(hv)&&hv>0)write('rosterHcp/'+rhId,hv);
+      }
+    }catch(e){}
     // Player cap: auto-lock the day when it fills; further members flow to the waitlist.
     const cap=week?.caps?.[entry.day];
     if(cap&&!week?.locked?.[entry.day]){
       const cnt=Object.values(week?.signups||{}).filter(s=>s.day===entry.day).length+1;
       if(cnt>=cap){write('week/locked/'+entry.day,true);logActivity('auto_lock',{day:entry.day,by:'system',name:String(cap)+' player cap reached'});}
     } }
+  // Best-known handicap for a player: roster (incl. rosterHcp) first, then his
+  // most recent appearance in a history round (if history is loaded), else null.
+  function bestHcpFor(name,playerId){
+    try{
+      const nn=normName(name||'');
+      const rp=safeArray(activeFullRoster).find(p=>p&&(String(p.id)===String(playerId||'')||normName(p.name)===nn));
+      if(rp&&rp.handicap!=null&&!isNaN(parseFloat(rp.handicap))&&parseFloat(rp.handicap)>0)return parseFloat(rp.handicap);
+      const rounds=Object.values(history||{}).filter(r=>r&&r.date).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+      for(const r of rounds){
+        const ts=Array.isArray(r.teams)?r.teams:Object.values(r.teams||{});
+        for(const t of ts){for(const p of safeArray(t&&t.players)){
+          if(p&&normName(p.name)===nn&&p.handicap!=null&&!isNaN(parseFloat(p.handicap))&&parseFloat(p.handicap)>0)return parseFloat(p.handicap);
+        }}
+      }
+    }catch(e){}
+    return null;
+  }
   function removeSignup(key){ const rs=week?.signups?.[key]; if(rs){logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'unknown'}); if(dayTeamsAreOut(week,rs.day)){push('alerts/drops',{name:rs.name,day:rs.day,ts:Date.now(),by:currentUser?currentUser.name:'admin',cleared:false});sendPushNotify({audience:'admins',title:'\u26a0 Post-publish drop',body:rs.name+' dropped '+rs.day+' after teams were published.',url:'/',tag:'drop',vars:{name:rs.name,day:rs.day}});}} del('week/signups/'+key); }
   function approveJoinRequest(key,req,opts){
     const newId=Date.now();
@@ -11882,8 +11932,8 @@ function App(){
   // tee on it, so the old `currentUser.hcp||0` put everyone on the waitlist at 0
   // off the Whites. Look the man up in the roster, same as a normal sign-up.
   const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
-  const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:(me&&me.tee)||currentUser.tee||'Whites',handicap:(me&&me.handicap!=null&&!isNaN(parseFloat(me.handicap)))?parseFloat(me.handicap):parseFloat(currentUser.hcp||currentUser.handicap||0),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;const wme=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(ws.playerId||''));const wh=(ws.handicap!=null&&!isNaN(parseFloat(ws.handicap))&&parseFloat(ws.handicap)!==0)?parseFloat(ws.handicap):((wme&&wme.handicap!=null&&!isNaN(parseFloat(wme.handicap)))?parseFloat(wme.handicap):parseFloat(ws.handicap||0));addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||(wme&&wme.tee)||'Whites',handicap:wh,day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
-      {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
+  const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:(me&&me.tee)||currentUser.tee||'Whites',handicap:(me&&me.handicap!=null&&!isNaN(parseFloat(me.handicap)))?parseFloat(me.handicap):(bestHcpFor(currentUser.name,currentUser.id)!=null?bestHcpFor(currentUser.name,currentUser.id):parseFloat(currentUser.hcp||currentUser.handicap||0)),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;const wme=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(ws.playerId||''));const wh=(ws.handicap!=null&&!isNaN(parseFloat(ws.handicap))&&parseFloat(ws.handicap)!==0)?parseFloat(ws.handicap):((wme&&wme.handicap!=null&&!isNaN(parseFloat(wme.handicap)))?parseFloat(wme.handicap):(bestHcpFor(ws.name,ws.playerId)!=null?bestHcpFor(ws.name,ws.playerId):parseFloat(ws.handicap||0)));addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||(wme&&wme.tee)||'Whites',handicap:wh,day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
+      {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(!(parseFloat(signup.handicap)>0)){const bh=bestHcpFor(wl.name,wl.playerId);if(bh!=null)signup.handicap=bh;}safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
         <div style={{maxWidth:'var(--maxw, 980px)',margin:'0 auto',padding:'10px 16px 0',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
