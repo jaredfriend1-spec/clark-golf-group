@@ -1210,7 +1210,7 @@ function computeStreaks(history,attRounds){
 
     Object.entries(w).forEach(([k,won])=>{
       if(!by[k])by[k]={name:k,rounds:0,won:0,paid:0,seq:[],weeks:[],best:null};
-      const p=by[k]; p.rounds++; p.paid+=buyIn; p.seq.push({date:r.date,won});
+      const p=by[k]; p.rounds++; p.paid+=buyIn; p.seq.push({date:r.date,won,buyIn});
       if(!p.weeks.includes(wkKey))p.weeks.push(wkKey);
       if(won>0&&(!p.best||won>p.best.won))p.best={won:Math.round(won),date:r.date};
     });
@@ -1235,8 +1235,10 @@ function computeStreaks(history,attRounds){
   });
   const useAtt=attArr.length>0;
   Object.values(by).forEach(p=>{
-    let hot=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won>0)hot++;else break;}
-    let cold=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won<=0)cold++;else break;}
+    // A round counts toward the HOT streak only when he NETTED money that day —
+    // won back more than his buy-in. Skins crumbs on a losing day don't count.
+    let hot=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won>(p.seq[i].buyIn||25))hot++;else break;}
+    let cold=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won<=(p.seq[i].buyIn||25))cold++;else break;}
     const a=attBy[p.name];
     const wkList=useAtt?attWeeksAll:allWeeks; const myWeeks=useAtt?(a?a.weeks:[]):p.weeks;
     let wkS=0; for(let i=wkList.length-1;i>=0;i--){if(myWeeks.includes(wkList[i]))wkS++;else break;}
@@ -1250,8 +1252,8 @@ function computeStreaks(history,attRounds){
 function streakLines(streaks,name){
   const p=streaks&&streaks.by&&streaks.by[normName(name||'')]; if(!p)return [];
   const L=[];
-  if(p.hot>=2)L.push({ic:'🔥',tx:'Cashed in his last '+p.hot+' rounds played'});
-  else if(p.cold>=3)L.push({ic:'🥶',tx:'No cash in his last '+p.cold+' rounds played'});
+  if(p.hot>=2)L.push({ic:'🔥',tx:'Netted money in his last '+p.hot+' rounds played'});
+  else if(p.cold>=3)L.push({ic:'🥶',tx:'No winning day in his last '+p.cold+' rounds played'});
   if(p.weekStreak>=3)L.push({ic:'📅',tx:'Played '+p.weekStreak+' weeks running'});
   if(p.best&&p.best.won>=20)L.push({ic:'💰',tx:'Best day: $'+p.best.won+' ('+String(p.best.date).slice(5).replace('-','/')+')'});
   const rc=p.roundsAtt!=null?p.roundsAtt:p.rounds;
@@ -10095,10 +10097,10 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
         </S>}
 
         {/* ── 2. Avg Players by Day ── */}
-        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has cashed in his last '+streakStats.hot[0].hot+' rounds'):'Who’s hot and who’s ice cold')}>
+        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has netted money in his last '+streakStats.hot[0].hot+' rounds'):'Who’s hot and who’s ice cold')}>
           <div style={{paddingTop:6}}>
-            {[['🔥 Hot — cashing streaks',streakStats.hot,p=>'his last '+p.hot+' played','won money in every one of his own last N rounds played — skipped weeks don’t break it','#b45309'],
-              ['🥶 Ice cold',streakStats.cold,p=>'his last '+p.cold+' played','no money in his own last N rounds played (5+ rounds on the year)','#1d4ed8'],
+            {[['🔥 Hot — winning-day streaks',streakStats.hot,p=>'his last '+p.hot+' played','came out AHEAD (won more than his buy-in) in each of his own last N rounds — skipped weeks don’t break it','#b45309'],
+              ['🥶 Ice cold',streakStats.cold,p=>'his last '+p.cold+' played','no winning day in his own last N rounds played (5+ rounds on the year)','#1d4ed8'],
               ['📅 Iron men',streakStats.iron,p=>p.weekStreak+' weeks running','played every week the group played','var(--brand)'],
               ['💰 Best single days',streakStats.bests,p=>'$'+p.best.won+' · '+String(p.best.date).slice(5).replace('-','/'),'most won in one round','#a16207'],
               ['⛳ Most rounds',streakStats.most,p=>(p.roundsAtt||p.rounds)+' rounds','the regulars — counted from Attendance, including rounds from before the app','var(--ink-70)']
@@ -10115,7 +10117,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
                 ))}
               </div>
             ))}
-            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>Cashing and cold streaks count each man’s own rounds played, not the group’s — skipping a week doesn’t break them. Iron Man is the opposite: it needs every week the group played. Round counts and weeks come from Attendance (the whole season); money and cashing streaks come from rounds scored in the app, matching the Standings tab.</div>
+            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>A round counts toward a streak only if he came out AHEAD that day — won back more than his buy-in, not just a few skins dollars. Streaks count each man’s own rounds played, not the group’s, so skipping a week doesn’t break them. Iron Man is the opposite: it needs every week the group played. Round counts and weeks come from Attendance (the whole season); money comes from rounds scored in the app, matching the Standings tab.</div>
           </div>
         </S>}
         {showSec('avgday')&&<S id="avgday" icon="📅" title="Avg Players by Day" color="var(--info)" borderColor="var(--info)" summary={Object.entries(signupsByDayName).map(([d,v])=>d.slice(0,3)+': '+Math.round(v.total/v.count)).join(' · ')}>
