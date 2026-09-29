@@ -1183,10 +1183,11 @@ function computeStreaks(history){
   const by={}; const allWeeks=[];
   rounds.forEach(r=>{
     const w=roundWinnings(r); const wkKey=wk(r.date);
+    const buyIn=r.scores.gameMode==='individual'?(parseFloat(r.scores.buyIn)||25):25;
     if(!allWeeks.includes(wkKey))allWeeks.push(wkKey);
     Object.entries(w).forEach(([k,won])=>{
-      if(!by[k])by[k]={name:k,rounds:0,won:0,seq:[],weeks:[],best:null};
-      const p=by[k]; p.rounds++; p.won+=won; p.seq.push({date:r.date,won});
+      if(!by[k])by[k]={name:k,rounds:0,won:0,paid:0,seq:[],weeks:[],best:null};
+      const p=by[k]; p.rounds++; p.won+=won; p.paid+=buyIn; p.seq.push({date:r.date,won});
       if(!p.weeks.includes(wkKey))p.weeks.push(wkKey);
       if(won>0&&(!p.best||won>p.best.won))p.best={won,date:r.date};
     });
@@ -1195,7 +1196,7 @@ function computeStreaks(history){
     let hot=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won>0)hot++;else break;}
     let cold=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won<=0)cold++;else break;}
     let wkS=0; for(let i=allWeeks.length-1;i>=0;i--){if(p.weeks.includes(allWeeks[i]))wkS++;else break;}
-    p.hot=hot; p.cold=cold; p.weekStreak=wkS; p.won=Math.round(p.won);
+    p.hot=hot; p.cold=cold; p.weekStreak=wkS; p.won=Math.round(p.won); p.net=Math.round(p.won-p.paid);
   });
   return {by,roundCount:rounds.length};
 }
@@ -1203,11 +1204,11 @@ function computeStreaks(history){
 function streakLines(streaks,name){
   const p=streaks&&streaks.by&&streaks.by[normName(name||'')]; if(!p)return [];
   const L=[];
-  if(p.hot>=2)L.push({ic:'🔥',tx:'Cashed '+p.hot+' straight rounds'});
-  else if(p.cold>=3)L.push({ic:'🥶',tx:p.cold+' rounds since last cashing'});
+  if(p.hot>=2)L.push({ic:'🔥',tx:'Cashed in last '+p.hot+' rounds played'});
+  else if(p.cold>=3)L.push({ic:'🥶',tx:'No cash in last '+p.cold+' rounds played'});
   if(p.weekStreak>=3)L.push({ic:'📅',tx:'Played '+p.weekStreak+' weeks running'});
   if(p.best&&p.best.won>=20)L.push({ic:'💰',tx:'Best day: $'+p.best.won+' ('+String(p.best.date).slice(5).replace('-','/')+')'});
-  L.push({ic:'⛳',tx:p.rounds+' round'+(p.rounds===1?'':'s')+' · $'+p.won+' won this season'});
+  L.push({ic:'⛳',tx:p.rounds+' round'+(p.rounds===1?'':'s')+' · net '+(p.net>=0?'+$'+p.net:'−$'+(-p.net))+' this season'});
   return L.slice(0,4);
 }
 function dayTeamsAreOut(week,day){try{if(!week||!day)return false;if(!(week.teamsPublished&&week.teamsPublished[day]===true))return false;const t=week.teams&&week.teams[day];const arr=Array.isArray(t)?t:Object.values(t||{});return arr.some(x=>x&&Array.isArray(x.players)&&x.players.length>0);}catch(e){return false;}}
@@ -10070,10 +10071,10 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
         </S>}
 
         {/* ── Stableford games — individual rounds, kept apart from the team game ── */}
-        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has cashed '+streakStats.hot[0].hot+' straight'):'Who’s hot and who’s ice cold')}>
+        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has cashed in his last '+streakStats.hot[0].hot+' rounds'):'Who’s hot and who’s ice cold')}>
           <div style={{paddingTop:6}}>
-            {[['🔥 Hot — cashing streaks',streakStats.hot,p=>p.hot+' straight',' rounds paying money in a row','#b45309'],
-              ['🥶 Ice cold',streakStats.cold,p=>p.cold+' without cashing','5+ rounds played · longest droughts','#1d4ed8'],
+            {[['🔥 Hot — cashing streaks',streakStats.hot,p=>'last '+p.hot+' played','won money in every one of his last N rounds played — skipped weeks don’t break it','#b45309'],
+              ['🥶 Ice cold',streakStats.cold,p=>'last '+p.cold+' played','no money in his last N rounds played (5+ rounds on the year)','#1d4ed8'],
               ['📅 Iron men',streakStats.iron,p=>p.weekStreak+' weeks running','played every week the group played','var(--brand)'],
               ['💰 Best single days',streakStats.bests,p=>'$'+p.best.won+' · '+String(p.best.date).slice(5).replace('-','/'),'most won in one round','#a16207'],
               ['⛳ Most rounds',streakStats.most,p=>p.rounds+' rounds','the regulars','var(--ink-70)']
@@ -10090,7 +10091,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
                 ))}
               </div>
             ))}
-            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>Streaks count rounds played — skipping a week doesn’t break a cashing streak, but Iron Man needs every week. Money matches the Standings tab.</div>
+            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>Cashing and cold streaks count each man’s own rounds played, not the group’s — skipping a week doesn’t break them. Iron Man is the opposite: it needs every week the group played. Money matches the Standings tab.</div>
           </div>
         </S>}
         {showSec('stableford')&&stbl&&<S id="stableford" icon="🎯" title="Stableford Games" color="var(--info)" borderColor="var(--info)" summary={stbl.rounds+' round'+(stbl.rounds!==1?'s':'')+' · winner avg '+(stbl.avgWinNet!=null?((stbl.avgWinNet>=0?'+':'')+stbl.avgWinNet):'—')+' vs target'}>
