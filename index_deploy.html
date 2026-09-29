@@ -370,8 +370,8 @@ body.no-motion *,body.no-motion *::before,body.no-motion *::after{animation-dura
 button.dc-game{background:none;border:none;padding:0;font-family:inherit;text-align:left;cursor:pointer}
 .dc-game-special{color:var(--info);font-weight:700}
 .dc-i{font-size:11px;opacity:0.8}
-.dc-wx{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding:8px 2px 10px 0;border-top:1px solid var(--hairline-soft)}
-.dc-cell{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-70);white-space:nowrap;font-variant-numeric:tabular-nums}
+.dc-wx{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:10px;padding:8px 2px 10px 0;border-top:1px solid var(--hairline-soft)}
+.dc-cell{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-70);white-space:nowrap;font-variant-numeric:tabular-nums}
 .dc-cell b{font-weight:600;color:var(--ink)}
 .dc-win{font-size:10.5px;color:var(--ink-40);font-weight:500}
 .dc-body > div:last-child:not(.dc-wx):not(.dc-top){margin-bottom:10px}
@@ -2344,11 +2344,16 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     let dead=false;
     const url='https://api.open-meteo.com/v1/forecast?latitude='+COURSE_LAT+'&longitude='+COURSE_LON
       +'&hourly=temperature_2m,precipitation_probability,wind_speed_10m,weather_code'
+      +'&daily=sunset'
       +'&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FNew_York&forecast_days=16';
     fetch(url).then(r=>r.json()).then(j=>{
       if(dead||!j||!j.hourly||!j.hourly.time)return;
       const by={};
       j.hourly.time.forEach((t,k)=>{ by[t]={temp:j.hourly.temperature_2m[k],rain:j.hourly.precipitation_probability[k],wind:j.hourly.wind_speed_10m[k],code:j.hourly.weather_code[k]}; });
+      // Sunset per date ("2026-10-02" -> "6:38") from the same response.
+      const sun={};
+      try{ if(j.daily&&j.daily.time)j.daily.time.forEach((d,k)=>{const t=String(j.daily.sunset[k]||'').split('T')[1];if(t){let[h,m]=t.split(':');h=parseInt(h,10);sun[d]=(h>12?h-12:h)+':'+m;}}); }catch(e){}
+      by.__sun=sun;
       WX_CACHE.data=by; WX_CACHE.at=Date.now(); setWx(by);
     }).catch(()=>{});   // no forecast is fine — the row just doesn't render
     return()=>{dead=true;};
@@ -2364,14 +2369,15 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       if(m){ let h=parseInt(m[1],10); const pm=(m[3]||'').toUpperCase()==='PM';
         if(pm&&h!==12)h+=12; if(!pm&&h===12)h=0; hour=h; }
     }
+    const sun=(wx.__sun&&wx.__sun[dateStr])||null;
     if(hour!=null){
       const d=at(hour); if(!d||d.temp==null)return null;
-      return{single:true,temp:Math.round(d.temp),rain:Math.round(d.rain||0),wind:Math.round(d.wind||0),code:d.code};
+      return{single:true,temp:Math.round(d.temp),rain:Math.round(d.rain||0),wind:Math.round(d.wind||0),code:d.code,sun};
     }
     const rows=[9,10,11].map(at).filter(d=>d&&d.temp!=null);
     if(!rows.length)return null;
     const temps=rows.map(d=>d.temp);
-    return{single:false,
+    return{single:false,sun,
       lo:Math.round(Math.min.apply(null,temps)),hi:Math.round(Math.max.apply(null,temps)),
       rain:Math.round(Math.max.apply(null,rows.map(d=>d.rain||0))),
       wind:Math.round(rows.reduce((a,d)=>a+(d.wind||0),0)/rows.length),
@@ -2823,6 +2829,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                 </span>
                 <span className="dc-cell"><span style={{color:'#2563eb',display:'inline-flex'}}><DropIcon size={14}/></span>{wx.rain}%</span>
                 <span className="dc-cell"><WindIcon size={15}/>{wx.wind} mph</span>
+                {wx.sun&&<span className="dc-cell" title="Sunset" style={{flexShrink:0}}><span style={{fontSize:11.5,lineHeight:1}}>🌇</span>{wx.sun}</span>}
               </div>
             );})()}
             {teeInfo&&String(teeInfo).trim()&&(
