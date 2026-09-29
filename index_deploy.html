@@ -1176,7 +1176,7 @@ function roundWinnings(r){
 }
 // history -> per-player streaks. Streaks count PLAYED rounds; weeks running
 // counts calendar weeks in which the group played at all.
-function computeStreaks(history){
+function computeStreaks(history,attRounds){
   const rounds=Object.values(history||{}).filter(r=>r&&r.date&&r.scores&&(r.teams||r.scores.gameMode==='individual'))
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const wk=d=>{try{const dt=new Date(d+'T12:00:00');const day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);return dt.toISOString().slice(0,10);}catch(e){return d;}};
@@ -1192,11 +1192,31 @@ function computeStreaks(history){
       if(won>0&&(!p.best||won>p.best.won))p.best={won,date:r.date};
     });
   });
+  // Rounds-played counts and weeks come from ATTENDANCE when we have it: it
+  // holds the whole season including pre-app rounds, so it matches the Attend
+  // tab and tournament eligibility. Money stays from scored (history) rounds,
+  // matching Standings. Display only — nothing here writes anything.
+  const attArr=safeArray(attRounds).filter(a=>a&&a.date&&safeArray(a.players).length);
+  const attWeeksAll=[]; const attBy={};
+  attArr.sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(a=>{
+    const wkKey=wk(a.date);
+    if(!attWeeksAll.includes(wkKey))attWeeksAll.push(wkKey);
+    safeArray(a.players).filter(Boolean).forEach(nm=>{
+      const k=normName(nm);
+      if(!attBy[k])attBy[k]={n:0,weeks:[]};
+      attBy[k].n++; if(!attBy[k].weeks.includes(wkKey))attBy[k].weeks.push(wkKey);
+      if(!by[k])by[k]={name:k,rounds:0,won:0,paid:0,seq:[],weeks:[],best:null};
+    });
+  });
+  const useAtt=attArr.length>0;
   Object.values(by).forEach(p=>{
     let hot=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won>0)hot++;else break;}
     let cold=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won<=0)cold++;else break;}
-    let wkS=0; for(let i=allWeeks.length-1;i>=0;i--){if(p.weeks.includes(allWeeks[i]))wkS++;else break;}
+    const a=attBy[p.name];
+    const wkList=useAtt?attWeeksAll:allWeeks; const myWeeks=useAtt?(a?a.weeks:[]):p.weeks;
+    let wkS=0; for(let i=wkList.length-1;i>=0;i--){if(myWeeks.includes(wkList[i]))wkS++;else break;}
     p.hot=hot; p.cold=cold; p.weekStreak=wkS; p.won=Math.round(p.won); p.net=Math.round(p.won-p.paid);
+    p.roundsAtt=useAtt?((a&&a.n)||p.rounds):p.rounds;
   });
   return {by,roundCount:rounds.length};
 }
@@ -1204,11 +1224,12 @@ function computeStreaks(history){
 function streakLines(streaks,name){
   const p=streaks&&streaks.by&&streaks.by[normName(name||'')]; if(!p)return [];
   const L=[];
-  if(p.hot>=2)L.push({ic:'🔥',tx:'Cashed in last '+p.hot+' rounds played'});
-  else if(p.cold>=3)L.push({ic:'🥶',tx:'No cash in last '+p.cold+' rounds played'});
+  if(p.hot>=2)L.push({ic:'🔥',tx:'Cashed in his last '+p.hot+' rounds played'});
+  else if(p.cold>=3)L.push({ic:'🥶',tx:'No cash in his last '+p.cold+' rounds played'});
   if(p.weekStreak>=3)L.push({ic:'📅',tx:'Played '+p.weekStreak+' weeks running'});
   if(p.best&&p.best.won>=20)L.push({ic:'💰',tx:'Best day: $'+p.best.won+' ('+String(p.best.date).slice(5).replace('-','/')+')'});
-  L.push({ic:'⛳',tx:p.rounds+' round'+(p.rounds===1?'':'s')+' · net '+(p.net>=0?'+$'+p.net:'−$'+(-p.net))+' this season'});
+  const rc=p.roundsAtt!=null?p.roundsAtt:p.rounds;
+  if(rc>0||p.net!==0)L.push({ic:'⛳',tx:rc+' round'+(rc===1?'':'s')+' · net '+(p.net>=0?'+$'+p.net:'−$'+(-p.net))+' this season'});
   return L.slice(0,4);
 }
 function dayTeamsAreOut(week,day){try{if(!week||!day)return false;if(!(week.teamsPublished&&week.teamsPublished[day]===true))return false;const t=week.teams&&week.teams[day];const arr=Array.isArray(t)?t:Object.values(t||{});return arr.some(x=>x&&Array.isArray(x.players)&&x.players.length>0);}catch(e){return false;}}
@@ -2487,6 +2508,33 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     week?.emailNotes?.[d]?.trim()
   );
 
+  const renderNoteOnlyCard = (d) => {
+        const dateStr = week?.dates?.[d] || '';
+        const [, mm, dd] = (dateStr||'').split('-');
+        const dateNum = dd ? parseInt(dd) : '';
+        return (
+          <div className="note-only-card" key={'note-'+d}>
+            <div className="note-only-head">
+              <div className="note-only-day-block">
+                <span className="note-only-date">{dateNum}</span>
+                <span className="note-only-day">{d}</span>
+              </div>
+              <div className="note-only-tag">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span className="note-only-tag-text">No game</span>
+              </div>
+            </div>
+            <div className="note-only-body">
+              <div className="note-only-rail"></div>
+              <div className="note-only-content">
+
+                <div className="note-only-text">{week.emailNotes[d]}</div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
   // Build display data per day
   const days = activeDays.map(d => {
     const daySignups = Object.entries(week?.signups||{})
@@ -2681,7 +2729,13 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         )}
       </div>
 
-      {days.map(day => (
+      {/* One list, in day-of-week order: game days and note-only days interleaved,
+          so a "no game" Friday still sits above Saturday. */}
+      {sortDays([...activeDays, ...noteOnlyDays]).map(dn => {
+        if(noteOnlyDays.includes(dn)) return renderNoteOnlyCard(dn);
+        const day = days.find(x=>x.day===dn);
+        if(!day) return null;
+        return (
         <React.Fragment key={day.day}>
         {isAdmin && (()=>{
           const cur=week?.dates?.[day.day];
@@ -2745,36 +2799,11 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           onToggleLock={(dayName, locked) => { write('week/locked/'+dayName, locked); }}
         />
         </React.Fragment>
-      ))}
-
-
-      {/* Note-only day cards */}
-      {noteOnlyDays.map(d => {
-        const dateStr = week?.dates?.[d] || '';
-        const [, mm, dd] = (dateStr||'').split('-');
-        const dateNum = dd ? parseInt(dd) : '';
-        return (
-          <div className="note-only-card" key={'note-'+d}>
-            <div className="note-only-head">
-              <div className="note-only-day-block">
-                <span className="note-only-date">{dateNum}</span>
-                <span className="note-only-day">{d}</span>
-              </div>
-              <div className="note-only-tag">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span className="note-only-tag-text">No game</span>
-              </div>
-            </div>
-            <div className="note-only-body">
-              <div className="note-only-rail"></div>
-              <div className="note-only-content">
-
-                <div className="note-only-text">{week.emailNotes[d]}</div>
-              </div>
-            </div>
-          </div>
         );
       })}
+
+      {/* Note-only day card (rendered inside the merged list above) */}
+
 
       {/* Season countdown — useful (tournament eligibility closes with the
           season) but not about this week's sign-ups, so it sits quietly under
@@ -5561,6 +5590,7 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
   const [attRounds,setAttRounds]=useState(null);
   useEffect(()=>{ if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read]);
   const attByDate=useMemo(()=>{const m={};safeArray(attRounds).forEach(a=>{if(a&&a.date&&safeArray(a.players).length)m[a.date]=safeArray(a.players).filter(Boolean);});return m;},[attRounds]);
+
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [showTrash, setShowTrash] = useState(false);
@@ -9646,17 +9676,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
   const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','logins','behavior'];
   const showSec=id=>{ if(!publicMode)return true; return settings?.statsPlayerSections?.[id]!==false; };
-  // ── Streaks & milestones (same money math as Standings via roundWinnings) ──
-  const streakStats=useMemo(()=>{
-    const st=computeStreaks(history);
-    const all=Object.values(st.by);
-    const hot=all.filter(p=>p.hot>=2).sort((a,b)=>b.hot-a.hot||b.won-a.won).slice(0,5);
-    const cold=all.filter(p=>p.cold>=3&&p.rounds>=5).sort((a,b)=>b.cold-a.cold).slice(0,5);
-    const iron=all.filter(p=>p.weekStreak>=3).sort((a,b)=>b.weekStreak-a.weekStreak||b.rounds-a.rounds).slice(0,5);
-    const most=all.slice().sort((a,b)=>b.rounds-a.rounds).slice(0,5);
-    const bests=all.filter(p=>p.best&&p.best.won>=30).sort((a,b)=>b.best.won-a.best.won).slice(0,5);
-    return {hot,cold,iron,most,bests,n:all.length};
-  },[Object.keys(history||{}).length]);
+
   const curAdminSections=settings?.statsAdminSections||SHAREABLE_SECTIONS.reduce((a,k)=>{a[k]=true;return a;},{});
   const curAccess=settings?.statsAccess||'none';
   const curAllowed=settings?.statsAllowedPlayers||{};
@@ -9690,6 +9710,17 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
     safeArray(attRounds).forEach(a=>{ if(a&&a.date&&safeArray(a.players).length)m[a.date]=safeArray(a.players).filter(Boolean); });
     return m;
   },[attRounds]);
+  // ── Streaks & milestones (same money math as Standings via roundWinnings) ──
+  const streakStats=useMemo(()=>{
+    const st=computeStreaks(history,attRounds);
+    const all=Object.values(st.by);
+    const hot=all.filter(p=>p.hot>=2).sort((a,b)=>b.hot-a.hot||b.won-a.won).slice(0,5);
+    const cold=all.filter(p=>p.cold>=3&&p.rounds>=5).sort((a,b)=>b.cold-a.cold).slice(0,5);
+    const iron=all.filter(p=>p.weekStreak>=3).sort((a,b)=>b.weekStreak-a.weekStreak||b.rounds-a.rounds).slice(0,5);
+    const most=all.slice().sort((a,b)=>(b.roundsAtt||b.rounds)-(a.roundsAtt||a.rounds)).slice(0,5);
+    const bests=all.filter(p=>p.best&&p.best.won>=30).sort((a,b)=>b.best.won-a.best.won).slice(0,5);
+    return {hot,cold,iron,most,bests,n:all.length};
+  },[Object.keys(history||{}).length,attRounds]);
 
   // Sign-up lead time. stats/signupLog records the round date AND the moment the
   // man signed up, so we can measure how far ahead each one books.
@@ -10034,6 +10065,29 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
         </S>}
 
         {/* ── 2. Avg Players by Day ── */}
+        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has cashed in his last '+streakStats.hot[0].hot+' rounds'):'Who’s hot and who’s ice cold')}>
+          <div style={{paddingTop:6}}>
+            {[['🔥 Hot — cashing streaks',streakStats.hot,p=>'his last '+p.hot+' played','won money in every one of his own last N rounds played — skipped weeks don’t break it','#b45309'],
+              ['🥶 Ice cold',streakStats.cold,p=>'his last '+p.cold+' played','no money in his own last N rounds played (5+ rounds on the year)','#1d4ed8'],
+              ['📅 Iron men',streakStats.iron,p=>p.weekStreak+' weeks running','played every week the group played','var(--brand)'],
+              ['💰 Best single days',streakStats.bests,p=>'$'+p.best.won+' · '+String(p.best.date).slice(5).replace('-','/'),'most won in one round','#a16207'],
+              ['⛳ Most rounds',streakStats.most,p=>(p.roundsAtt||p.rounds)+' rounds','the regulars — counted from Attendance, including rounds from before the app','var(--ink-70)']
+            ].map(([hd,list,fmt,sub,col])=>!list.length?null:(
+              <div key={hd} style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:800,color:col,textTransform:'uppercase',letterSpacing:'0.07em'}}>{hd}</div>
+                <div style={{fontSize:10.5,color:'var(--ink-40)',marginBottom:6}}>{sub}</div>
+                {list.map((p,i)=>(
+                  <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',width:14,flexShrink:0}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.name}</span>
+                    <span style={{fontSize:12.5,fontWeight:800,color:col,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums'}}>{fmt(p)}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>Cashing and cold streaks count each man’s own rounds played, not the group’s — skipping a week doesn’t break them. Iron Man is the opposite: it needs every week the group played. Round counts and weeks come from Attendance (the whole season); money and cashing streaks come from rounds scored in the app, matching the Standings tab.</div>
+          </div>
+        </S>}
         {showSec('avgday')&&<S id="avgday" icon="📅" title="Avg Players by Day" color="var(--info)" borderColor="var(--info)" summary={Object.entries(signupsByDayName).map(([d,v])=>d.slice(0,3)+': '+Math.round(v.total/v.count)).join(' · ')}>
           <div style={{paddingTop:6}}>
             {Object.entries(signupsByDayName).sort((a,b)=>{const order=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];return order.indexOf(a[0])-order.indexOf(b[0]);}).map(([day,data])=>{
@@ -10071,29 +10125,6 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
         </S>}
 
         {/* ── Stableford games — individual rounds, kept apart from the team game ── */}
-        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has cashed in his last '+streakStats.hot[0].hot+' rounds'):'Who’s hot and who’s ice cold')}>
-          <div style={{paddingTop:6}}>
-            {[['🔥 Hot — cashing streaks',streakStats.hot,p=>'last '+p.hot+' played','won money in every one of his last N rounds played — skipped weeks don’t break it','#b45309'],
-              ['🥶 Ice cold',streakStats.cold,p=>'last '+p.cold+' played','no money in his last N rounds played (5+ rounds on the year)','#1d4ed8'],
-              ['📅 Iron men',streakStats.iron,p=>p.weekStreak+' weeks running','played every week the group played','var(--brand)'],
-              ['💰 Best single days',streakStats.bests,p=>'$'+p.best.won+' · '+String(p.best.date).slice(5).replace('-','/'),'most won in one round','#a16207'],
-              ['⛳ Most rounds',streakStats.most,p=>p.rounds+' rounds','the regulars','var(--ink-70)']
-            ].map(([hd,list,fmt,sub,col])=>!list.length?null:(
-              <div key={hd} style={{marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:800,color:col,textTransform:'uppercase',letterSpacing:'0.07em'}}>{hd}</div>
-                <div style={{fontSize:10.5,color:'var(--ink-40)',marginBottom:6}}>{sub}</div>
-                {list.map((p,i)=>(
-                  <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderTop:'1px solid var(--hairline-soft)'}}>
-                    <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',width:14,flexShrink:0}}>{i+1}</span>
-                    <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.name}</span>
-                    <span style={{fontSize:12.5,fontWeight:800,color:col,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums'}}>{fmt(p)}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>Cashing and cold streaks count each man’s own rounds played, not the group’s — skipping a week doesn’t break them. Iron Man is the opposite: it needs every week the group played. Money matches the Standings tab.</div>
-          </div>
-        </S>}
         {showSec('stableford')&&stbl&&<S id="stableford" icon="🎯" title="Stableford Games" color="var(--info)" borderColor="var(--info)" summary={stbl.rounds+' round'+(stbl.rounds!==1?'s':'')+' · winner avg '+(stbl.avgWinNet!=null?((stbl.avgWinNet>=0?'+':'')+stbl.avgWinNet):'—')+' vs target'}>
           <div style={{paddingTop:6}}>
             <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:10,lineHeight:1.5}}>
@@ -11378,8 +11409,12 @@ function App(){
   // against the viewport rather than inside whatever card was tapped.
   const [avatarView,setAvatarView]=useState(null);
   // Everyone's card opens now — streaks give even a bare-initials guy something to show.
-  const showAvatar=(o)=>{ if(!o||!o.name)return; loadDeferred('history'); setAvatarView(o); };
-  const streakData=useMemo(()=>computeStreaks(history),[Object.keys(history||{}).length]);
+  const [attForStreaks,setAttForStreaks]=useState(null);
+  const attStreakReq=useRef(false);
+  const showAvatar=(o)=>{ if(!o||!o.name)return; loadDeferred('history');
+    if(!attStreakReq.current){attStreakReq.current=true;try{read('attendance/rounds',v=>setAttForStreaks(v||[]));}catch(e){}}
+    setAvatarView(o); };
+  const streakData=useMemo(()=>computeStreaks(history,attForStreaks),[Object.keys(history||{}).length,attForStreaks]);
   const streaksForCard=useCallback((nm)=>streakLines(streakData,nm),[streakData]);
 
   // Demo-safe write wrappers — when isDemo=true these are ALL no-ops, NEVER touch Firebase
