@@ -6950,7 +6950,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     </div>
   );
 }
-function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overrideRounds }){
+function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullRoster, read, write, overrideRounds }){
   const archivedView = overrideRounds!=null;
   const [attView, setAttView] = useState('standings');
   const [rounds, setRounds] = useState([]);
@@ -7113,7 +7113,11 @@ function AttendanceViewV2({ isAdmin, currentUser, fullRoster, read, write, overr
               {filteredStandings.map((p,i)=>(
                 <div key={p.name} onClick={()=>setSelectedPlayer(p)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer'}}>
                   <div style={{width:26,height:26,borderRadius:'50%',background:i===0?'#f59e0b':i===1?'#94a3b8':i===2?'#b45309':'var(--surface-sunken)',color:i<3?'#fff':'var(--ink-40)',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</div>
-                  <div style={{width:30,height:30,borderRadius:'50%',background:'var(--brand-soft)',color:'var(--brand)',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{ini(p.name)}</div>
+                  <span onClick={e=>e.stopPropagation()} style={{display:'inline-flex',flexShrink:0}}>
+                    {(()=>{const a=avatarFor?avatarFor(p.name):null;const rp2=(fullRoster||[]).find(x=>x&&String(x.name).toLowerCase().trim()===String(p.name).toLowerCase().trim());
+                      return <PlayerAvatar name={p.name} logo={a&&a.logo} size={30} title={p.name}
+                        onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe:!!(currentUser&&currentUser.name===p.name),meta:(rp2&&rp2.tee?rp2.tee:'')+(rp2&&rp2.handicap!=null?((rp2.tee?' \u00b7 ':'')+'HCP '+rp2.handicap):'')})):undefined}/>;})()}
+                  </span>
                   <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div></div>
                   <div style={{width:60,height:5,background:'var(--hairline)',borderRadius:3,overflow:'hidden',flexShrink:0}}><div style={{height:5,background:'var(--brand)',borderRadius:3,width:Math.round((p.rounds/maxR)*100)+'%'}}/></div>
                   <div style={{fontSize:13,fontWeight:700,color:'var(--ink-50)',flexShrink:0,minWidth:24,textAlign:'right'}}>{p.rounds}</div>
@@ -12128,7 +12132,7 @@ function App(){
         }
         return null;
       })()}
-      {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 isAdmin={seasonView==='live'?isAdmin:false} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite} overrideRounds={seasonView==='live'?null:(((seasonData&&seasonData.attendance)||{}).rounds||[])}/>}
+      {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 avatarFor={avatarForApp} onShowAvatar={showAvatar} isAdmin={seasonView==='live'?isAdmin:false} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite} overrideRounds={seasonView==='live'?null:(((seasonData&&seasonData.attendance)||{}).rounds||[])}/>}
       {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin} history={history}/>}
       {(tab === 'admin' || tab === 'manage') && <AdminViewV2 viewMode={tab==='manage'?'week':'admin'} tournCfg={tournCfg}
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}
