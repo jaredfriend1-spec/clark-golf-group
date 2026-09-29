@@ -978,7 +978,7 @@ function WeekSkeleton(){
   );
 }
 
-function AvatarLightbox({ view, onClose, onEditProfile }){
+function AvatarLightbox({ view, streaksFor, onClose, onEditProfile }){
   // The card grows out of the photo that was tapped and shrinks back into it.
   // Everything about that is decoration: `phase` only drives a transform, and
   // the close path runs on a timer that cannot be blocked by it. Escape, the ✕
@@ -1068,6 +1068,16 @@ function AvatarLightbox({ view, onClose, onEditProfile }){
         {view.isMe&&!view.tagline&&onEditProfile&&(
           <div style={{fontSize:12.5,color:'rgba(255,255,255,0.65)',textAlign:'center'}}>Add a tagline in your profile — everyone sees it here.</div>
         )}
+        {(()=>{const L=streaksFor?streaksFor(view.name):[];if(!L.length)return null;return(
+          <div style={{width:'100%',boxSizing:'border-box',borderTop:'1px solid rgba(255,255,255,0.14)',paddingTop:10,display:'flex',flexDirection:'column',gap:6}}>
+            {L.map((l,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.92)'}}>
+                <span style={{fontSize:14,width:20,textAlign:'center',flexShrink:0}}>{l.ic}</span>
+                <span>{l.tx}</span>
+              </div>
+            ))}
+          </div>
+        );})()}
         {view.isMe&&onEditProfile&&(
           <button className="m-press" onClick={()=>{finish();onEditProfile();}} style={{border:'1px solid rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.12)',color:'#fff',fontFamily:'inherit',fontSize:13,fontWeight:700,padding:'10px 18px',borderRadius:9,cursor:'pointer'}}>Edit my profile</button>
         )}
@@ -1122,6 +1132,84 @@ function derivePin(input, pinsMap, excludeId){
 }
 let PUSH_TEMPLATES_CACHE=null;
 function daysUntil(iso){try{const t=new Date();const d=new Date(iso+'T12:00:00');return Math.ceil((d-t)/86400000);}catch(e){return 99;}}
+// ═══════════════ STREAKS & MILESTONES ═══════════════
+// Per-round winnings per player. Mirrors the Standings math (playerBreakdowns)
+// so a streak can never disagree with the money table.
+function roundWinnings(r){
+  const out={};const add=(nm,amt)=>{const k=normName(nm);out[k]=(out[k]||0)+amt;};
+  try{
+    if(r.scores.gameMode==='individual'){
+      Object.keys(r.scores.indScores||{}).forEach(nm=>{const k=normName(nm);if(out[k]==null)out[k]=0;});
+      safeArray(r.scores.awards).forEach(a=>add(a.name,parseFloat(a.amount)||0));
+      safeArray(r.scores.skinsAwards).forEach(a=>add(a.name,parseFloat(a.amount)||0));
+      return out;
+    }
+    const teams=safeArray(r.teams);
+    teams.forEach(t=>safeArray(t.players).forEach(p=>{const k=normName(p.name);if(out[k]==null)out[k]=0;}));
+    const snet=Math.max(0,parseFloat(r.scores.skinsPot||0)-(r.scores.tournFund||0));
+    const tsk=Object.values(r.scores.skinCounts||{}).reduce((a,x)=>a+x,0);
+    const psk=tsk>0?Math.floor(snet/tsk):0;
+    teams.forEach(team=>{
+      const pc=safeArray(team.players).length; if(!pc)return; let won=0;
+      [{seg:'front',pot:r.scores.frontPot,pl:r.scores.frontPlaces||1,k1:'f1',k2:'f2'},
+       {seg:'back',pot:r.scores.backPot,pl:r.scores.backPlaces||1,k1:'b1',k2:'b2'},
+       {seg:'overall',pot:r.scores.overallPot,pl:r.scores.overallPlaces||1,k1:'o1',k2:'o2'}
+      ].forEach(({seg,pot:sp,pl,k1,k2})=>{
+        const p=parseFloat(sp||0); if(!p)return;
+        const sc=teams.map(t=>({id:t.id,score:parseFloat((r.scores.teamScores&&r.scores.teamScores[t.id]?r.scores.teamScores[t.id][seg]:NaN))})).filter(t=>!isNaN(t.score));
+        if(!sc.length)return; sc.sort((a,b)=>a.score-b.score);
+        const best=sc[0].score; const tied=sc.filter(t=>t.score===best); const second=sc.find(t=>t.score!==best);
+        const c1=r.scores[k1]?parseFloat(r.scores[k1]):0; const c2=r.scores[k2]?parseFloat(r.scores[k2]):0;
+        const first=c1>0?c1:(pl===1?p:p*0.6); const sec=c2>0?c2:p*0.4;
+        if(tied.some(t=>String(t.id)===String(team.id))){
+          won+=Math.floor((tied.length>1?Math.floor(pl===1?p/tied.length:(first+sec)/tied.length):Math.floor(first))/pc);
+        } else if(pl===2&&second&&String(second.id)===String(team.id)){
+          won+=Math.floor(Math.floor(sec)/pc);
+        }
+      });
+      const skc=(r.scores.skinCounts&&r.scores.skinCounts[team.id])||0;
+      if(skc>0&&psk>0)won+=Math.floor(psk*skc/pc);
+      if(won>0)safeArray(team.players).forEach(p=>add(p.name,won));
+    });
+  }catch(e){}
+  return out;
+}
+// history -> per-player streaks. Streaks count PLAYED rounds; weeks running
+// counts calendar weeks in which the group played at all.
+function computeStreaks(history){
+  const rounds=Object.values(history||{}).filter(r=>r&&r.date&&r.scores&&(r.teams||r.scores.gameMode==='individual'))
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const wk=d=>{try{const dt=new Date(d+'T12:00:00');const day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);return dt.toISOString().slice(0,10);}catch(e){return d;}};
+  const by={}; const allWeeks=[];
+  rounds.forEach(r=>{
+    const w=roundWinnings(r); const wkKey=wk(r.date);
+    if(!allWeeks.includes(wkKey))allWeeks.push(wkKey);
+    Object.entries(w).forEach(([k,won])=>{
+      if(!by[k])by[k]={name:k,rounds:0,won:0,seq:[],weeks:[],best:null};
+      const p=by[k]; p.rounds++; p.won+=won; p.seq.push({date:r.date,won});
+      if(!p.weeks.includes(wkKey))p.weeks.push(wkKey);
+      if(won>0&&(!p.best||won>p.best.won))p.best={won,date:r.date};
+    });
+  });
+  Object.values(by).forEach(p=>{
+    let hot=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won>0)hot++;else break;}
+    let cold=0; for(let i=p.seq.length-1;i>=0;i--){if(p.seq[i].won<=0)cold++;else break;}
+    let wkS=0; for(let i=allWeeks.length-1;i>=0;i--){if(p.weeks.includes(allWeeks[i]))wkS++;else break;}
+    p.hot=hot; p.cold=cold; p.weekStreak=wkS; p.won=Math.round(p.won);
+  });
+  return {by,roundCount:rounds.length};
+}
+// Display lines for one player's photo card. Hot AND cold — it's that kind of group.
+function streakLines(streaks,name){
+  const p=streaks&&streaks.by&&streaks.by[normName(name||'')]; if(!p)return [];
+  const L=[];
+  if(p.hot>=2)L.push({ic:'🔥',tx:'Cashed '+p.hot+' straight rounds'});
+  else if(p.cold>=3)L.push({ic:'🥶',tx:p.cold+' rounds since last cashing'});
+  if(p.weekStreak>=3)L.push({ic:'📅',tx:'Played '+p.weekStreak+' weeks running'});
+  if(p.best&&p.best.won>=20)L.push({ic:'💰',tx:'Best day: $'+p.best.won+' ('+String(p.best.date).slice(5).replace('-','/')+')'});
+  L.push({ic:'⛳',tx:p.rounds+' round'+(p.rounds===1?'':'s')+' · $'+p.won+' won this season'});
+  return L.slice(0,4);
+}
 function dayTeamsAreOut(week,day){try{if(!week||!day)return false;if(!(week.teamsPublished&&week.teamsPublished[day]===true))return false;const t=week.teams&&week.teams[day];const arr=Array.isArray(t)?t:Object.values(t||{});return arr.some(x=>x&&Array.isArray(x.players)&&x.players.length>0);}catch(e){return false;}}
 function sendPushNotify(p){
   if(window.__cgPreview)return;
@@ -2941,7 +3029,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
                       title={isMe?'You':p.name}
-                      onClick={(isMe||(a&&(a.logo||a.tagline)))?((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                      onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')}))}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -5251,7 +5339,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                           <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                             title={isMe?'You':p.name}
-                            onClick={(isMe||(a&&(a.logo||a.tagline)))?((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')})):null}/>
+                            onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')}))}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -9557,6 +9645,17 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
   const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','logins','behavior'];
   const showSec=id=>{ if(!publicMode)return true; return settings?.statsPlayerSections?.[id]!==false; };
+  // ── Streaks & milestones (same money math as Standings via roundWinnings) ──
+  const streakStats=useMemo(()=>{
+    const st=computeStreaks(history);
+    const all=Object.values(st.by);
+    const hot=all.filter(p=>p.hot>=2).sort((a,b)=>b.hot-a.hot||b.won-a.won).slice(0,5);
+    const cold=all.filter(p=>p.cold>=3&&p.rounds>=5).sort((a,b)=>b.cold-a.cold).slice(0,5);
+    const iron=all.filter(p=>p.weekStreak>=3).sort((a,b)=>b.weekStreak-a.weekStreak||b.rounds-a.rounds).slice(0,5);
+    const most=all.slice().sort((a,b)=>b.rounds-a.rounds).slice(0,5);
+    const bests=all.filter(p=>p.best&&p.best.won>=30).sort((a,b)=>b.best.won-a.best.won).slice(0,5);
+    return {hot,cold,iron,most,bests,n:all.length};
+  },[Object.keys(history||{}).length]);
   const curAdminSections=settings?.statsAdminSections||SHAREABLE_SECTIONS.reduce((a,k)=>{a[k]=true;return a;},{});
   const curAccess=settings?.statsAccess||'none';
   const curAllowed=settings?.statsAllowedPlayers||{};
@@ -9856,7 +9955,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
                     {[['var(--info)','👤 Member View',id=>curSections[id]!==false,(id,val)=>writeStats('statsPlayerSections/'+id,val)],['var(--highlight)','🛡️ Admin View',id=>curAdminSections[id]!==false,(id,val)=>writeStats('statsAdminSections/'+id,val)]].map(([color,heading,isOn,onToggle])=>(
                       <div key={heading} style={{marginBottom:16}}>
                         <div style={{fontSize:11,fontWeight:700,color:color,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8,paddingBottom:4,borderBottom:'1px solid var(--hairline)'}}>{heading}</div>
-                        {[['overview','📊 Season Overview'],['teams','🤝 Who Plays With Who'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['stableford','🎯 Stableford Games'],['pots','💰 Pot Analytics'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
+                        {[['overview','📊 Season Overview'],['teams','🤝 Who Plays With Who'],['streaks','🔥 Streaks & Milestones'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['stableford','🎯 Stableford Games'],['pots','💰 Pot Analytics'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
                           const on=isOn(id);
                           return(
                             <div key={id} onClick={()=>onToggle(id,!on)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer'}}>
@@ -9971,6 +10070,29 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
         </S>}
 
         {/* ── Stableford games — individual rounds, kept apart from the team game ── */}
+        {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has cashed '+streakStats.hot[0].hot+' straight'):'Who’s hot and who’s ice cold')}>
+          <div style={{paddingTop:6}}>
+            {[['🔥 Hot — cashing streaks',streakStats.hot,p=>p.hot+' straight',' rounds paying money in a row','#b45309'],
+              ['🥶 Ice cold',streakStats.cold,p=>p.cold+' without cashing','5+ rounds played · longest droughts','#1d4ed8'],
+              ['📅 Iron men',streakStats.iron,p=>p.weekStreak+' weeks running','played every week the group played','var(--brand)'],
+              ['💰 Best single days',streakStats.bests,p=>'$'+p.best.won+' · '+String(p.best.date).slice(5).replace('-','/'),'most won in one round','#a16207'],
+              ['⛳ Most rounds',streakStats.most,p=>p.rounds+' rounds','the regulars','var(--ink-70)']
+            ].map(([hd,list,fmt,sub,col])=>!list.length?null:(
+              <div key={hd} style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:800,color:col,textTransform:'uppercase',letterSpacing:'0.07em'}}>{hd}</div>
+                <div style={{fontSize:10.5,color:'var(--ink-40)',marginBottom:6}}>{sub}</div>
+                {list.map((p,i)=>(
+                  <div key={p.name} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',width:14,flexShrink:0}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.name}</span>
+                    <span style={{fontSize:12.5,fontWeight:800,color:col,whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums'}}>{fmt(p)}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.5}}>Streaks count rounds played — skipping a week doesn’t break a cashing streak, but Iron Man needs every week. Money matches the Standings tab.</div>
+          </div>
+        </S>}
         {showSec('stableford')&&stbl&&<S id="stableford" icon="🎯" title="Stableford Games" color="var(--info)" borderColor="var(--info)" summary={stbl.rounds+' round'+(stbl.rounds!==1?'s':'')+' · winner avg '+(stbl.avgWinNet!=null?((stbl.avgWinNet>=0?'+':'')+stbl.avgWinNet):'—')+' vs target'}>
           <div style={{paddingTop:6}}>
             <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:10,lineHeight:1.5}}>
@@ -11254,7 +11376,10 @@ function App(){
   // Photo viewer state lives here, at the root, so the overlay is positioned
   // against the viewport rather than inside whatever card was tapped.
   const [avatarView,setAvatarView]=useState(null);
-  const showAvatar=(o)=>{ if(o&&(o.logo||o.isMe||o.tagline))setAvatarView(o); };
+  // Everyone's card opens now — streaks give even a bare-initials guy something to show.
+  const showAvatar=(o)=>{ if(!o||!o.name)return; loadDeferred('history'); setAvatarView(o); };
+  const streakData=useMemo(()=>computeStreaks(history),[Object.keys(history||{}).length]);
+  const streaksForCard=useCallback((nm)=>streakLines(streakData,nm),[streakData]);
 
   // Demo-safe write wrappers — when isDemo=true these are ALL no-ops, NEVER touch Firebase
   const safeWrite  = write;
@@ -11999,7 +12124,7 @@ settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin
         onGoTo={setTab} onLogout={()=>{setCurrentUser(null);try{localStorage.removeItem('cgCurrentUser');}catch{}}}
       />}
 
-      <AvatarLightbox view={avatarView} onClose={()=>setAvatarView(null)} onEditProfile={openMyProfile}/>
+      <AvatarLightbox view={avatarView} streaksFor={streaksForCard} onClose={()=>setAvatarView(null)} onEditProfile={openMyProfile}/>
       {showProfile && currentUser && currentUser.role !== 'guest' && (
         <ProfileModal
           currentUser={currentUser}
