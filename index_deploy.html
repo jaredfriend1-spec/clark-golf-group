@@ -6301,6 +6301,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               </div>
             )}
             {isAdmin&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% of the pot, plus rounding leftovers): the leftover after team payouts, split by skins won.</div>}
+            {seasonLock&&seasonLock.closedAt&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>💵 <b style={{color:'var(--ink)'}}>No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round.</b> The fund keeps building until then — every weekly round adds $1 per player to the pot. What you owe is settled at tournament sign-in.</div>}
             {!isAdmin&&<div style={{fontSize:12,color:'var(--ink-40)',lineHeight:1.6,marginTop:4}}>Payouts for front 9, back 9, overall and team skins each day — the split is announced by the admins before play.</div>}
           </div>
           {currentUser&&me&&me.in===true&&(
@@ -6970,6 +6971,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           </div>
         </div>
       )}
+      {seasonLock&&seasonLock.closedAt&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginTop:8}}>💵 No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round — every weekly round until then adds another $1 to the pot.</div>}
       {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — the app locks at midnight after that; late changes go through Clark directly.</div>}
       {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need to change your answer? Talk to Clark directly — he can update it.</div>}
       {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?'Day 1 only':'Day 2 only'))):''} · handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap a day to update.</div>}
