@@ -6762,6 +6762,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
 }
 
 function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview, compact, onOpen, asModal, onDismiss, onStatus }){
+  // Date formatter. This component previously leaned on `fd` from TournamentTabView's
+  // scope — undefined here, so the invite modal crashed the WHOLE app the moment
+  // invites went live (the one path preview never renders). Sept 30 launch test.
+  const fd=(d,long)=>d?new Date(d+'T12:00').toLocaleDateString([], long?{weekday:'long',month:'long',day:'numeric'}:{weekday:'short',month:'short',day:'numeric'}):null;
   const [previewTap, setPreviewTap] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [daysPick, setDaysPick] = useState('both');
