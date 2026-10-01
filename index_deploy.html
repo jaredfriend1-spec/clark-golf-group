@@ -6918,7 +6918,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     update({['tournament/players/'+currentUser.id+'/in']:false,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now()});
   };
   return (
-    <div style={{margin:'0 0 14px',padding:'14px 16px',background:'linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03))',border:adminPreview?'2px dashed rgba(212,175,55,0.6)':'1px solid rgba(212,175,55,0.35)',borderRadius:14}}>
+    <div style={{margin:'0 0 14px',padding:'14px 16px',background:'var(--surface)',border:adminPreview?'2px dashed rgba(212,175,55,0.7)':'1.5px solid rgba(180,140,30,0.55)',borderRadius:14,boxShadow:'0 2px 10px rgba(15,15,15,0.06)'}}>
       {adminPreview&&(
         <div style={{margin:'-14px -16px 10px',padding:'6px 16px',background:'var(--warn-soft)',borderBottom:'1px solid rgba(212,175,55,0.3)',borderRadius:'14px 14px 0 0',fontSize:11,fontWeight:800,color:'var(--warn-ink)',letterSpacing:'0.03em'}}>
           👁 ADMIN-ONLY PREVIEW · NO MEMBER CAN SEE THIS YET
@@ -6933,24 +6933,24 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:8}}>Preview only — nothing was recorded.</div>
       )}
       <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>🏆 {cfg.name||'Clark Group Tournament'} <span style={{fontWeight:600,color:'var(--ink-50)'}}>· {dates}</span></div>
-      <div style={{fontSize:11.5,color:'var(--ink-50)',marginTop:4}}>
+      <div style={{fontSize:12.5,color:'var(--ink-70)',marginTop:4,lineHeight:1.5}}>
         {cfg.date2?'Two separate one-day events — play both days or either one.':'One-day event.'}{cfg.redrawTeams!==false?' New random teams drawn each day.':''}{cfg.teamSize?' Teams of '+cfg.teamSize+'.':''}
       </div>
       <div style={{marginTop:9,padding:'9px 11px',background:'var(--surface-sunken)',borderRadius:10}}>
-        <div style={{fontSize:11,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:5}}>How your entry works</div>
-        <div style={{fontSize:11.5,color:'var(--ink-60)',lineHeight:1.65}}>
-          Entry fee is <b style={{color:'var(--ink)'}}>${bar}</b> (set by the most rounds played). Every weekly round you've played already counts $1 toward it.
+        <div style={{fontSize:11,fontWeight:800,color:'var(--ink-60)',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:5}}>How your entry works</div>
+        <div style={{fontSize:12.5,color:'var(--ink)',lineHeight:1.65}}>
+          Entry fee is <b>${bar}</b> (set by the most rounds played). Every weekly round you've played already counts $1 toward it.
         </div>
         <div style={{display:'flex',gap:6,marginTop:7,flexWrap:'wrap'}}>
-          <div style={{flex:1,minWidth:88,background:'var(--surface)',borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Your rounds</div>
+          <div style={{flex:1,minWidth:88,background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase'}}>Your rounds</div>
             <div style={{fontSize:15,fontWeight:800,color:'var(--ink)'}}>{myRounds}</div>
-            <div style={{fontSize:11,color:'var(--ink-40)'}}>= ${myRounds} in</div>
+            <div style={{fontSize:11,color:'var(--ink-50)'}}>= ${myRounds} in</div>
           </div>
-          <div style={{flex:1,minWidth:88,background:'var(--surface)',borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Entry fee</div>
+          <div style={{flex:1,minWidth:88,background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',textTransform:'uppercase'}}>Entry fee</div>
             <div style={{fontSize:15,fontWeight:800,color:'var(--ink)'}}>${bar}</div>
-            <div style={{fontSize:11,color:'var(--ink-40)'}}>covers {cfg.date2?'both days':'the event'}</div>
+            <div style={{fontSize:11,color:'var(--ink-50)'}}>covers {cfg.date2?'both days':'the event'}</div>
           </div>
           <div style={{flex:1,minWidth:88,background:owed>0?'var(--warn-soft)':'var(--brand-soft)',border:'1px solid '+(owed>0?'var(--warn-border)':'var(--brand-border)'),borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
             <div style={{fontSize:11,fontWeight:700,color:owed>0?'var(--warn-ink)':'var(--brand)',textTransform:'uppercase'}}>{owed>0?'You still owe':'You\u2019re covered'}</div>
@@ -6967,26 +6967,26 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           🔒 RSVPs are locked while we set tee times — need a change? Contact an admin.
         </div>
       )}
-      <div style={{display:'flex',gap:8,marginTop:10,opacity:(rsvpLocked&&!adminPreview)?0.45:1,pointerEvents:(rsvpLocked&&!adminPreview)?'none':'auto'}}>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:10,opacity:(rsvpLocked&&!adminPreview)?0.45:1,pointerEvents:(rsvpLocked&&!adminPreview)?'none':'auto'}}>
         {cfg.date2?(()=>{
           const wd=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return d;}};
           const myDays=me&&me.in===true?(me.days||{day1:true,day2:true}):null;
           const lit=(k)=>myDays&&(k==='both'?(myDays.day1&&myDays.day2):(k==='day1'?(myDays.day1&&!myDays.day2):(myDays.day2&&!myDays.day1)));
           const bt=(k,label)=>(<button key={k} className="btn btn-sm" onClick={()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
-            style={{flex:1,fontWeight:800,padding:'9px 0',border:'1px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand-soft)':'transparent',color:lit(k)?'var(--brand)':'var(--ink-50)'}}>{lit(k)?'✓ ':''}{label}</button>);
+            style={{flex:'1 1 45%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand)':'var(--surface)',color:lit(k)?'#fff':'var(--ink-70)',boxShadow:lit(k)?'0 2px 6px rgba(31,107,71,0.3)':'none'}}>{lit(k)?'✓ ':''}{label}</button>);
           return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days')];
         })():(
         <button className="btn btn-sm" onClick={()=>rsvp(true)}
-          style={{flex:1,fontWeight:800,padding:'9px 0',border:'1px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand-soft)':'transparent',color:status==='in'?'var(--brand)':'var(--ink-50)'}}>
+          style={{flex:1,fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand)':'var(--surface)',color:status==='in'?'#fff':'var(--ink-70)'}}>
           {status==='in'?"🙌 You're in ✓":"I'm in"}
         </button>)}
         <button className="btn btn-sm" onClick={()=>rsvp(false)}
-          style={{flex:1,fontWeight:700,padding:'9px 0',border:'1px solid',borderColor:status==='declined'?'var(--hairline)':'var(--hairline-soft)',background:status==='declined'?'var(--surface-sunken)':'transparent',color:'var(--ink-40)'}}>
+          style={{flex:'1 1 45%',fontWeight:700,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:status==='declined'?'var(--ink-70)':'var(--hairline)',background:status==='declined'?'var(--ink-70)':'var(--surface)',color:status==='declined'?'#fff':'var(--ink-50)'}}>
           {status==='declined'?"Not playing ✗":"Can't make it"}
         </button>
       </div>
       {renderConfirmSheet()}
-      {seasonLock&&seasonLock.closedAt&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginTop:8}}>💵 No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round — every weekly round until then adds another $1 to the pot.</div>}
+      {seasonLock&&seasonLock.closedAt&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-60)',marginTop:8,lineHeight:1.5}}>💵 No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round — every weekly round until then adds another $1 to the pot.</div>}
       {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — the app locks at midnight after that; late changes go through Clark directly.</div>}
       {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need to change your answer? Talk to Clark directly — he can update it.</div>}
       {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?'Day 1 only':'Day 2 only'))):''} · handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap a day to update.</div>}
