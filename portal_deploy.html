@@ -3483,6 +3483,9 @@ function TournamentTab(){
       return {n,k,likely,low,high,pay:payAt(likely)};});
   })();
   const bucket=(lo,hi)=>owedArr.filter(v=>v>=lo&&v<=hi).length;
+  // $1s from guys under the minimum — they can't enter (unless invited), so it's pure bonus money
+  const underMin=Object.values(roundCounts||{}).filter(v=>v<minRounds);
+  const underMinSum=underMin.reduce((a,b)=>a+b,0);
   function buildEmail(){
     const L=[];
     L.push((cfg.name||"Clark Group Tournament").toUpperCase());
@@ -3705,7 +3708,7 @@ function TournamentTab(){
                     fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:"all",title:"🏆 "+(cfg.name||"Clark Group Tournament"),body:"Reminder: tournament invites are open — tap I’m in on the Week tab.",url:"/",tag:"manual-tourney-"+Date.now()})}).catch(()=>{});
                     setCfg("invitePushTs",Date.now());
                   }}>📣 Send reminder push</button>
-                  <button className="btn btn-gh btn-sm" onClick={()=>{if(window.confirm("Take the tournament card away from members? Their answers are kept."))setCfg("inviteOpen",null);}}>Take offline</button>
+                  <button className="btn btn-gh btn-sm" onClick={()=>{if(window.confirm("Take the tournament away from members?\n\nThe Tourney tab goes back to admins-only and the invite disappears. All answers are kept \u2014 going live again restores everything.")){setCfg("inviteOpen",null);setCfg("appTab","admins");}}}>Take offline</button>
                 </div>
 
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
@@ -3788,7 +3791,7 @@ function TournamentTab(){
         <div className="card-hdr"><span className="card-title">📈 Pot by Field Size — from who’s still to answer</span></div>
         <div className="card-body">
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:12}}>
-            {[["Fund already banked","$"+fundTotal,"comes in whoever plays"],["In now · "+inPlayers.length+" players","$"+payinsDue,"their entries"],["Not answered · "+maybePool.length+" eligible","$"+owedSum,"if every one of them joins · avg $"+Math.round(poolAvg)],["Out","" + declinedList.length,"said no"]].map(([l,v,sub])=>(
+            {[["Fund already banked","$"+fundTotal,"comes in whoever plays"],["In now · "+inPlayers.length+" players","$"+payinsDue,"their entries"],["Not answered · "+maybePool.length+" eligible","$"+owedSum,"if every one of them joins · avg $"+Math.round(poolAvg)],["Under "+minRounds+" rounds · "+underMin.length+" guys","$"+underMinSum,"can’t enter · pure bonus"],["Out","" + declinedList.length,"said no"]].map(([l,v,sub])=>(
               <div key={l} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:800,color:"#e2e8f0"}}>{v}</div>

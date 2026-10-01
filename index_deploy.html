@@ -11968,7 +11968,11 @@ function App(){
 
   const statsTabEntry = { id:'master', label:'Stats', icon:<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> };
 
-  const tournTabVisible=((tournCfg&&tournCfg.appTab)==='all'||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&((rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master')||(tournCfg&&tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId)))));
+  // Members get the Tourney tab only while invites are LIVE. "Take offline"
+  // clears inviteOpen but used to leave appTab='all', so members kept an empty
+  // tab (found testing with a member login, Oct 1). Admins and the staged
+  // preview person see it per appTab regardless, for previewing.
+  const tournTabVisible=(((tournCfg&&tournCfg.appTab)==='all'&&(isAdmin||(tournCfg&&tournCfg.inviteOpen===true)))||((tournCfg&&tournCfg.appTab)==='admins'&&isAdmin)||((tournCfg&&tournCfg.appTab)==='only'&&((rosterAdmins&&currentUser&&rosterAdmins[String(currentUser.id)]==='master')||(tournCfg&&tournCfg.appTabOnlyId&&String((currentUser&&currentUser.id)||'')===String(tournCfg.appTabOnlyId)))));
   const awardsLive=!!Object.values(awardsPub||{}).some(d=>d&&d.published);
   const AWARDS_TAB_ENTRY={ id:'awards', label:'Awards', icon:<svg viewBox="0 0 24 24" style={{color:'#b8891a'}}><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg> };
   const TOURN_TAB_ENTRY={ id:'tournament', label:'Tourney', icon:<svg viewBox="0 0 24 24" style={{color:'#b8891a'}}><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>, gold:true };
