@@ -2782,10 +2782,13 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
                   // belongs to the old date and must not carry over (born-locked
                   // waitlist bug, and old scores filing under the new date).
                   const hadScores=!!(week?.scores&&week.scores[day.day])||!!(week?.scoringStarted&&week.scoringStarted[day.day]);
-                  const msg='Change '+day.day+' to '+fresh+'?\n\nThis starts '+day.day+' fresh: the old lock, player cap, tee time and teams are cleared.'+(hadScores?'\n\n\u26a0 '+day.day+' still has scoring state from the old date. It will be cleared too (a copy is kept in dayBackup). Finalize the old round FIRST if it was real.':'');
+                  const midEdit=!!(week?.editingKeys&&week.editingKeys[day.day]);
+                  const msg='Change '+day.day+' to '+fresh+'?\n\nThis starts '+day.day+' fresh: the old lock, player cap, tee time and teams are cleared.'+(hadScores?'\n\n\u26a0 '+day.day+' still has scoring state from the old date. It will be cleared too (a copy is kept in dayBackup). Finalize the old round FIRST if it was real.':'')+(midEdit?'\n\n\u26a0 '+day.day+' is mid-edit from History. The edit is discarded \u2014 the original round in History is untouched.':'');
                   if(!window.confirm(msg))return;
                   write('week/dates/'+day.day,fresh);
-                  ['locked','caps','scoringStarted','teams','teamsPublished','scores','complete','teeTimes','teeApprovals'].forEach(k=>write('week/'+k+'/'+day.day,null));
+                  // editingKeys MUST clear here: a surviving key would make the
+                  // next finalize on this day delete the old History round.
+                  ['locked','caps','scoringStarted','teams','teamsPublished','scores','complete','teeTimes','teeApprovals','editingKeys'].forEach(k=>write('week/'+k+'/'+day.day,null));
                 }}>
                 Set to {fresh}
               </button>}
@@ -4625,6 +4628,19 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
   }
 
   function unpublishTeams(day){
+    // Scores are stored PER TEAM ID. Clearing teams while scores exist leaves
+    // scores pointing at ids the rebuilt teams will reuse — the new Team 1
+    // would inherit the old Team 1's score. Clear them together, loudly.
+    if(week?.editingKeys&&week.editingKeys[day]){
+      window.alert(day+' is being edited from History.\n\nIts teams belong to that round. Go to the Score tab and Finalize or press “Cancel Edit — keep History version” instead.');
+      return;
+    }
+    const _sc=week?.scores&&week.scores[day];
+    const _live=!!(week?.scoringStarted&&week.scoringStarted[day]);
+    if(_live||(_sc&&(_sc.teamScores||_sc.indScores))){
+      if(!window.confirm('Scoring has already started for '+day+'.\n\nClearing the teams also clears the scores entered against them (a copy is kept in dayBackup).\n\nTo fix a line-up mid-round without losing scores, use Stop Scoring on the Score tab, then Edit Teams.\n\nClear teams AND scores?'))return;
+      del('week/scores/'+day); del('week/complete/'+day); del('week/scoringStarted/'+day);
+    }
     del('week/teams/'+day); del('week/teamsPublished/'+day);
     setEditTeams(null); setManualTeams(null); setManualMode(false);
   }
@@ -8299,7 +8315,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
     // were re-activated without End Week, and the old locked:true + cap + scoring
     // state rode along — so the "new" days were born locked and every sign-up
     // went straight to the waiting list.
-    ['modes','modeConfig','locked','caps','scoringStarted','teams','teamsPublished','scores','complete','teeTimes','teeApprovals'].forEach(k=>{
+    ['modes','modeConfig','locked','caps','scoringStarted','teams','teamsPublished','scores','complete','teeTimes','teeApprovals','editingKeys'].forEach(k=>{
       if(w[k]&&w[k][day]!==undefined){const c={...w[k]};delete c[day];w[k]=c;}
     });
     return w;
@@ -8307,8 +8323,23 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   function handleToggleDay(day){
     const isActive=activeDays.includes(day);
     if(isActive){
+      // A day mid-edit from History is finished on the SCORE tab, never here —
+      // deactivating it would strand the edit and leave a live editingKey that
+      // could delete the original round on a later finalize.
+      if(week?.editingKeys&&week.editingKeys[day]){
+        window.alert(day+' is being edited from History.\n\nGo to the Score tab and either Finalize the corrected round or press “Cancel Edit — keep History version”. Then you can deactivate the day.');
+        return;
+      }
+      // A day with real scores entered is a round in progress. Deactivating it
+      // would silently drop the round from History when the week ends.
+      const _sc=week?.scores&&week.scores[day];
+      if(_sc&&(_sc.teamScores||_sc.indScores)){
+        window.alert(day+' already has scores entered.\n\nIf the round was played: finalize it on the Score tab.\nIf it was rained out or never happened: use Cancel Day, which logs it and clears everything.');
+        return;
+      }
       const cnt=allSignups.filter(([,s])=>s.day===day).length;
-      if(cnt>0){setWarnDeact({day,cnt});return;}
+      const hasTeams=safeArray(week?.teams?.[day]).length>0;
+      if(cnt>0||hasTeams){setWarnDeact({day,cnt,hasTeams});return;}
       onDeactivateDay(day);
     } else {
       onCreateWeek(freshDayWeek(week,day,wd[day]));
@@ -8321,8 +8352,15 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
     setWizDay(wizDay===day?null:day);
   }
 
-  const unarchivedDays = safeArray(week?.activeDays).filter(d=>Object.values(week?.signups||{}).some(s=>s.day===d));
-  const allArchived = unarchivedDays.length===0;
+  // "Un-archived" used to mean "has sign-ups" — so a day with TEAMS or SCORES
+  // but no sign-ups read as all-clear, and the button took the Start-Next-Week
+  // path, which resets the board WITHOUT archiving anything. Real data decides.
+  const _dayHasRealScores=d=>{const sc=week?.scores&&week.scores[d];return !!(sc&&(sc.teamScores||sc.indScores));};
+  const _playedDays   = safeArray(week?.activeDays).filter(d=>safeArray(week?.teams?.[d]).length>0||_dayHasRealScores(d));
+  const _signupOnlyDays = safeArray(week?.activeDays).filter(d=>!_playedDays.includes(d)&&Object.values(week?.signups||{}).some(s=>s.day===d));
+  const _midEditDays  = Object.entries(week?.editingKeys||{}).filter(([,k])=>k).map(([d])=>d);
+  const unarchivedDays = _playedDays;
+  const allArchived = _playedDays.length===0;
 
   // ── Section header helper ──
   function SectionHeader({ icon, iconColor='var(--highlight)', title, count, open, onToggle }){
@@ -8532,10 +8570,21 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
 
         {warnDeact&&(
           <div style={{background:'var(--money-neg-soft)',border:'1px solid #fecaca',borderRadius:10,padding:13,marginBottom:10}}>
-            <div style={{fontSize:13,fontWeight:700,color:'var(--money-neg)',marginBottom:6}}>{warnDeact.day} has {warnDeact.cnt} player{warnDeact.cnt!==1?'s':''} signed up</div>
-            <div style={{fontSize:12,color:'var(--ink-70)',marginBottom:10}}>Deactivating will hide this day from players.</div>
+            <div style={{fontSize:13,fontWeight:700,color:'var(--money-neg)',marginBottom:6}}>
+              {warnDeact.cnt>0?warnDeact.day+' has '+warnDeact.cnt+' player'+(warnDeact.cnt!==1?'s':'')+' signed up':warnDeact.day+' has teams built'}
+            </div>
+            <div style={{fontSize:12,color:'var(--ink-70)',marginBottom:10}}>
+              Deactivating removes {warnDeact.day} from the week
+              {warnDeact.cnt>0?' and clears its sign-ups (the names are kept in the cancelled-days log)':''}
+              {warnDeact.hasTeams?(warnDeact.cnt>0?'; its teams are cleared too':' and clears its teams')+' (a copy stays in dayBackup)':''}.
+            </div>
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-danger btn-sm" onClick={()=>{onDeactivateDay(warnDeact.day);setWarnDeact(null);}}>Deactivate anyway</button>
+              <button className="btn btn-danger btn-sm" onClick={()=>{
+                const d=warnDeact.day;
+                const sus=allSignups.filter(([,s])=>s.day===d);
+                if(sus.length)push('cancelledDays',{day:d,date:(week?.dates&&week.dates[d])||'',reason:'deactivated',by:(currentUser&&currentUser.name)||'admin',ts:Date.now(),signups:sus.map(([,s])=>s.name)});
+                onDeactivateDay(d);setWarnDeact(null);
+              }}>Deactivate anyway</button>
               <button className="btn btn-ghost btn-sm" onClick={()=>setWarnDeact(null)}>Keep active</button>
             </div>
           </div>
@@ -9292,13 +9341,25 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                 <div style={{fontSize:12,color:'var(--ink-70)',marginBottom:12,lineHeight:1.5}}>
                   Archives all active days to history, pushes attendance, and resets the board to next week. <strong>This cannot be undone.</strong>
                 </div>
-                {unarchivedDays.length>0&&(
-                  <div style={{background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'10px 12px',marginBottom:12}}>
-                    <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:4}}>Days with sign-ups that will be archived:</div>
-                    {unarchivedDays.map(d=><div key={d} style={{fontSize:12,color:'var(--warn-ink)'}}>• {d} — {allSignups.filter(([,s])=>s.day===d).length} players</div>)}
+                {_midEditDays.length>0&&(
+                  <div style={{background:'var(--money-neg-soft)',border:'1.5px solid #fca5a5',borderRadius:8,padding:'10px 12px',marginBottom:12}}>
+                    <div style={{fontSize:12,fontWeight:800,color:'#b91c1c',marginBottom:3}}>⛔ {_midEditDays.join(', ')} is mid-edit from History</div>
+                    <div style={{fontSize:12,color:'var(--ink-70)',lineHeight:1.5}}>Finish it on the Score tab first — <b>Finalize</b> the corrected round, or press <b>Cancel Edit — keep History version</b>. Ending the week now would lose the original round, so the button below is locked.</div>
                   </div>
                 )}
-                <button className="btn btn-danger" style={{width:'100%'}} onClick={()=>setShowEndWeek(true)}>
+                {unarchivedDays.length>0&&(
+                  <div style={{background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'10px 12px',marginBottom:12}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginBottom:4}}>Days with teams or scores that will be archived to History:</div>
+                    {unarchivedDays.map(d=><div key={d} style={{fontSize:12,color:'var(--warn-ink)'}}>• {d}{_dayHasRealScores(d)?' — has scores (finalize it first if the round was real)':' — teams only, no scores'}</div>)}
+                  </div>
+                )}
+                {_signupOnlyDays.length>0&&(
+                  <div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8,padding:'10px 12px',marginBottom:12}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--ink-60)',marginBottom:4}}>Sign-ups that were never played — discarded with the week:</div>
+                    {_signupOnlyDays.map(d=><div key={d} style={{fontSize:12,color:'var(--ink-60)'}}>• {d} — {allSignups.filter(([,s])=>s.day===d).length} players</div>)}
+                  </div>
+                )}
+                <button className="btn btn-danger" style={{width:'100%',opacity:_midEditDays.length?0.4:1,cursor:_midEditDays.length?'not-allowed':'pointer'}} disabled={_midEditDays.length>0} onClick={()=>setShowEndWeek(true)}>
                   {allArchived?'Start Next Week →':'Archive Remaining & Start Next Week'}
                 </button>
               </div>
@@ -9318,9 +9379,9 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                   />
                 </div>
                 <div style={{display:'flex',gap:8}}>
-                  <button className="btn btn-danger" style={{flex:1,opacity:endConfirmText==='END'?1:0.35,cursor:endConfirmText==='END'?'pointer':'not-allowed'}}
-                    disabled={endConfirmText!=='END'}
-                    onClick={()=>{if(endConfirmText==='END'){if(allArchived)onStartNextWeek();else onEndWeek();setShowEndWeek(false);setEndConfirmText('');}}}>
+                  <button className="btn btn-danger" style={{flex:1,opacity:(endConfirmText==='END'&&!_midEditDays.length)?1:0.35,cursor:(endConfirmText==='END'&&!_midEditDays.length)?'pointer':'not-allowed'}}
+                    disabled={endConfirmText!=='END'||_midEditDays.length>0}
+                    onClick={()=>{if(endConfirmText==='END'&&!_midEditDays.length){if(allArchived)onStartNextWeek();else onEndWeek();setShowEndWeek(false);setEndConfirmText('');}}}>
                     {allArchived?'Start '+getNextWeekLabel()+' →':'Archive & Start Next Week'}
                   </button>
                   <button className="btn btn-ghost" onClick={()=>{setShowEndWeek(false);setEndConfirmText('');}}>Cancel</button>
@@ -11527,7 +11588,21 @@ function App(){
 
   // ── Admin functions ──
   function createWeek(data){ write('week',{activeDays:[],dates:{},signups:{},teams:{},scores:{},complete:{},teeTimes:{},teamsPublished:{},...data}); }
-  function deactivateDay(day){ const newWeek={...week,activeDays:safeArray(week?.activeDays).filter(d=>d!==day)};const tt={...(week?.teeTimes||{})};delete tt[day];newWeek.teeTimes=tt;if(newWeek.modes){const m={...newWeek.modes};delete m[day];newWeek.modes=m;}if(newWeek.modeConfig){const mc={...newWeek.modeConfig};delete mc[day];newWeek.modeConfig=mc;}write('week',newWeek); }
+  function deactivateDay(day){
+    // Strip EVERY per-day key, not just tee time and mode. Leftovers here were
+    // the root of the "stuck days": orphan sign-ups came back when the day was
+    // re-activated, stale scoringStarted/locked rode along, and a surviving
+    // editingKey could delete a History round on a later finalize. Teams and
+    // scores are mirrored to dayBackup continuously, so nothing here is the
+    // only copy. (Callers guard the dangerous cases: a day with real scores or
+    // a mid-edit day is blocked before it reaches this function.)
+    const newWeek={...week,activeDays:safeArray(week?.activeDays).filter(d=>d!==day)};
+    ['teeTimes','modes','modeConfig','teams','teamsPublished','scores','complete','scoringStarted','locked','caps','teeApprovals','editingKeys'].forEach(k=>{
+      if(newWeek[k]&&newWeek[k][day]!==undefined){const c={...newWeek[k]};delete c[day];newWeek[k]=c;}
+    });
+    const ns={};Object.entries(week?.signups||{}).forEach(([k,s])=>{if(!s||s.day!==day)ns[k]=s;});newWeek.signups=ns;
+    write('week',newWeek);
+  }
   function toggleLock(day,locked){ write('week',{...week,locked:{...(week?.locked||{}),[day]:locked}}); }
   function updateTeeTime(day,data){
     const prevTee=week?.teeTimes?.[day];
@@ -11661,6 +11736,10 @@ function App(){
     if(newWeek.complete){const c={...newWeek.complete};delete c[day];newWeek.complete=c;}
     if(newWeek.teamsPublished){const p={...newWeek.teamsPublished};delete p[day];newWeek.teamsPublished=p;}
     if(newWeek.editingKeys){const ek={...newWeek.editingKeys};delete ek[day];newWeek.editingKeys=ek;}
+    // The edit armed scoringStarted and carried the old round's lock — clear
+    // both, or the residue greets the next admin who re-activates this day.
+    if(newWeek.scoringStarted){const ss={...newWeek.scoringStarted};delete ss[day];newWeek.scoringStarted=ss;}
+    if(newWeek.locked){const lk={...newWeek.locked};delete lk[day];newWeek.locked=lk;}
     write('week',newWeek);
     setTab('history');
   }
@@ -11849,6 +11928,15 @@ function App(){
   }
 
   function endWeek(){
+    // HARD BLOCK — a day mid-edit from History must be resolved first. Ending
+    // the week here would archive the edit copy AND delete the original round
+    // (Oct 3 2026 near-miss). The UI disables the button too; this is the
+    // backstop in case any other path calls endWeek.
+    const _editing=Object.entries(week?.editingKeys||{}).filter(([,k])=>k).map(([d])=>d);
+    if(_editing.length){
+      alert('Cannot end the week yet.\n\n'+_editing.join(', ')+' is still being edited from History.\n\nOpen the Score tab and either Finalize the corrected round or press “Cancel Edit — keep History version”. Then end the week.');
+      return;
+    }
     const updates={};
     safeArray(week?.activeDays).forEach((day,index)=>{
       const daySignups=Object.values(week?.signups||{}).filter(s=>s.day===day);
@@ -11856,9 +11944,12 @@ function App(){
       const dayScores=week?.scores?.[day]||null;
       const teamPlayerCount=dayTeams.flatMap(t=>safeArray(t.players)).length;
       const hasScores=!!dayScores&&Object.keys(dayScores).some(k=>k!=='payoutsCalculated'&&k!=='playerCount');
-      // Archive any day with real played data (scores, teams, or signups) — not signups alone.
-      // A scored day whose signups were cleared during team-building must still be archived.
-      if(daySignups.length>0||teamPlayerCount>0||hasScores){
+      // Archive only days that were actually PLAYED (teams or scores). A day
+      // with sign-ups alone never happened — archiving it used to create a
+      // junk History round with no teams, no scores and $0 pots. Those
+      // sign-ups are simply discarded with the week (use Cancel Day first if
+      // you want them logged).
+      if(teamPlayerCount>0||hasScores){
         const playerCount=daySignups.length||teamPlayerCount||(dayScores&&dayScores.playerCount)||0;
         const roundData={day,date:(week?.dates?.[day])||td(),teams:dayTeams,scores:dayScores,playerCount,archivedAt:Date.now()};
         updates['history/dr_'+Date.now()+'_'+index]=roundData;
