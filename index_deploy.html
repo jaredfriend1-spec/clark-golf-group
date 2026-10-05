@@ -6269,13 +6269,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
       </div>
       {sub==='board'&&(live||isAdmin)&&(
         <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
-          {[['Projected',fundTotal+payinsDue,'if everyone opted in pays'],['Potential',fundTotal+potentialDue,'if everyone invited played']].map(([l,v,note],i)=>(
+          {[['Projected',fundTotal+payinsDue,'when everyone opted in pays',true],['Potential',fundTotal+potentialDue,'if everyone invited played',false]].map(([l,v,note,hot],i)=>(
             <React.Fragment key={l}>
               {i>0&&<div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>}
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,color:'var(--ink-40)',fontWeight:700}}>{l}</div>
-                <div style={{fontSize:17,fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em'}}>${v}</div>
-                <div style={{fontSize:11,color:'var(--ink-40)',marginTop:1}}>{note}</div>
+              <div style={hot?{flex:1.1,minWidth:0,background:GOLD_SOFT,border:'1px solid '+GOLD_BORDER,borderRadius:10,padding:'6px 10px',margin:'-4px 0'}:{flex:1,minWidth:0}}>
+                <div style={{fontSize:11,color:hot?GOLD:'var(--ink-40)',fontWeight:800,textTransform:hot?'uppercase':'none',letterSpacing:hot?'0.05em':'normal'}}>{l}</div>
+                <div style={{fontSize:hot?20:17,fontWeight:hot?900:800,color:hot?GOLD:'var(--ink)',letterSpacing:'-0.01em'}}>${v}</div>
+                <div style={{fontSize:11,color:hot?GOLD:'var(--ink-40)',marginTop:1,fontWeight:hot?700:400}}>{note}</div>
               </div>
             </React.Fragment>
           ))}
@@ -6359,7 +6359,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               <div style={card}>
                 <div style={hdr}>💰 The field &amp; the money</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{tile('Players in',inField.length)}{tile("Can't make it",declinedN)}{tile('Still deciding',stillDeciding)}</div>
-                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = ${fundTotal} fund banked + ${paidTotal} cash in hand. Projected = fund + every opted-in buy-in. Potential = fund + every eligible or invited player’s buy-in if they all played. ${paidTotal} collected of ${payinsDue} due from opted-in players · ${Math.max(payinsDue-paidTotal,0)} still to collect. Same buy-in for one day or both.</div>
+                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = ${fundTotal} fund banked + ${paidTotal} cash in hand. Projected = what the pot will be when every opted-in player pays (fund + every opted-in buy-in). Potential = fund + every eligible or invited player’s buy-in if they all played. ${paidTotal} collected of ${payinsDue} due from opted-in players · ${Math.max(payinsDue-paidTotal,0)} still to collect. Same buy-in for one day or both.</div>
                 {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${fundTotal} banked in the fund · ${paidTotal} of ${payinsDue} opt-in cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
                 <div style={{fontSize:12,color:'var(--ink-40)',marginTop:6,lineHeight:1.6}}>Eligibility: {cfg.minRounds!=null?cfg.minRounds:10}+ qualifying rounds (exceptions by the admins).{cfg.refundOverpaid===true?' Players over the bar are refunded.':' Anything over the bar stays in the pot.'} Pot assumes every entry settles.</div>
               </div>
@@ -6792,7 +6792,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   );
 }
 
-function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview, compact, onOpen, asModal, onDismiss, onStatus }){
+function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview, compact, onOpen, asModal, onDismiss, onStatus, homeCard }){
   // Date formatter. This component previously leaned on `fd` from TournamentTabView's
   // scope — undefined here, so the invite modal crashed the WHOLE app the moment
   // invites went live (the one path preview never renders). Sept 30 launch test.
@@ -6948,6 +6948,29 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     setConfirming(false);
     update({['tournament/players/'+currentUser.id+'/in']:false,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now()});
   };
+  // ── WEEK-TAB VARIANT ──────────────────────────────────────────────────────
+  // The Week tab shows the FULL invite only while this member hasn't answered
+  // (they're who the deadline is for). Once answered it collapses to a one-line
+  // strip that jumps to the Tourney tab, and after the RSVP deadline (or an
+  // admin lock) it leaves the Week tab entirely — the Tourney tab carries
+  // everything from there. The Tourney tab's own copy of this card is NOT a
+  // homeCard, so changing an answer there still works after collapse.
+  if(homeCard&&!adminPreview){
+    if(rsvpLocked)return null;
+    if(meAnswered.answered){
+      const amIn=!!(me&&me.in===true);
+      const dayTxt=amIn&&cfg.date2&&me&&me.days?((me.days.day1&&me.days.day2)?'both days':(me.days.day1?fd(cfg.date1):fd(cfg.date2))):'';
+      return (
+        <div onClick={onOpen} style={{margin:'0 0 10px',padding:'9px 14px',borderRadius:12,background:amIn?'var(--brand-soft)':'var(--surface)',border:'1px solid '+(amIn?'var(--brand-border)':'var(--hairline)'),display:'flex',alignItems:'center',gap:9,cursor:'pointer'}}>
+          <span style={{fontSize:16}}>🏆</span>
+          <div style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:amIn?'var(--brand)':'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+            {amIn?('You’re in'+(dayTxt?' — '+dayTxt:(dates?' — '+dates:''))):'Tournament: not playing'}
+          </div>
+          <span style={{fontSize:11.5,fontWeight:800,color:amIn?'var(--brand)':'var(--ink-40)',flexShrink:0}}>{amIn?'See the board ›':'Changed your mind? ›'}</span>
+        </div>
+      );
+    }
+  }
   return (
     <div style={{margin:'0 0 14px',padding:'14px 16px',background:'var(--surface)',border:adminPreview?'2px dashed rgba(212,175,55,0.7)':'1.5px solid rgba(180,140,30,0.55)',borderRadius:14,boxShadow:'0 2px 10px rgba(15,15,15,0.06)'}}>
       {adminPreview&&(
@@ -12250,7 +12273,7 @@ function App(){
           <button onClick={logoutUser} style={{fontSize:11.5,fontWeight:800,color:'var(--warn-ink)',background:'transparent',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',cursor:'pointer',fontFamily:'inherit'}}>Exit</button>
         </div>
       )}
-      {tab === 'home' && tournTabVisible && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard forcePreview={false} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} onStatus={setTournUnanswered}/></div>}
+      {tab === 'home' && tournTabVisible && <div style={{padding:'10px 16px 0'}}><TournamentRsvpCard homeCard forcePreview={false} onOpen={()=>setTab('tournament')} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} onStatus={setTournUnanswered}/></div>}
       {tournTabVisible && tab !== 'score' && showInviteModal && <TournamentRsvpCard asModal forcePreview={isAdmin} onDismiss={dismissInviteModal} currentUser={currentUser} isAdmin={isAdmin} read={read} update={update} fullRoster={activeFullRoster} onStatus={setTournUnanswered}/>}
       {tab === 'awards' && (
         <div>
