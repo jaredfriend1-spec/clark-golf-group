@@ -4303,8 +4303,23 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
         {/* ── FINALIZE (one-step: save + move to history) ── */}
         {isScorer && payoutsCalculated && (
-          <div style={{padding:'14px',borderRadius:10,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontSize:14,fontWeight:800,textAlign:'center',marginBottom:16}}>
-            ✓ Round saved{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' — '+effectiveWeek.dates[activeDay]):''}
+          <div style={{marginBottom:16}}>
+            <div style={{padding:'14px',borderRadius:10,background:'#f0fdf4',border:'1px solid #86efac',color:'#15803d',fontSize:14,fontWeight:800,textAlign:'center'}}>
+              ✓ Round saved{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' — '+effectiveWeek.dates[activeDay]):''}
+            </div>
+            {/* Escape hatch — this state used to be a dead end (reopenDay existed but
+                its button was lost in a redesign; the Oct 3 wedge). Always offer a way out. */}
+            {onReopenDay && (
+              <button className="btn btn-outline btn-full" style={{marginTop:8,fontSize:12.5}}
+                onClick={()=>{if(window.confirm('Reopen scoring for '+activeDay+'?\n\nScores stay as entered — this just unlocks them for editing. Finalize again when done.'))onReopenDay(activeDay);}}>
+                ✏️ Reopen scoring — edit this round
+              </button>
+            )}
+            {week?.editingKeys?.[activeDay] && onCancelEdit && (
+              <button className="btn btn-outline btn-full" style={{marginTop:8,fontSize:12.5,color:'#8a5a00',borderColor:'#f0d9b5'}} onClick={()=>onCancelEdit(activeDay)}>
+                Cancel Edit — keep History version
+              </button>
+            )}
           </div>
         )}
         {isScorer && !payoutsCalculated && (
@@ -11628,7 +11643,10 @@ function App(){
   }
 
   function reopenDay(day){
-    update({['week/complete/'+day]:false,['week/scores/'+day+'/payoutsCalculated']:false});
+    // Also (re)arm scoringStarted: without it the day falls back to the
+    // Start Scoring state, whose date guard rightly refuses old dates —
+    // which would re-trap a reopened edit of an old round.
+    update({['week/complete/'+day]:false,['week/scores/'+day+'/payoutsCalculated']:false,['week/scoringStarted/'+day]:Date.now()});
   }
 
   function cancelEditRound(day){
@@ -11672,10 +11690,18 @@ function App(){
     if(!safeArray(newWeek.activeDays).includes(round.day))newWeek.activeDays=[...safeArray(newWeek.activeDays),round.day];
     newWeek.dates={...(newWeek.dates||{}),[round.day]:round.date};
     if(round.teams)newWeek.teams={...(newWeek.teams||{}),[round.day]:round.teams};
-    if(round.scores){const sc={...round.scores};if(round.playerCount&&!sc.playerCount)sc.playerCount=round.playerCount;newWeek.scores={...(newWeek.scores||{}),[round.day]:sc};}
-    newWeek.complete={...(newWeek.complete||{}),[round.day]:true};
+    if(round.scores){const sc={...round.scores};if(round.playerCount&&!sc.playerCount)sc.playerCount=round.playerCount;
+      // Strip the finalized flag — copying it verbatim locked the Score screen
+      // into its 'Round saved' state, where the edit inputs AND the Cancel
+      // button don't render. That wedged the Oct 3 round (no way out in-app).
+      delete sc.payoutsCalculated;
+      newWeek.scores={...(newWeek.scores||{}),[round.day]:sc};}
+    newWeek.complete={...(newWeek.complete||{}),[round.day]:false};
     newWeek.teamsPublished={...(newWeek.teamsPublished||{}),[round.day]:true};
     newWeek.editingKeys={...(newWeek.editingKeys||{}),[round.day]:key};
+    // Arm scoring directly: Start Scoring's stale-date guard would (rightly)
+    // refuse the old round's date, but an edit is SUPPOSED to carry it.
+    newWeek.scoringStarted={...(newWeek.scoringStarted||{}),[round.day]:Date.now()};
     write('week',newWeek);
     setTab('scoring');
   }
@@ -11743,7 +11769,8 @@ function App(){
       alert('Cannot save this round.\n\nThe date for '+day+' ('+dayDate+') is not part of the current week. Fix the date in Manage Days, then finalize again.');
       return;
     }
-    if(!isNaN(_daysOld)&&_daysOld>2){
+    const _isEditing=!!(week.editingKeys&&week.editingKeys[day]);
+    if(!_isEditing&&!isNaN(_daysOld)&&_daysOld>2){
       console.warn('[guard] archiveDay: '+dayDate+' is '+_daysOld+' days old — refusing.');
       alert('Cannot save this round.\n\n'+day+' is dated '+dayDate+', which is '+_daysOld+' days ago. That usually means the week\u2019s dates were never rolled forward. Fix the date in Manage Days, then finalize again.');
       return;
