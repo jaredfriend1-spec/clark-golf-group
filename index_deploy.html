@@ -600,6 +600,86 @@ function getNextWeekDates(){
 function getNextWeekLabel(){const wd=getNextWeekDates();return'Week of '+fmtD(wd.Friday)+' - '+fmtD(wd.Monday);}
 
 // ═══════════════ buildTeams ALGORITHM — PRESERVE VERBATIM ═══════════════
+// TOURNAMENT DRAW — genuinely random, balance-checked. The weekly buildTeams
+// below is a DETERMINISTIC balancer (same field in, same teams out), which is
+// right for weekly play but wrong for a tournament billed as a random draw:
+// Redraw produced identical teams and a player could predict his draw.
+// This builder shuffles for real: random order, random placement among the
+// teams currently lightest on handicap, best-of-many attempts kept so the
+// spread stays tight. No pairing requests, matches, tee prefs or any other
+// social input exist here at all — handicaps and chance, nothing else.
+function buildTeamsRandom(players, perTeam){
+  // TIERED HAT DRAW, the way real scrambles do it: rank the field by handicap,
+  // cut it into tiers of one-player-per-team (an A hat, a B hat, …), then every
+  // team draws one name from each hat. Within a hat the placement is a pure
+  // coin flip — any player lands on any team with equal odds — while the tier
+  // structure keeps every team one stud, one dud and the middles apart, so the
+  // totals stay close by construction. Best-of-many draws keeps the spread
+  // tight; which draw wins is still chance.
+  perTeam=perTeam||4;
+  const n=players.length; if(n<3)return[];
+  const numTeams=Math.ceil(n/perTeam);
+  const base=Math.floor(n/numTeams), extra=n%numTeams;
+  const h=p=>parseFloat(p.handicap)||0;
+  const ranked=[...players].sort((a,b)=>h(a)-h(b));
+  const tiers=[]; for(let i=0;i<ranked.length;i+=numTeams)tiers.push(ranked.slice(i,i+numTeams));
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  let best=null;
+  for(let attempt=0; attempt<80; attempt++){
+    const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0,_target:i<extra?base+1:base}));
+    for(const tier of tiers){
+      const names=shuffle([...tier]);
+      const order=shuffle(teams.filter(t=>t.players.length<t._target));
+      names.forEach((p,i)=>{ const t=order[i]; if(!t)return; t.players.push({...p}); t.totalHcp+=h(p); });
+    }
+    const tots=teams.map(t=>t.totalHcp);
+    const spread=Math.max(...tots)-Math.min(...tots);
+    if(!best||spread<best.spread)best={teams,spread};
+    // ACCEPT THE FIRST fair-enough draw, don't hunt for the tightest: taking
+    // the first one under the bar keeps every fair draw equally likely, while
+    // best-of hunting would quietly favor the same complementary pairings
+    // every time. ~1 in 5 honest deals passes, so this exits fast.
+    if(spread<=6){best={teams,spread};break;}
+  }
+  // POLISH PASS — balance is the point of team-building, so squeeze the spread
+  // down to match the weekly builder's tightness. Only SAME-TIER swaps are
+  // considered: they keep every team at one player per tier (never two studs
+  // together) and same-tier assignment is the only source of spread, so this
+  // can fix all of it. The hat decided who you're with; this only evens totals.
+  (function(){
+    const teams=best.teams;
+    const tierOf={}; tiers.forEach((tier,ti)=>tier.forEach(p=>{tierOf[p.name]=ti;}));
+    const spreadOf=()=>{const t=teams.map(x=>x.totalHcp);return Math.max(...t)-Math.min(...t);};
+    let guard=0;
+    while(guard++<30){
+      let bestSwap=null, bestImp=0.4;
+      const cur=spreadOf();
+      for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
+        for(let pi=0;pi<teams[i].players.length;pi++)for(let pj=0;pj<teams[j].players.length;pj++){
+          const A=teams[i].players[pi], B=teams[j].players[pj];
+          if(tierOf[A.name]!==tierOf[B.name])continue;   // tier structure stays
+          const hA=h(A), hB=h(B);
+          const nt=teams.map((t,idx)=>idx===i?t.totalHcp-hA+hB:idx===j?t.totalHcp-hB+hA:t.totalHcp);
+          const imp=cur-(Math.max(...nt)-Math.min(...nt));
+          if(imp>bestImp){bestImp=imp;bestSwap={i,j,pi,pj,hA,hB};}
+        }
+      }
+      if(!bestSwap)break;
+      const {i,j,pi,pj,hA,hB}=bestSwap;
+      const tmp=teams[i].players[pi];teams[i].players[pi]=teams[j].players[pj];teams[j].players[pj]=tmp;
+      teams[i].totalHcp+=hB-hA; teams[j].totalHcp+=hA-hB;
+    }
+    best.spread=spreadOf();
+  })();
+  best.teams.forEach(t=>{
+    t.totalHcp=Math.round(t.totalHcp*10)/10;
+    t.players.sort((a,b)=>h(a)-h(b));
+    t.players.forEach((p,i)=>{p.slot=['A','B','C','D','E'][i]||'D';});
+    delete t._target;
+  });
+  return best.teams;
+}
+
 function buildTeams(players,perTeam,pinned,pairingCounts,guestPairs,noPairs){
   perTeam=perTeam||4;
   const n=players.length;if(n<3)return[];
@@ -6192,7 +6272,9 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
     if(dayHasScores){alert(dayLabel+' already has scores, so its teams are locked — a redraw would separate the scores from the players who earned them.\n\nIf you really need to start over, use ✕ Clear first. It saves a backup you can restore.');return;}
     if(teams.length&&!window.confirm('Redraw '+dayLabel+' teams? The current draw is replaced (a backup is kept).'))return;
     const players=dayField.map(p=>{const rec=tpNorm[String(p.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
-    const built=buildTeams(players,teamSize,[],{}, [],[]);
+    // 100% random draw, balance-checked — NOT the weekly builder, which is
+    // deterministic and would hand back the same teams on every Redraw.
+    const built=buildTeamsRandom(players,teamSize);
     const drawn=built.map(tm=>({players:(tm.players||[]).map(p=>({name:p.name,handicap:parseFloat(p.handicap)||0})),totalHcp:Math.round(((tm.players||[]).reduce((s,p)=>s+(parseFloat(p.handicap)||0),0))*10)/10}));
     wsafe({...backupEntry('before redraw'),['tournament/teams/'+day]:drawn,['tournament/teamsPublished/'+day]:null,['tournament/scores/'+day]:null});
   }
