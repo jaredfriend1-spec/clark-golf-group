@@ -6925,8 +6925,22 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   const [text,setText]=useState('');
   const [draftMentions,setDraftMentions]=useState([]);
   const [replyTo,setReplyTo]=useState(null);           // {k,name,snippet}
-  const [confirmDel,setConfirmDel]=useState(null);     // message key pending confirm
+  const [menuFor,setMenuFor]=useState(null);           // entry the long-press menu is open for
+  const [menuConfirm,setMenuConfirm]=useState(false);  // delete needs a second tap, in the sheet
   const scrollRef=useRef(null);
+  // LONG-PRESS → action sheet (WhatsApp pattern). Pointer events cover touch
+  // and mouse; desktop right-click opens the same sheet. A finger that moves
+  // (scrolling) cancels the press.
+  const lpRef=useRef({t:null,x:0,y:0});
+  const lpStart=(e,entry)=>{
+    const p=e.touches?e.touches[0]:e;
+    lpRef.current={t:setTimeout(()=>{try{navigator.vibrate&&navigator.vibrate(12);}catch(err){}setMenuConfirm(false);setMenuFor(entry);},420),x:p.clientX,y:p.clientY};
+  };
+  const lpCancel=()=>{if(lpRef.current.t){clearTimeout(lpRef.current.t);lpRef.current.t=null;}};
+  const lpMove=(e)=>{
+    const p=e.touches?e.touches[0]:e;
+    if(Math.abs(p.clientX-lpRef.current.x)>10||Math.abs(p.clientY-lpRef.current.y)>10)lpCancel();
+  };
   // MOBILE KEYBOARD: size the board to the VISUAL viewport, not the layout one.
   // A fixed inset-0 layer gets shoved up when iOS opens the keyboard — the
   // header scrolled off screen and the board "looked blank" (Oct 9, live
@@ -7012,7 +7026,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   const doDelete=(e)=>{
     if(String(e.uid)===uid){ del('board/messages/'+e.k); }
     else if(isAdmin){ update({['board/messages/'+e.k+'/deleted']:true,['board/messages/'+e.k+'/deletedBy']:currentUser.name||'admin'}); }
-    setConfirmDel(null);
+    setMenuFor(null);setMenuConfirm(false);
   };
   const dayLabel=ts=>{const d=new Date(ts);const today=new Date();const y=new Date();y.setDate(y.getDate()-1);
     const same=(a,b)=>a.toDateString()===b.toDateString();
@@ -7077,24 +7091,54 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
                 </span>
               )}
               <div style={{maxWidth:'78%',display:'flex',flexDirection:'column',alignItems:mine?'flex-end':'flex-start'}}>
-                {!r.grouped&&!mine&&<div style={{fontSize:11,fontWeight:800,color:'var(--ink-50)',margin:'0 0 3px 4px'}}>{String(e.name).split(' ')[0]} {String(e.name).split(' ')[1]?String(e.name).split(' ')[1][0]+'.':''} · {tLabel(e.ts)}</div>}
-                <div style={mine
-                  ?{background:'var(--brand)',color:'#fff',borderRadius:16,borderTopRightRadius:r.grouped?16:5,padding:'8px 12px',fontSize:13.5,lineHeight:1.45,boxShadow:'0 1px 3px rgba(15,15,15,0.08)'}
-                  :{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:16,borderTopLeftRadius:r.grouped?16:5,padding:'8px 12px',fontSize:13.5,lineHeight:1.45,color:'var(--ink)',boxShadow:'0 1px 3px rgba(15,15,15,0.05)'}}>
+                {!r.grouped&&!mine&&<div style={{fontSize:11,fontWeight:800,color:'var(--ink-50)',margin:'0 0 3px 4px'}}>{String(e.name).split(' ')[0]} {String(e.name).split(' ')[1]?String(e.name).split(' ')[1][0]+'.':''}</div>}
+                <div
+                  onContextMenu={ev=>{ev.preventDefault();setMenuConfirm(false);setMenuFor(e);}}
+                  onTouchStart={ev=>lpStart(ev,e)} onTouchEnd={lpCancel} onTouchMove={lpMove}
+                  onMouseDown={ev=>lpStart(ev,e)} onMouseUp={lpCancel} onMouseLeave={lpCancel} onMouseMove={lpMove}
+                  style={mine
+                  ?{background:'var(--brand)',color:'#fff',borderRadius:16,borderTopRightRadius:r.grouped?16:5,padding:'8px 12px 6px',fontSize:13.5,lineHeight:1.45,boxShadow:'0 1px 3px rgba(15,15,15,0.08)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}
+                  :{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:16,borderTopLeftRadius:r.grouped?16:5,padding:'8px 12px 6px',fontSize:13.5,lineHeight:1.45,color:'var(--ink)',boxShadow:'0 1px 3px rgba(15,15,15,0.05)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}}>
                   {e.replyTo&&quoteBox(e.replyTo,mine)}
                   {renderText(e,mine)}
-                </div>
-                <div style={{fontSize:10,color:'var(--ink-40)',margin:'3px 4px 0',display:'flex',gap:8,alignItems:'center'}}>
-                  {mine&&<span>{tLabel(e.ts)}</span>}
-                  {!frozen&&<span onClick={()=>{setReplyTo({k:e.k,name:String(e.name).split(' ')[0],snippet:String(e.text||'').slice(0,80)});setConfirmDel(null);}} style={{cursor:'pointer',border:'1px solid var(--hairline)',borderRadius:10,padding:'1px 7px',background:'var(--surface)'}}>↩ Reply</span>}
-                  {(mine||isAdmin)&&(confirmDel===e.k
-                    ? <span>delete? <b onClick={()=>doDelete(e)} style={{color:'var(--money-neg)',cursor:'pointer'}}>yes</b> / <b onClick={()=>setConfirmDel(null)} style={{cursor:'pointer'}}>no</b></span>
-                    : <span onClick={()=>setConfirmDel(e.k)} style={{cursor:'pointer',border:'1px solid var(--hairline)',borderRadius:10,padding:'1px 7px',background:'var(--surface)'}}>✕{mine?' Delete':' Remove'}</span>)}
+                  <span style={{display:'inline-block',float:'right',margin:'8px -4px 0 10px',fontSize:9.5,fontWeight:600,color:mine?'rgba(255,255,255,0.65)':'var(--ink-40)'}}>{tLabel(e.ts)}</span>
                 </div>
               </div>
             </div>);
         })}
       </div>
+      {/* long-press action sheet */}
+      {menuFor&&(
+        <div onClick={()=>{setMenuFor(null);setMenuConfirm(false);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.45)',zIndex:5,display:'flex',alignItems:'flex-end'}}>
+          <div onClick={ev=>ev.stopPropagation()} style={{width:'100%',background:'var(--surface)',borderRadius:'18px 18px 0 0',padding:'14px 14px max(14px, env(safe-area-inset-bottom))',boxShadow:'0 -8px 30px rgba(0,0,0,0.25)'}}>
+            <div style={{width:38,height:4,borderRadius:4,background:'var(--hairline)',margin:'0 auto 12px'}}></div>
+            <div style={{background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>
+              <div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-50)'}}>{String(menuFor.name).split(' ')[0]} · {tLabel(menuFor.ts)}</div>
+              <div style={{fontSize:12.5,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{String(menuFor.text||'')}</div>
+            </div>
+            {!frozen&&(
+              <button onClick={()=>{setReplyTo({k:menuFor.k,name:String(menuFor.name).split(' ')[0],snippet:String(menuFor.text||'').slice(0,80)});setMenuFor(null);}}
+                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:14.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                <span style={{fontSize:16}}>↩</span> Reply
+              </button>
+            )}
+            <button onClick={()=>{try{navigator.clipboard&&navigator.clipboard.writeText(String(menuFor.text||''));}catch(err){}setMenuFor(null);}}
+              style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:14.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+              <span style={{fontSize:15}}>📋</span> Copy text
+            </button>
+            {(String(menuFor.uid)===uid||isAdmin)&&(
+              <button onClick={()=>{if(menuConfirm)doDelete(menuFor);else setMenuConfirm(true);}}
+                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:menuConfirm?'var(--money-neg-soft, rgba(185,28,28,0.08))':'none',border:'none',borderRadius:menuConfirm?10:0,fontSize:14.5,fontWeight:800,color:'var(--money-neg, #b91c1c)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                <span style={{fontSize:15}}>✕</span> {menuConfirm
+                  ? 'Tap again to confirm'
+                  : (String(menuFor.uid)===uid?'Delete message':'Remove (admin — leaves a note)')}
+              </button>
+            )}
+            <button onClick={()=>{setMenuFor(null);setMenuConfirm(false);}}
+              style={{display:'block',width:'100%',marginTop:8,padding:'12px',background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:12,fontSize:14,fontWeight:800,color:'var(--ink-50)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+          </div>
+        </div>
+      )}
       {/* compose */}
       <div style={{flexShrink:0,background:'var(--surface)',borderTop:'1px solid var(--hairline)',padding:'10px 12px',paddingBottom:'max(10px, env(safe-area-inset-bottom))'}}>
         {frozen&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginBottom:8}}>🔒 The board is frozen by the admins — reading only for now.</div>}
