@@ -4659,8 +4659,20 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
   const published = !!(effectiveWeek?.teamsPublished?.[activeDay]);
 
   const teeRequests = Object.entries(effectiveWeek.signups||{}).filter(([,s])=>s.day===activeDay&&s.teePreference);
-  const guestPairingRequests = Object.entries(effectiveWeek.signups||{}).filter(([,s])=>s.day===activeDay&&s.isGuest&&s.pairWithGuest&&s.guestOf);
-  const dayMatchPairings = Object.entries(effectivePairings||{}).filter(([,m])=>m.day===activeDay);
+  // A pairing request only counts while BOTH people are signed up for the day.
+  // Oct 9 2026: a host dropped out but his guest stayed — the request kept
+  // showing with no way to clear it from the guest's signup. The builder was
+  // already skipping it safely; now the UI says so instead of asking anyone
+  // to approve a pair that can't happen. If the host signs back up, the
+  // request comes back to life on its own — nothing is deleted.
+  const _dayNameSet=new Set(Object.values(effectiveWeek.signups||{}).filter(s=>s&&s.day===activeDay).map(s=>String(s.name||'').toLowerCase().trim()));
+  const _inToday=n=>_dayNameSet.has(String(n||'').toLowerCase().trim());
+  const _gpAll = Object.entries(effectiveWeek.signups||{}).filter(([,s])=>s.day===activeDay&&s.isGuest&&s.pairWithGuest&&s.guestOf);
+  const guestPairingRequests = _gpAll.filter(([,s])=>_inToday(s.guestOf));
+  const guestPairingStale   = _gpAll.filter(([,s])=>!_inToday(s.guestOf));
+  const _mpAll = Object.entries(effectivePairings||{}).filter(([,m])=>m.day===activeDay);
+  const dayMatchPairings = _mpAll.filter(([,m])=>_inToday(m.requester)&&_inToday(m.partner));
+  const matchPairingStale = _mpAll.filter(([,m])=>!(_inToday(m.requester)&&_inToday(m.partner)));
 
   const pairingCounts = useMemo(()=>{
     const counts={};
@@ -5034,7 +5046,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
             )}
 
             {/* Guest pairing requests */}
-            {guestPairingRequests.length > 0 && (
+            {(guestPairingRequests.length > 0 || guestPairingStale.length > 0) && (
               <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:10,padding:'12px 14px',marginBottom:10}}>
                 <div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -5054,11 +5066,18 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                     </div>
                   </div>
                 ))}
+                {guestPairingStale.map(([key,s])=>(
+                  <div key={'st_'+key} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:0.7}}>
+                    <div style={{fontSize:12,color:'var(--ink-50)',lineHeight:1.5}}>
+                      <b style={{color:'var(--ink-70)'}}>{s.name}</b> asked to pair with <b style={{color:'var(--ink-70)'}}>{s.guestOf}</b> — {String(s.guestOf||'').split(' ')[0]} isn’t signed up for {activeDay}, so this is ignored and {String(s.name||'').split(' ')[0]} draws as a regular player. It revives by itself if {String(s.guestOf||'').split(' ')[0]} signs back up.
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Match pairing requests */}
-            {dayMatchPairings.length > 0 && (
+            {(dayMatchPairings.length > 0 || matchPairingStale.length > 0) && (
               <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:10,padding:'12px 14px',marginBottom:10}}>
                 <div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2.2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor"/></svg>
@@ -5075,6 +5094,13 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                     <div style={{display:'flex',gap:4}}>
                       <button onClick={()=>setApproval('match_'+key,true)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['match_'+key]===true?'var(--brand)':'var(--hairline)',background:approvals['match_'+key]===true?'var(--brand-soft)':'var(--surface)',color:approvals['match_'+key]===true?'var(--brand)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['match_'+key]===true?'✓ Approved':'Approve'}</button>
                       <button onClick={()=>setApproval('match_'+key,false)} style={{padding:'4px 10px',borderRadius:6,border:'1.5px solid',borderColor:approvals['match_'+key]===false?'var(--money-neg)':'var(--hairline)',background:approvals['match_'+key]===false?'var(--money-neg-soft)':'var(--surface)',color:approvals['match_'+key]===false?'var(--money-neg)':'var(--ink-50)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{approvals['match_'+key]===false?'Denied':'Deny'}</button>
+                    </div>
+                  </div>
+                ))}
+                {matchPairingStale.map(([key,m])=>(
+                  <div key={'st_'+key} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:0.7}}>
+                    <div style={{fontSize:12,color:'var(--ink-50)',lineHeight:1.5}}>
+                      <b style={{color:'var(--ink-70)'}}>{m.requester}</b> ⚡ <b style={{color:'var(--ink-70)'}}>{m.partner}</b> — {_inToday(m.requester)?m.partner:m.requester} isn’t signed up for {activeDay}, so this match is ignored for the draw.
                     </div>
                   </div>
                 ))}
