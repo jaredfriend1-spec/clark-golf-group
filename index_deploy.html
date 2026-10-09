@@ -6927,6 +6927,24 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   const [replyTo,setReplyTo]=useState(null);           // {k,name,snippet}
   const [confirmDel,setConfirmDel]=useState(null);     // message key pending confirm
   const scrollRef=useRef(null);
+  // MOBILE KEYBOARD: size the board to the VISUAL viewport, not the layout one.
+  // A fixed inset-0 layer gets shoved up when iOS opens the keyboard — the
+  // header scrolled off screen and the board "looked blank" (Oct 9, live
+  // pilot). Tracking visualViewport keeps the header pinned and the compose
+  // bar riding just above the keyboard.
+  const [vvh,setVvh]=useState((window.visualViewport&&window.visualViewport.height)||window.innerHeight);
+  useEffect(()=>{
+    const vv=window.visualViewport;
+    if(!vv){const f=()=>setVvh(window.innerHeight);window.addEventListener('resize',f);return()=>window.removeEventListener('resize',f);}
+    const f=()=>{setVvh(vv.height);const el=scrollRef.current;if(el)setTimeout(()=>{el.scrollTop=el.scrollHeight;},50);};
+    vv.addEventListener('resize',f);vv.addEventListener('scroll',f);f();
+    return()=>{vv.removeEventListener('resize',f);vv.removeEventListener('scroll',f);};
+  },[]);
+  // Lock the app behind the overlay so the page itself can't scroll away.
+  useEffect(()=>{
+    const prev=document.body.style.overflow;document.body.style.overflow='hidden';
+    return()=>{document.body.style.overflow=prev;};
+  },[]);
   const rowRefs=useRef({});
   const readAtOpen=useRef(myReadAtOpen||0);            // frozen at open so NEW divider doesn't vanish
   const entries=useMemo(()=>Object.entries(messages||{})
@@ -7021,7 +7039,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
       <div style={{color:mine?'rgba(255,255,255,0.75)':'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:230}}>{r.snippet}</div>
     </div>);
   return ReactDOM.createPortal(
-    <div style={{position:'fixed',inset:0,zIndex:9600,display:'flex',flexDirection:'column',background:'var(--surface-sunken, #f2f4f2)'}}>
+    <div style={{position:'fixed',top:0,left:0,right:0,height:vvh+'px',zIndex:9600,display:'flex',flexDirection:'column',background:'var(--surface-sunken, #f2f4f2)',overflow:'hidden'}}>
       {/* header */}
       <div style={{background:'#0f2f22',color:'#fff',padding:'12px 14px',display:'flex',alignItems:'center',gap:10,flexShrink:0,paddingTop:'max(12px, env(safe-area-inset-top))'}}>
         <span style={{fontSize:18}}>💬</span>
@@ -7034,7 +7052,11 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
       {/* messages */}
       <div ref={scrollRef} style={{flex:1,overflowY:'auto',padding:'4px 12px 12px',WebkitOverflowScrolling:'touch'}}>
         {rows.length===0&&(
-          <div style={{textAlign:'center',color:'var(--ink-40)',fontSize:13,padding:'46px 20px',lineHeight:1.6}}>Nothing here yet.<br/>Say something — the whole group will see it.</div>
+          <div style={{textAlign:'center',padding:'52px 24px'}}>
+            <div style={{fontSize:40,marginBottom:10}}>💬</div>
+            <div style={{fontSize:15,fontWeight:800,color:'var(--ink)',marginBottom:6}}>The board is empty</div>
+            <div style={{fontSize:13,color:'var(--ink-50)',lineHeight:1.6}}>Be the first — type below and the whole group sees it.<br/>Type <b style={{color:'#b8891a'}}>@</b> to mention someone by name.</div>
+          </div>
         )}
         {rows.map(r=>{
           if(r.type==='day')return <div key={r.k} style={{display:'flex',justifyContent:'center',margin:'14px 0 10px'}}><span style={{fontSize:10.5,fontWeight:800,letterSpacing:'0.06em',color:'var(--ink-40)',background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:20,padding:'3px 12px',textTransform:'uppercase'}}>{r.label}</span></div>;
