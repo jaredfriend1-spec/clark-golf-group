@@ -7029,13 +7029,48 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
     setMenuFor(null);setMenuConfirm(false);
   };
   // Emoji reactions — stored as reactions/<emoji>/<uid>=true on the message,
-  // so counts are per-emoji sets and a second tap takes yours back.
+  // so counts are per-emoji sets and a second tap takes yours back. The quick
+  // row holds the six staples; "+" opens the full picker (grid + a box that
+  // summons the phone's own emoji keyboard, so ANY emoji works).
   const REACTS=['👍','😂','❤️','⛳','🍺','👎'];
-  const toggleReact=(e,em)=>{
-    if(frozen)return;
-    const have=!!(e.reactions&&e.reactions[em]&&e.reactions[em][uid]);
-    update({['board/messages/'+e.k+'/reactions/'+em+'/'+uid]:have?null:true});
+  const [pickerOpen,setPickerOpen]=useState(false);
+  const [recentEmoji,setRecentEmoji]=useState(()=>{try{return JSON.parse(localStorage.getItem('cgBoardRecent')||'[]');}catch(err){return[];}});
+  const rememberEmoji=(em)=>{try{const r=[em,...recentEmoji.filter(x=>x!==em)].slice(0,8);setRecentEmoji(r);localStorage.setItem('cgBoardRecent',JSON.stringify(r));}catch(err){}};
+  const firstEmoji=(s)=>{
+    const str=String(s||'').trim(); if(!str)return null;
+    try{ if(window.Intl&&Intl.Segmenter){const it=new Intl.Segmenter('en',{granularity:'grapheme'}).segment(str)[Symbol.iterator]().next();return it&&it.value?it.value.segment:null;} }catch(err){}
+    return Array.from(str)[0]||null;
   };
+  const toggleReact=(e,em)=>{
+    if(frozen||!em)return;
+    // Firebase keys can't contain . $ # [ ] / — no emoji does, but guard anyway.
+    if(/[.#$\[\]\/]/.test(em))return;
+    // ONE reaction per person per message (WhatsApp/RCS rule): a different
+    // emoji REPLACES yours, the same emoji removes it. Old + new change in
+    // one atomic update.
+    const mine=Object.entries(e.reactions||{}).find(([,users])=>users&&users[uid]);
+    const o={};
+    if(mine)o['board/messages/'+e.k+'/reactions/'+mine[0]+'/'+uid]=null;
+    if(!mine||mine[0]!==em){o['board/messages/'+e.k+'/reactions/'+em+'/'+uid]=true;rememberEmoji(em);}
+    update(o);
+  };
+  // Who-reacted sheet: tap a pill to see names (and remove your own there).
+  const [whoFor,setWhoFor]=useState(null);           // message key
+  const whoEntry=whoFor?entries.find(x=>x.k===whoFor):null;
+  const nameFor=(id)=>{
+    if(String(id)===uid)return (currentUser.name||'You');
+    const p=safeArray(memberList).find(x=>String(x.id)===String(id));
+    return (p&&p.name)||'Member';
+  };
+  const EMOJI_GRID=[
+    ['Smileys','😀 😁 😂 🤣 😊 😇 🙂 😉 😍 😘 😎 🤩 🥳 😏 😅 😬 🙃 😜 🤪 😴 🤯 😳 🥵 🥶 😡 🤬 😭 😢 🥹 😱 🤢 🤮 🤧 🤒 🫠 😤'],
+    ['Gestures','👍 👎 👏 🙌 🤝 👊 ✊ 🤜 🤛 🫶 💪 🙏 ✌️ 🤞 🤘 🤙 👌 🖕 👋 🫡 🤷 🤦 👀 🧠'],
+    ['Hearts','❤️ 🧡 💛 💚 💙 💜 🖤 🤍 💔 ❤️‍🔥 💯 💥 ✨ ⭐ 🌟 🔥 🎯 🏆 🥇 🥈 🥉 🎖️'],
+    ['Golf','⛳ 🏌️ 🏌️‍♂️ ⛳️ 🕳️ 🐦 🦅 🌵 🌲 🌊 💨 ☀️ 🌧️ ⛈️ 🌈 ❄️ 🧊 💰 💵 🤑 🎲 🎰'],
+    ['Food & drink','🍺 🍻 🥃 🍷 🥂 🍾 ☕ 🌭 🍔 🍕 🌮 🥓 🍩 🍿 🥜 🧂'],
+    ['Fun','🎉 🎊 🍀 🚀 💣 🧨 🏳️ 🏁 🚩 ⏰ 💤 🐐 🐍 🦆 🐢 🦈 🙈 🙉 🙊 💩 🤡 👻 💀 ☠️ 🎃 🤠 👑'],
+  ];
+  useEffect(()=>{setPickerOpen(false);},[menuFor&&menuFor.k]);
   const dayLabel=ts=>{const d=new Date(ts);const today=new Date();const y=new Date();y.setDate(y.getDate()-1);
     const same=(a,b)=>a.toDateString()===b.toDateString();
     if(same(d,today))return 'Today · '+d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
@@ -7117,7 +7152,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
                     if(!who.length)return null;
                     const my=who.some(([u])=>u===uid);
                     return (
-                      <span key={em} onClick={()=>toggleReact(e,em)}
+                      <span key={em} onClick={()=>setWhoFor(e.k)}
                         style={{display:'inline-flex',alignItems:'center',gap:3,background:'var(--surface)',border:'1.5px solid '+(my?'#b8891a':'var(--hairline)'),borderRadius:14,padding:'2px 8px',fontSize:12.5,fontWeight:700,color:my?'#b8891a':'var(--ink-50)',cursor:'pointer',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
                         {em}{who.length>1?' '+who.length:''}
                       </span>);
@@ -7128,12 +7163,38 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
             </div>);
         })}
       </div>
+      {/* who-reacted sheet (tap a pill) */}
+      {whoEntry&&(
+        <div onClick={()=>setWhoFor(null)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.45)',zIndex:6,display:'flex',alignItems:'flex-end'}}>
+          <div onClick={ev=>ev.stopPropagation()} style={{width:'100%',background:'var(--surface)',borderRadius:'18px 18px 0 0',padding:'14px 14px max(14px, env(safe-area-inset-bottom))',boxShadow:'0 -8px 30px rgba(0,0,0,0.25)'}}>
+            <div style={{width:38,height:4,borderRadius:4,background:'var(--hairline)',margin:'0 auto 12px'}}></div>
+            <div style={{fontSize:14.5,fontWeight:800,color:'var(--ink)',marginBottom:10}}>Reactions</div>
+            <div style={{maxHeight:'40vh',overflowY:'auto'}}>
+              {Object.entries(whoEntry.reactions||{}).flatMap(([em,users])=>
+                Object.entries(users||{}).filter(([,v])=>v).map(([ruid])=>({em,ruid}))
+              ).sort((a,b)=>(a.ruid===uid?-1:0)-(b.ruid===uid?-1:0)).map(({em,ruid})=>(
+                <div key={em+'_'+ruid}
+                  onClick={()=>{if(ruid===uid){toggleReact(whoEntry,em);setWhoFor(null);}}}
+                  style={{display:'flex',alignItems:'center',gap:11,padding:'11px 6px',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',cursor:ruid===uid?'pointer':'default'}}>
+                  <span style={{flex:1,minWidth:0}}>
+                    <span style={{fontSize:14.5,fontWeight:700,color:'var(--ink)'}}>{nameFor(ruid)}</span>
+                    {ruid===uid&&<span style={{display:'block',fontSize:11.5,color:'var(--ink-40)'}}>Tap to remove</span>}
+                  </span>
+                  <span style={{fontSize:22}}>{em}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>setWhoFor(null)}
+              style={{display:'block',width:'100%',marginTop:10,padding:'12px',background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:12,fontSize:14,fontWeight:800,color:'var(--ink-50)',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
+          </div>
+        </div>
+      )}
       {/* long-press action sheet */}
       {menuFor&&(
         <div onClick={()=>{setMenuFor(null);setMenuConfirm(false);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.45)',zIndex:5,display:'flex',alignItems:'flex-end'}}>
           <div onClick={ev=>ev.stopPropagation()} style={{width:'100%',background:'var(--surface)',borderRadius:'18px 18px 0 0',padding:'14px 14px max(14px, env(safe-area-inset-bottom))',boxShadow:'0 -8px 30px rgba(0,0,0,0.25)'}}>
             <div style={{width:38,height:4,borderRadius:4,background:'var(--hairline)',margin:'0 auto 12px'}}></div>
-            {!frozen&&(
+            {!frozen&&!pickerOpen&&(
               <div style={{display:'flex',justifyContent:'space-between',gap:4,marginBottom:12}}>
                 {REACTS.map(em=>{
                   const my=!!(menuFor.reactions&&menuFor.reactions[em]&&menuFor.reactions[em][uid]);
@@ -7142,8 +7203,46 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
                       style={{flex:1,fontSize:24,padding:'8px 0',background:my?'rgba(184,137,26,0.14)':'var(--surface-sunken, #f6f4ec)',border:'1.5px solid '+(my?'#b8891a':'var(--hairline)'),borderRadius:12,cursor:'pointer',fontFamily:'inherit'}}>{em}</button>
                   );
                 })}
+                <button aria-label="More reactions" onClick={()=>setPickerOpen(true)}
+                  style={{flex:1,fontSize:22,fontWeight:800,padding:'8px 0',background:'var(--surface-sunken, #f6f4ec)',border:'1.5px solid var(--hairline)',borderRadius:12,cursor:'pointer',fontFamily:'inherit',color:'var(--ink-50)'}}>＋</button>
               </div>
             )}
+            {pickerOpen&&(
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <button onClick={()=>setPickerOpen(false)} style={{background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:10,padding:'7px 12px',fontSize:13,fontWeight:800,color:'var(--ink-50)',cursor:'pointer',fontFamily:'inherit'}}>← Back</button>
+                  <div style={{fontSize:14,fontWeight:800,color:'var(--ink)'}}>Pick a reaction</div>
+                </div>
+                <input placeholder="⌨️ or type any emoji here…" inputMode="text"
+                  onChange={ev=>{const em=firstEmoji(ev.target.value);ev.target.value='';if(em&&!/^[A-Za-z0-9\s]$/.test(em)){toggleReact(menuFor,em);setMenuFor(null);}}}
+                  style={{width:'100%',boxSizing:'border-box',border:'1.5px solid var(--hairline)',borderRadius:12,padding:'10px 13px',fontSize:16,fontFamily:'inherit',background:'var(--surface-sunken, #f6f4ec)',color:'var(--ink)',outline:'none',marginBottom:10}}/>
+                <div style={{maxHeight:'38vh',overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
+                  {recentEmoji.length>0&&(
+                    <div style={{marginBottom:6}}>
+                      <div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',margin:'2px 0 4px'}}>Recent</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:2}}>
+                        {recentEmoji.map(em=>(
+                          <button key={'r'+em} onClick={()=>{toggleReact(menuFor,em);setMenuFor(null);}}
+                            style={{fontSize:23,padding:'6px 0',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>{em}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {EMOJI_GRID.map(([cat,str])=>(
+                    <div key={cat} style={{marginBottom:6}}>
+                      <div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',margin:'2px 0 4px'}}>{cat}</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:2}}>
+                        {str.split(' ').map(em=>(
+                          <button key={em} onClick={()=>{toggleReact(menuFor,em);setMenuFor(null);}}
+                            style={{fontSize:23,padding:'6px 0',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>{em}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!pickerOpen&&(<>
             <div style={{background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>
               <div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-50)'}}>{String(menuFor.name).split(' ')[0]} · {tLabel(menuFor.ts)}</div>
               <div style={{fontSize:13.5,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{String(menuFor.text||'')}</div>
@@ -7166,6 +7265,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
                   : (String(menuFor.uid)===uid?'Delete message':'Remove (admin — leaves a note)')}
               </button>
             )}
+            </>)}
             <button onClick={()=>{setMenuFor(null);setMenuConfirm(false);}}
               style={{display:'block',width:'100%',marginTop:8,padding:'12px',background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:12,fontSize:14,fontWeight:800,color:'var(--ink-50)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
           </div>
