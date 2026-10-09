@@ -3,10 +3,6 @@
 //   FIREBASE_SERVICE_ACCOUNT       — full JSON of the PROD project service account
 //   FIREBASE_SERVICE_ACCOUNT_TEST  — (optional) same for the test project
 //   NOTIFY_KEY                     — shared key the app sends (light abuse guard)
-//
-// Oct 9 2026: audience now also accepts 'uid:<playerId>' — sends to exactly
-// that one member's devices. Used by the message board's @mention pushes.
-// Unknown audience values send to NOBODY (never fall back to all/admins).
 const admin = require('firebase-admin');
 const apps = {};
 function getApp(project){
@@ -28,19 +24,12 @@ module.exports = async (req, res) => {
     if (!title) return res.status(400).json({ error: 'title required' });
     const app = getApp(project);
     if (!app) return res.status(501).json({ error: 'no service account for ' + project });
-
-    // Resolve the audience: 'all' | 'admins' | 'uid:<playerId>'.
-    const uidTarget = String(audience).startsWith('uid:') ? String(audience).slice(4) : null;
-    if (!uidTarget && audience !== 'all' && audience !== 'admins')
-      return res.status(200).json({ sent: 0, note: 'unknown audience "' + audience + '" — sent to nobody' });
-
     const snap = await app.database().ref('fcmTokens').once('value');
     const all = snap.val() || {};
     const tokens = [];
-    Object.entries(all).forEach(([uid, u]) => {
+    Object.values(all).forEach(u => {
       if (!u || !u.tokens) return;
-      if (uidTarget) { if (String(uid) !== uidTarget) return; }
-      else if (audience === 'admins' && !u.admin) return;
+      if (audience === 'admins' && !u.admin) return;
       Object.keys(u.tokens).forEach(t => tokens.push(t));
     });
     if (!tokens.length) return res.status(200).json({ sent: 0, note: 'no tokens for audience' });
