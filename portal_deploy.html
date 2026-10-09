@@ -407,13 +407,9 @@ function BoardAdminCard({showToast}){
           </div>
         )}
         <div style={{display:"flex",gap:14,flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
-          <label style={{display:"flex",alignItems:"center",gap:7,fontSize:12.5,color:"#e2e8f0",cursor:"pointer"}}>
-            <input type="checkbox" checked={!!board.frozen} onChange={()=>wr("settings/board/frozen",board.frozen?null:true)}/>
-            🔒 Freeze board (read-only)
-          </label>
-          <label style={{display:"flex",alignItems:"center",gap:7,fontSize:12.5,color:"#e2e8f0",cursor:"pointer"}} title="Leave OFF until /api/notify supports uid audiences — mentions still light the gold badge either way.">
+          <label style={{display:"flex",alignItems:"center",gap:7,fontSize:12.5,color:"#e2e8f0",cursor:"pointer"}} title="Leave OFF until the /api/notify function in the repo supports single-person audiences — mentions still light the gold badge either way.">
             <input type="checkbox" checked={!!board.mentionPushApi} onChange={()=>wr("settings/board/mentionPushApi",board.mentionPushApi?null:true)}/>
-            @mention pushes <span style={{fontSize:10.5,color:"#fbbf24"}}>(needs notify-API update first)</span>
+            @mention phone pushes <span style={{fontSize:10.5,color:"#fbbf24"}}>(off until the notify API is updated — badges work regardless)</span>
           </label>
         </div>
         <div style={{borderTop:"1px solid rgba(255,255,255,0.07)",paddingTop:10,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
