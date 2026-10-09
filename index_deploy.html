@@ -6912,6 +6912,199 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   );
 }
 
+// ═══════════════════ THE CLUBHOUSE — group message board ═══════════════════
+// ONE flat board for the whole membership. Spec: claude/message-board-spec.md.
+// Gated by settings/board.mode (off|pilot|all) — the App computes access and
+// only mounts this when the user can see it. Pushes: NONE except a direct
+// @mention, and even that stays dormant until settings/board.mentionPushApi
+// is true (the /api/notify function must learn 'uid:<id>' audiences first).
+function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push, memberList, avatarFor, onShowAvatar, boardCfg, myReadAtOpen, onClose, onMentionPush }){
+  const uid=String(currentUser.id);
+  const myFirst=String(currentUser.name||'').split(' ')[0];
+  const frozen=!!(boardCfg&&boardCfg.frozen);
+  const [text,setText]=useState('');
+  const [draftMentions,setDraftMentions]=useState([]);
+  const [replyTo,setReplyTo]=useState(null);           // {k,name,snippet}
+  const [confirmDel,setConfirmDel]=useState(null);     // message key pending confirm
+  const scrollRef=useRef(null);
+  const rowRefs=useRef({});
+  const readAtOpen=useRef(myReadAtOpen||0);            // frozen at open so NEW divider doesn't vanish
+  const entries=useMemo(()=>Object.entries(messages||{})
+    .map(([k,m])=>({k,...(m||{})}))
+    .filter(m=>m&&m.ts&&m.name)
+    .sort((a,b)=>a.ts-b.ts),[messages]);
+  // Mark read on open and whenever new messages land while the board is open.
+  useEffect(()=>{ try{ write('boardReads/'+uid, Date.now()); }catch(e){} },[entries.length]);
+  // First open: land on the NEW divider if there is one, else the bottom.
+  useEffect(()=>{
+    const el=scrollRef.current; if(!el)return;
+    const nd=el.querySelector('[data-newdiv]');
+    if(nd)nd.scrollIntoView({block:'center'}); else el.scrollTop=el.scrollHeight;
+  },[]);
+  const firstUnreadKey=useMemo(()=>{
+    const m=entries.find(e=>e.ts>readAtOpen.current&&String(e.uid)!==uid);
+    return m?m.k:null;
+  },[entries]);
+  // @mention typeahead — only people who can currently SEE the board.
+  const mentionables=useMemo(()=>{
+    const list=safeArray(memberList).filter(p=>p&&p.name);
+    if(boardCfg&&boardCfg.mode==='pilot'){const pl=boardCfg.pilot||{};return list.filter(p=>pl[String(p.id)]);}
+    return list;
+  },[memberList,boardCfg]);
+  const atMatch=text.match(/@([A-Za-z]*)$/);
+  const suggestions=useMemo(()=>{
+    if(!atMatch)return[];
+    const q=atMatch[1].toLowerCase();
+    return mentionables.filter(p=>String(p.name).toLowerCase().startsWith(q)||String(p.name).split(' ')[0].toLowerCase().startsWith(q)).slice(0,5);
+  },[text,mentionables]);
+  const pickMention=(p)=>{
+    const first=String(p.name).split(' ')[0];
+    setText(t=>t.replace(/@([A-Za-z]*)$/,'@'+first+' '));
+    setDraftMentions(d=>d.some(x=>String(x.id)===String(p.id))?d:[...d,{id:String(p.id),name:p.name,first}]);
+  };
+  const goldNames=(m)=>new Set(safeArray(m.mentions).map(x=>String((x&&x.name)||'').split(' ')[0].toLowerCase()));
+  const renderText=(m,mine)=>{
+    const gold=goldNames(m);
+    return String(m.text||'').split(/(@[A-Za-z]+)/g).map((part,i)=>{
+      if(part[0]==='@'&&gold.has(part.slice(1).toLowerCase()))
+        return <span key={i} style={{background:mine?'rgba(255,255,255,0.22)':'var(--gold-soft, rgba(184,137,26,0.14))',color:mine?'#ffe9b0':'#b8891a',fontWeight:800,borderRadius:6,padding:'0 4px'}}>{part}</span>;
+      return part;
+    });
+  };
+  const doSend=()=>{
+    const body=text.trim();
+    if(!body||frozen)return;
+    const kept=draftMentions.filter(dm=>body.indexOf('@'+dm.first)>=0);
+    const msg={uid,name:currentUser.name,text:body,ts:Date.now()};
+    if(kept.length)msg.mentions=kept.map(({id,name})=>({id,name}));
+    if(replyTo)msg.replyTo={k:replyTo.k,name:replyTo.name,snippet:replyTo.snippet};
+    push('board/messages',msg);
+    kept.forEach(mn=>{ if(String(mn.id)!==uid&&onMentionPush)onMentionPush(mn,body); });
+    // PRUNE, trash-first (house rule): keep the newest 300; anything older
+    // moves to boardTrash in the same update that removes it.
+    if(entries.length>=320){
+      const excess=entries.slice(0,entries.length-300);
+      const o={};const ts=Date.now();
+      excess.forEach(e=>{const{k,...m}=e;o['boardTrash/'+k]={...m,prunedAt:ts};o['board/messages/'+k]=null;});
+      try{update(o);}catch(err){}
+    }
+    setText('');setDraftMentions([]);setReplyTo(null);
+    setTimeout(()=>{const el=scrollRef.current;if(el)el.scrollTop=el.scrollHeight;},250);
+  };
+  const doDelete=(e)=>{
+    if(String(e.uid)===uid){ del('board/messages/'+e.k); }
+    else if(isAdmin){ update({['board/messages/'+e.k+'/deleted']:true,['board/messages/'+e.k+'/deletedBy']:currentUser.name||'admin'}); }
+    setConfirmDel(null);
+  };
+  const dayLabel=ts=>{const d=new Date(ts);const today=new Date();const y=new Date();y.setDate(y.getDate()-1);
+    const same=(a,b)=>a.toDateString()===b.toDateString();
+    if(same(d,today))return 'Today · '+d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
+    if(same(d,y))return 'Yesterday · '+d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
+    return d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});};
+  const tLabel=ts=>new Date(ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}).toLowerCase().replace(' ','');
+  const initials=n=>String(n||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const avColor=n=>{let h=0;const s=String(n||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return ['#1f6b47','#6d4c2f','#2f4c6d','#6d2f4c','#4c6d2f','#2f6d64'][h%6];};
+  const rows=[];
+  let prev=null;
+  entries.forEach(e=>{
+    const newDay=!prev||new Date(prev.ts).toDateString()!==new Date(e.ts).toDateString();
+    if(newDay)rows.push({type:'day',k:'day_'+e.k,label:dayLabel(e.ts)});
+    if(e.k===firstUnreadKey)rows.push({type:'new',k:'new_'+e.k});
+    const grouped=!newDay&&prev&&String(prev.uid)===String(e.uid)&&!prev.deleted&&(e.ts-prev.ts)<4*60000&&e.k!==firstUnreadKey&&!e.replyTo;
+    rows.push({type:'msg',k:e.k,e,grouped});
+    prev=e;
+  });
+  const quoteBox=(r,mine)=>(
+    <div onClick={(ev)=>{ev.stopPropagation();const el=rowRefs.current[r.k];if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}}
+      style={{borderLeft:'3px solid '+(mine?'#ffe9b0':'#b8891a'),background:mine?'rgba(255,255,255,0.16)':'rgba(26,43,34,0.05)',borderRadius:8,padding:'5px 9px',margin:'0 0 7px',fontSize:12,cursor:'pointer'}}>
+      <div style={{fontSize:10.5,fontWeight:800,color:mine?'#ffe9b0':'#b8891a'}}>{r.name}</div>
+      <div style={{color:mine?'rgba(255,255,255,0.75)':'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:230}}>{r.snippet}</div>
+    </div>);
+  return ReactDOM.createPortal(
+    <div style={{position:'fixed',inset:0,zIndex:9600,display:'flex',flexDirection:'column',background:'var(--surface-sunken, #f2f4f2)'}}>
+      {/* header */}
+      <div style={{background:'#0f2f22',color:'#fff',padding:'12px 14px',display:'flex',alignItems:'center',gap:10,flexShrink:0,paddingTop:'max(12px, env(safe-area-inset-top))'}}>
+        <span style={{fontSize:18}}>💬</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:15.5,fontWeight:800}}>The Clubhouse</div>
+          <div style={{fontSize:10.5,color:'rgba(255,255,255,0.5)'}}>Everyone in the group can read this board{boardCfg&&boardCfg.mode==='pilot'?' · PILOT — only testers can see it right now':''}</div>
+        </div>
+        <button aria-label="Close" onClick={onClose} style={{background:'rgba(255,255,255,0.1)',border:'none',color:'#fff',width:32,height:32,borderRadius:'50%',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+      </div>
+      {/* messages */}
+      <div ref={scrollRef} style={{flex:1,overflowY:'auto',padding:'4px 12px 12px',WebkitOverflowScrolling:'touch'}}>
+        {rows.length===0&&(
+          <div style={{textAlign:'center',color:'var(--ink-40)',fontSize:13,padding:'46px 20px',lineHeight:1.6}}>Nothing here yet.<br/>Say something — the whole group will see it.</div>
+        )}
+        {rows.map(r=>{
+          if(r.type==='day')return <div key={r.k} style={{display:'flex',justifyContent:'center',margin:'14px 0 10px'}}><span style={{fontSize:10.5,fontWeight:800,letterSpacing:'0.06em',color:'var(--ink-40)',background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:20,padding:'3px 12px',textTransform:'uppercase'}}>{r.label}</span></div>;
+          if(r.type==='new')return <div key={r.k} data-newdiv style={{display:'flex',alignItems:'center',gap:10,margin:'14px 0 10px',color:'#b8891a',fontSize:10.5,fontWeight:800,letterSpacing:'0.08em'}}><span style={{flex:1,height:1,background:'#b8891a',opacity:0.4}}></span>NEW<span style={{flex:1,height:1,background:'#b8891a',opacity:0.4}}></span></div>;
+          const e=r.e;const mine=String(e.uid)===uid;
+          if(e.deleted)return (
+            <div key={r.k} ref={el=>{rowRefs.current[e.k]=el;}} style={{display:'flex',justifyContent:mine?'flex-end':'flex-start',marginTop:r.grouped?3:12,paddingLeft:mine?0:43}}>
+              <div style={{border:'1.5px dashed var(--hairline)',borderRadius:16,padding:'6px 12px',fontSize:12,fontStyle:'italic',color:'var(--ink-40)'}}>⊘ removed by admin</div>
+            </div>);
+          const av=avatarFor&&avatarFor(e.name);
+          return (
+            <div key={r.k} ref={el=>{rowRefs.current[e.k]=el;}} style={{display:'flex',gap:9,marginTop:r.grouped?3:12,flexDirection:mine?'row-reverse':'row'}}>
+              {!mine&&(
+                <span onClick={()=>onShowAvatar&&onShowAvatar({name:e.name})} style={{width:34,height:34,flexShrink:0,visibility:r.grouped?'hidden':'visible',height:r.grouped?0:34,cursor:'pointer'}}>
+                  {!r.grouped&&(av&&av.logo
+                    ? <img src={av.logo} alt="" style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',border:'2px solid var(--surface)',boxShadow:'0 1px 4px rgba(0,0,0,0.15)'}}/>
+                    : <span style={{width:34,height:34,borderRadius:'50%',background:avColor(e.name),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:12.5,border:'2px solid var(--surface)',boxShadow:'0 1px 4px rgba(0,0,0,0.15)'}}>{initials(e.name)}</span>)}
+                </span>
+              )}
+              <div style={{maxWidth:'78%',display:'flex',flexDirection:'column',alignItems:mine?'flex-end':'flex-start'}}>
+                {!r.grouped&&!mine&&<div style={{fontSize:11,fontWeight:800,color:'var(--ink-50)',margin:'0 0 3px 4px'}}>{String(e.name).split(' ')[0]} {String(e.name).split(' ')[1]?String(e.name).split(' ')[1][0]+'.':''} · {tLabel(e.ts)}</div>}
+                <div style={mine
+                  ?{background:'var(--brand)',color:'#fff',borderRadius:16,borderTopRightRadius:r.grouped?16:5,padding:'8px 12px',fontSize:13.5,lineHeight:1.45,boxShadow:'0 1px 3px rgba(15,15,15,0.08)'}
+                  :{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:16,borderTopLeftRadius:r.grouped?16:5,padding:'8px 12px',fontSize:13.5,lineHeight:1.45,color:'var(--ink)',boxShadow:'0 1px 3px rgba(15,15,15,0.05)'}}>
+                  {e.replyTo&&quoteBox(e.replyTo,mine)}
+                  {renderText(e,mine)}
+                </div>
+                <div style={{fontSize:10,color:'var(--ink-40)',margin:'3px 4px 0',display:'flex',gap:8,alignItems:'center'}}>
+                  {mine&&<span>{tLabel(e.ts)}</span>}
+                  {!frozen&&<span onClick={()=>{setReplyTo({k:e.k,name:String(e.name).split(' ')[0],snippet:String(e.text||'').slice(0,80)});setConfirmDel(null);}} style={{cursor:'pointer',border:'1px solid var(--hairline)',borderRadius:10,padding:'1px 7px',background:'var(--surface)'}}>↩ Reply</span>}
+                  {(mine||isAdmin)&&(confirmDel===e.k
+                    ? <span>delete? <b onClick={()=>doDelete(e)} style={{color:'var(--money-neg)',cursor:'pointer'}}>yes</b> / <b onClick={()=>setConfirmDel(null)} style={{cursor:'pointer'}}>no</b></span>
+                    : <span onClick={()=>setConfirmDel(e.k)} style={{cursor:'pointer',border:'1px solid var(--hairline)',borderRadius:10,padding:'1px 7px',background:'var(--surface)'}}>✕{mine?' Delete':' Remove'}</span>)}
+                </div>
+              </div>
+            </div>);
+        })}
+      </div>
+      {/* compose */}
+      <div style={{flexShrink:0,background:'var(--surface)',borderTop:'1px solid var(--hairline)',padding:'10px 12px',paddingBottom:'max(10px, env(safe-area-inset-bottom))'}}>
+        {frozen&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginBottom:8}}>🔒 The board is frozen by the admins — reading only for now.</div>}
+        {replyTo&&!frozen&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,background:'rgba(26,43,34,0.05)',borderLeft:'3px solid #b8891a',borderRadius:8,padding:'5px 9px'}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:10.5,fontWeight:800,color:'#b8891a'}}>Replying to {replyTo.name}</div>
+              <div style={{fontSize:12,color:'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{replyTo.snippet}</div>
+            </div>
+            <button onClick={()=>setReplyTo(null)} style={{background:'none',border:'none',color:'var(--ink-40)',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+          </div>
+        )}
+        {suggestions.length>0&&!frozen&&(
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
+            {suggestions.map(p=>(
+              <button key={p.id} onClick={()=>pickMention(p)} style={{border:'1.5px solid rgba(184,137,26,0.45)',background:'rgba(184,137,26,0.12)',color:'#b8891a',fontWeight:800,fontSize:12,borderRadius:16,padding:'5px 11px',cursor:'pointer',fontFamily:'inherit'}}>@{p.name}</button>
+            ))}
+          </div>
+        )}
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input value={text} disabled={frozen} onChange={ev=>setText(ev.target.value)}
+            onKeyDown={ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();doSend();}}}
+            placeholder={frozen?'Board is frozen':'Message the group…'}
+            style={{flex:1,border:'1.5px solid var(--hairline)',borderRadius:22,padding:'10px 14px',fontSize:14,fontFamily:'inherit',background:'var(--surface)',color:'var(--ink)',outline:'none',opacity:frozen?0.5:1}}/>
+          <button onClick={doSend} disabled={frozen||!text.trim()} aria-label="Send"
+            style={{background:text.trim()&&!frozen?'var(--brand)':'var(--hairline)',color:'#fff',border:'none',borderRadius:'50%',width:40,height:40,fontSize:16,cursor:text.trim()&&!frozen?'pointer':'default',flexShrink:0,fontFamily:'inherit'}}>➤</button>
+        </div>
+      </div>
+    </div>
+  ,document.body);
+}
+
 function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, forcePreview, compact, onOpen, asModal, onDismiss, onStatus, homeCard }){
   // Date formatter. This component previously leaned on `fd` from TournamentTabView's
   // scope — undefined here, so the invite modal crashed the WHOLE app the moment
@@ -11513,6 +11706,10 @@ function App(){
   // Announcements
   const [announcements, setAnnouncements] = useState({});
   const [tournCfg, setTournCfg] = useState(null);
+  // ── Clubhouse message board (spec: claude/message-board-spec.md) ──
+  const [boardMsgs, setBoardMsgs] = useState(null);
+  const [myBoardRead, setMyBoardRead] = useState(0);
+  const [showBoard, setShowBoard] = useState(false);
   const [myDismissals, setMyDismissals] = useState({});
   const [myJoinedAt, setMyJoinedAt] = useState(null);
   const [editingAnn, setEditingAnn] = useState(null); // {key, ...ann} when editing, or true for new
@@ -11684,6 +11881,44 @@ function App(){
     setAvatarView(o); };
   const streakData=useMemo(()=>computeStreaks(history,attForStreaks),[Object.keys(history||{}).length,attForStreaks]);
   const streaksForCard=useCallback((nm)=>streakLines(streakData,nm),[streakData]);
+
+  // ── Clubhouse board: access gate + subscriptions + badge ──
+  const boardCfg=(settings&&settings.board)||{};
+  const boardAccess=(()=>{
+    if(!ready||!currentUser)return false;
+    if(currentUser.role==='guest'||currentUser.role==='preview'||currentUser.id==='preview'||window.__cgPreview)return false;
+    if(boardCfg.mode==='all')return true;
+    if(boardCfg.mode==='pilot')return !!(boardCfg.pilot&&boardCfg.pilot[String(currentUser.id)]);
+    return false;   // mode 'off' or unset → the feature does not exist
+  })();
+  useEffect(()=>{
+    if(!boardAccess){setBoardMsgs(null);return;}
+    // Clone the top level: some snapshot paths hand back a stable reference,
+    // and an identical identity would make React skip the re-render.
+    const u1=read('board/messages', v=>setBoardMsgs({...(v||{})}));
+    const u2=read('boardReads/'+String(currentUser.id), v=>setMyBoardRead(Number(v)||0));
+    return ()=>{try{u1&&u1();u2&&u2();}catch(e){}};
+  },[boardAccess,currentUser&&currentUser.id]);
+  const boardBadge=useMemo(()=>{
+    if(!boardAccess||!boardMsgs)return {count:0,mention:false};
+    const me=String(currentUser.id);
+    let count=0,mention=false;
+    Object.values(boardMsgs).forEach(m=>{
+      if(!m||!m.ts||m.deleted)return;
+      if(String(m.uid)===me)return;
+      if(m.ts<=myBoardRead)return;
+      count++;
+      if(safeArray(m.mentions).some(x=>x&&String(x.id)===me))mention=true;
+    });
+    return {count,mention};
+  },[boardAccess,boardMsgs,myBoardRead,currentUser&&currentUser.id]);
+  // Mention push — DORMANT until settings/board.mentionPushApi===true, because
+  // /api/notify must first support a 'uid:<id>' audience. Until then the gold
+  // badge is the mention signal. NEVER fall back to 'all'/'admins' here.
+  const onBoardMentionPush=useCallback((mn,body)=>{
+    if(boardCfg.mentionPushApi!==true)return;
+    sendPushNotify({audience:'uid:'+String(mn.id),title:'💬 '+String(currentUser&&currentUser.name||'Someone').split(' ')[0]+' mentioned you',body:String(body||'').slice(0,90),url:'/',tag:'board-mention',vars:{name:(currentUser&&currentUser.name)||''}});
+  },[boardCfg.mentionPushApi,currentUser&&currentUser.id]);
 
   // Demo-safe write wrappers — when isDemo=true these are ALL no-ops, NEVER touch Firebase
   const safeWrite  = write;
@@ -12294,6 +12529,17 @@ function App(){
             {isAdmin && <span className="user-role admin">{String(currentUser.id)==='22'?'Master':'Admin'}</span>}
             {isScoring && <span className="user-role admin">Scoring</span>}
           </div>
+          {boardAccess&&(
+            <button title="The Clubhouse" onClick={()=>setShowBoard(true)}
+              style={{background:'none',border:'none',cursor:'pointer',padding:'4px 6px',marginRight:2,position:'relative',color:'rgba(255,255,255,0.75)',display:'inline-flex',alignItems:'center',fontFamily:'inherit'}}>
+              <span style={{fontSize:16,lineHeight:'17px'}}>💬</span>
+              {boardBadge.count>0&&(
+                <span style={{position:'absolute',top:-3,right:-4,minWidth:16,height:16,borderRadius:9,background:boardBadge.mention?'#b8891a':'#ef4444',color:'#fff',fontSize:9.5,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 4px',border:'1.5px solid #14532d'}}>
+                  {boardBadge.mention?'@':(boardBadge.count>9?'9+':boardBadge.count)}
+                </span>
+              )}
+            </button>
+          )}
           <button title={pushOn?'Notifications on':'Turn on notifications'} onClick={async()=>{try{await enablePushForUser(currentUser,isAdmin);setPushOn(true);}catch(e){window.alert('Notifications: '+e.message);}}}
             style={{background:'none',border:'none',cursor:'pointer',padding:'4px 6px',marginRight:2,position:'relative',color:pushOn?'#36A56F':'rgba(255,255,255,0.55)',display:'inline-flex',alignItems:'center'}}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill={pushOn?'currentColor':'none'} stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -12475,6 +12721,13 @@ settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin
       />}
 
       <AvatarLightbox view={avatarView} streaksFor={streaksForCard} onClose={()=>setAvatarView(null)} onEditProfile={openMyProfile}/>
+      {showBoard&&boardAccess&&(
+        <BoardOverlay currentUser={currentUser} isAdmin={isAdmin} messages={boardMsgs}
+          write={safeWrite} update={safeUpdate} del={safeDel} push={safePush}
+          memberList={activeFullRoster} avatarFor={avatarForApp} onShowAvatar={showAvatar}
+          boardCfg={boardCfg} myReadAtOpen={myBoardRead} onClose={()=>setShowBoard(false)}
+          onMentionPush={onBoardMentionPush}/>
+      )}
       {showProfile && currentUser && currentUser.role !== 'guest' && (
         <ProfileModal
           currentUser={currentUser}
