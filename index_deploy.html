@@ -7028,6 +7028,14 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
     else if(isAdmin){ update({['board/messages/'+e.k+'/deleted']:true,['board/messages/'+e.k+'/deletedBy']:currentUser.name||'admin'}); }
     setMenuFor(null);setMenuConfirm(false);
   };
+  // Emoji reactions — stored as reactions/<emoji>/<uid>=true on the message,
+  // so counts are per-emoji sets and a second tap takes yours back.
+  const REACTS=['👍','😂','❤️','⛳','🍺','👎'];
+  const toggleReact=(e,em)=>{
+    if(frozen)return;
+    const have=!!(e.reactions&&e.reactions[em]&&e.reactions[em][uid]);
+    update({['board/messages/'+e.k+'/reactions/'+em+'/'+uid]:have?null:true});
+  };
   const dayLabel=ts=>{const d=new Date(ts);const today=new Date();const y=new Date();y.setDate(y.getDate()-1);
     const same=(a,b)=>a.toDateString()===b.toDateString();
     if(same(d,today))return 'Today · '+d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
@@ -7048,8 +7056,8 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   });
   const quoteBox=(r,mine)=>(
     <div onClick={(ev)=>{ev.stopPropagation();const el=rowRefs.current[r.k];if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}}
-      style={{borderLeft:'3px solid '+(mine?'#ffe9b0':'#b8891a'),background:mine?'rgba(255,255,255,0.16)':'rgba(26,43,34,0.05)',borderRadius:8,padding:'5px 9px',margin:'0 0 7px',fontSize:12,cursor:'pointer'}}>
-      <div style={{fontSize:10.5,fontWeight:800,color:mine?'#ffe9b0':'#b8891a'}}>{r.name}</div>
+      style={{borderLeft:'3px solid '+(mine?'#ffe9b0':'#b8891a'),background:mine?'rgba(255,255,255,0.16)':'rgba(26,43,34,0.05)',borderRadius:8,padding:'6px 10px',margin:'0 0 7px',fontSize:13,cursor:'pointer'}}>
+      <div style={{fontSize:11,fontWeight:800,color:mine?'#ffe9b0':'#b8891a'}}>{r.name}</div>
       <div style={{color:mine?'rgba(255,255,255,0.75)':'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:230}}>{r.snippet}</div>
     </div>);
   return ReactDOM.createPortal(
@@ -7068,8 +7076,8 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
         {rows.length===0&&(
           <div style={{textAlign:'center',padding:'52px 24px'}}>
             <div style={{fontSize:40,marginBottom:10}}>💬</div>
-            <div style={{fontSize:15,fontWeight:800,color:'var(--ink)',marginBottom:6}}>The board is empty</div>
-            <div style={{fontSize:13,color:'var(--ink-50)',lineHeight:1.6}}>Be the first — type below and the whole group sees it.<br/>Type <b style={{color:'#b8891a'}}>@</b> to mention someone by name.</div>
+            <div style={{fontSize:16.5,fontWeight:800,color:'var(--ink)',marginBottom:6}}>The board is empty</div>
+            <div style={{fontSize:14,color:'var(--ink-50)',lineHeight:1.6}}>Be the first — type below and the whole group sees it.<br/>Type <b style={{color:'#b8891a'}}>@</b> to mention someone by name.</div>
           </div>
         )}
         {rows.map(r=>{
@@ -7091,18 +7099,31 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
                 </span>
               )}
               <div style={{maxWidth:'78%',display:'flex',flexDirection:'column',alignItems:mine?'flex-end':'flex-start'}}>
-                {!r.grouped&&!mine&&<div style={{fontSize:11,fontWeight:800,color:'var(--ink-50)',margin:'0 0 3px 4px'}}>{String(e.name).split(' ')[0]} {String(e.name).split(' ')[1]?String(e.name).split(' ')[1][0]+'.':''}</div>}
+                {!r.grouped&&!mine&&<div style={{fontSize:12,fontWeight:800,color:'var(--ink-50)',margin:'0 0 3px 4px'}}>{String(e.name).split(' ')[0]} {String(e.name).split(' ')[1]?String(e.name).split(' ')[1][0]+'.':''}</div>}
                 <div
                   onContextMenu={ev=>{ev.preventDefault();setMenuConfirm(false);setMenuFor(e);}}
                   onTouchStart={ev=>lpStart(ev,e)} onTouchEnd={lpCancel} onTouchMove={lpMove}
                   onMouseDown={ev=>lpStart(ev,e)} onMouseUp={lpCancel} onMouseLeave={lpCancel} onMouseMove={lpMove}
                   style={mine
-                  ?{background:'var(--brand)',color:'#fff',borderRadius:16,borderTopRightRadius:r.grouped?16:5,padding:'8px 12px 6px',fontSize:13.5,lineHeight:1.45,boxShadow:'0 1px 3px rgba(15,15,15,0.08)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}
-                  :{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:16,borderTopLeftRadius:r.grouped?16:5,padding:'8px 12px 6px',fontSize:13.5,lineHeight:1.45,color:'var(--ink)',boxShadow:'0 1px 3px rgba(15,15,15,0.05)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}}>
+                  ?{background:'var(--brand)',color:'#fff',borderRadius:16,borderTopRightRadius:r.grouped?16:5,padding:'9px 13px 7px',fontSize:15,lineHeight:1.42,boxShadow:'0 1px 3px rgba(15,15,15,0.08)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}
+                  :{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:16,borderTopLeftRadius:r.grouped?16:5,padding:'9px 13px 7px',fontSize:15,lineHeight:1.42,color:'var(--ink)',boxShadow:'0 1px 3px rgba(15,15,15,0.05)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}}>
                   {e.replyTo&&quoteBox(e.replyTo,mine)}
                   {renderText(e,mine)}
-                  <span style={{display:'inline-block',float:'right',margin:'8px -4px 0 10px',fontSize:9.5,fontWeight:600,color:mine?'rgba(255,255,255,0.65)':'var(--ink-40)'}}>{tLabel(e.ts)}</span>
+                  <span style={{display:'inline-block',float:'right',margin:'8px -4px 0 10px',fontSize:10.5,fontWeight:600,color:mine?'rgba(255,255,255,0.65)':'var(--ink-40)'}}>{tLabel(e.ts)}</span>
                 </div>
+                {e.reactions&&(()=>{
+                  const pills=Object.entries(e.reactions).map(([em,users])=>{
+                    const who=Object.entries(users||{}).filter(([,v])=>v);
+                    if(!who.length)return null;
+                    const my=who.some(([u])=>u===uid);
+                    return (
+                      <span key={em} onClick={()=>toggleReact(e,em)}
+                        style={{display:'inline-flex',alignItems:'center',gap:3,background:'var(--surface)',border:'1.5px solid '+(my?'#b8891a':'var(--hairline)'),borderRadius:14,padding:'2px 8px',fontSize:12.5,fontWeight:700,color:my?'#b8891a':'var(--ink-50)',cursor:'pointer',boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+                        {em}{who.length>1?' '+who.length:''}
+                      </span>);
+                  }).filter(Boolean);
+                  return pills.length?<div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4,justifyContent:mine?'flex-end':'flex-start'}}>{pills}</div>:null;
+                })()}
               </div>
             </div>);
         })}
@@ -7112,23 +7133,34 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
         <div onClick={()=>{setMenuFor(null);setMenuConfirm(false);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.45)',zIndex:5,display:'flex',alignItems:'flex-end'}}>
           <div onClick={ev=>ev.stopPropagation()} style={{width:'100%',background:'var(--surface)',borderRadius:'18px 18px 0 0',padding:'14px 14px max(14px, env(safe-area-inset-bottom))',boxShadow:'0 -8px 30px rgba(0,0,0,0.25)'}}>
             <div style={{width:38,height:4,borderRadius:4,background:'var(--hairline)',margin:'0 auto 12px'}}></div>
+            {!frozen&&(
+              <div style={{display:'flex',justifyContent:'space-between',gap:4,marginBottom:12}}>
+                {REACTS.map(em=>{
+                  const my=!!(menuFor.reactions&&menuFor.reactions[em]&&menuFor.reactions[em][uid]);
+                  return (
+                    <button key={em} onClick={()=>{toggleReact(menuFor,em);setMenuFor(null);}}
+                      style={{flex:1,fontSize:24,padding:'8px 0',background:my?'rgba(184,137,26,0.14)':'var(--surface-sunken, #f6f4ec)',border:'1.5px solid '+(my?'#b8891a':'var(--hairline)'),borderRadius:12,cursor:'pointer',fontFamily:'inherit'}}>{em}</button>
+                  );
+                })}
+              </div>
+            )}
             <div style={{background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>
               <div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-50)'}}>{String(menuFor.name).split(' ')[0]} · {tLabel(menuFor.ts)}</div>
-              <div style={{fontSize:12.5,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{String(menuFor.text||'')}</div>
+              <div style={{fontSize:13.5,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{String(menuFor.text||'')}</div>
             </div>
             {!frozen&&(
               <button onClick={()=>{setReplyTo({k:menuFor.k,name:String(menuFor.name).split(' ')[0],snippet:String(menuFor.text||'').slice(0,80)});setMenuFor(null);}}
-                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:14.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:15.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
                 <span style={{fontSize:16}}>↩</span> Reply
               </button>
             )}
             <button onClick={()=>{try{navigator.clipboard&&navigator.clipboard.writeText(String(menuFor.text||''));}catch(err){}setMenuFor(null);}}
-              style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:14.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+              style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:15.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
               <span style={{fontSize:15}}>📋</span> Copy text
             </button>
             {(String(menuFor.uid)===uid||isAdmin)&&(
               <button onClick={()=>{if(menuConfirm)doDelete(menuFor);else setMenuConfirm(true);}}
-                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:menuConfirm?'var(--money-neg-soft, rgba(185,28,28,0.08))':'none',border:'none',borderRadius:menuConfirm?10:0,fontSize:14.5,fontWeight:800,color:'var(--money-neg, #b91c1c)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:menuConfirm?'var(--money-neg-soft, rgba(185,28,28,0.08))':'none',border:'none',borderRadius:menuConfirm?10:0,fontSize:15.5,fontWeight:800,color:'var(--money-neg, #b91c1c)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
                 <span style={{fontSize:15}}>✕</span> {menuConfirm
                   ? 'Tap again to confirm'
                   : (String(menuFor.uid)===uid?'Delete message':'Remove (admin — leaves a note)')}
@@ -7154,7 +7186,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
         {suggestions.length>0&&!frozen&&(
           <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
             {suggestions.map(p=>(
-              <button key={p.id} onClick={()=>pickMention(p)} style={{border:'1.5px solid rgba(184,137,26,0.45)',background:'rgba(184,137,26,0.12)',color:'#b8891a',fontWeight:800,fontSize:12,borderRadius:16,padding:'5px 11px',cursor:'pointer',fontFamily:'inherit'}}>@{p.name}</button>
+              <button key={p.id} onClick={()=>pickMention(p)} style={{border:'1.5px solid rgba(184,137,26,0.45)',background:'rgba(184,137,26,0.12)',color:'#b8891a',fontWeight:800,fontSize:13.5,borderRadius:18,padding:'7px 13px',cursor:'pointer',fontFamily:'inherit'}}>@{p.name}</button>
             ))}
           </div>
         )}
@@ -7162,7 +7194,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
           <input value={text} disabled={frozen} onChange={ev=>setText(ev.target.value)}
             onKeyDown={ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();doSend();}}}
             placeholder={frozen?'Board is frozen':'Message the group…'}
-            style={{flex:1,border:'1.5px solid var(--hairline)',borderRadius:22,padding:'10px 14px',fontSize:14,fontFamily:'inherit',background:'var(--surface)',color:'var(--ink)',outline:'none',opacity:frozen?0.5:1}}/>
+            style={{flex:1,border:'1.5px solid var(--hairline)',borderRadius:22,padding:'11px 15px',fontSize:16,fontFamily:'inherit',background:'var(--surface)',color:'var(--ink)',outline:'none',opacity:frozen?0.5:1}}/>
           <button onClick={doSend} disabled={frozen||!text.trim()} aria-label="Send"
             style={{background:text.trim()&&!frozen?'var(--brand)':'var(--hairline)',color:'#fff',border:'none',borderRadius:'50%',width:40,height:40,fontSize:16,cursor:text.trim()&&!frozen?'pointer':'default',flexShrink:0,fontFamily:'inherit'}}>➤</button>
         </div>
