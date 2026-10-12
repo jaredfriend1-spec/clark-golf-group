@@ -621,6 +621,8 @@ function ClearLoginLogBtn({logEntries}){
 // ── DASH ──────────────────────────────────────────────────────────────────────
 // ONE formula for the tournament fund everywhere: $1 × every recorded attendance player-round (season window if locked). No surplus, no starting balance.
 const seasonBound=(season)=>((season&&season.endDate)?{closedAt:String(season.endDate)}:null);   // rounds ON the end date are IN season
+// Same rule as the app: a frozen tournament/seasonCounts wins; otherwise live attendance through the end date.
+const tournCountsFrom=(t,roundsNode,lock)=>{const sc=t&&t.seasonCounts;if(sc&&sc.list){const m={};Object.values(sc.list).forEach(e=>{if(e&&e.n!=null)m[String(e.n).toLowerCase().trim()]=Number(e.c)||0;});return m;}const m={};Object.values(roundsNode||{}).forEach(r=>{if(!r)return;if(lock&&lock.closedAt&&String(r.date||"")>lock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;};
 const tournFundFromAttendance=(roundsNode,lock)=>{const rs=roundsNode?(Array.isArray(roundsNode)?roundsNode:Object.values(roundsNode)):[];return rs.reduce((s,r)=>{if(!r)return s;if(lock&&lock.closedAt&&String(r.date||"")>lock.closedAt)return s;return s+((r.players)||[]).length;},0);};
 const MASTER_EMAILS=["jaredfriend1@gmail.com"];
 function DashTab({user}){
@@ -3468,9 +3470,7 @@ function TournamentTab(){
   const isMasterUser=(()=>{try{const u=JSON.parse(localStorage.getItem("portal_user"));return !!u&&u.role==="master";}catch(e){return false;}})();
   const rosterTeeT=useDB("rosterTee");
   const rosterHcpT=useDB("rosterHcp");
-  const roundCounts=React.useMemo(()=>{
-    const m={};rounds.forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||"")>seasonLock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
-  },[rounds,seasonLock]);
+  const roundCounts=React.useMemo(()=>tournCountsFrom(t,attendance.rounds,seasonLock),[t,attendance,seasonLock]);
   const cnt=p=>roundCounts[String(p.name).toLowerCase().trim()]||0;
   const minRounds=cfg.minRounds!=null?cfg.minRounds:10;
   const autoBar=all.reduce((mx,p)=>Math.max(mx,cnt(p)),0);
@@ -4510,6 +4510,8 @@ function LoginCardsTab(){
   );
 }
 
+// "Season 1" -> "Season 2", "2026" -> "2027"; anything else gets " (next)".
+function nextSeasonName(n){const m=String(n||"").match(/^(.*?)(\d+)\s*$/);if(m)return m[1]+(parseInt(m[2],10)+1);return n?(n+" (next)"):"Season 2";}
 function SeasonTab(){
   const season=useDB("settings/season");
   const history=useDB("history");
@@ -4555,7 +4557,6 @@ function SeasonTab(){
 
   async function archiveSeason(){
     if(typed.trim().toUpperCase()!=="ARCHIVE"||busy)return;
-    if(tournamentOpen&&!archiveAnyway){setLog("The tournament hasn't been closed out yet — close it out on the Tournament tab first.");return;}
     setBusy(true);setLog("Snapshotting live season…");
     try{
       const dbr=db;
@@ -4569,6 +4570,28 @@ function SeasonTab(){
       const id=(sname+"_"+Date.now()).replace(/[^A-Za-z0-9_-]/g,"_");
       const attSnap=att?{...att,rounds:sp.aIn}:null;
 
+      // 0. Give the tournament its own frozen copy of this season's round counts
+      //    and fund BEFORE anything else, so it never depends on season data again.
+      //    Read back and checked; on any mismatch we stop with nothing archived.
+      const tNow=(await dbr.ref("tournament").once("value")).val();
+      let frozeMsg="";
+      if(tNow&&(tNow.config||tNow.players)){
+        if(tNow.seasonCounts&&tNow.seasonCounts.list){
+          frozeMsg="Tournament already had its own round counts — left as they were. ";
+        }else{
+          const cm={};(Array.isArray(sp.aIn)?sp.aIn:Object.values(sp.aIn||{})).forEach(r=>{((r&&r.players)||[]).forEach(n=>{const k=String(n).toLowerCase().trim();cm[k]=(cm[k]||0)+1;});});
+          const list=Object.keys(cm).sort().map(k=>({n:k,c:cm[k]}));
+          const fundSum=list.reduce((t2,e)=>t2+e.c,0);
+          if(fundSum!==sp.fundIn){setLog("⚠ Stopped before archiving — tournament counts didn't add up ($"+fundSum+" vs $"+sp.fundIn+"). Nothing changed. Tell Claude.");setBusy(false);return;}
+          await dbr.ref("tournament/seasonCounts").set({season:sname,endDate:end,fund:fundSum,players:list.length,frozenAt:Date.now(),by:me,list});
+          const back=(await dbr.ref("tournament/seasonCounts").once("value")).val();
+          const bl=back&&back.list?Object.values(back.list):[];
+          const bsum=bl.reduce((t2,e)=>t2+(Number(e&&e.c)||0),0);
+          if(bl.length!==list.length||bsum!==fundSum){setLog("⚠ Stopped before archiving — the tournament's copy didn't verify. Nothing archived. Tell Claude.");setBusy(false);return;}
+          frozeMsg="Tournament now keeps its own copy: "+list.length+" players, $"+fundSum+" fund. ";
+        }
+      }
+
       // 1. write the archive
       await dbr.ref("seasons/"+id).set({
         meta:{name:sname,endDate:end,startedAt:(season&&season.startedAt)||null,archivedAt:Date.now(),by:me,
@@ -4576,6 +4599,7 @@ function SeasonTab(){
               // tournament and the Attend tab showed members. fundFromHistory sums the
               // tournFund saved on each scored round; early rounds never saved one.
               roundCount:sp.hInN,attRounds:sp.aInN,fundTotal:sp.fundIn,fundFromHistory:fund,
+              firstRound:(Object.values(sp.hIn).map(r=>r&&r.date).filter(Boolean).sort()[0])||null,
               splitAtEndDate:!!end,carriedRounds:sp.hOutN,carriedAttRounds:sp.aOutN},
         history:sp.hIn,attendance:attSnap});
 
@@ -4601,10 +4625,10 @@ function SeasonTab(){
       const liveAN=liveA?(Array.isArray(liveA)?liveA.filter(Boolean).length:Object.keys(liveA).length):0;
       const liveOk=Object.keys(liveH).length===sp.hOutN&&liveAN===sp.aOutN;
 
-      const nextName=String((parseInt(sname,10)||new Date().getFullYear())+1);
+      const nextName=nextSeasonName(sname);
       await dbr.ref("settings/season").set({name:nextName,startedAt:Date.now()});
       setTyped("");setArchiveAnyway(false);
-      setLog("✅ Season "+sname+" archived — "+sp.hInN+" rounds"+(end?" (through "+end+")":"")+", $"+sp.fundIn+" tournament fund recorded. "
+      setLog("✅ "+frozeMsg+sname+" archived — "+sp.hInN+" rounds"+(end?" (through "+end+")":"")+", $"+sp.fundIn+" tournament fund recorded. "
         +(sp.hOutN?(sp.hOutN+" round"+(sp.hOutN!==1?"s":"")+" played after "+end+" stay live as the start of "+nextName+". "):"Live data is fresh for "+nextName+". ")
         +(liveOk?"":"⚠ Live check didn't match ("+Object.keys(liveH).length+"/"+sp.hOutN+" rounds) — the archive and your backup are intact; tell Claude. ")
         +"Set the "+nextName+" end date above when you know it. Roster, PINs, settings and game templates untouched.");
@@ -4661,7 +4685,7 @@ function SeasonTab(){
         {(()=>{
           const end=(season&&season.endDate)||null;
           const pv=splitAtEnd(history,attendance,end);
-          const nextName=String((parseInt((season&&season.name)||"",10)||new Date().getFullYear())+1);
+          const nextName=nextSeasonName((season&&season.name)||"");
           const box={background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:9,padding:"9px 11px"};
           return(<div style={{marginBottom:10}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
@@ -4683,11 +4707,8 @@ function SeasonTab(){
           </div>);
         })()}
         {tournamentOpen&&(
-          <div style={{fontSize:12.5,color:"#fca5a5",background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.25)",borderRadius:8,padding:"9px 11px",marginBottom:10,lineHeight:1.6}}>
-            🏆 <b>The tournament hasn't been closed out.</b> It reads live attendance for everyone's round count, entry fee and the fund — archiving now would reset all of that to zero. Close it out on the <b>Tournament</b> tab first (type CLOSE), then come back here.
-            <label style={{display:"flex",alignItems:"center",gap:7,marginTop:8,cursor:"pointer",color:"rgba(255,255,255,0.55)",fontSize:12}}>
-              <input type="checkbox" checked={archiveAnyway} onChange={e=>setArchiveAnyway(e.target.checked)}/>There is no tournament this season — archive anyway
-            </label>
+          <div style={{fontSize:12.5,color:"#86efac",background:"rgba(34,197,94,0.07)",border:"1px solid rgba(34,197,94,0.22)",borderRadius:8,padding:"9px 11px",marginBottom:10,lineHeight:1.6}}>
+            🏆 <b>The tournament is safe.</b> {tourn&&tourn.seasonCounts?<>It already keeps its own copy of round counts and fund (${tourn.seasonCounts.fund}).</>:<>Archiving first gives it its own copy of everyone's round count and the fund, so invites, entries and the pot stay exactly as they are. Nothing about the tournament is deleted.</>}
           </div>
         )}
         {(()=>{if(!season||!season.endDate)return null;const d=Math.ceil((new Date(season.endDate+"T23:59:59")-new Date())/86400000);if(d<=0)return null;return(
@@ -4697,7 +4718,7 @@ function SeasonTab(){
         <div style={lbl}>Type ARCHIVE to confirm</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <input style={{...inp,maxWidth:160,letterSpacing:"0.15em",fontWeight:700}} value={typed} onChange={e=>setTyped(e.target.value)}/>
-          <button className="btn btn-sm" disabled={typed.trim().toUpperCase()!=="ARCHIVE"||busy||(tournamentOpen&&!archiveAnyway)} style={{background:(typed.trim().toUpperCase()==="ARCHIVE"&&!(tournamentOpen&&!archiveAnyway))?"#b91c1c":"rgba(255,255,255,0.08)",color:"#fff",opacity:busy?0.6:1}} onClick={archiveSeason}>{busy?"Working…":"Archive season"}</button>
+          <button className="btn btn-sm" disabled={typed.trim().toUpperCase()!=="ARCHIVE"||busy} style={{background:(typed.trim().toUpperCase()==="ARCHIVE")?"#b91c1c":"rgba(255,255,255,0.08)",color:"#fff",opacity:busy?0.6:1}} onClick={archiveSeason}>{busy?"Working…":"Archive season"}</button>
         </div>
         {log&&<div style={{marginTop:10,fontSize:12.5,color:"#fbbf24",lineHeight:1.6}}>{log}</div>}
       </div>

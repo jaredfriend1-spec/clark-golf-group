@@ -1211,6 +1211,15 @@ function derivePin(input, pinsMap, excludeId){
   return {pin:d.slice(-6), n:6, collides:true};
 }
 let PUSH_TEMPLATES_CACHE=null;
+// Tournament round counts. Once the season is archived the tournament carries its
+// OWN frozen copy (tournament/seasonCounts, written by the portal's archive), so it
+// never reads season data again. Before that it counts live attendance through the
+// season end date, exactly as before.
+function tournRoundCounts(tv, att, closedAt){
+  const sc=tv&&tv.seasonCounts;
+  if(sc&&sc.list){const m={};Object.values(sc.list).forEach(e=>{if(e&&e.n!=null)m[String(e.n).toLowerCase().trim()]=Number(e.c)||0;});return m;}
+  const m={};Object.values(att||{}).forEach(r=>{if(!r)return;if(closedAt&&String(r.date||'')>closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
+}
 function daysUntil(iso){try{const t=new Date();const d=new Date(iso+'T12:00:00');return Math.ceil((d-t)/86400000);}catch(e){return 99;}}
 // ═══════════════ STREAKS & MILESTONES ═══════════════
 // Per-round winnings per player. Mirrors the Standings math (playerBreakdowns)
@@ -6214,8 +6223,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const isArchived=effYear!=='live'&&!!tv_;
   const cfg=(tv_&&tv_.config)||{};
   const live=cfg.inviteOpen===true;
-  const rounds=Object.values(att||{});
-  const counts={};rounds.forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||'')>seasonLock.closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
+  const counts=tournRoundCounts(tv_,att,seasonLock&&seasonLock.closedAt);
+  const frozenSC=(tv_&&tv_.seasonCounts)||null;
   const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
   const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
   const nameOf=id=>{const p=(fullRoster||[]).find(x=>String(x.id)===String(id));return p?p.name:null;};
@@ -6440,7 +6449,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               </div>
             )}
             {isAdmin&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% of the pot, plus rounding leftovers): the leftover after team payouts, split by skins won.</div>}
-            {seasonLock&&seasonLock.closedAt&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>💵 <b style={{color:'var(--ink)'}}>No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round.</b> The fund keeps building until then — every weekly round adds $1 per player to the pot. What you owe is settled at tournament sign-in.</div>}
+            {frozenSC?<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>🔒 <b style={{color:'var(--ink)'}}>Round counts and the ${frozenSC.fund} fund are final</b> — locked when {frozenSC.season?('Season '+String(frozenSC.season).replace(/^Season\s*/i,'')):'the season'} ended{frozenSC.endDate?(' '+(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(frozenSC.endDate)):''}. Rounds played since then count toward next year. What you owe is settled at tournament sign-in.</div>:seasonLock&&seasonLock.closedAt&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>💵 <b style={{color:'var(--ink)'}}>No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round.</b> The fund keeps building until then — every weekly round adds $1 per player to the pot. What you owe is settled at tournament sign-in.</div>}
             {!isAdmin&&<div style={{fontSize:12,color:'var(--ink-40)',lineHeight:1.6,marginTop:4}}>Payouts for front 9, back 9, overall and team skins each day — the split is announced by the admins before play.</div>}
           </div>
           {currentUser&&me&&me.in===true&&(
@@ -7331,7 +7340,8 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const todayIso=(()=>{const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');})();
   const deadlinePassed=!!(cfg.rsvpDeadline&&todayIso>cfg.rsvpDeadline);
   const rsvpLocked=cfg.rsvpLocked===true||deadlinePassed;
-  const invRounds=(()=>{let n=0;const nm=String((currentUser&&currentUser.name)||'').toLowerCase().trim();Object.values(att||{}).forEach(r=>{if(seasonLock&&seasonLock.closedAt&&String(r.date||'')>seasonLock.closedAt)return;((r&&r.players)||[]).forEach(p=>{if(String(p).toLowerCase().trim()===nm)n++;});});return n;})();
+  const tCounts=tournRoundCounts(t,att,seasonLock&&seasonLock.closedAt);
+  const invRounds=tCounts[String((currentUser&&currentUser.name)||'').toLowerCase().trim()]||0;
   const eligibleForInvite=invRounds>=((cfg.minRounds!=null)?cfg.minRounds:10);
   const adminPreview=!invitesLive&&!!forcePreview;   // preview ONLY when opened via the Admin tab button
   if(onStatus){try{onStatus(invitesLive&&!meAnswered.answered&&(isAdmin||meAnswered.invited||eligibleForInvite));}catch(e){}}
@@ -7349,8 +7359,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     );
   }
   if(!invitesLive&&!adminPreview)return null;
-  const rounds=Object.values(att||{});
-  const counts={};rounds.forEach(r=>{(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();counts[k]=(counts[k]||0)+1;});});
+  const counts=tCounts;
   const myRounds=counts[String(currentUser.name||'').toLowerCase().trim()]||0;
   const autoBar=Object.values(counts).reduce((m,v)=>Math.max(m,v),0);
   const bar=(cfg.feeBar&&cfg.feeBar>0)?cfg.feeBar:autoBar;
@@ -7551,7 +7560,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         </button>
       </div>
       {renderConfirmSheet()}
-      {seasonLock&&seasonLock.closedAt&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-60)',marginTop:8,lineHeight:1.5}}>💵 No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round — every weekly round until then adds another $1 to the pot.</div>}
+      {t.seasonCounts?<div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-60)',marginTop:8,lineHeight:1.5}}>🔒 Round counts and the ${t.seasonCounts.fund} fund are final — locked at the end of the season.</div>:seasonLock&&seasonLock.closedAt&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-60)',marginTop:8,lineHeight:1.5}}>💵 No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round — every weekly round until then adds another $1 to the pot.</div>}
       {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — the app locks at midnight after that; late changes go through Clark directly.</div>}
       {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need to change your answer? Talk to Clark directly — he can update it.</div>}
       {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?'Day 1 only':'Day 2 only'))):''} · handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap a day to update.</div>}
