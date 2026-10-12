@@ -2745,14 +2745,26 @@ function AwardsTab({user}){
   const detailOf=a=>val(a.id,"detail",(a.board[0]&&a.board[0].detail)||"");
   const included=a=>val(a.id,"on",a.board.length>0&&a.src!=="new")!==false;
   const placesOf=a=>Math.max(1,Math.min(5,parseInt(val(a.id,"places",1))||1));
+  // Firebase returns the published items alphabetized by id, so the app can only
+  // mirror the portal if every item carries an explicit order. Default = the
+  // list order here; the ▲▼ arrows change it, autosaved like any edit.
+  const orderOf=a=>{const v=val(a.id,"order",null);const i=AWARDS.findIndex(x=>x.id===a.id);return v!=null&&!isNaN(parseFloat(v))?parseFloat(v):i;};
+  const sortedAwards=()=>AWARDS.slice().sort((x,y)=>orderOf(x)-orderOf(y));
+  const moveAward=(id,dir)=>{
+    const lst=sortedAwards();const i=lst.findIndex(x=>x.id===id);const j=i+dir;
+    if(i<0||j<0||j>=lst.length)return;
+    const oa=orderOf(lst[i]),ob=orderOf(lst[j]);
+    persistEdits({...edits,[lst[i].id]:{...(edits[lst[i].id]||{}),order:ob},[lst[j].id]:{...(edits[lst[j].id]||{}),order:oa===ob?ob-dir:oa}});
+  };
+  const moveCustom=(ci,dir)=>{const j=ci+dir;if(j<0||j>=customs.length)return;const next=customs.slice();const t2=next[ci];next[ci]=next[j];next[j]=t2;persistCustoms(next);};
 
   const allItems=()=>{
     const items={};
     AWARDS.filter(included).filter(a=>winnerOf(a)).forEach(a=>{
       const ru=a.board.filter(b=>b.name!==winnerOf(a)).slice(0,placesOf(a)-1).map(b=>({name:b.name,detail:b.detail||""}));
-      items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a),...(ru.length?{runnersUp:ru}:{})};
+      items[a.id]={order:orderOf(a),icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a),...(ru.length?{runnersUp:ru}:{})};
     });
-    customs.forEach((c,i2)=>{if(c.title)items["custom"+i2]={icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner||"",detail:c.detail||""};});
+    customs.forEach((c,i2)=>{if(c.title)items["custom"+i2]={order:1000+i2,icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner||"",detail:c.detail||""};});
     return items;
   };
   const saveDraft=()=>{if(!ready)return;wr("awards/"+year,{year:year,season:year,endDate:cur.endDate||null,published:published,items:allItems(),edits:edits,customs:customs.length?customs:null,updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast("Draft saved ✓");};
@@ -2804,7 +2816,8 @@ function AwardsTab({user}){
           </div>
         );
       })()}
-      {AWARDS.filter(x=>srcFilter==="all"||x.src===srcFilter).map(a=>{
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",margin:"0 2px 8px"}}>▲▼ set the order — the app shows the awards exactly in this order, your own awards last.</div>
+      {sortedAwards().filter(x=>srcFilter==="all"||x.src===srcFilter).map((a,ai,shown)=>{
         const isOpen=openId===a.id;
         const w=winnerOf(a), d=detailOf(a);
         return (
@@ -2826,6 +2839,10 @@ function AwardsTab({user}){
                 <div style={{marginTop:3,fontSize:12.5,color:"rgba(255,255,255,0.3)"}}>{a.board.length?"No winner picked yet":"No data yet"}</div>
               )}
             </div>
+            <span style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+              <button className="btn btn-gh btn-xs" style={{padding:"1px 7px",opacity:ai===0?0.25:1}} disabled={ai===0} onClick={()=>moveAward(a.id,-1)}>▲</button>
+              <button className="btn btn-gh btn-xs" style={{padding:"1px 7px",opacity:ai===shown.length-1?0.25:1}} disabled={ai===shown.length-1} onClick={()=>moveAward(a.id,1)}>▼</button>
+            </span>
             <span style={{fontSize:16,color:"rgba(255,255,255,0.3)",flexShrink:0}}>{isOpen?"▴":"▾"}</span>
           </div>
           {isOpen&&(
@@ -2877,6 +2894,8 @@ function AwardsTab({user}){
               <input className="inp" style={{flex:"1 1 150px",fontSize:12,padding:"5px 8px"}} placeholder="Award name" value={c.title} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,title:e.target.value}:x))}/>
               <input className="inp" style={{flex:"1 1 130px",fontSize:12,padding:"5px 8px"}} placeholder="Winner" value={c.winner} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,winner:e.target.value}:x))}/>
               <input className="inp" style={{flex:"1 1 100%",fontSize:12,padding:"5px 8px"}} placeholder="Why he won it…" value={c.blurb} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,blurb:e.target.value}:x))}/>
+              <button className="btn btn-gh btn-sm" style={{opacity:ci===0?0.3:1}} disabled={ci===0} onClick={()=>moveCustom(ci,-1)}>▲</button>
+              <button className="btn btn-gh btn-sm" style={{opacity:ci===customs.length-1?0.3:1}} disabled={ci===customs.length-1} onClick={()=>moveCustom(ci,1)}>▼</button>
               <button className="btn btn-r btn-sm" onClick={()=>{if(!c.title||window.confirm("Remove \""+c.title+"\"?"))persistCustoms(customs.filter((_,i2)=>i2!==ci));}}>Remove</button>
             </div>
           ))}

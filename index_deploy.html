@@ -6178,7 +6178,8 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
   const [year,setYear]=useState(null);
   const y=year||years[0];
   const doc=y?aw[y]:null;
-  const items=doc?Object.values(doc.items||{}):[];
+  // Firebase alphabetizes object keys, so the publish order rides on each item.
+  const items=doc?Object.entries(doc.items||{}).sort((a,b)=>{const ao=a[1]&&a[1].order!=null?a[1].order:9999,bo=b[1]&&b[1].order!=null?b[1].order:9999;return ao-bo||a[0].localeCompare(b[0]);}).map(([,v])=>v):[];
   const GOLD='#b8891a', GOLD_SOFT='rgba(184,137,26,0.12)', GOLD_BORDER='rgba(184,137,26,0.45)', DARK='#0f2f22', DARK2='#174332';
   if(!doc)return null;
   return (
