@@ -681,23 +681,7 @@ function DashTab({user}){
       <div className="pg-title">Dashboard</div>
       <div className="pg-sub">Clark Golf Group — week overview</div>
 
-      <div className="stat-grid sg-3">
-        <div className="stat"><div className="stat-v" style={{color:"#10b981"}}>{allDayActive.length}</div><div className="stat-l">Active Days</div></div>
-        <div className="stat"><div className="stat-v" style={{color:"#60a5fa"}}>{totalSignups}</div><div className="stat-l">Players Signed Up</div></div>
-        <div className="stat"><div className="stat-v" style={{color:"#fbbf24"}}>{f$(tf)}</div><div className="stat-l">Tournament Pot</div></div>
-      </div>
 
-      <div className="card">
-        <div className="card-hdr"><span className="card-title">Players Each Day</span></div>
-        {playersByDay.length===0&&<div style={{padding:"14px 16px",fontSize:12,color:"rgba(255,255,255,0.3)"}}>No active days this week.</div>}
-        {playersByDay.map(({day,count})=>(
-          <div key={day} className="s-row">
-            <span style={{flex:1,fontSize:13,fontWeight:600}}>{day}</span>
-            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:20,fontWeight:800,color:count>0?"#10b981":"rgba(255,255,255,0.25)"}}>{count}</span>
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.3)"}}>{count===1?"player":"players"}</span>
-          </div>
-        ))}
-      </div>
 
       {/* MASTER-ONLY: System Health */}
       {isMaster(user.role)&&(
@@ -1612,21 +1596,6 @@ function RosterTab(){
 
               <div style={{display:"flex",gap:5,marginLeft:"auto",alignItems:"center"}}>
 
-                <span style={{fontSize:9.5,fontWeight:800,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Filter the list</span>
-
-                {(()=>{
-
-                  const base=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase()));
-
-                  const nOn=base.filter(p=>onClarkList(p)).length;
-
-                  return [["all","All",base.length],["on","On Clark’s",nOn],["off","Not on his",base.length-nOn]];
-
-                })().map(([v,label,n])=>(
-
-                  <button key={v} className="btn btn-sm" onClick={()=>setClFilter(v)} style={{fontWeight:700,fontSize:11,border:"1px solid",borderColor:clFilter===v?"#10b981":"rgba(255,255,255,0.12)",background:clFilter===v?"rgba(16,185,129,0.12)":"transparent",color:clFilter===v?"#4ade80":"rgba(255,255,255,0.45)"}}>{label} ({n})</button>
-
-                ))}
 
               </div>
 
@@ -2386,8 +2355,35 @@ function ManualRoundEntry({user}){
 }
 
 
+// Season options for portal tabs: [{id:'live'|archiveId, name, label, endDate}]
+function useSeasonOptions(){
+  const season=useDB("settings/season");
+  const seasons=useDB("seasons");
+  const nm=n=>{const t=String(n||"").trim();return /^season\b/i.test(t)?t:("Season "+(t||"?"));};
+  const fd=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});}catch(e){return d;}};
+  const archived=Object.entries(seasons||{}).map(([id,v])=>({id,meta:(v&&v.meta)||{}})).sort((a,b)=>String(b.meta.endDate||"").localeCompare(String(a.meta.endDate||"")));
+  return [{id:"live",name:nm(season&&season.name),endDate:(season&&season.endDate)||"",label:nm(season&&season.name)+" · current"},
+          ...archived.map(a=>({id:a.id,name:nm(a.meta.name||a.id),endDate:a.meta.endDate||"",label:nm(a.meta.name||a.id)+(a.meta.firstRound&&a.meta.endDate?(" · "+fd(a.meta.firstRound)+" – "+fd(a.meta.endDate)):a.meta.endDate?(" · through "+fd(a.meta.endDate)):"")}))];
+}
+function SeasonPickerRow({opts,cur,onPick}){
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",margin:"2px 0 12px"}}>
+      <span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.07em"}}>Season</span>
+      <select className="inp" style={{maxWidth:340,padding:"6px 10px",fontSize:13}} value={cur.id} onChange={e=>onPick(e.target.value)}>
+        {opts.map(o=>(<option key={o.id} value={o.id}>{o.label}</option>))}
+      </select>
+      {cur.id!=="live"&&<span style={{fontSize:11,fontWeight:700,color:"#fbbf24"}}>archived · view only</span>}
+    </div>
+  );
+}
 function HistoryTab({user}){
-  const history=useDB("history");
+  const liveHistory=useDB("history");
+  const opts=useSeasonOptions();
+  const [pickId,setPickId]=useState(null);
+  const cur=opts.find(o=>o.id===pickId)||opts[0];
+  const isLive=cur.id==="live";
+  const arch=useDB(isLive?null:("seasons/"+cur.id+"/history"));
+  const history=isLive?liveHistory:(arch||{});
   const [open,setOpen]=useState(null);
   const [confirmDel,setConfirmDel]=useState(null);
   const [delTyped,setDelTyped]=useState("");
@@ -2405,12 +2401,13 @@ function HistoryTab({user}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
-    <div className="pg-eyebrow">Archive</div>
+    <div className="pg-eyebrow">{cur.name}</div>
     <div className="pg-title">Round History</div>
-    <div className="pg-sub">{rounds.length} rounds on record</div>
-    <ManualRoundEntry user={user}/>
-    {isMaster(user.role)&&<div className="warn"><strong>Caution:</strong> Deleting a round moves it to trash — recoverable from the main app History tab. Every delete requires typing "DELETE" to confirm.</div>}
-    {rounds.length===0&&<div className="info-box">No history yet. End Week archives current week sign-ups here.</div>}
+    <div className="pg-sub">{rounds.length} round{rounds.length!==1?"s":""} · {cur.name}</div>
+    <SeasonPickerRow opts={opts} cur={cur} onPick={id=>{setPickId(id);setOpen(null);setConfirmDel(null);}}/>
+    {isLive&&<ManualRoundEntry user={user}/>}
+    {isLive&&isMaster(user.role)&&<div className="warn"><strong>Caution:</strong> Deleting a round moves it to trash — recoverable from the main app History tab. Every delete requires typing "DELETE" to confirm.</div>}
+    {rounds.length===0&&<div className="info-box">{isLive?"No rounds in "+cur.name+" yet. End Week archives scored rounds here.":"This archive is empty."}</div>}
     {rounds.map(([key,r])=>{
       const count=pc(r);
       const isOpen=open===key;
@@ -2422,7 +2419,7 @@ function HistoryTab({user}){
               <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:1}}>{count} players{r.scores?` · Front:${r.scores.frontPlaces||1}pl Back:${r.scores.backPlaces||1}pl`:""}</div>
             </div>
             <div style={{display:"flex",gap:4,alignItems:"center"}}>
-              {isMaster(user.role)&&<button className="btn btn-r btn-xs" onClick={e=>{e.stopPropagation();setConfirmDel({key,round:r});setDelTyped("");}}>Delete</button>}
+              {isLive&&isMaster(user.role)&&<button className="btn btn-r btn-xs" onClick={e=>{e.stopPropagation();setConfirmDel({key,round:r});setDelTyped("");}}>Delete</button>}
               <span style={{fontSize:12,color:"rgba(255,255,255,0.2)",transform:isOpen?"rotate(180deg)":"none",transition:"transform 0.2s",display:"inline-block"}}>▾</span>
             </div>
           </div>
@@ -2744,10 +2741,14 @@ function AwardsTab({user}){
   const winnerOf=a=>val(a.id,"winner",(a.board[0]&&a.board[0].name)||"");
   const detailOf=a=>val(a.id,"detail",(a.board[0]&&a.board[0].detail)||"");
   const included=a=>val(a.id,"on",a.board.length>0&&a.src!=="new")!==false;
+  const placesOf=a=>Math.max(1,Math.min(5,parseInt(val(a.id,"places",1))||1));
 
   const allItems=()=>{
     const items={};
-    AWARDS.filter(included).filter(a=>winnerOf(a)).forEach(a=>{items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a)};});
+    AWARDS.filter(included).filter(a=>winnerOf(a)).forEach(a=>{
+      const ru=a.board.filter(b=>b.name!==winnerOf(a)).slice(0,placesOf(a)-1).map(b=>({name:b.name,detail:b.detail||""}));
+      items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a),...(ru.length?{runnersUp:ru}:{})};
+    });
     customs.forEach((c,i2)=>{if(c.title)items["custom"+i2]={icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner||"",detail:c.detail||""};});
     return items;
   };
@@ -2832,6 +2833,11 @@ function AwardsTab({user}){
                 <label style={{fontSize:12.5,fontWeight:700,color:included(a)?"#4ade80":"rgba(255,255,255,0.35)",display:"flex",alignItems:"center",gap:6,cursor:"pointer",whiteSpace:"nowrap"}}>
                   <input type="checkbox" checked={included(a)} onChange={e=>setVal(a.id,"on",e.target.checked)} style={{width:17,height:17}}/>include
                 </label>
+                {a.board.length>1&&<label style={{fontSize:11.5,fontWeight:700,color:"rgba(255,255,255,0.5)",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>publish
+                  <select className="inp" style={{padding:"5px 8px",fontSize:12,width:"auto"}} value={placesOf(a)} onChange={e=>setVal(a.id,"places",parseInt(e.target.value))}>
+                    {[1,2,3,4,5].filter(n2=>n2<=a.board.length).map(n2=>(<option key={n2} value={n2}>{n2===1?"winner only":"top "+n2}</option>))}
+                  </select>
+                </label>}
               </div>
               <input className="inp" style={{width:"100%",fontSize:13,padding:"8px 10px",marginBottom:12}} value={val(a.id,"blurb",a.blurb)} onChange={e=>setVal(a.id,"blurb",e.target.value)} placeholder="One line of trash talk…"/>
               {a.board.length===0?(
@@ -2880,7 +2886,13 @@ function AwardsTab({user}){
 function AttendTab({user}){
   const rosterEdits=useDB("rosterEdits");
   const extra=useDB("extraPlayers");
-  const rawRounds=useDB("attendance/rounds");
+  const liveRaw=useDB("attendance/rounds");
+  const opts=useSeasonOptions();
+  const [pickId,setPickId]=useState(null);
+  const cur=opts.find(o=>o.id===pickId)||opts[0];
+  const isLive=cur.id==="live";
+  const archRaw=useDB(isLive?null:("seasons/"+cur.id+"/attendance/rounds"));
+  const rawRounds=isLive?liveRaw:archRaw;
   const [section,setSection]=useState("history");
   const [toast,showToast]=useToast();
   const [openRound,setOpenRound]=useState(null);
@@ -2989,9 +3001,10 @@ function AttendTab({user}){
 
   return(<div>
     <Toast msg={toast.msg} type={toast.type}/>
-    <div className="pg-eyebrow">Tracking</div>
+    <div className="pg-eyebrow">{cur.name}</div>
     <div className="pg-title">Attendance</div>
-    <div className="pg-sub">{rounds.length} round{rounds.length!==1?"s":""} · {standings.length} unique players · ${totalEntries} to tournament fund</div>
+    <div className="pg-sub">{rounds.length} round{rounds.length!==1?"s":""} · {standings.length} unique players · ${totalEntries} to the {cur.name} tournament fund</div>
+    <SeasonPickerRow opts={opts} cur={cur} onPick={id=>{setPickId(id);setOpenRound(null);setConfirmDel(null);setLogModal(false);setEditRound(null);}}/>
 
     <div className="sec-tabs">
       {[["standings","📊 Standings"],["history","📋 History"]].map(([id,label])=>(
@@ -3036,7 +3049,7 @@ function AttendTab({user}){
       <div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div className="lbl" style={{marginBottom:0}}>{rounds.length} round{rounds.length!==1?"s":""}</div>
-          <button className="btn btn-g btn-sm" onClick={()=>{setEditRound(null);setLogModal(true);}}>+ Log Round</button>
+          {isLive&&<button className="btn btn-g btn-sm" onClick={()=>{setEditRound(null);setLogModal(true);}}>+ Log Round</button>}
         </div>
 
         {rounds.length===0&&<div className="info-box"><strong>No rounds logged yet.</strong> Rounds are added automatically when you close out a week, or you can log one manually.</div>}
@@ -3067,8 +3080,8 @@ function AttendTab({user}){
                     ))}
                   </div>
                   <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",padding:"8px 16px",display:"flex",gap:6,justifyContent:"flex-end"}}>
-                    <button className="btn btn-gh btn-xs" onClick={e=>{e.stopPropagation();setEditRound({index:ri,data:r});setLogModal(true);}}>Edit</button>
-                    <button className="btn btn-r btn-xs" onClick={e=>{e.stopPropagation();setConfirmDel({index:ri,round:r});setDelTyped("");}}>Delete</button>
+                    {isLive&&<button className="btn btn-gh btn-xs" onClick={e=>{e.stopPropagation();setEditRound({index:ri,data:r});setLogModal(true);}}>Edit</button>}
+                    {isLive&&<button className="btn btn-r btn-xs" onClick={e=>{e.stopPropagation();setConfirmDel({index:ri,round:r});setDelTyped("");}}>Delete</button>}
                   </div>
                 </div>
               )}
@@ -3235,24 +3248,6 @@ function AppSettingsTab({user}){
             </div>
           </div>
         );})()}
-        {/* portal manual sender */}
-        <div style={{marginTop:14,padding:"12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",marginBottom:8}}>📤 Send a push notification</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.6,marginBottom:8}}>Sends a buzz straight to members’ phones — nothing is posted inside the app. Good for quick heads-ups like frost delays, reminders, or “spots open Saturday.” Pick who receives it below; “Admins only” is your safe test channel.</div>
-          <input className="inp" placeholder="Title (short!)" maxLength={50} value={msT} onChange={e=>{setMsT(e.target.value);setMsSent("");}} style={{marginBottom:8}}/>
-          <input className="inp" placeholder="Message" maxLength={140} value={msB} onChange={e=>{setMsB(e.target.value);setMsSent("");}} style={{marginBottom:10}}/>
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-            <select className="inp" style={{maxWidth:160}} value={msA} onChange={e=>setMsA(e.target.value)}>
-              <option value="admins">Admins only (test)</option>
-              <option value="all">Everyone</option>
-            </select>
-            <button className="btn btn-sm" disabled={!msT.trim()||!msB.trim()} onClick={()=>{
-              fetch("/api/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"cgg-notify-2026",project:IS_PROD_HOST?"prod":"test",audience:msA,title:msT.trim(),body:msB.trim(),url:"/",tag:"manual-"+Date.now()})}).catch(()=>{});
-              setMsSent("Sent to "+(msA==="admins"?"admins":"everyone")+" with notifications on.");setMsT("");setMsB("");
-            }}>Send push</button>
-            {msSent&&<span style={{fontSize:11,color:"#4ade80",fontWeight:600}}>{msSent}</span>}
-          </div>
-        </div>
       </div>
     </div>
     <div className="card">
@@ -3680,7 +3675,6 @@ function TournamentTab(){
           </div>
         );
       })()}
-      <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:14}}>📋 DRAFT — planning workspace only. Numbers are live from real attendance; nothing appears in the member app until the tournament build is activated.</div>
 
       <div className="card">
         <div className="card-hdr"><span className="card-title">⚙ Configuration</span></div>
@@ -4303,6 +4297,7 @@ function LoginCardsTab(){
   const [cards,setCards]=React.useState({});
   const [q,setQ]=React.useState('');
   const [editing,setEditing]=React.useState(null); // player obj
+  const [previewing,setPreviewing]=React.useState(null); // player obj — full-card preview
   const [editMsg,setEditMsg]=React.useState('');
   const [editLogo,setEditLogo]=React.useState(''); // base64 data url
   const [editTheme,setEditTheme]=React.useState('default');
@@ -4434,7 +4429,7 @@ function LoginCardsTab(){
           const card=cards[p.id]||{};
           const hasCard=card.message||card.logo;
           return(
-            <div key={p.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
+            <div key={p.id} onClick={()=>setPreviewing(p)} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 16px',cursor:'pointer',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
               {/* Avatar preview */}
               <div style={{width:36,height:36,borderRadius:'50%',overflow:'hidden',flexShrink:0,background:'rgba(16,185,129,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#10b981'}}>
                 {card.logo
@@ -4448,11 +4443,44 @@ function LoginCardsTab(){
                 {card.message&&<div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>"{card.message}"</div>}
               </div>
               {hasCard&&<span style={{fontSize:10,color:'#10b981',fontWeight:700,padding:'2px 6px',borderRadius:10,background:'rgba(16,185,129,0.1)',flexShrink:0}}>✓ Custom</span>}
-              <button className="btn btn-gh btn-sm" onClick={()=>openEdit(p)} style={{flexShrink:0}}>Edit</button>
+              <button className="btn btn-gh btn-sm" onClick={e=>{e.stopPropagation();openEdit(p);}} style={{flexShrink:0}}>Edit</button>
             </div>
           );
         })}
       </div>
+
+      {/* Full-card preview — tap any row */}
+      {previewing&&!editing&&(()=>{
+        const card=cards[previewing.id]||{};
+        const th=cardTheme(card.theme||'default');
+        return(
+          <div onClick={e=>{if(e.target===e.currentTarget)setPreviewing(null);}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
+            <div className="modal" style={{width:'100%',maxWidth:400}}>
+              <div style={{padding:'14px 18px',borderBottom:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div style={{fontSize:14,fontWeight:700,color:'#fff'}}>Login card — exactly as {previewing.name.split(' ')[0]} sees it</div>
+                <button onClick={()=>setPreviewing(null)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.4)',fontSize:20,cursor:'pointer',lineHeight:1}}>✕</button>
+              </div>
+              <div style={{padding:'18px 20px'}}>
+                <div style={{padding:'28px 20px',borderRadius:16,background:th.bg,border:'1px solid rgba(255,255,255,0.1)',textAlign:'center'}}>
+                  <div style={{display:'flex',justifyContent:'center',marginBottom:12}}>
+                    {card.logo
+                      ? <img src={card.logo} style={{width:84,height:84,borderRadius:22,objectFit:'cover',border:'2px solid rgba(16,185,129,0.5)'}}/>
+                      : <div style={{width:84,height:84,borderRadius:'50%',background:'rgba(16,185,129,0.15)',color:'#10b981',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,fontWeight:800}}>{previewing.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+                    }
+                  </div>
+                  <div style={{fontSize:26,fontWeight:800,color:'#fff',fontFamily:'Barlow Condensed,sans-serif'}}>{previewing.name}</div>
+                  {card.message&&<div style={{fontSize:13,color:'rgba(255,255,255,0.55)',marginTop:7,fontStyle:'italic'}}>"{card.message}"</div>}
+                  {!card.message&&!card.logo&&<div style={{fontSize:11,color:'rgba(255,255,255,0.3)',marginTop:7}}>Default card — no custom logo or tagline yet</div>}
+                </div>
+                <div style={{display:'flex',gap:8,marginTop:14}}>
+                  <button className="btn btn-gh" style={{flex:1}} onClick={()=>setPreviewing(null)}>Close</button>
+                  <button className="btn btn-g" style={{flex:1}} onClick={()=>{setPreviewing(null);openEdit(previewing);}}>Edit this card</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Edit modal */}
       {editing&&(
@@ -4834,7 +4862,7 @@ function SeasonTab(){
     {/* STILL COMING */}
     {/* Stats by Season — LIVE in the app */}
     <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>📊</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Stats by Season</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(54,165,111,0.12)",color:"#4ade80",border:"1px solid rgba(54,165,111,0.2)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Live</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Done — in the main app, the History, Standings and Stats tabs have a <b style={{color:"#e2e8f0"}}>Season selector</b>. Everyone can browse any archived season’s rounds, money and analytics exactly like the current one.</div></div></div>
-    <div className="card"><div className="card-hdr"><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:20}}>🏆</span><span style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>Season Awards</span></div><span style={{fontSize:9,fontWeight:800,padding:"3px 9px",borderRadius:20,background:"rgba(245,158,11,0.1)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.15)",textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>Coming Soon</span></div><div className="card-body"><div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.75}}>Auto-generated award summaries from an archived season — most rounds, most skins, best net average, biggest single-round win — shareable as a formatted email. Next up after launch.</div></div></div>
+
     <div style={{textAlign:"center",padding:"16px 0 8px",fontSize:11,color:"rgba(255,255,255,0.2)",lineHeight:1.8}}>Season Management · Master Only · Fund reset is handled by Archive (audit-logged)</div>
   </div>);
 }
@@ -5370,16 +5398,6 @@ function SettingsTab({user,onSignOut}){
       </div>
     </div>
 
-    <div className="card">
-      <div className="card-hdr"><span className="card-title">Tournament Fund Starting Balance</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>historical note only — NOT added. The fund is $1 × every recorded attendance player-round (already includes the backfilled rounds).</span></div>
-      <div className="card-body">
-        <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginBottom:8}}>Balance from before rounds were tracked in the app:</div>
-        <div style={{display:"flex",gap:8}}>
-          <input className="inp" type="number" value={tfBal} onChange={e=>setTfBal(e.target.value)} style={{flex:1}}/>
-          <button className="btn btn-g" onClick={saveTF}>Save</button>
-        </div>
-      </div>
-    </div>
 
     <div className="card">
       <div className="card-hdr"><span className="card-title">Fallback Master Password</span></div>
