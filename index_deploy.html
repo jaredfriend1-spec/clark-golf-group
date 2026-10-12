@@ -1220,6 +1220,25 @@ function tournRoundCounts(tv, att, closedAt){
   if(sc&&sc.list){const m={};Object.values(sc.list).forEach(e=>{if(e&&e.n!=null)m[String(e.n).toLowerCase().trim()]=Number(e.c)||0;});return m;}
   const m={};Object.values(att||{}).forEach(r=>{if(!r)return;if(closedAt&&String(r.date||'')>closedAt)return;(r.players||[]).forEach(n=>{const k=String(n).toLowerCase().trim();m[k]=(m[k]||0)+1;});});return m;
 }
+// "Season 2" stays "Season 2"; a bare "2026" reads "Season 2026".
+function seasonDisplayName(n){const t=String(n||'').trim();if(!t)return 'Season';return /^season\b/i.test(t)?t:('Season '+t);}
+function fmtSeasonDate(d){try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return d||'';}}
+// Streaks across several seasons. "Current" streaks (hot, cold, weeks running)
+// come only from the current season — they never carry across a season break.
+// Rounds, money and best day add up across seasons.
+function combineSeasonStreaks(parts){
+  const by={}; let rc=0;
+  (parts||[]).forEach(pt=>{
+    const st=computeStreaks(pt.history,pt.att); rc+=st.roundCount;
+    Object.values(st.by).forEach(p=>{
+      const q=by[p.name]||(by[p.name]={name:p.name,rounds:0,roundsAtt:0,won:0,paid:0,net:0,hot:0,cold:0,weekStreak:0,best:null,seq:[],weeks:[]});
+      q.rounds+=p.rounds; q.roundsAtt+=(p.roundsAtt||0); q.won+=(p.won||0); q.paid+=(p.paid||0); q.net+=(p.net||0);
+      if(p.best&&(!q.best||p.best.won>q.best.won))q.best=p.best;
+      if(pt.current){q.hot=p.hot;q.cold=p.cold;q.weekStreak=p.weekStreak;}
+    });
+  });
+  return {by,roundCount:rc};
+}
 function daysUntil(iso){try{const t=new Date();const d=new Date(iso+'T12:00:00');return Math.ceil((d-t)/86400000);}catch(e){return 99;}}
 // ═══════════════ STREAKS & MILESTONES ═══════════════
 // Per-round winnings per player. Mirrors the Standings math (playerBreakdowns)
@@ -2931,9 +2950,12 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
       {(()=>{
         const s=settings&&settings.season;
         if(!s||!s.endDate)return null;
-        const d=Math.ceil((new Date(s.endDate+'T23:59:59')-new Date())/86400000);
-        if(d>42)return null;
-        const label=d>1?('Season'+(s.name?(' '+s.name):'')+' ends in '+d+' days'):d===1?'Season ends tomorrow':d===0?'Season ends today':'Season'+(s.name?(' '+s.name):'')+' has ended — awaiting archive';
+        // Calendar-date difference. The old millisecond Math.ceil gave -0 the day
+        // after the end date, which read as "ends today".
+        const d=Math.round((Date.parse(s.endDate+'T12:00:00')-Date.parse(localDateStr(new Date())+'T12:00:00'))/86400000);
+        if(isNaN(d)||d>42)return null;
+        const sn=seasonDisplayName(s.name);
+        const label=d>1?(sn+' ends in '+d+' days'):d===1?(sn+' ends tomorrow'):d===0?(sn+' ends today'):(sn+' has ended — awaiting archive');
         return(
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,margin:'2px 16px 18px',fontSize:12,color:'var(--ink-50)',textAlign:'center'}}>
             <span>⛳</span><span>{label}{d>=0?(' · '+new Date(s.endDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})):''}</span>
@@ -5756,13 +5778,13 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
 }
 
 // ═══════════════ HISTORY VIEW V2 ═══════════════
-function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSoftDelete, onRecover, onPermanentDelete, onEditRound }){
+function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSoftDelete, onRecover, onPermanentDelete, onEditRound, attOverride }){
   const [open, setOpen] = useState(null);
   // Two rounds (28 Aug, 4 Sep) lost their team line-ups. Scores and pots survived
   // but the teams did not, so they rendered empty. Attendance still holds who
   // played — show that rather than nothing.
   const [attRounds,setAttRounds]=useState(null);
-  useEffect(()=>{ if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read]);
+  useEffect(()=>{ if(attOverride){setAttRounds(attOverride);return;} if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read,attOverride]);
   const attByDate=useMemo(()=>{const m={};safeArray(attRounds).forEach(a=>{if(a&&a.date&&safeArray(a.players).length)m[a.date]=safeArray(a.players).filter(Boolean);});return m;},[attRounds]);
 
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -5829,7 +5851,7 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
               {/* Header row */}
               <div onClick={()=>setOpen(isOpen?null:k)} style={{padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none',gap:10}}>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:15,fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em'}}>{r.day} — {fmtDFull(r.date)}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em'}}>{r.day} — {fmtDFull(r.date)}</div>{r._season&&<div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',marginTop:1}}>{r._season}</div>}
                   <div style={{fontSize:12,color:'var(--ink-50)',marginTop:2,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                     <span>{pc} player{pc!==1?'s':''}</span>
                     <span style={{color:'var(--ink-20)'}}>·</span>
@@ -6151,7 +6173,8 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
 function AwardsView({ read }){
   const [aw, setAw] = useState(null);
   useEffect(()=>{const u=read('awards', v=>setAw(v||null));return ()=>{try{u&&u();}catch(e){}};},[]);
-  const years=Object.keys(aw||{}).filter(y=>aw[y]&&aw[y].published).sort().reverse();
+  // Newest season first (by end date; older year-keyed docs sort by their key).
+  const years=Object.keys(aw||{}).filter(y=>aw[y]&&aw[y].published).sort((a,b)=>String((aw[b]&&aw[b].endDate)||b).localeCompare(String((aw[a]&&aw[a].endDate)||a)));
   const [year,setYear]=useState(null);
   const y=year||years[0];
   const doc=y?aw[y]:null;
@@ -6163,7 +6186,7 @@ function AwardsView({ read }){
       <div style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'18px',marginBottom:14,textAlign:'center',boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
         <div style={{fontSize:30}}>🏆</div>
         <div style={{fontSize:11,fontWeight:800,color:'rgba(184,137,26,0.95)',textTransform:'uppercase',letterSpacing:'0.12em',marginTop:4}}>Clark Golf Group</div>
-        <div style={{fontSize:21,fontWeight:900,color:'#fff',lineHeight:1.15,marginTop:2}}>{y} Season Awards</div>
+        <div style={{fontSize:21,fontWeight:900,color:'#fff',lineHeight:1.15,marginTop:2}}>{/^season\b/i.test(String(y))?(y+' Awards'):(y+' Season Awards')}</div>
       </div>
       {years.length>1&&(
         <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
@@ -7569,7 +7592,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     </div>
   );
 }
-function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullRoster, read, write, overrideRounds }){
+function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullRoster, read, write, overrideRounds, seasonTitle, pickerView, allTimeFunds }){
   const archivedView = overrideRounds!=null;
   const [attView, setAttView] = useState('standings');
   const [rounds, setRounds] = useState([]);
@@ -7603,18 +7626,15 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
   // Before the end date we're still IN this season, so 'current' means on-or-before it.
   const seasonOver = !!(seasonLock&&seasonLock.closedAt&&todayIsoA>seasonLock.closedAt);
   const effView = seasonView||'season';
-  const seasonRounds = useMemo(()=>{
-    if(!seasonLock||!seasonLock.closedAt)return rounds;
-    if(effView==='all')return rounds;
-    // 'season' = the season we're in right now: before the end date that's on-or-before it; after, it's the new one.
-    return seasonOver?rounds.filter(r=>String(r.date||'')>seasonLock.closedAt):rounds.filter(r=>String(r.date||'')<=seasonLock.closedAt);
-  },[rounds,seasonLock,effView]);
+  // The season picker above the tab decides which rounds are here (current season,
+  // one archived season, or all-time), so every number on this page agrees.
+  const seasonRounds = rounds;
   const standings = useMemo(()=>{
     const p={};
     seasonRounds.forEach(r=>{ (r.players||[]).forEach(raw=>{ const name=normName(raw); if(!p[name])p[name]={name,rounds:0,dates:[]}; p[name].rounds++; p[name].dates.push(r.date); }); });
     return Object.values(p).sort(sortAZ?((a,b)=>a.name.localeCompare(b.name)):((a,b)=>b.rounds-a.rounds));
   },[seasonRounds,sortAZ]);
-  const totalEntries = rounds.reduce((s,r)=>s+(r.players||[]).length,0);
+  const totalEntries = seasonRounds.reduce((s,r)=>s+(r.players||[]).length,0);
   const maxR = standings.length>0?standings[0].rounds:1;
   const filteredStandings = standings.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
   function LogModal({ editData, onSave, onClose }){
@@ -7679,27 +7699,24 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
   }
   return(
     <main className="content">
-      <div className="page-eyebrow">Season</div>
+      <div className="page-eyebrow">{seasonTitle||'Season'}</div>
       <div className="page-title">Attendance</div>
       <div style={{padding:'0 12px'}}>
         {/* The four headline numbers, as one slim strip instead of four big tiles. */}
         <div className="att-strip">
-          {[{n:standings.length,l:'Players',c:'var(--brand)'},{n:rounds.length,l:'Rounds',c:'var(--brand)'},{n:maxR,l:'Top played',c:'var(--brand)'},{n:'$'+totalEntries,l:'Tourn fund',c:'var(--highlight)'}].map(({n,l,c})=>(
+          {[{n:standings.length,l:'Players',c:'var(--brand)'},{n:seasonRounds.length,l:'Rounds',c:'var(--brand)'},{n:standings.length?maxR:0,l:'Top played',c:'var(--brand)'},allTimeFunds?{n:allTimeFunds.length,l:'Seasons',c:'var(--highlight)'}:{n:'$'+totalEntries,l:'Tourn fund',c:'var(--highlight)'}].map(({n,l,c})=>(
             <div key={l} className="att-stat"><b style={{color:c}}>{n}</b><span>{l}</span></div>
           ))}
         </div>
-        <div className="att-note">$1 per player per round goes to the year-end tournament</div>
+        <div className="att-note">{allTimeFunds
+          ? <>Tournament fund by season: {allTimeFunds.map((f,i)=><span key={i}>{i?' · ':''}<b>{f.name}</b> ${f.fund}{f.current?' (so far)':''}</span>)}</>
+          : (!pickerView||pickerView==='live')
+            ? <>$1 per player per round goes to the {seasonTitle||'season'} tournament fund</>
+            : <>{seasonTitle} tournament fund: ${totalEntries} ($1 per player per round)</>}</div>
 
         {attView==='standings'&&(
           /* One row: season switch (only once a season has been closed), search, sort. */
           <div className="att-controls">
-            {seasonLock&&seasonLock.closedAt&&(
-              <div className="seg">
-                {[['season','Season'],['all','All-time']].map(([v,label])=>(
-                  <button key={v} className={effView===v?'on':''} onClick={()=>setSeasonView(v)}>{label}</button>
-                ))}
-              </div>
-            )}
             <input className="att-search" placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
             <div className="seg">
               <button className={!sortAZ?'on':''} onClick={()=>setSortAZ(false)} title="Most rounds first">Rounds</button>
@@ -7721,7 +7738,7 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
           </div>
         )}
         {attView==='standings'&&(standings.length===0?(
-          <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)'}}><div style={{fontSize:14,fontWeight:600,marginBottom:6}}>{effView==='all'?'No attendance data yet':'No rounds in this season yet'}</div><div style={{fontSize:12}}>{effView==='all'?'Rounds are added automatically when weeks close out.':'Tap All-time to see every round on record.'}</div></div>
+          <div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)'}}><div style={{fontSize:14,fontWeight:600,marginBottom:6}}>{pickerView==='all'?'No attendance data yet':'No rounds in this season yet'}</div><div style={{fontSize:12}}>{pickerView==='all'?'Rounds are added automatically when weeks close out.':'Earlier seasons and All-time are in the Season picker above.'}</div></div>
         ):(
           <>
             <div className="day-card" style={{overflow:'hidden'}}>
@@ -7861,7 +7878,7 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
 
 
 // ═══════════════ STANDINGS VIEW V2 ═══════════════
-function StandingsViewV2({ history, currentUser }){
+function StandingsViewV2({ history, currentUser, seasonTitle }){
   const [lbSort, setLbSort] = useState('net');
   const [showMe, setShowMe] = useState(false);
   const [expandedPlayer, setExpandedPlayer] = useState(null);
@@ -7990,7 +8007,7 @@ function StandingsViewV2({ history, currentUser }){
   if(!rounds.length){
     return(
       <main className="content">
-        <div className="page-eyebrow">Season</div>
+        <div className="page-eyebrow">{seasonTitle||'Season'}</div>
         <div className="page-title">Standings</div>
         <div className="stub-card">
           <div className="stub-icon"><svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21V12m-4 9V16m12 5V8m4 13V4"/></svg></div>
@@ -8012,7 +8029,7 @@ function StandingsViewV2({ history, currentUser }){
 
   return(
     <main className="content">
-      <div className="page-eyebrow">Season</div>
+      <div className="page-eyebrow">{seasonTitle||'Season'}</div>
       <div className="page-title">Standings</div>
       <div className="page-sub"><strong>{rounds.length}</strong> round{rounds.length!==1?'s':''} · <strong>{leaderboard.length}</strong> players</div>
 
@@ -10314,7 +10331,7 @@ function SetupWizardV2({ day, week, settings, write, push, del, currentUser, onD
 
 
 // ═══════════════ STATS VIEW V2 ═══════════════
-function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, rosterDeleted, currentUser, settings, publicMode, onSwitchTab }){
+function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLog, effectiveRoster, extra, rosterDeleted, currentUser, settings, publicMode, onSwitchTab, attOverride, streakParts, logWindow, includeStartBal, seasonTitle, sectionMap }){
   const roster=[...(effectiveRoster||ROSTER),...safeArray(extra).filter(p=>p.id>96)].filter(p=>p&&!p.hidden&&!(rosterDeleted&&rosterDeleted[p.id]));
   const histArr=Object.values(history||{}).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const logArr=safeArray(activityLog).sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -10343,7 +10360,10 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   });
 
   const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','logins','behavior'];
-  const showSec=id=>{ if(!publicMode)return true; return settings?.statsPlayerSections?.[id]!==false; };
+  // Master sees everything. Admins get the portal's "Admin View" ticks, members the "Member View" ticks.
+  const showSec=id=>{ if(!publicMode)return true; return (sectionMap||{})[id]!==false; };
+  // Activity-log entries that fall inside the season being shown (null window = all-time).
+  const inWin=ts=>{ if(!logWindow)return true; if(!ts)return false; if(logWindow.from!=null&&ts<logWindow.from)return false; if(logWindow.to!=null&&ts>logWindow.to)return false; return true; };
 
   const curAdminSections=settings?.statsAdminSections||SHAREABLE_SECTIONS.reduce((a,k)=>{a[k]=true;return a;},{});
   const curAccess=settings?.statsAccess||'none';
@@ -10360,8 +10380,9 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
   const availableMonths=[...new Set(histArr.map(r=>r.date?.slice(0,7)).filter(Boolean))].sort().reverse();
   const getMonthLabel=m=>{const[y,mo]=m.split('-');return new Date(y,parseInt(mo)-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});};
-  const activeHist=filterPeriod==='all'?histArr:histArr.filter(r=>r.date?.startsWith(filterPeriod));
-  const activeLog=filterPeriod==='all'?logArr:logArr.filter(e=>{if(!e.ts)return false;return new Date(e.ts).toISOString().slice(0,7)===filterPeriod;});
+  // The season picker above the tab decides the rounds; months are gone.
+  const activeHist=histArr;
+  const activeLog=logArr.filter(e=>e&&inWin(e.ts));
 
   const seasonStart=histArr.length?histArr[0].date:null;
   const seasonStartFmt=seasonStart?new Date(seasonStart+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
@@ -10372,7 +10393,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   // while Attendance still had them. Fall back to the attendance record for any
   // round with no teams, so Stats and Attendance agree.
   const [attRounds,setAttRounds]=useState(null);
-  useEffect(()=>{ if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read]);
+  useEffect(()=>{ if(attOverride){setAttRounds(attOverride);return;} if(!read)return; return read('attendance/rounds', v=>setAttRounds(v||null)); },[read,attOverride]);
   const attByDate=useMemo(()=>{
     const m={};
     safeArray(attRounds).forEach(a=>{ if(a&&a.date&&safeArray(a.players).length)m[a.date]=safeArray(a.players).filter(Boolean); });
@@ -10380,7 +10401,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   },[attRounds]);
   // ── Streaks & milestones (same money math as Standings via roundWinnings) ──
   const streakStats=useMemo(()=>{
-    const st=computeStreaks(history,attRounds);
+    const st=streakParts?combineSeasonStreaks(streakParts):computeStreaks(history,attRounds);
     const all=Object.values(st.by);
     const hot=all.filter(p=>p.hot>=2).sort((a,b)=>b.hot-a.hot||b.won-a.won).slice(0,5);
     const cold=all.filter(p=>p.cold>=3&&p.rounds>=5).sort((a,b)=>b.cold-a.cold).slice(0,5);
@@ -10388,7 +10409,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
     const most=all.slice().sort((a,b)=>(b.roundsAtt||b.rounds)-(a.roundsAtt||a.rounds)).slice(0,5);
     const bests=all.filter(p=>p.best&&p.best.won>=30).sort((a,b)=>b.best.won-a.best.won).slice(0,5);
     return {hot,cold,iron,most,bests,n:all.length};
-  },[Object.keys(history||{}).length,attRounds]);
+  },[Object.keys(history||{}).length,attRounds,!!streakParts]);
 
   // Sign-up lead time. stats/signupLog records the round date AND the moment the
   // man signed up, so we can measure how far ahead each one books.
@@ -10406,7 +10427,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
       out.push({name:String(name).trim(),hrs});
     };
     // exact dates where we have them
-    safeArray(signupLog).forEach(e=>{ if(e&&e.name&&e.date&&e.ts) add(e.name,e.ts,Date.parse(e.date+'T09:00:00')); });
+    safeArray(signupLog).forEach(e=>{ if(e&&e.name&&e.date&&e.ts&&inWin(e.ts)) add(e.name,e.ts,Date.parse(e.date+'T09:00:00')); });
     // everything else: the round is the next occurrence of that weekday
     safeArray(activeLog).forEach(e=>{
       if(!e||e.action!=='signup'||!e.ts||!e.name||!e.day)return;
@@ -10446,7 +10467,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const stbl=(()=>{if(!indHist.length)return null;let tot=0,cnt=0,netTot=0,winPts=[],skins=0;indHist.forEach(r=>{let best=null;Object.values(r.scores.indScores||{}).forEach(v=>{const t=parseFloat(v.total)||0;const tg=parseFloat(v.target)||36;tot+=t;netTot+=(t-tg);cnt++;if(best===null||(t-tg)>best)best=(t-tg);});if(best!==null)winPts.push(best);skins+=Object.values(r.scores.skinCounts||{}).reduce((s,x)=>s+(parseInt(x)||0),0);});return{rounds:indHist.length,avgPts:cnt?Math.round(tot/cnt*10)/10:null,avgNet:cnt?Math.round(netTot/cnt*10)/10:null,avgWinNet:winPts.length?Math.round(winPts.reduce((a,b)=>a+b,0)/winPts.length*10)/10:null,skins};})();
   const totalPot=potTotals.skins+potTotals.front+potTotals.back+potTotals.overall;
   const avgPot=teamHist.length?Math.round(totalPot/teamHist.length):0;
-  const startingBalance=filterPeriod==='all'?(settings?.tournFundStartingBalance||0):0;
+  const startingBalance=includeStartBal?(settings?.tournFundStartingBalance||0):0;   // the pre-app balance belongs to the first season
   const totalFund=potTotals.fund+startingBalance;
   const potRounds=teamHist.map(r=>({total:(r.scores?.skinsPot||0)+(r.scores?.frontPot||0)+(r.scores?.backPot||0)+(r.scores?.overallPot||0),date:r.date?.slice(5)||'',day:r.day||'',players:r.playerCount||0})).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
   const biggestPot=potRounds[0]||null;const smallestPot=potRounds.length>1?potRounds[potRounds.length-1]:null;
@@ -10541,7 +10562,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
 
 
-  const periodLabel=filterPeriod==='all'?'All Time':getMonthLabel(filterPeriod);
+  const periodLabel=seasonTitle||'All Time';
 
   // v2 UI helpers — use v2 CSS vars
   const S=({id,icon,title,color,borderColor,summary,children})=>(
@@ -10573,119 +10594,10 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
 
       <div style={{padding:'0 12px'}}>
 
-        {/* Stats Access Control — master admin only */}
-        {!publicMode&&(
-          <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
-            <div onClick={()=>setShowStatsControl(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',cursor:'pointer',userSelect:'none'}}>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                <span style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Stats Access Control</span>
-                <span style={{fontSize:11,fontWeight:700,padding:'2px 7px',borderRadius:20,background:curAccess==='none'?'var(--surface-sunken)':curAccess==='all'?'var(--brand-soft)':'var(--info-soft)',color:curAccess==='none'?'var(--ink-40)':curAccess==='all'?'var(--brand)':'var(--info)'}}>
-                  {curAccess==='none'?'Private':curAccess==='all'?'All Members':Object.keys(curAllowed).length+' People'}
-                </span>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-40)" strokeWidth="2" style={{transform:showStatsControl?'rotate(180deg)':'none',transition:'transform 0.18s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            {showStatsControl&&(
-              <div style={{borderTop:'1px solid var(--hairline)'}}>
-                {/* Tabs */}
-                <div style={{display:'flex',borderBottom:'1px solid var(--hairline)'}}>
-                  {[['access','👥 Who Can See'],['sections','📋 What They See']].map(([t,l])=>(
-                    <button key={t} onClick={()=>setStatsUITab(t)} style={{flex:1,padding:'10px',border:'none',background:statsUITab===t?'var(--brand-soft)':'var(--surface-sunken)',fontSize:12,fontWeight:700,cursor:'pointer',color:statsUITab===t?'var(--brand)':'var(--ink-40)',borderBottom:statsUITab===t?'2px solid var(--brand)':'2px solid transparent',fontFamily:'inherit'}}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-                {statsUITab==='access'&&(
-                  <div style={{padding:'14px 16px'}}>
-                    <div style={{fontSize:12,fontWeight:700,color:'var(--ink)',marginBottom:10}}>Who can see the Stats tab?</div>
-                    <div style={{display:'flex',gap:6,marginBottom:12}}>
-                      {[['none','🔒 Nobody'],['all','🌍 All Members'],['specific','👤 Specific']].map(([val,label])=>{
-                        const isActive=curAccess===val;
-                        return(
-                          <button key={val} onClick={()=>{if(val===curAccess)return;if(val==='none'){writeStats('statsAccess','none');}else if(window.confirm('Turn ON stats for '+(val==='all'?'ALL members':'specific people')+'?')){writeStats('statsAccess',val);}}}
-                            style={{flex:1,padding:'8px 4px',borderRadius:8,border:'1.5px solid',borderColor:isActive?'var(--brand)':'var(--hairline)',background:isActive?'var(--brand-soft)':'var(--surface)',color:isActive?'var(--brand)':'var(--ink-40)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div style={{padding:'8px 12px',borderRadius:8,background:'var(--surface-sunken)',fontSize:11,color:curAccess==='none'?'var(--ink-40)':curAccess==='all'?'var(--brand)':'var(--info)',fontWeight:600,marginBottom:curAccess==='specific'?12:0}}>
-                      {curAccess==='none'&&'Stats tab hidden — only you can see it'}
-                      {curAccess==='all'&&'✓ All signed-in members can see the Stats tab'}
-                      {curAccess==='specific'&&(Object.keys(curAllowed).length>0?'✓ '+Object.keys(curAllowed).length+' member(s) have access':'No members selected yet')}
-                    </div>
-                    {curAccess==='specific'&&(
-                      <div>
-                        <input className="form-input" style={{marginBottom:8,marginTop:12}} placeholder="Search members..." value={playerSearch} onChange={e=>setPlayerSearch(e.target.value)}/>
-                        <div style={{maxHeight:240,overflowY:'auto',border:'1.5px solid var(--hairline)',borderRadius:8}}>
-                          {(()=>{
-                            const filtered=[...roster].sort((a,b)=>a.name.localeCompare(b.name)).filter(p=>p.name.toLowerCase().includes(playerSearch.toLowerCase()));
-                            const admins=filtered.filter(p=>rosterAdmins&&rosterAdmins[p.id]);
-                            const members=filtered.filter(p=>!(rosterAdmins&&rosterAdmins[p.id]));
-                            const renderRow=p=>{
-                              const hasAccess=!!(curAllowed[p.id]);
-                              const isAdm=!!(rosterAdmins&&rosterAdmins[p.id]);
-                              return(
-                                <div key={p.id} onClick={()=>{const newVal=hasAccess?null:true;if(window.__cgPreview){try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}return;}if(typeof firebase==='undefined')return;firebase.database().ref('settings/statsAllowedPlayers/'+p.id).set(newVal);}}
-                                  style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer',background:hasAccess?'var(--brand-soft)':'transparent'}}>
-                                  <div style={{width:16,height:16,borderRadius:4,border:'2px solid',borderColor:hasAccess?'var(--brand)':'var(--hairline)',background:hasAccess?'var(--brand)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                                    {hasAccess&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                                  </div>
-                                  <div style={{flex:1,fontSize:13,fontWeight:500,color:'var(--ink)'}}>{p.name}</div>
-                                  {isAdm&&<span style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',padding:'1px 5px',borderRadius:20}}>Admin</span>}
-                                  {hasAccess&&<span style={{fontSize:11,fontWeight:700,color:'var(--brand)',background:'var(--brand-soft)',padding:'1px 6px',borderRadius:20}}>✓</span>}
-                                </div>
-                              );
-                            };
-                            return(<>
-                              {admins.length>0&&<><div style={{padding:'5px 12px',background:'var(--warn-soft)',fontSize:11,fontWeight:700,color:'var(--warn-ink)',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid var(--warn-border)'}}>Admins ({admins.length})</div>{admins.map(renderRow)}</>}
-                              {members.length>0&&<><div style={{padding:'5px 12px',background:'var(--surface-sunken)',fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.07em',borderBottom:'1px solid var(--hairline)'}}>Members ({members.length})</div>{members.map(renderRow)}</>}
-                            </>);
-                          })()}
-                        </div>
-                        {Object.keys(curAllowed).length>0&&<button onClick={()=>{if(window.__cgPreview){try{window.__cgPreviewFlash&&window.__cgPreviewFlash();}catch(e){}return;}if(typeof firebase!=='undefined')firebase.database().ref('settings/statsAllowedPlayers').set(null);}} style={{marginTop:8,fontSize:11,color:'var(--money-neg)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Clear all access</button>}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {statsUITab==='sections'&&(
-                  <div style={{padding:'14px 16px'}}>
-                    <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:12}}>Toggle which sections members and admins can see.</div>
-                    {[['var(--info)','👤 Member View',id=>curSections[id]!==false,(id,val)=>writeStats('statsPlayerSections/'+id,val)],['var(--highlight)','🛡️ Admin View',id=>curAdminSections[id]!==false,(id,val)=>writeStats('statsAdminSections/'+id,val)]].map(([color,heading,isOn,onToggle])=>(
-                      <div key={heading} style={{marginBottom:16}}>
-                        <div style={{fontSize:11,fontWeight:700,color:color,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8,paddingBottom:4,borderBottom:'1px solid var(--hairline)'}}>{heading}</div>
-                        {[['overview','📊 Season Overview'],['teams','🤝 Who Plays With Who'],['streaks','🔥 Streaks & Milestones'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['stableford','🎯 Stableford Games'],['pots','💰 Pot Analytics'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']].map(([id,label])=>{
-                          const on=isOn(id);
-                          return(
-                            <div key={id} onClick={()=>onToggle(id,!on)} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',cursor:'pointer'}}>
-                              <div style={{width:16,height:16,borderRadius:4,border:'2px solid',borderColor:on?color:'var(--hairline)',background:on?color:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                                {on&&<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                              </div>
-                              <div style={{fontSize:12,fontWeight:500,color:'var(--ink)'}}>{label}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Who can see Stats, and which sections, is set in the portal (Settings, master only). */}
+        {!publicMode&&<div style={{fontSize:11.5,color:'var(--ink-40)',margin:'0 2px 10px'}}>Who can see Stats — and which sections — is set in the portal under Settings.</div>}
 
-        {/* Period Filter */}
-        <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:12}}>
-          {['all',...availableMonths].map(m=>(
-            <button key={m} onClick={()=>setFilterPeriod(m)}
-              style={{padding:'5px 11px',borderRadius:20,border:'1.5px solid',borderColor:filterPeriod===m?'var(--brand)':'var(--hairline)',background:filterPeriod===m?'var(--brand-soft)':'var(--surface)',color:filterPeriod===m?'var(--brand)':'var(--ink-40)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-              {m==='all'?'All Time':getMonthLabel(m)}
-            </button>
-          ))}
-        </div>
-
-        {totalRounds===0&&<div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)',fontSize:14}}>No rounds found for this period</div>}
+        {totalRounds===0&&<div style={{textAlign:'center',padding:'40px 20px',color:'var(--ink-40)',fontSize:14}}>No rounds yet in {periodLabel}</div>}
 
         {/* ── 1. Season Overview ── */}
         {showSec('overview')&&<S id="overview" icon="📊" title="Season Overview" color="var(--brand)" borderColor="var(--brand)" summary={totalRounds+' rounds · avg '+avgField+' players · $'+totalPot.toLocaleString()+' paid out'}>
@@ -12197,14 +12109,75 @@ function App(){
     // Lottery-result moment only: lottery (no time) → an actual time. Routine sets stay silent.
     if(wasLottery&&nowTime)sendPushNotify({audience:'all',title:'\ud83d\udd50 '+day+' tee time is set!',body:day+' tees off at '+nowTime+'.',url:'/',tag:'teetime-'+day,vars:{day:day,time:nowTime}});
   }
+  // Season picker data. 'live' = the current season; an id = one archived season;
+  // 'all' = every archived season plus the current one, merged (read-only).
+  const [liveAttAll, setLiveAttAll] = useState(null);
+  const seasonIdsKey = Object.keys(seasonsMeta||{}).sort().join('|');
   useEffect(()=>{
     if(seasonView==='live'){setSeasonData(null);return;}
     let alive=true;
+    setSeasonData(null);
+    if(seasonView==='all'){
+      const ids=Object.keys(seasonsMeta||{});
+      Promise.all(ids.map(id=>new Promise(res=>readOnce('seasons/'+id,v=>res({id,meta:(seasonsMeta[id]||{}),data:v||{}}))))).then(parts=>{if(alive)setSeasonData({_all:true,parts});});
+      const u=read('attendance/rounds',v=>{if(alive)setLiveAttAll(v||null);});
+      return ()=>{alive=false;try{u&&u();}catch(e){}};
+    }
     readOnce('seasons/'+seasonView,(v)=>{if(alive)setSeasonData(v||null);});
     return ()=>{alive=false;};
-  },[seasonView]);
-  const effHistory = seasonView==='live' ? history : ((seasonData&&seasonData.history)||{});
-  const seasonBanner = seasonView!=='live' ? ((seasonsMeta[seasonView]&&seasonsMeta[seasonView].name)||'Archived season') : null;
+  },[seasonView,seasonIdsKey]);
+  const attArrOf=x=>(Array.isArray(x)?x:Object.values(x||{})).filter(r=>r&&r.date);
+  const liveSeasonCfg=(settings&&settings.season)||{};
+  const liveSeasonName=seasonDisplayName(liveSeasonCfg.name||'Current season');
+  const seasonPartsAll=(seasonView==='all'&&seasonData&&seasonData._all)?seasonData.parts:null;
+  const effHistory = useMemo(()=>{
+    if(seasonView==='live')return history;
+    if(seasonView==='all'){
+      if(!seasonPartsAll)return {};
+      const m={};
+      seasonPartsAll.forEach(p=>{const nm=seasonDisplayName((p.meta&&p.meta.name)||p.id);Object.entries((p.data&&p.data.history)||{}).forEach(([k,r])=>{if(r)m[p.id+'~'+k]={...r,_season:nm};});});
+      Object.entries(history||{}).forEach(([k,r])=>{if(r)m['live~'+k]={...r,_season:liveSeasonName};});
+      return m;
+    }
+    return (seasonData&&seasonData.history)||{};
+  },[seasonView,seasonData,history,liveSeasonName]);
+  // Attendance rounds for whichever season is showing (null = current season, the views read it live).
+  const effAttRounds = useMemo(()=>{
+    if(seasonView==='live')return null;
+    if(seasonView==='all'){
+      if(!seasonPartsAll)return [];
+      return [...seasonPartsAll.flatMap(p=>attArrOf(p.data&&p.data.attendance&&p.data.attendance.rounds)),...attArrOf(liveAttAll)];
+    }
+    return attArrOf(seasonData&&seasonData.attendance&&seasonData.attendance.rounds);
+  },[seasonView,seasonData,liveAttAll]);
+  // Per-season tournament funds, for the All-time strip on Attend.
+  const allTimeFunds = useMemo(()=>{
+    if(!seasonPartsAll)return null;
+    const cnt=arr=>attArrOf(arr).reduce((t,r)=>t+safeArray(r.players).filter(Boolean).length,0);
+    const out=seasonPartsAll.map(p=>({name:seasonDisplayName((p.meta&&p.meta.name)||p.id),end:(p.meta&&p.meta.endDate)||'',fund:(p.meta&&p.meta.fundTotal!=null)?p.meta.fundTotal:cnt(p.data&&p.data.attendance&&p.data.attendance.rounds)}));
+    out.sort((a,b)=>String(a.end).localeCompare(String(b.end)));
+    out.push({name:liveSeasonName,fund:cnt(liveAttAll),current:true});
+    return out;
+  },[seasonPartsAll,liveAttAll,liveSeasonName]);
+  // Streak inputs per season, for Stats in All-time (streaks never cross a season break).
+  const allTimeStreakParts = seasonPartsAll ? [...seasonPartsAll.map(p=>({history:(p.data&&p.data.history)||{},att:attArrOf(p.data&&p.data.attendance&&p.data.attendance.rounds),current:false})),{history:history||{},att:attArrOf(liveAttAll),current:true}] : null;
+  // Labels: "Season 1 · May 1, 2026 – Oct 11, 2026", "Season 2 · since Oct 12, 2026".
+  const archivedLabel=(id)=>{const m=seasonsMeta[id]||{};const nm=seasonDisplayName(m.name||id);const a=m.firstRound?fmtSeasonDate(m.firstRound):null;const b=m.endDate?fmtSeasonDate(m.endDate):null;return nm+(a&&b?(' · '+a+' – '+b):b?(' · through '+b):'');};
+  const liveSince=liveSeasonCfg.startedAt?fmtSeasonDate(localDateStr(new Date(liveSeasonCfg.startedAt))):null;
+  const liveLabel=liveSeasonName+(liveSince?(' · since '+liveSince):'');
+  const seasonTitle = seasonView==='live' ? liveSeasonName : seasonView==='all' ? 'All-time' : seasonDisplayName((seasonsMeta[seasonView]&&seasonsMeta[seasonView].name)||'Archived season');
+  // The earliest season carries the pre-app tournament fund starting balance.
+  const oldestSeasonId = Object.entries(seasonsMeta||{}).sort((a,b)=>String(a[1].endDate||'').localeCompare(String(b[1].endDate||'')))[0];
+  const includeStartBal = seasonView==='all' || (oldestSeasonId ? seasonView===oldestSeasonId[0] : seasonView==='live');
+  // Activity-log window for the season showing (ms). All-time = no window.
+  const statsLogWindow = (()=>{
+    if(seasonView==='all')return null;
+    const ends=Object.entries(seasonsMeta||{}).map(([id,m])=>({id,end:m.endDate})).filter(x=>x.end).sort((a,b)=>a.end.localeCompare(b.end));
+    const endMs=d=>Date.parse(d+'T23:59:59');
+    if(seasonView==='live'){const last=ends[ends.length-1];return {from:last?endMs(last.end)+1:null,to:null};}
+    const i=ends.findIndex(x=>x.id===seasonView); if(i<0)return null;
+    return {from:i>0?endMs(ends[i-1].end)+1:null,to:endMs(ends[i].end)};
+  })();
   function addSignup(entry){
     // Duplicate/typo guard: normalize, block same-day dupes, snap to roster spelling
     const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -12663,7 +12636,7 @@ function App(){
   window.__cgPreview = isPreview;
 
   const statsAccess = settings?.statsAccess || 'none';
-  const statsAllowed = settings?.statsAllowed || {};
+  const statsAllowed = settings?.statsAllowedPlayers || {};   // the control has always written statsAllowedPlayers
   const canSeeMemberStats = (isPreview && statsAccess === 'all') || (!isAdmin && !isScoring && !isGuest && !isPreview && (
     statsAccess === 'all' ||
     (statsAccess === 'specific' && currentUser?.id && statsAllowed[currentUser.id])
@@ -12873,29 +12846,34 @@ function App(){
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
         <div style={{maxWidth:'var(--maxw, 980px)',margin:'0 auto',padding:'10px 16px 0',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Season</span>
-          <select className="form-input" style={{maxWidth:220,padding:'6px 10px',fontSize:12.5}} value={seasonView} onChange={e=>setSeasonView(e.target.value)}>
-            <option value="live">Current season</option>
-            {Object.entries(seasonsMeta).sort((a,b)=>((b[1].archivedAt||0)-(a[1].archivedAt||0))).map(([id,m])=>(
-              <option key={id} value={id}>{(m.name||id)+' — '+(m.roundCount||0)+' rounds · '+(m.archivedAt?new Date(m.archivedAt).toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}):'')}</option>
+          <select className="form-input" style={{maxWidth:320,padding:'6px 10px',fontSize:12.5}} value={seasonView} onChange={e=>setSeasonView(e.target.value)}>
+            <option value="live">{liveLabel+' (current)'}</option>
+            {Object.entries(seasonsMeta).sort((a,b)=>String(b[1].endDate||'').localeCompare(String(a[1].endDate||''))||((b[1].archivedAt||0)-(a[1].archivedAt||0))).map(([id])=>(
+              <option key={id} value={id}>{archivedLabel(id)}</option>
             ))}
+            <option value="all">All-time — every season combined</option>
           </select>
-          {seasonBanner&&<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)'}}>Viewing archived: {seasonBanner}{seasonData?'':' — loading…'}</span>}
+          {seasonView!=='live'&&<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:8,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',color:'var(--warn-ink)'}}>{seasonView==='all'?'All-time · view only':(seasonTitle+' · archived · view only')}{seasonData?'':' — loading…'}</span>}
         </div>
       )}
-      {tab === 'history' && <HistoryViewV2 read={read} history={effHistory} historyTrash={historyTrash} isAdmin={isAdmin} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
-      {tab === 'leaderboard' && <StandingsViewV2 history={effHistory} currentUser={currentUser}/>}
+      {tab === 'history' && <HistoryViewV2 key={'h-'+seasonView} attOverride={effAttRounds} read={read} history={effHistory} historyTrash={historyTrash} isAdmin={seasonView==='live'?isAdmin:false} write={safeWrite} del={safeDel} onSoftDelete={softDeleteHistory} onRecover={recoverHistory} onPermanentDelete={permanentDeleteHistory} onEditRound={editHistoryRound}/>}
+      {tab === 'leaderboard' && <StandingsViewV2 key={'s-'+seasonView} history={effHistory} currentUser={currentUser} seasonTitle={seasonTitle}/>}
 
       {tab === 'master' && (()=>{
         const isMasterAdmin=!!(rosterAdmins&&currentUser&&rosterAdmins[currentUser.id]==='master');
         if(isMasterAdmin){
-          return <StatsViewV2 read={read} rosterDeleted={rosterDeleted} cancelledDays={cancelledDays} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={false} onSwitchTab={setTab}/>;
+          return <StatsViewV2 key={'st-'+seasonView} attOverride={effAttRounds} streakParts={allTimeStreakParts} logWindow={statsLogWindow} includeStartBal={includeStartBal} seasonTitle={seasonTitle} read={read} rosterDeleted={rosterDeleted} cancelledDays={cancelledDays} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={false} onSwitchTab={setTab}/>;
+        }
+        // Admins (and scoring admins) see the sections ticked under "Admin View" in the portal.
+        if(isAdmin||isScoring){
+          return <StatsViewV2 key={'st-'+seasonView} attOverride={effAttRounds} streakParts={allTimeStreakParts} logWindow={statsLogWindow} includeStartBal={includeStartBal} seasonTitle={seasonTitle} sectionMap={settings&&settings.statsAdminSections} read={read} rosterDeleted={rosterDeleted} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
         }
         if(canSeeMemberStats){
-          return <StatsViewV2 read={read} rosterDeleted={rosterDeleted} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
+          return <StatsViewV2 key={'st-'+seasonView} attOverride={effAttRounds} streakParts={allTimeStreakParts} logWindow={statsLogWindow} includeStartBal={includeStartBal} seasonTitle={seasonTitle} sectionMap={settings&&settings.statsPlayerSections} read={read} rosterDeleted={rosterDeleted} week={week} history={effHistory} rosterPins={rosterPins} rosterAdmins={rosterAdmins} activityLog={activityLog} effectiveRoster={effectiveRoster} extra={extra} currentUser={currentUser} settings={settings} publicMode={true} onSwitchTab={setTab}/>;
         }
         return null;
       })()}
-      {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 avatarFor={avatarForApp} onShowAvatar={showAvatar} isAdmin={seasonView==='live'?isAdmin:false} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite} overrideRounds={seasonView==='live'?null:(((seasonData&&seasonData.attendance)||{}).rounds||[])}/>}
+      {tab === 'attendance' && currentUser?.role !== 'guest' && <AttendanceViewV2 key={'a-'+seasonView} seasonTitle={seasonTitle} pickerView={seasonView} allTimeFunds={allTimeFunds} avatarFor={avatarForApp} onShowAvatar={showAvatar} isAdmin={seasonView==='live'?isAdmin:false} currentUser={currentUser} fullRoster={fullRoster} read={read} write={safeWrite} overrideRounds={effAttRounds}/>}
       {tab === 'email' && <EmailViewV2 week={week} isAdmin={isAdmin} history={history}/>}
       {(tab === 'admin' || tab === 'manage') && <AdminViewV2 viewMode={tab==='manage'?'week':'admin'} tournCfg={tournCfg}
 settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin}

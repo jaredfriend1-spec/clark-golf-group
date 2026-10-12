@@ -2547,22 +2547,67 @@ function moneyLeaderboard(rounds){
   }
 
 function AwardsTab({user}){
-  const history=useDB("history");
-  const attendance=useDB("attendance/rounds");
+  const liveHistory=useDB("history");
+  const liveAttendance=useDB("attendance/rounds");
   const season=useDB("settings/season");
+  const seasons=useDB("seasons");
   const saved=useDB("awards");
-  const signupLog=useDB("stats/signupLog");
-  const guestLog=useDB("stats/guestLog");
+  const signupLogAll=useDB("stats/signupLog");
+  const guestLogAll=useDB("stats/guestLog");
   const [toast,showToast]=useToast();
   const [edits,setEdits]=useState({});
   const [customs,setCustoms]=useState([]);
   const [srcFilter,setSrcFilter]=useState("all");
   const [openId,setOpenId]=useState(null);
-  const year=String((season&&season.endDate?season.endDate:new Date().toISOString().slice(0,10)).slice(0,4));
+  const [pickId,setPickId]=useState(null);
+
+  // ── Which season the awards are for ──────────────────────────────────────
+  // Awards are worked out from a season's rounds. The current season reads live
+  // data; a finished season reads its archive (seasons/<id>), so archiving never
+  // takes the awards away. Default: the season that most recently finished.
+  const sname=n=>{const t=String(n||"").trim();return /^season\b/i.test(t)?t:("Season "+(t||"?"));};
+  const fmtD=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});}catch(e){return d;}};
+  const archived=Object.entries(seasons||{}).map(([id,v])=>({id,meta:(v&&v.meta)||{}})).sort((a,b)=>String(b.meta.endDate||"").localeCompare(String(a.meta.endDate||"")));
+  const opts=[...archived.map(a=>({id:a.id,name:sname(a.meta.name||a.id),endDate:a.meta.endDate||"",label:sname(a.meta.name||a.id)+(a.meta.firstRound&&a.meta.endDate?(" · "+fmtD(a.meta.firstRound)+" – "+fmtD(a.meta.endDate)):a.meta.endDate?(" · through "+fmtD(a.meta.endDate)):"")})),
+              {id:"live",name:sname(season&&season.name),endDate:(season&&season.endDate)||"",label:sname(season&&season.name)+" · current, in progress"}];
+  const cur=opts.find(o=>o.id===pickId)||opts[0];
+  const isLive=cur.id==="live";
+  const arch=isLive?null:((seasons||{})[cur.id]||{});
+  const history=isLive?liveHistory:((arch&&arch.history)||{});
+  const attendance=isLive?liveAttendance:((arch&&arch.attendance&&arch.attendance.rounds)||[]);
+  // Sign-up and guest logs aren't archived — keep only entries dated inside this season.
+  const prevEnd=(()=>{const ends=archived.map(a=>a.meta.endDate).filter(Boolean).sort();if(isLive)return ends[ends.length-1]||null;const i=ends.indexOf(cur.endDate);return i>0?ends[i-1]:null;})();
+  const inWin=x=>{const d=x&&(x.date||(x.ts?new Date(x.ts).toISOString().slice(0,10):null));if(!d)return true;if(prevEnd&&d<=prevEnd)return false;if(cur.endDate&&d>cur.endDate)return false;return true;};
+  const signupLog=React.useMemo(()=>Object.values(signupLogAll||{}).filter(inWin),[signupLogAll,cur.id,prevEnd]);
+  const guestLog=React.useMemo(()=>Object.values(guestLogAll||{}).filter(inWin),[guestLogAll,cur.id,prevEnd]);
+  // Saved under the season's name ("Season 1"); the app shows "Season 1 Awards".
+  const year=cur.name;
   const published=!!(saved&&saved[year]&&saved[year].published);
 
+  // Your edits and your own awards save as you type, per season — leaving the
+  // page, refreshing or publishing can't drop them any more.
+  const [loadedYear,setLoadedYear]=useState(null);
+  useEffect(()=>{
+    let alive=true; setLoadedYear(null);
+    if(!db){return;}
+    db.ref("awards/"+year).once("value").then(snap=>{
+      if(!alive)return;
+      const doc=snap.val()||{};
+      setEdits(doc.edits||{});
+      if(Array.isArray(doc.customs))setCustoms(doc.customs.filter(Boolean));
+      else if(doc.customs&&typeof doc.customs==="object")setCustoms(Object.values(doc.customs).filter(Boolean));
+      else setCustoms(Object.entries(doc.items||{}).filter(([k])=>/^custom/.test(k)).map(([,v])=>({icon:v.icon||"🏅",title:v.title||"",blurb:v.blurb||"",winner:v.winner||"",detail:v.detail||""})));
+      setLoadedYear(year);
+    });
+    return ()=>{alive=false;};
+  },[year]);
+  const ready=loadedYear===year;
+  // Never write before this season's saved awards have loaded — that could overwrite them.
+  const persistEdits=next=>{if(!ready)return;setEdits(next);wr("awards/"+year+"/edits",next);};
+  const persistCustoms=next=>{if(!ready)return;setCustoms(next);wr("awards/"+year+"/customs",next.length?next:null);};
+
   const rounds=React.useMemo(()=>Object.values(history||{}).filter(r=>r&&r.scores&&(r.teams||r.scores.gameMode==="individual")),[history]);
-  const inSeason=r=>!(season&&season.endDate&&String(r.date||"")>season.endDate);
+  const inSeason=r=>isLive?!(season&&season.endDate&&String(r.date||"")>season.endDate):true;
 
   // ── compute everything once ──
   const S=React.useMemo(()=>{
@@ -2663,7 +2708,7 @@ function AwardsTab({user}){
       p.lastPct=p.prefRounds>=5?Math.round((p.lastTee/p.prefRounds)*100):null;});
     const weeks=new Set(attIn.map(r=>r.date)).size;
     return {players:arr,teamRows,weeks};
-  },[rounds,attendance,signupLog,guestLog,season]);
+  },[rounds,attendance,signupLog,guestLog,season,cur.id]);
 
   const top=(key,dir,filter)=>{const l=S.players.filter(p=>(filter?filter(p):true)&&p[key]!=null).sort((a,b)=>dir==="asc"?a[key]-b[key]:b[key]-a[key]);return l;};
   const teamTop=(key,dir)=>S.teamRows.filter(x=>x[key]!=null).sort((a,b)=>dir==="asc"?a[key]-b[key]:b[key]-a[key]);
@@ -2695,7 +2740,7 @@ function AwardsTab({user}){
   ];
 
   const val=(id,field,dflt)=>{const e=edits[id]||{};if(e[field]!=null)return e[field];const sv=saved&&saved[year]&&saved[year].items&&saved[year].items[id];if(sv&&sv[field]!=null)return sv[field];return dflt;};
-  const setVal=(id,field,v)=>setEdits(d=>({...d,[id]:{...(d[id]||{}),[field]:v}}));
+  const setVal=(id,field,v)=>persistEdits({...edits,[id]:{...(edits[id]||{}),[field]:v}});
   const winnerOf=a=>val(a.id,"winner",(a.board[0]&&a.board[0].name)||"");
   const detailOf=a=>val(a.id,"detail",(a.board[0]&&a.board[0].detail)||"");
   const included=a=>val(a.id,"on",a.board.length>0&&a.src!=="new")!==false;
@@ -2703,14 +2748,14 @@ function AwardsTab({user}){
   const allItems=()=>{
     const items={};
     AWARDS.filter(included).filter(a=>winnerOf(a)).forEach(a=>{items[a.id]={icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a)};});
-    customs.forEach((c,i2)=>{if(c.title&&c.winner)items["custom"+i2]={icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner,detail:c.detail||""};});
+    customs.forEach((c,i2)=>{if(c.title)items["custom"+i2]={icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner||"",detail:c.detail||""};});
     return items;
   };
-  const saveDraft=()=>{wr("awards/"+year,{year:year,published:published,items:allItems(),updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast("Draft saved ✓");};
-  const publish=(on)=>{const items=allItems();wr("awards/"+year,{year:year,published:on,items:items,updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast(on?"Awards published to the app ✓":"Saved — not visible to members");};
+  const saveDraft=()=>{if(!ready)return;wr("awards/"+year,{year:year,season:year,endDate:cur.endDate||null,published:published,items:allItems(),edits:edits,customs:customs.length?customs:null,updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast("Draft saved ✓");};
+  const publish=(on)=>{if(!ready)return;const items=allItems();const blank=customs.filter(c=>c.title&&!c.winner).length;if(on&&blank&&!window.confirm(blank+" of your own award"+(blank>1?"s have":" has")+" no winner yet — publish anyway?"))return;wr("awards/"+year,{year:year,season:year,endDate:cur.endDate||null,published:on,items:items,edits:edits,customs:customs.length?customs:null,updatedAt:Date.now(),by:(user&&user.email)||"master"});showToast(on?"Awards published to the app ✓":"Saved — not visible to members");};
   const copyEmail=()=>{
     const items=allItems();
-    const L=[];L.push("CLARK GOLF GROUP — "+year+" SEASON AWARDS");L.push("");
+    const L=[];L.push("CLARK GOLF GROUP — "+year.toUpperCase()+" AWARDS");L.push("");
     Object.values(items).forEach(it=>{L.push(it.icon+"  "+it.title.toUpperCase());L.push("    "+it.winner+(it.detail?("  ("+it.detail+")"):""));if(it.blurb)L.push("    "+it.blurb);L.push("");});
     navigator.clipboard.writeText(L.join("\n")).then(()=>showToast("Awards copied — paste into the email ✓"));
   };
@@ -2718,9 +2763,16 @@ function AwardsTab({user}){
   return(
     <div className="main">
       <Toast msg={toast.msg} type={toast.type}/>
-      <div className="pg-eyebrow">Season</div>
+      <div className="pg-eyebrow">{year}</div>
       <div className="pg-title">Awards</div>
-      <div className="pg-sub">Every board below is computed from this season&rsquo;s rounds. Edit the titles, override a winner, add your own — then publish to the app or copy for the email.</div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",margin:"4px 0 8px"}}>
+        <span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.07em"}}>Season</span>
+        <select className="inp" style={{maxWidth:340,padding:"6px 10px",fontSize:13}} value={cur.id} onChange={e=>{setPickId(e.target.value);setOpenId(null);}}>
+          {opts.map(o=>(<option key={o.id} value={o.id}>{o.label}</option>))}
+        </select>
+        {!isLive&&<span style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>from the {cur.name} archive</span>}
+      </div>
+      <div className="pg-sub">Every board below is computed from {cur.name}&rsquo;s rounds. Edit the titles, override a winner, add your own — then publish to the app or copy for the email.</div>
 
       <div className="card" style={{marginBottom:16,borderColor:published?"rgba(16,185,129,0.35)":"rgba(255,255,255,0.08)"}}>
         <div className="card-hdr"><span className="card-title">{published?"🟢 Published — members can see the Awards page":"🔒 Draft — nobody but you can see this"}</span></div>
@@ -2808,15 +2860,15 @@ function AwardsTab({user}){
       })}
 
       <div className="card" style={{marginBottom:24}}>
-        <div className="card-hdr"><span className="card-title">🏅 Your own awards</span><button className="btn btn-g btn-sm" onClick={()=>setCustoms(c=>[...c,{icon:"🏅",title:"",blurb:"",winner:"",detail:""}])}>+ Add award</button></div>
+        <div className="card-hdr"><span className="card-title">🏅 Your own awards</span><button className="btn btn-g btn-sm" onClick={()=>persistCustoms([...customs,{icon:"🏅",title:"",blurb:"",winner:"",detail:""}])}>+ Add award</button></div>
         <div style={{padding:"10px 14px"}}>
-          {customs.length===0?<div style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>For the ones only you two would think of.</div>:customs.map((c,ci)=>(
+          {customs.length===0?<div style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>For the ones only you two would think of. They save as you type.</div>:customs.map((c,ci)=>(
             <div key={ci} style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-              <input className="inp" style={{width:52,textAlign:"center",fontSize:15,padding:"5px"}} value={c.icon} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,icon:e.target.value}:x))}/>
-              <input className="inp" style={{flex:"1 1 150px",fontSize:12,padding:"5px 8px"}} placeholder="Award name" value={c.title} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,title:e.target.value}:x))}/>
-              <input className="inp" style={{flex:"1 1 130px",fontSize:12,padding:"5px 8px"}} placeholder="Winner" value={c.winner} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,winner:e.target.value}:x))}/>
-              <input className="inp" style={{flex:"1 1 100%",fontSize:12,padding:"5px 8px"}} placeholder="Why he won it…" value={c.blurb} onChange={e=>setCustoms(l=>l.map((x,i2)=>i2===ci?{...x,blurb:e.target.value}:x))}/>
-              <button className="btn btn-r btn-sm" onClick={()=>setCustoms(l=>l.filter((_,i2)=>i2!==ci))}>Remove</button>
+              <input className="inp" style={{width:52,textAlign:"center",fontSize:15,padding:"5px"}} value={c.icon} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,icon:e.target.value}:x))}/>
+              <input className="inp" style={{flex:"1 1 150px",fontSize:12,padding:"5px 8px"}} placeholder="Award name" value={c.title} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,title:e.target.value}:x))}/>
+              <input className="inp" style={{flex:"1 1 130px",fontSize:12,padding:"5px 8px"}} placeholder="Winner" value={c.winner} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,winner:e.target.value}:x))}/>
+              <input className="inp" style={{flex:"1 1 100%",fontSize:12,padding:"5px 8px"}} placeholder="Why he won it…" value={c.blurb} onChange={e=>persistCustoms(customs.map((x,i2)=>i2===ci?{...x,blurb:e.target.value}:x))}/>
+              <button className="btn btn-r btn-sm" onClick={()=>{if(!c.title||window.confirm("Remove \""+c.title+"\"?"))persistCustoms(customs.filter((_,i2)=>i2!==ci));}}>Remove</button>
             </div>
           ))}
         </div>
@@ -4534,7 +4586,8 @@ function SeasonTab(){
   const liveRounds=Object.keys(history||{}).length;
   const liveFund=tournFundFromAttendance(attendance&&attendance.rounds,seasonBound(season));
   const attCount=(attendance&&attendance.rounds)?(Array.isArray(attendance.rounds)?attendance.rounds.length:Object.keys(attendance.rounds).length):0;
-  const daysLeft=(()=>{if(!ed)return null;const d=Math.ceil((new Date(ed+"T23:59:59")-new Date())/86400000);return d;})();
+  const todayStrP=(()=>{const t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");})();
+  const daysLeft=(()=>{if(!ed)return null;const d=Math.round((Date.parse(ed+"T12:00:00")-Date.parse(todayStrP+"T12:00:00"))/86400000);return isNaN(d)?null:d;})();
 
   // ── Split at the season end date ──────────────────────────────────────────
   // Rounds dated ON or BEFORE settings/season.endDate belong to this season and
@@ -4711,7 +4764,7 @@ function SeasonTab(){
             🏆 <b>The tournament is safe.</b> {tourn&&tourn.seasonCounts?<>It already keeps its own copy of round counts and fund (${tourn.seasonCounts.fund}).</>:<>Archiving first gives it its own copy of everyone's round count and the fund, so invites, entries and the pot stay exactly as they are. Nothing about the tournament is deleted.</>}
           </div>
         )}
-        {(()=>{if(!season||!season.endDate)return null;const d=Math.ceil((new Date(season.endDate+"T23:59:59")-new Date())/86400000);if(d<=0)return null;return(
+        {(()=>{if(!season||!season.endDate)return null;const d=Math.round((Date.parse(season.endDate+"T12:00:00")-Date.parse(todayStrP+"T12:00:00"))/86400000);if(!(d>0))return null;return(
           <div style={{fontSize:12.5,color:"#fbbf24",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:8,padding:"8px 11px",marginBottom:10,lineHeight:1.6}}>
             ⚠ The season end date is <b>{season.endDate}</b> — <b>{d} day{d!==1?"s":""} away</b>. Archiving now ends the season early. That’s allowed (weather happens), just make sure it’s intentional.
           </div>);})()}
@@ -5104,6 +5157,76 @@ function AnnounceTab({user}){
 }
 
 // ── SETTINGS TAB (Master Only) ────────────────────────────────────────────────
+// ── Stats access (moved here from the app's Stats tab, Oct 12 2026) ─────────
+// Who can see the app's Stats tab, and which sections members / admins get.
+// Same settings keys the app reads: statsAccess, statsAllowedPlayers,
+// statsPlayerSections, statsAdminSections. The master always sees everything.
+const STATS_SECTIONS=[['overview','📊 Season Overview'],['teams','🤝 Who Plays With Who'],['streaks','🔥 Streaks & Milestones'],['avgday','📅 Avg Players by Day'],['scores','⛳ Scoring Analytics'],['stableford','🎯 Stableford Games'],['pots','💰 Pot Analytics'],['hcp','📈 Handicap Trends'],['tees','🏌️ Tee Stats'],['behavior','🎯 Player Requests'],['engage','👥 Member Engagement'],['timing','⏱️ Sign-up Timing'],['activity','📋 Admin Activity'],['logins','🔑 Login Activity']];
+function StatsAccessCard(){
+  const access=useDB("settings/statsAccess")||"none";
+  const allowed=useDB("settings/statsAllowedPlayers")||{};
+  const memberSec=useDB("settings/statsPlayerSections")||{};
+  const adminSec=useDB("settings/statsAdminSections")||{};
+  const rosterAdmins=useDB("rosterAdmins")||{};
+  const rosterEdits=useDB("rosterEdits");
+  const extra=useDB("extraPlayers");
+  const rosterHidden=useDB("rosterHidden");
+  const [open,setOpen]=useState(false);
+  const [view,setView]=useState("who");
+  const [q,setQ]=useState("");
+  const people=React.useMemo(()=>{
+    const base=ROSTER.map(p=>({...p,name:(rosterEdits&&rosterEdits[p.id])||p.name}));
+    const ex=Object.values(extra||{});
+    return [...base,...ex].filter(p=>p&&p.name&&!(rosterHidden&&rosterHidden[p.id])).sort((a,b)=>a.name.localeCompare(b.name));
+  },[rosterEdits,extra,rosterHidden]);
+  const nAllowed=Object.keys(allowed).filter(k=>allowed[k]).length;
+  const pill=(on)=>({flex:1,padding:"8px 6px",borderRadius:8,border:"1.5px solid "+(on?"#34d399":"rgba(255,255,255,0.12)"),background:on?"rgba(52,211,153,0.12)":"transparent",color:on?"#6ee7b7":"rgba(255,255,255,0.55)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"});
+  const box=(on,c)=>({width:16,height:16,borderRadius:4,border:"2px solid "+(on?c:"rgba(255,255,255,0.25)"),background:on?c:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#0b1a12",fontSize:11,fontWeight:900});
+  const setAccess=v=>{if(v===access)return;if(v!=="none"&&!window.confirm("Turn ON the Stats tab for "+(v==="all"?"ALL members":"the members you pick")+"?"))return;wr("settings/statsAccess",v);};
+  const summary=access==="none"?"Members: nobody":access==="all"?"Members: everyone":("Members: "+nAllowed+" picked");
+  return(
+    <div className="card">
+      <div className="card-hdr" style={{cursor:"pointer"}} onClick={()=>setOpen(o=>!o)}>
+        <span className="card-title">📊 Stats Access</span>
+        <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.45)"}}>{summary} · Admins: always · {open?"▲":"▼"}</span>
+      </div>
+      {open&&(<div className="card-body">
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {[["who","👥 Who can see"],["what","📋 What they see"]].map(([k,l])=>(<button key={k} style={pill(view===k)} onClick={()=>setView(k)}>{l}</button>))}
+        </div>
+        {view==="who"&&(<div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.55)",marginBottom:8,lineHeight:1.6}}>Who gets the <b style={{color:"#e2e8f0"}}>Stats</b> tab in the app. You always see everything; admins always see the sections ticked under Admin view.</div>
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
+            {[["none","🔒 Nobody"],["all","🌍 All members"],["specific","👤 Pick members"]].map(([v,l])=>(<button key={v} style={pill(access===v)} onClick={()=>setAccess(v)}>{l}</button>))}
+          </div>
+          {access==="specific"&&(<div>
+            <input className="inp" placeholder="Search members…" value={q} onChange={e=>setQ(e.target.value)} style={{marginBottom:8}}/>
+            <div style={{maxHeight:260,overflowY:"auto",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8}}>
+              {people.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())).map(p=>{const on=!!allowed[p.id];return(
+                <div key={p.id} onClick={()=>wr("settings/statsAllowedPlayers/"+p.id,on?null:true)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 11px",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",background:on?"rgba(52,211,153,0.07)":"transparent"}}>
+                  <div style={box(on,"#34d399")}>{on?"✓":""}</div>
+                  <div style={{flex:1,fontSize:13,color:"#e2e8f0"}}>{p.name}</div>
+                  {rosterAdmins[p.id]&&<span style={{fontSize:10,fontWeight:800,color:"#fbbf24"}}>ADMIN</span>}
+                </div>);})}
+            </div>
+            {nAllowed>0&&<button className="btn btn-sm" style={{marginTop:8}} onClick={()=>{if(window.confirm("Remove Stats access from all "+nAllowed+" picked members?"))wr("settings/statsAllowedPlayers",null);}}>Clear all picks</button>}
+          </div>)}
+        </div>)}
+        {view==="what"&&(<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:14}}>
+          {[["👤 Member view","#60a5fa",memberSec,"statsPlayerSections"],["🛡️ Admin view","#fbbf24",adminSec,"statsAdminSections"]].map(([h,c,cur,key])=>(
+            <div key={key}>
+              <div style={{fontSize:11,fontWeight:800,color:c,textTransform:"uppercase",letterSpacing:"0.07em",paddingBottom:5,marginBottom:4,borderBottom:"1px solid rgba(255,255,255,0.1)"}}>{h}</div>
+              {STATS_SECTIONS.map(([id,label])=>{const on=cur[id]!==false;return(
+                <div key={id} onClick={()=>wr("settings/"+key+"/"+id,!on)} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
+                  <div style={box(on,c)}>{on?"✓":""}</div>
+                  <div style={{fontSize:12.5,color:on?"#e2e8f0":"rgba(255,255,255,0.4)"}}>{label}</div>
+                </div>);})}
+            </div>))}
+        </div>)}
+      </div>)}
+    </div>
+  );
+}
 function SettingsTab({user,onSignOut}){
   const settings=useDB("settings");
   const doNotPair=useDB("settings/doNotPair");
@@ -5134,6 +5257,8 @@ function SettingsTab({user,onSignOut}){
     <div className="pg-eyebrow">Master Only</div>
     <div className="pg-title">Settings</div>
     <div className="pg-sub">Master-only system configuration</div>
+
+    <StatsAccessCard/>
 
     {/* ═══ Pairing Rules (Master only, silent in app) ═══ */}
     <div className="card">
