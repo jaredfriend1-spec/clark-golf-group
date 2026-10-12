@@ -2610,7 +2610,7 @@ function AwardsTab({user}){
   const S=React.useMemo(()=>{
     const P={};
     // (uses the shared normName above)
-    const get=n=>{const k=normName(n);if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null,winRounds:0,silverRounds:0,guestsBrought:0,guestNames:new Set(),hcpLog:[],firstTee:0,lastTee:0,prefRounds:0};return P[k];};
+    const get=n=>{const k=normName(n);if(!k)return null;if(!P[k])P[k]={name:k,rounds:0,won:0,skins:0,firsts:0,seconds:0,partners:new Set(),bestF:null,bestB:null,bestO:null,worstF:null,worstB:null,worstO:null,winRounds:0,silverRounds:0,nearMiss:0,nearMissOne:0,nearMissDays:new Set(),guestsBrought:0,guestNames:new Set(),hcpLog:[],firstTee:0,lastTee:0,prefRounds:0};return P[k];};
     const teamRows=[];
     rounds.filter(inSeason).forEach(r=>{
       const scI=r.scores||{};
@@ -2655,6 +2655,9 @@ function AwardsTab({user}){
         const best=list[0][seg];const tied1=list.filter(x=>x[seg]===best);
         const secondScore=(list.find(x=>x[seg]!==best)||{})[seg];
         const tied2=secondScore!==undefined?list.filter(x=>x[seg]===secondScore):[];
+        // Near-miss: second-best score in a segment where only FIRST got paid —
+        // one place out of the money. (When 2 places pay, 2nd won cash: no miss.)
+        if(pl===1&&tied2.length){tied2.forEach(x=>x.players.forEach(nm=>{const pr=get(nm);if(pr){pr.nearMiss++;pr.nearMissDays.add(r.date||"");if(secondScore-best<=1)pr.nearMissOne++;}}));}
         const c1=parseFloat(sc[k1]||0),c2=parseFloat(sc[k2]||0);
         const first=c1>0?c1:(pl===1?p0:p0*0.6);const sec=c2>0?c2:p0*0.4;
         if(tied1.length>1){
@@ -2686,7 +2689,7 @@ function AwardsTab({user}){
     });
     // money comes from the app's own leaderboard code, not a re-implementation
     const money={};moneyLeaderboard(rounds.filter(inSeason)).forEach(m=>{money[m.name]=m;});
-    const arr=Object.values(P).map(p=>{const m=money[p.name]||{won:0,paid:0,net:0,rounds:0};const gross=Math.round(m.won);const paid=Math.round(m.paid||0);return {...p,partners:p.partners.size,gross,paid,won:gross,net:Math.round(gross-paid),moneyRounds:m.rounds||0,returnPct:paid>0?Math.round(gross/paid*100):0};});
+    const arr=Object.values(P).map(p=>{const m=money[p.name]||{won:0,paid:0,net:0,rounds:0};const gross=Math.round(m.won);const paid=Math.round(m.paid||0);return {...p,partners:p.partners.size,nearMissDaysN:p.nearMissDays?p.nearMissDays.size:0,gross,paid,won:gross,net:Math.round(gross-paid),moneyRounds:m.rounds||0,returnPct:paid>0?Math.round(gross/paid*100):0};});
     const attRounds=attendance?(Array.isArray(attendance)?attendance:Object.values(attendance)):[];
     const attIn=attRounds.filter(inSeason);
     const attBy={};attIn.forEach(r=>((r.players)||[]).forEach(n=>{const k=normName(n);if(k)attBy[k]=(attBy[k]||0)+1;}));
@@ -2718,7 +2721,7 @@ function AwardsTab({user}){
     {id:"net",src:"full",icon:"📈",title:"Best Net — Up on the Year",blurb:"Won more than he paid in. Everyone else funded this.",board:top("net","desc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:(p.net>=0?"+$":"-$")+Math.abs(p.net)+" net · $"+p.gross+" of $"+p.paid+" in"}))},
     {id:"skins",src:"full",icon:"🔪",title:"The Skinner",blurb:"Cut the pot to ribbons. Most skins won all season.",board:top("skins","desc",p=>p.skins>0).slice(0,5).map(p=>({name:p.name,detail:p.skins+" skins"}))},
     {id:"donor",src:"full",icon:"🩸",title:"Most Generous Donor",blurb:"Lost the most money this season — paid in far more than he took home. We thank you for your service.",board:top("net","asc",p=>p.attend>=5).slice(0,5).map(p=>({name:p.name,detail:"$"+Math.abs(p.net)+" down · $"+p.gross+" won of $"+p.paid+" in"}))},
-    {id:"bridesmaid",src:"full",icon:"💐",title:"Always the Bridesmaid",blurb:"Runner-up more than anyone, and walked away with nothing those days.",board:S.players.filter(p=>p.silverRounds>0).sort((a,b)=>(b.silverRounds-b.winRounds)-(a.silverRounds-a.winRounds)||b.silverRounds-a.silverRounds).slice(0,5).map(p=>({name:p.name,detail:p.silverRounds+" runner-up round"+(p.silverRounds===1?"":"s")+" · "+p.winRounds+" win"+(p.winRounds===1?"":"s")+" in "+p.rounds}))},
+    {id:"nearmiss",src:"full",icon:"🥈",title:"Falling Short",blurb:"Second place when only first paid — one spot out of the money, over and over.",board:top("nearMiss","desc",p=>p.nearMiss>0).slice(0,5).map(p=>({name:p.name,detail:p.nearMiss+" near-miss"+(p.nearMiss===1?"":"es")+" · "+p.nearMissDaysN+" day"+(p.nearMissDaysN===1?"":"s")+(p.nearMissOne>0?(" · "+p.nearMissOne+" by one stroke"):"")}))},
     {id:"social",src:"full",icon:"🤝",title:"The Social Butterfly",blurb:"Played with more different partners than anyone.",board:top("partners","desc",p=>p.partners>0).slice(0,5).map(p=>({name:p.name,detail:p.partners+" partners"}))},
     {id:"perfect",src:"full",icon:"📅",title:"Perfect Attendance",blurb:"Never missed. Not once.",board:S.players.filter(p=>S.weeks>0&&p.attend>=S.weeks).sort((a,b)=>b.attend-a.attend).slice(0,5).map(p=>({name:p.name,detail:p.attend+" of "+S.weeks+" weeks"}))},
     {id:"early",src:"new",icon:"🐓",title:"First Man In",blurb:"Signs up before the ink is dry.",board:top("avgOrder","asc",p=>p.signupCount>=3).slice(0,5).map(p=>({name:p.name,detail:"avg #"+p.avgOrder+" to sign up"}))},
