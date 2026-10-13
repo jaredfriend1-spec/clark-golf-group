@@ -3201,7 +3201,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
                       title={isMe?'You':p.name}
-                      onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')}))}/>
+                      onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' · ':'')+'HCP '+p.handicap):'')}))}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -3922,7 +3922,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         <div className="page-eyebrow">Scoring</div>
         <div className="page-title">Score &amp; Payouts</div>
         <div className="page-sub">
-          <strong>{activeDay}</strong>{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' \u00b7 '+effectiveWeek.dates[activeDay]):''} · teams built · not yet scoring
+          <strong>{activeDay}</strong>{(effectiveWeek&&effectiveWeek.dates&&effectiveWeek.dates[activeDay])?(' · '+effectiveWeek.dates[activeDay]):''} · teams built · not yet scoring
         </div>
         {activeDays.length>1 && (
           <div style={{padding:'0 12px 12px',display:'flex',gap:6}}>
@@ -3937,7 +3937,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
             <div key={t.id} style={{padding:'11px 0',borderTop:ti===0?'none':'1px solid var(--hairline-soft)'}}>
               <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:5}}>
                 <span style={{fontSize:13.5,fontWeight:800}}>{t.name||('Team '+t.id)}</span>
-                <span style={{fontSize:11,color:'var(--ink-50)'}}>{safeArray(t.players).length} players{t.totalHcp!=null?(' \u00b7 '+t.totalHcp+' hcp'):''}</span>
+                <span style={{fontSize:11,color:'var(--ink-50)'}}>{safeArray(t.players).length} players{t.totalHcp!=null?(' · '+t.totalHcp+' hcp'):''}</span>
               </div>
               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                 {safeArray(t.players).filter(p=>p&&p.name).map((p,pi)=>(
@@ -5565,7 +5565,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                           <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                             title={isMe?'You':p.name}
-                            onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' \u00b7 ':'')+'HCP '+p.handicap):'')}))}/>
+                            onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' · ':'')+'HCP '+p.handicap):'')}))}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -6564,8 +6564,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               ))}
             </div>
             {twoDay?[dayCard('day1','\ud83d\udcc5 '+wdOf(cfg.date1)+' \u2014 '+fd(cfg.date1)),dayCard('day2','\ud83d\udcc5 '+wdOf(cfg.date2)+' \u2014 '+fd(cfg.date2))]:dayCard('day1','\ud83d\udcc5 '+fd(cfg.date1))}
-            {decl.length>0&&<div style={card}><div style={hdr}>Can’t make it ({decl.length})</div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{decl.join(' \u00b7 ')}</div></div>}
-            {isAdmin&&deciding.length>0&&<div style={card}><div style={hdr}>Still deciding ({deciding.length}) <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{deciding.join(' \u00b7 ')}</div></div>}
+            {decl.length>0&&<div style={card}><div style={hdr}>Can’t make it ({decl.length})</div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{decl.join(' · ')}</div></div>}
+            {isAdmin&&deciding.length>0&&<div style={card}><div style={hdr}>Still deciding ({deciding.length}) <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{deciding.join(' · ')}</div></div>}
           </div>
         );
       })()}
@@ -6980,13 +6980,82 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
 // only mounts this when the user can see it. Pushes: NONE except a direct
 // @mention, and even that stays dormant until settings/board.mentionPushApi
 // is true (the /api/notify function must learn 'uid:<id>' audiences first).
-function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push, memberList, avatarFor, onShowAvatar, boardCfg, myReadAtOpen, onClose, onMentionPush }){
+function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push, readOnce, memberList, avatarFor, onShowAvatar, boardCfg, myReadAtOpen, onClose, onMentionPush }){
   const uid=String(currentUser.id);
   const myFirst=String(currentUser.name||'').split(' ')[0];
   const frozen=!!(boardCfg&&boardCfg.frozen);
   const [text,setText]=useState('');
   const [draftMentions,setDraftMentions]=useState([]);
   const [replyTo,setReplyTo]=useState(null);           // {k,name,snippet}
+  // ── Attachments ─────────────────────────────────────────────────────────
+  // The message itself carries only a tiny thumbnail ({att:{kind,thumb,w,h,fid}}
+  // or {kind:'file',name,size,fid}); the full payload lives at board/files/<fid>
+  // and is fetched ONLY when someone taps. That keeps the 300-message board
+  // light on every phone — the full photo never downloads unless you open it.
+  const [pendAtt,setPendAtt]=useState(null);           // staged before send
+  const [attBusy,setAttBusy]=useState(false);
+  const [attErr,setAttErr]=useState(null);
+  const [editFor,setEditFor]=useState(null);           // {k,orig} — editing own message
+  const [viewImg,setViewImg]=useState(null);           // {state:'loading'|'ok'|'err', data?}
+  const fileCache=useRef({});
+  const fileInputRef=useRef(null);
+  const MAX_FILE=2*1024*1024;                          // 2 MB cap on documents
+  const FILE_OK=/\.(pdf|docx?|xlsx?|csv|txt|png|jpe?g|heic)$/i;
+  const fmtKB=(n)=>n>900*1024?((n/1048576).toFixed(1)+' MB'):(Math.max(1,Math.round(n/1024))+' KB');
+  const shrink=(file,maxDim,q)=>new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{try{
+      const sc=Math.min(1,maxDim/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res({data:c.toDataURL('image/jpeg',q),w,h});
+    }catch(err){rej(err);}};
+    img.onerror=()=>rej(new Error('bad image'));
+    img.src=URL.createObjectURL(file);
+  });
+  const pickFile=(ev)=>{
+    const f=ev.target.files&&ev.target.files[0];
+    ev.target.value='';
+    if(!f)return;
+    setAttErr(null);
+    if(/^image\//.test(f.type)){
+      setAttBusy(true);
+      Promise.all([shrink(f,1024,0.8),shrink(f,200,0.6)])
+        .then(([full,thumb])=>{setPendAtt({kind:'img',data:full.data,thumb:thumb.data,w:full.w,h:full.h,size:full.data.length});setAttBusy(false);})
+        .catch(()=>{setAttErr("Couldn't read that photo — try a different one.");setAttBusy(false);});
+      return;
+    }
+    if(!FILE_OK.test(f.name||'')){setAttErr('That file type isn\u2019t supported (PDF, Word, Excel, CSV, text or photos).');return;}
+    if(f.size>MAX_FILE){setAttErr('Too big — files are capped at 2 MB (this one is '+fmtKB(f.size)+').');return;}
+    setAttBusy(true);
+    const rd=new FileReader();
+    rd.onload=()=>{setPendAtt({kind:'file',data:String(rd.result),name:f.name,size:f.size,mime:f.type||'application/octet-stream'});setAttBusy(false);};
+    rd.onerror=()=>{setAttErr("Couldn't read that file.");setAttBusy(false);};
+    rd.readAsDataURL(f);
+  };
+  const fetchFile=(fid,cb)=>{
+    if(fileCache.current[fid])return cb(fileCache.current[fid]);
+    if(!readOnce)return cb(null);
+    readOnce('board/files/'+fid,(v)=>{const d=v&&v.data;if(d)fileCache.current[fid]=d;cb(d||null);});
+  };
+  const openImage=(att)=>{
+    setViewImg({state:'loading'});
+    fetchFile(att.fid,(d)=>setViewImg(d?{state:'ok',data:d}:{state:'err'}));
+  };
+  const openFile=(att)=>{
+    fetchFile(att.fid,(d)=>{
+      if(!d){try{window.alert('That file is no longer available.');}catch(err){}return;}
+      try{
+        const parts=d.split(',');const bin=atob(parts[1]);
+        const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+        const blob=new Blob([bytes],{type:att.mime||'application/octet-stream'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');a.href=url;a.download=att.name||'file';document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),30000);
+      }catch(err){try{window.alert("Couldn't open that file on this device.");}catch(e2){}}
+    });
+  };
   const [menuFor,setMenuFor]=useState(null);           // entry the long-press menu is open for
   const [menuConfirm,setMenuConfirm]=useState(false);  // delete needs a second tap, in the sheet
   const scrollRef=useRef(null);
@@ -7067,27 +7136,61 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   };
   const doSend=()=>{
     const body=text.trim();
-    if(!body||frozen)return;
+    if(frozen)return;
+    // EDIT MODE: only the text changes; attachment, reactions and replies stay.
+    if(editFor){
+      if(!body)return;
+      update({['board/messages/'+editFor.k+'/text']:body,['board/messages/'+editFor.k+'/editedAt']:Date.now()});
+      setEditFor(null);setText('');setDraftMentions([]);
+      return;
+    }
+    if(!body&&!pendAtt)return;
+    if(attBusy)return;
     const kept=draftMentions.filter(dm=>body.indexOf('@'+dm.first)>=0);
     const msg={uid,name:currentUser.name,text:body,ts:Date.now()};
     if(kept.length)msg.mentions=kept.map(({id,name})=>({id,name}));
     if(replyTo)msg.replyTo={k:replyTo.k,name:replyTo.name,snippet:replyTo.snippet};
-    push('board/messages',msg);
-    kept.forEach(mn=>{ if(String(mn.id)!==uid&&onMentionPush)onMentionPush(mn,body); });
+    const att=pendAtt;
+    const finish=()=>{
+      push('board/messages',msg);
+      const note=body||(att?(att.kind==='img'?'📷 Photo':'📎 '+(att.name||'File')):'');
+      kept.forEach(mn=>{ if(String(mn.id)!==uid&&onMentionPush)onMentionPush(mn,note); });
+      afterSend();
+    };
+    if(att){
+      // Payload first, then the message that points at it.
+      Promise.resolve(push('board/files',{data:att.data,kind:att.kind,name:att.name||null,mime:att.mime||null,size:att.size||0,by:uid,ts:msg.ts})).then(fid=>{
+        if(!fid||fid==='blocked')return;   // preview mode / blocked — nothing written
+        fileCache.current[fid]=att.data;
+        msg.att=att.kind==='img'?{kind:'img',thumb:att.thumb,w:att.w,h:att.h,fid}:{kind:'file',name:att.name,size:att.size,mime:att.mime,fid};
+        finish();
+      });
+    } else finish();
+  };
+  const afterSend=()=>{
     // PRUNE, trash-first (house rule): keep the newest 300; anything older
     // moves to boardTrash in the same update that removes it.
     if(entries.length>=320){
       const excess=entries.slice(0,entries.length-300);
       const o={};const ts=Date.now();
-      excess.forEach(e=>{const{k,...m}=e;o['boardTrash/'+k]={...m,prunedAt:ts};o['board/messages/'+k]=null;});
+      excess.forEach(e=>{const{k,...m}=e;o['boardTrash/'+k]={...m,prunedAt:ts};o['board/messages/'+k]=null;if(m.att&&m.att.fid)o['board/files/'+m.att.fid]=null;});
       try{update(o);}catch(err){}
     }
-    setText('');setDraftMentions([]);setReplyTo(null);
+    setText('');setDraftMentions([]);setReplyTo(null);setPendAtt(null);setAttErr(null);
     setTimeout(()=>{const el=scrollRef.current;if(el)el.scrollTop=el.scrollHeight;},250);
   };
   const doDelete=(e)=>{
-    if(String(e.uid)===uid){ del('board/messages/'+e.k); }
-    else if(isAdmin){ update({['board/messages/'+e.k+'/deleted']:true,['board/messages/'+e.k+'/deletedBy']:currentUser.name||'admin'}); }
+    // The stored payload goes with the message either way, trash keeps the thumb.
+    if(String(e.uid)===uid){
+      const o={['board/messages/'+e.k]:null};
+      if(e.att&&e.att.fid)o['board/files/'+e.att.fid]=null;
+      update(o);
+    }
+    else if(isAdmin){
+      const o={['board/messages/'+e.k+'/deleted']:true,['board/messages/'+e.k+'/deletedBy']:currentUser.name||'admin'};
+      if(e.att&&e.att.fid){o['board/messages/'+e.k+'/att']=null;o['board/files/'+e.att.fid]=null;}
+      update(o);
+    }
     setMenuFor(null);setMenuConfirm(false);
   };
   // Emoji reactions — stored as reactions/<emoji>/<uid>=true on the message,
@@ -7205,8 +7308,23 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
                   ?{background:'var(--brand)',color:'#fff',borderRadius:16,borderTopRightRadius:r.grouped?16:5,padding:'9px 13px 7px',fontSize:15,lineHeight:1.42,boxShadow:'0 1px 3px rgba(15,15,15,0.08)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}
                   :{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:16,borderTopLeftRadius:r.grouped?16:5,padding:'9px 13px 7px',fontSize:15,lineHeight:1.42,color:'var(--ink)',boxShadow:'0 1px 3px rgba(15,15,15,0.05)',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none',cursor:'default'}}>
                   {e.replyTo&&quoteBox(e.replyTo,mine)}
+                  {e.att&&e.att.kind==='img'&&(
+                    <div onClick={ev=>{ev.stopPropagation();openImage(e.att);}} style={{margin:'2px 0 6px',cursor:'pointer'}}>
+                      <img src={e.att.thumb} alt="" style={{display:'block',maxWidth:220,maxHeight:220,width:'auto',borderRadius:11,border:mine?'1px solid rgba(255,255,255,0.25)':'1px solid var(--hairline)'}}/>
+                      <div style={{fontSize:10,fontWeight:700,color:mine?'rgba(255,255,255,0.6)':'var(--ink-40)',marginTop:2}}>Tap to view full size</div>
+                    </div>
+                  )}
+                  {e.att&&e.att.kind==='file'&&(
+                    <div onClick={ev=>{ev.stopPropagation();openFile(e.att);}} style={{display:'flex',alignItems:'center',gap:8,margin:'2px 0 6px',padding:'8px 11px',borderRadius:11,background:mine?'rgba(255,255,255,0.14)':'var(--surface-sunken, #f6f4ec)',border:mine?'1px solid rgba(255,255,255,0.25)':'1px solid var(--hairline)',cursor:'pointer'}}>
+                      <span style={{fontSize:20}}>📎</span>
+                      <span style={{minWidth:0}}>
+                        <span style={{display:'block',fontSize:13,fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:170,color:mine?'#fff':'var(--ink)'}}>{e.att.name||'File'}</span>
+                        <span style={{display:'block',fontSize:10.5,fontWeight:600,color:mine?'rgba(255,255,255,0.6)':'var(--ink-40)'}}>{fmtKB(e.att.size||0)} · tap to open</span>
+                      </span>
+                    </div>
+                  )}
                   {renderText(e,mine)}
-                  <span style={{display:'inline-block',float:'right',margin:'8px -4px 0 10px',fontSize:10.5,fontWeight:600,color:mine?'rgba(255,255,255,0.65)':'var(--ink-40)'}}>{tLabel(e.ts)}</span>
+                  <span style={{display:'inline-block',float:'right',margin:'8px -4px 0 10px',fontSize:10.5,fontWeight:600,color:mine?'rgba(255,255,255,0.65)':'var(--ink-40)'}}>{e.editedAt?<i style={{fontStyle:'italic',marginRight:5}}>edited</i>:null}{tLabel(e.ts)}</span>
                 </div>
                 {e.reactions&&(()=>{
                   const pills=Object.entries(e.reactions).map(([em,users])=>{
@@ -7309,8 +7427,14 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
               <div style={{fontSize:10.5,fontWeight:800,color:'var(--ink-50)'}}>{String(menuFor.name).split(' ')[0]} · {tLabel(menuFor.ts)}</div>
               <div style={{fontSize:13.5,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{String(menuFor.text||'')}</div>
             </div>
+            {!frozen&&String(menuFor.uid)===uid&&!menuFor.deleted&&(
+              <button onClick={()=>{setEditFor({k:menuFor.k,orig:String(menuFor.text||'')});setText(String(menuFor.text||''));setReplyTo(null);setPendAtt(null);setMenuFor(null);}}
+                style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:15.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                <span style={{fontSize:15}}>✏️</span> Edit message
+              </button>
+            )}
             {!frozen&&(
-              <button onClick={()=>{setReplyTo({k:menuFor.k,name:String(menuFor.name).split(' ')[0],snippet:String(menuFor.text||'').slice(0,80)});setMenuFor(null);}}
+              <button onClick={()=>{setReplyTo({k:menuFor.k,name:String(menuFor.name).split(' ')[0],snippet:String(menuFor.text||menuFor.att&&(menuFor.att.kind==='img'?'📷 Photo':'📎 '+(menuFor.att.name||'File'))||'').slice(0,80)});setMenuFor(null);}}
                 style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 10px',background:'none',border:'none',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.06))',fontSize:15.5,fontWeight:700,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
                 <span style={{fontSize:16}}>↩</span> Reply
               </button>
@@ -7333,9 +7457,42 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
           </div>
         </div>
       )}
+      {/* full-size photo viewer */}
+      {viewImg&&(
+        <div onClick={()=>setViewImg(null)} style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.88)',zIndex:8,display:'flex',alignItems:'center',justifyContent:'center',padding:14}}>
+          {viewImg.state==='loading'&&<div style={{color:'#fff',fontSize:14,fontWeight:700}}>Loading photo…</div>}
+          {viewImg.state==='err'&&<div style={{color:'#fff',fontSize:14,fontWeight:700}}>That photo is no longer available.</div>}
+          {viewImg.state==='ok'&&<img src={viewImg.data} alt="" style={{maxWidth:'100%',maxHeight:'92%',borderRadius:12}}/>}
+          <button aria-label="Close" onClick={()=>setViewImg(null)} style={{position:'absolute',top:'max(14px, env(safe-area-inset-top))',right:14,background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',width:36,height:36,borderRadius:'50%',fontSize:16,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+        </div>
+      )}
       {/* compose */}
       <div style={{flexShrink:0,background:'var(--surface)',borderTop:'1px solid var(--hairline)',padding:'10px 12px',paddingBottom:'max(10px, env(safe-area-inset-bottom))'}}>
         {frozen&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginBottom:8}}>🔒 The board is frozen by the admins — reading only for now.</div>}
+        {editFor&&!frozen&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,background:'rgba(184,137,26,0.08)',borderLeft:'3px solid #b8891a',borderRadius:8,padding:'5px 9px'}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:10.5,fontWeight:800,color:'#b8891a'}}>✏️ Editing your message</div>
+              <div style={{fontSize:12,color:'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{editFor.orig}</div>
+            </div>
+            <button onClick={()=>{setEditFor(null);setText('');}} style={{background:'none',border:'none',color:'var(--ink-40)',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+          </div>
+        )}
+        {pendAtt&&!frozen&&!editFor&&(
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,background:'var(--surface-sunken, #f6f4ec)',border:'1px solid var(--hairline)',borderRadius:10,padding:'7px 10px'}}>
+            {pendAtt.kind==='img'
+              ? <img src={pendAtt.thumb} alt="" style={{width:44,height:44,borderRadius:8,objectFit:'cover',flexShrink:0}}/>
+              : <span style={{fontSize:22,flexShrink:0}}>📎</span>}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12.5,fontWeight:800,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{pendAtt.kind==='img'?'Photo ready to send':(pendAtt.name||'File')}</div>
+              <div style={{fontSize:11,color:'var(--ink-40)'}}>{fmtKB(pendAtt.size||0)}{pendAtt.kind==='img'?' · compressed for the board':''}</div>
+            </div>
+            <button onClick={()=>setPendAtt(null)} style={{background:'none',border:'none',color:'var(--ink-40)',fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+          </div>
+        )}
+        {attErr&&!frozen&&(
+          <div style={{fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:8,padding:'6px 10px',marginBottom:8}}>{attErr} <span onClick={()=>setAttErr(null)} style={{cursor:'pointer',float:'right'}}>✕</span></div>
+        )}
         {replyTo&&!frozen&&(
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,background:'rgba(26,43,34,0.05)',borderLeft:'3px solid #b8891a',borderRadius:8,padding:'5px 9px'}}>
             <div style={{flex:1,minWidth:0}}>
@@ -7353,12 +7510,15 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
           </div>
         )}
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onChange={pickFile} style={{display:'none'}}/>
+          {!editFor&&<button onClick={()=>{if(!frozen&&!attBusy&&fileInputRef.current)fileInputRef.current.click();}} disabled={frozen} aria-label="Attach a photo or file"
+            style={{background:'var(--surface-sunken, #f6f4ec)',border:'1.5px solid var(--hairline)',color:'var(--ink-50)',borderRadius:'50%',width:40,height:40,fontSize:17,cursor:frozen?'default':'pointer',flexShrink:0,fontFamily:'inherit',opacity:frozen?0.5:1}}>{attBusy?'⏳':'📎'}</button>}
           <input value={text} disabled={frozen} onChange={ev=>setText(ev.target.value)}
             onKeyDown={ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();doSend();}}}
             placeholder={frozen?'Board is frozen':'Message the group…'}
             style={{flex:1,border:'1.5px solid var(--hairline)',borderRadius:22,padding:'11px 15px',fontSize:16,fontFamily:'inherit',background:'var(--surface)',color:'var(--ink)',outline:'none',opacity:frozen?0.5:1}}/>
-          <button onClick={doSend} disabled={frozen||!text.trim()} aria-label="Send"
-            style={{background:text.trim()&&!frozen?'var(--brand)':'var(--hairline)',color:'#fff',border:'none',borderRadius:'50%',width:40,height:40,fontSize:16,cursor:text.trim()&&!frozen?'pointer':'default',flexShrink:0,fontFamily:'inherit'}}>➤</button>
+          <button onClick={doSend} disabled={frozen||attBusy||(!text.trim()&&!pendAtt)} aria-label="Send"
+            style={{background:(text.trim()||pendAtt)&&!frozen&&!attBusy?'var(--brand)':'var(--hairline)',color:'#fff',border:'none',borderRadius:'50%',width:40,height:40,fontSize:16,cursor:(text.trim()||pendAtt)&&!frozen?'pointer':'default',flexShrink:0,fontFamily:'inherit'}}>➤</button>
         </div>
       </div>
     </div>
@@ -7426,7 +7586,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   if(compact){
     if(!invitesLive||meAnswered.answered)return null;
     if(!isAdmin&&!meAnswered.invited&&!eligibleForInvite)return null;
-    const dl=cfg.rsvpDeadline?(' \u00b7 answer by '+cfg.rsvpDeadline):'';
+    const dl=cfg.rsvpDeadline?(' · answer by '+cfg.rsvpDeadline):'';
     return (
       <div onClick={onOpen} style={{margin:'0 0 10px',padding:'11px 14px',borderRadius:12,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
         <span style={{fontSize:20}}>🏆</span>
@@ -7782,7 +7942,7 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
                   <span onClick={e=>e.stopPropagation()} style={{display:'inline-flex',flexShrink:0}}>
                     {(()=>{const a=avatarFor?avatarFor(p.name):null;const rp2=(fullRoster||[]).find(x=>x&&String(x.name).toLowerCase().trim()===String(p.name).toLowerCase().trim());
                       return <PlayerAvatar name={p.name} logo={a&&a.logo} size={30} title={p.name}
-                        onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe:!!(currentUser&&currentUser.name===p.name),meta:(rp2&&rp2.tee?rp2.tee:'')+(rp2&&rp2.handicap!=null?((rp2.tee?' \u00b7 ':'')+'HCP '+rp2.handicap):'')})):undefined}/>;})()}
+                        onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe:!!(currentUser&&currentUser.name===p.name),meta:(rp2&&rp2.tee?rp2.tee:'')+(rp2&&rp2.handicap!=null?((rp2.tee?' · ':'')+'HCP '+rp2.handicap):'')})):undefined}/>;})()}
                   </span>
                   <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div></div>
                   <div style={{width:60,height:5,background:'var(--hairline)',borderRadius:3,overflow:'hidden',flexShrink:0}}><div style={{height:5,background:'var(--brand)',borderRadius:3,width:Math.round((p.rounds/maxR)*100)+'%'}}/></div>
@@ -8669,7 +8829,7 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
   const problems=[];
   if(!date)problems.push('Pick the date the round was played.');
   else if(date>today)problems.push('That date is in the future.');
-  else if(checking)problems.push('Checking History\u2026');
+  else if(checking)problems.push('Checking History…');
   else if(exists)problems.push('A round is already saved for this date.');
   if(filled.length<2)problems.push('Put players on at least two teams.');
   filled.forEach(({i})=>{ const s=scores[i]||{}; if(!has(s.front)||!has(s.back)||!has(s.overall))problems.push('Team '+(i+1)+' needs front, back and overall.'); });
@@ -8730,7 +8890,7 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
             <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,color:'var(--ink-50)'}}>
               or another date <input type="date" max={today} value={date} onChange={e=>pickDate(e.target.value)} className="form-input" style={{width:170,padding:'6px 8px'}}/>
             </div>
-            {date&&dayName&&<div style={{fontSize:12.5,marginTop:6,color:'var(--ink-70)'}}>{dayName}, {date}{checking?' \u2014 checking History\u2026':exists?'':exists===false?' \u2014 no round saved, good to go':''}</div>}
+            {date&&dayName&&<div style={{fontSize:12.5,marginTop:6,color:'var(--ink-70)'}}>{dayName}, {date}{checking?' \u2014 checking History…':exists?'':exists===false?' \u2014 no round saved, good to go':''}</div>}
             {exists&&<div style={{marginTop:8,padding:'10px 12px',borderRadius:9,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',fontSize:12.5,lineHeight:1.5,color:'var(--ink)'}}>
               A round is already saved for {date}. To correct it, open it in <strong>History</strong> and use <strong>Edit</strong>. This tool only fills in rounds that are missing.</div>}
           </div>
@@ -8796,7 +8956,7 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
 
             {problems.length>0&&filled.length>0&&<div style={{fontSize:12,color:'var(--money-neg)',lineHeight:1.6}}>{problems.map((p,i)=><div key={i}>• {p}</div>)}</div>}
             <button className="btn btn-primary" disabled={!!problems.length||busy} onClick={save} style={{padding:'13px',fontSize:14,fontWeight:800,opacity:problems.length||busy?0.45:1}}>
-              {busy?'Saving\u2026':'Save round to History'}
+              {busy?'Saving…':'Save round to History'}
             </button>
           </>)}
         </div>
@@ -9818,10 +9978,10 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
             <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',padding:'10px 14px',marginBottom:12,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:12}}>
               <div style={{flex:1,minWidth:200}}>
                 <div style={{fontSize:12.5,fontWeight:700,color:'var(--brand)'}}>📣 Announce this week</div>
-                <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' \u00b7 ')} — sign-ups are open!"</div>
+                <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' · ')} — sign-ups are open!"</div>
               </div>
               <button className="btn btn-primary btn-sm" onClick={()=>{
-                sendPushNotify({audience:'all',title:'\u26f3 New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' \u00b7 ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
+                sendPushNotify({audience:'all',title:'\u26f3 New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' · ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
                 setWeekAnnounced(new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
               }}>Send it</button>
               {weekAnnounced&&<span style={{fontSize:11,fontWeight:600,color:'var(--brand)'}}>Sent {weekAnnounced} ✓</span>}
@@ -12870,7 +13030,7 @@ function App(){
   // tee on it, so the old `currentUser.hcp||0` put everyone on the waitlist at 0
   // off the Whites. Look the man up in the roster, same as a normal sign-up.
   const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
-  const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:(me&&me.tee)||currentUser.tee||'Whites',handicap:(me&&me.handicap!=null&&!isNaN(parseFloat(me.handicap)))?parseFloat(me.handicap):(bestHcpFor(currentUser.name,currentUser.id)!=null?bestHcpFor(currentUser.name,currentUser.id):parseFloat(currentUser.hcp||currentUser.handicap||0)),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'\u23f3 Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;const wme=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(ws.playerId||''));const wh=(ws.handicap!=null&&!isNaN(parseFloat(ws.handicap))&&parseFloat(ws.handicap)!==0)?parseFloat(ws.handicap):((wme&&wme.handicap!=null&&!isNaN(parseFloat(wme.handicap)))?parseFloat(wme.handicap):(bestHcpFor(ws.name,ws.playerId)!=null?bestHcpFor(ws.name,ws.playerId):parseFloat(ws.handicap||0)));addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||(wme&&wme.tee)||'Whites',handicap:wh,day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
+  const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:(me&&me.tee)||currentUser.tee||'Whites',handicap:(me&&me.handicap!=null&&!isNaN(parseFloat(me.handicap)))?parseFloat(me.handicap):(bestHcpFor(currentUser.name,currentUser.id)!=null?bestHcpFor(currentUser.name,currentUser.id):parseFloat(currentUser.hcp||currentUser.handicap||0)),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'⏳ Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;const wme=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(ws.playerId||''));const wh=(ws.handicap!=null&&!isNaN(parseFloat(ws.handicap))&&parseFloat(ws.handicap)!==0)?parseFloat(ws.handicap):((wme&&wme.handicap!=null&&!isNaN(parseFloat(wme.handicap)))?parseFloat(wme.handicap):(bestHcpFor(ws.name,ws.playerId)!=null?bestHcpFor(ws.name,ws.playerId):parseFloat(ws.handicap||0)));addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||(wme&&wme.tee)||'Whites',handicap:wh,day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
       {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(!(parseFloat(signup.handicap)>0)){const bh=bestHcpFor(wl.name,wl.playerId);if(bh!=null)signup.handicap=bh;}safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
@@ -12938,7 +13098,7 @@ settings={settings}         week={activeWeek} history={history} isAdmin={isAdmin
       <AvatarLightbox view={avatarView} streaksFor={streaksForCard} onClose={()=>setAvatarView(null)} onEditProfile={openMyProfile}/>
       {showBoard&&boardAccess&&(
         <BoardOverlay currentUser={currentUser} isAdmin={isAdmin} messages={boardMsgs}
-          write={safeWrite} update={safeUpdate} del={safeDel} push={safePush}
+          write={safeWrite} update={safeUpdate} del={safeDel} push={safePush} readOnce={readOnce}
           memberList={activeFullRoster} avatarFor={avatarForApp} onShowAvatar={showAvatar}
           boardCfg={boardCfg} myReadAtOpen={myBoardRead} onClose={()=>setShowBoard(false)}
           onMentionPush={onBoardMentionPush}/>
