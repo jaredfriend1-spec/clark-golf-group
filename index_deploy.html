@@ -6563,6 +6563,29 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 <div key={l} style={{flex:1,textAlign:'center',padding:'10px 4px',background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:12}}><div style={{fontSize:22,fontWeight:800,color:c}}>{n}</div><div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>{l}</div></div>
               ))}
             </div>
+            {isAdmin&&!isArchived&&(()=>{
+              const cnt=dk=>entries.filter(([,v])=>inDay(v,dk)).length;
+              const capRow=(dk,label,key)=>{
+                const cur=parseInt(cfg[key],10)>0?parseInt(cfg[key],10):'';
+                return (
+                  <div key={dk} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0'}}>
+                    <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>{label}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:'var(--ink-40)'}}>{cnt(dk)} in</span>
+                    <input key={'cap'+dk+String(cur)} type="number" inputMode="numeric" defaultValue={cur} placeholder="no cap" id={'capinp_'+dk}
+                      style={{width:74,padding:'6px 8px',borderRadius:9,border:'1.5px solid var(--hairline)',fontSize:13,fontFamily:'inherit',textAlign:'center',background:'var(--surface)',color:'var(--ink)'}}/>
+                    <button className="btn btn-sm" style={{fontWeight:800,padding:'7px 12px'}}
+                      onClick={()=>{const el=document.getElementById('capinp_'+dk);const n=parseInt((el&&el.value)||'',10);wsafe({['tournament/config/'+key]:(n>0?n:null)});}}>Save</button>
+                  </div>
+                );
+              };
+              return (
+                <div style={{...card,borderLeft:'3px solid #b8891a'}}>
+                  <div style={hdr}>Day caps <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div>
+                  {twoDay?[capRow('day1',wdOf(cfg.date1),'capDay1'),capRow('day2',wdOf(cfg.date2),'capDay2')]:capRow('day1','Field cap','capDay1')}
+                  <div style={{fontSize:11,color:'var(--ink-40)',lineHeight:1.55,marginTop:4}}>A full day closes to new sign-ups only — nobody already in is touched, a drop reopens the spot, and admins can always add or move people regardless of caps. Blank = no cap.</div>
+                </div>
+              );
+            })()}
             {twoDay?[dayCard('day1','\ud83d\udcc5 '+wdOf(cfg.date1)+' \u2014 '+fd(cfg.date1)),dayCard('day2','\ud83d\udcc5 '+wdOf(cfg.date2)+' \u2014 '+fd(cfg.date2))]:dayCard('day1','\ud83d\udcc5 '+fd(cfg.date1))}
             {decl.length>0&&<div style={card}><div style={hdr}>Can’t make it ({decl.length})</div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{decl.join(' · ')}</div></div>}
             {isAdmin&&deciding.length>0&&<div style={card}><div style={hdr}>Still deciding ({deciding.length}) <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{deciding.join(' · ')}</div></div>}
@@ -7599,7 +7622,28 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     );
   }
   const rosterMe=(fullRoster||[]).find(x=>String(x.id)===String(currentUser.id));
+  // ── Day caps ──────────────────────────────────────────────────────────────
+  // cfg.capDay1/capDay2 (blank/0 = no cap). A full day closes to NEW members
+  // only: anyone already in that day keeps their spot and can still change or
+  // drop; a drop frees the spot automatically. Admins bypass caps everywhere.
+  const tpAll=(raw=>{if(Array.isArray(raw)){const m={};raw.forEach((v,i)=>{if(v)m[String(i)]=v;});return m;}return raw||{};})(t&&t.players);
+  const dayCount=(dk)=>Object.values(tpAll).filter(v=>v&&v.in===true&&(!cfg.date2||!v.days||v.days[dk]===true)).length;
+  const capOf=(dk)=>{const c=parseInt(dk==='day1'?cfg.capDay1:cfg.capDay2,10);return c>0?c:0;};
+  const meInDay=(dk)=>!!(me&&me.in===true&&(!cfg.date2||!me.days||me.days[dk]===true));
+  const dayFull=(dk)=>{const c=capOf(dk);return !isAdmin&&c>0&&!meInDay(dk)&&dayCount(dk)>=c;};
+  const wdShort=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'});}catch(e){return d;}};
+  const fullNote=(()=>{
+    const f1=dayFull('day1'),f2=cfg.date2?dayFull('day2'):false;
+    if(f1&&f2)return 'Both days are full — talk to Clark if you want on the list.';
+    if(f1)return wdShort(cfg.date1)+' is full ('+capOf('day1')+' players)'+(cfg.date2?' — '+wdShort(cfg.date2)+' still has spots.':'.');
+    if(f2)return wdShort(cfg.date2)+' is full ('+capOf('day2')+' players)'+(' — '+wdShort(cfg.date1)+' still has spots.');
+    return null;
+  })();
+  // Which picks a full day rules out. 'both' is blocked if EITHER day is full
+  // (picking it would shove them into the full day).
+  const pickBlocked=(k)=>k==='day1'?dayFull('day1'):k==='day2'?dayFull('day2'):(dayFull('day1')||dayFull('day2'));
   const startOptIn=(pick)=>{
+    if(pick&&pickBlocked(pick))return;
     if(pick)setDaysPick(pick);
     if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
     if(rsvpLocked)return;
@@ -7610,6 +7654,9 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const confirmIn=()=>{
     const h=parseFloat(hcpDraft);
     if(isNaN(h)){alert('Enter your handicap so the teams draw fair.');return;}
+    // Last-second cap check — someone may have taken the final spot while this
+    // sheet was open. Never strips a day the member is ALREADY in.
+    if(pickBlocked(daysPick)){alert('Sorry — that day just filled up. Pick what\u2019s still open.');setConfirming(false);return;}
     const daysObj=cfg.date2?{day1:daysPick!=='day2',day2:daysPick!=='day1'}:{day1:true,day2:false};
     update({['tournament/players/'+currentUser.id+'/in']:true,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now(),['tournament/players/'+currentUser.id+'/handicap']:h,['tournament/players/'+currentUser.id+'/tee']:teeDraft||'Whites',['tournament/players/'+currentUser.id+'/days']:daysObj});
     setConfirming(false);
@@ -7659,10 +7706,11 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           <div style={{background:'var(--surface-sunken)',borderRadius:12,padding:'11px 13px',marginBottom:14,fontSize:13,color:'var(--ink-60)',lineHeight:1.6}}>
             You&rsquo;re invited. Entry is <b style={{color:'var(--ink)'}}>${bar}</b> minus $1 for every round you&rsquo;ve played — you&rsquo;re at <b style={{color:'var(--ink)'}}>{myRounds} rounds</b>, so about <b style={{color:'var(--brand)'}}>${Math.max(bar-myRounds,0)}</b> due. Same entry whether you play one day or both.
           </div>
+          {fullNote&&<div style={{fontSize:12.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:10,padding:'8px 11px',marginBottom:10,lineHeight:1.5}}>⛳ {fullNote}</div>}
           {cfg.date2?[
-            big(wd(cfg.date1)+' only',()=>pick('day1')),
-            big(wd(cfg.date2)+' only',()=>pick('day2')),
-            big('Both days',()=>pick('both'),true)
+            pickBlocked('day1')?big(wd(cfg.date1)+' — FULL',()=>{}):big(wd(cfg.date1)+' only',()=>pick('day1')),
+            pickBlocked('day2')?big(wd(cfg.date2)+' — FULL',()=>{}):big(wd(cfg.date2)+' only',()=>pick('day2')),
+            pickBlocked('both')?null:big('Both days',()=>pick('both'),true)
           ]:big("I'm in",()=>pick('both'),true)}
           {big("Can't make it",()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}rsvp(false);onDismiss&&onDismiss();})}
           {renderConfirmSheet()}
@@ -7759,9 +7807,9 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           const wd=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return d;}};
           const myDays=me&&me.in===true?(me.days||{day1:true,day2:true}):null;
           const lit=(k)=>myDays&&(k==='both'?(myDays.day1&&myDays.day2):(k==='day1'?(myDays.day1&&!myDays.day2):(myDays.day2&&!myDays.day1)));
-          const bt=(k,label)=>(<button key={k} className="btn btn-sm" onClick={()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
-            style={{flex:'1 1 45%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand)':'var(--surface)',color:lit(k)?'#fff':'var(--ink-70)',boxShadow:lit(k)?'0 2px 6px rgba(31,107,71,0.3)':'none'}}>{lit(k)?'✓ ':''}{label}</button>);
-          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days')];
+          const bt=(k,label)=>{const blocked=pickBlocked(k)&&!lit(k);return(<button key={k} className="btn btn-sm" disabled={blocked} onClick={()=>{if(blocked)return;if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
+            style={{flex:'1 1 45%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand)':'var(--surface)',color:lit(k)?'#fff':'var(--ink-70)',boxShadow:lit(k)?'0 2px 6px rgba(31,107,71,0.3)':'none'}}>{lit(k)?'✓ ':''}{blocked?label.replace(' only','')+' — FULL':label}</button>);};
+          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),(fullNote&&!meAnswered.answered?<div key="fn" style={{flexBasis:'100%',fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',lineHeight:1.5}}>⛳ {fullNote}</div>:null)];
         })():(
         <button className="btn btn-sm" onClick={()=>rsvp(true)}
           style={{flex:1,fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand)':'var(--surface)',color:status==='in'?'#fff':'var(--ink-70)'}}>
@@ -9981,7 +10029,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                 <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' · ')} — sign-ups are open!"</div>
               </div>
               <button className="btn btn-primary btn-sm" onClick={()=>{
-                sendPushNotify({audience:'all',title:'\u26f3 New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' · ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
+                sendPushNotify({audience:'all',title:'⛳ New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' · ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
                 setWeekAnnounced(new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
               }}>Send it</button>
               {weekAnnounced&&<span style={{fontSize:11,fontWeight:600,color:'var(--brand)'}}>Sent {weekAnnounced} ✓</span>}
@@ -12003,6 +12051,7 @@ function App(){
   const [rosterTee, setRosterTee] = useState({});
   const [rosterPins, setRosterPins] = useState({});
   const [rosterAdmins, setRosterAdmins] = useState({});
+  const [rosterAdminsLoaded, setRosterAdminsLoaded] = useState(false);
   const [matchPairings, setMatchPairings] = useState({});
   const [history, setHistory] = useState({});
   const [historyTrash, setHistoryTrash] = useState({});
@@ -12089,7 +12138,7 @@ function App(){
     u.push(read('alerts/drops', v=>setAlertsDrops(v||{})));
     u.push(read('rosterTee', v=>setRosterTee(v||{})));
     u.push(read('rosterPins', v=>setRosterPins(v||{})));
-    u.push(read('rosterAdmins', v=>setRosterAdmins(v||{})));
+    u.push(read('rosterAdmins', v=>{setRosterAdmins(v||{});setRosterAdminsLoaded(true);}));
     u.push(read('week/matchPairings', v=>setMatchPairings(v||{})));
     u.push(read('settings', v=>setSettings(v||{})));
     u.push(read('settings/playerCards', v=>setPlayerCards(v||{})));
@@ -12624,7 +12673,7 @@ function App(){
       return hit/Math.max(o.size,myNames.size)>=0.5;               // half the field in common
     };
     const myRank=rank(roundData);
-    sendPushNotify({audience:'all',title:'\u26f3 '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day,vars:{day:day}});
+    sendPushNotify({audience:'all',title:'⛳ '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day,vars:{day:day}});
     // Replace, never duplicate: the push wrapper resolves to the NEW entry's key
     // (it returns a Promise<string>, NOT a ref — treating it as a ref nulled the
     // key and made the sweep delete its own round; July 31 near-disaster).
@@ -12735,7 +12784,10 @@ function App(){
   // Live-sync the logged-in user's role when their rosterAdmins value changes
   // Fixes: admin/scoring role promotions/demotions used to require sign-out + sign-in
   useEffect(()=>{
-    if(!currentUser || currentUser.role === 'guest' || currentUser.role === 'preview' || currentUser.id === 'preview' || !ready) return;
+    // Wait for rosterAdmins to actually ARRIVE before syncing roles. On a cold
+    // open this effect used to run against the initial {} and demote an admin
+    // to member for a beat (or for good, if the restore lost the race).
+    if(!currentUser || currentUser.role === 'guest' || currentUser.role === 'preview' || currentUser.id === 'preview' || !ready || !rosterAdminsLoaded) return;
     const fbRole = rosterAdmins && rosterAdmins[currentUser.id];
     // Map Firebase value → role string used in UI
     const expectedRole = fbRole === 'master' ? 'admin'  // master still uses 'admin' role UI tabs
@@ -12747,7 +12799,7 @@ function App(){
       setCurrentUser(updated);
       try { localStorage.setItem('cgCurrentUser', JSON.stringify(updated)); } catch {}
     }
-  }, [rosterAdmins, currentUser?.id, currentUser?.role, ready]);
+  }, [rosterAdmins, rosterAdminsLoaded, currentUser?.id, currentUser?.role, ready]);
 
   // Live-sync the logged-in user's default tee + handicap when they update their profile.
   // Fixes: editing tee/HCP in Profile used to require sign-out + sign-in for sign-up modal to pre-fill correctly.

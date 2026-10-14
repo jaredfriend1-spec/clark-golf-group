@@ -3759,6 +3759,8 @@ function TournamentTab(){
             <div>{CL("Responses due by (auto-locks)")}<input className="inp" style={F} type="date" value={cfg.rsvpDeadline||""} onChange={e=>setCfg("rsvpDeadline",e.target.value||null)}/></div>
             <div>{CL("Min rounds")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" value={cfg.minRounds!=null?cfg.minRounds:10} onChange={e=>setCfg("minRounds",parseInt(e.target.value||"0",10)||0)}/></div>
             <div>{CL("Entry-fee bar $")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder={"auto ("+autoBar+")"} value={cfg.feeBar||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("feeBar",n>0?n:null);}}/></div>
+            <div>{CL("Day 1 cap")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="no cap" value={cfg.capDay1||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("capDay1",n>0?n:null);}}/></div>
+            <div>{CL("Day 2 cap")}<input className="inp" style={{...F,textAlign:"center"}} inputMode="numeric" placeholder="no cap" value={cfg.capDay2||""} onChange={e=>{const n=parseInt(e.target.value.replace(/\D/g,"")||"0",10);setCfg("capDay2",n>0?n:null);}}/></div>
             
           </div>
             );})()}
