@@ -1823,7 +1823,7 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
               // but writes stay dead: window.__cgPreview no-ops them at the source.
               if(adm&&typed===adm){onPreview&&onPreview(true);return;}
               if(player&&typed===player){onPreview&&onPreview(false);return;}
-              alert('That code isn\u2019t right.');}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
+              alert('That code isn’t right.');}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',width:'100%'}}>
               <div style={{width:38,height:38,borderRadius:10,background:'rgba(255,255,255,0.04)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:16}}>👀</div>
               <div style={{flex:1}}><div style={{fontSize:13.5,fontWeight:700,color:'rgba(255,255,255,0.6)'}}>Preview the app</div><div style={{fontSize:11.5,color:'rgba(255,255,255,0.3)'}}>View only — needs a preview code</div></div>
             </button>
@@ -1861,8 +1861,8 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
               {[
                 'Clark Golf Group is an original software application conceived, designed, built and owned solely by Jared Friend. This includes its source code, database design, scoring and payout engines, user interface, visual design, and all supporting materials.',
                 'No other person or party holds any ownership interest in this application. Providing scorecards, spreadsheets, game formats, rules, feedback, feature requests or testing does not create any claim to the software, in whole or in part.',
-                'Access is a personal, non-exclusive, non-transferable licence to use the application as provided. It grants no right of ownership, may be modified or withdrawn at any time at the owner\u2019s sole discretion, and ends when the owner says it ends.',
-                'The application may not be copied, modified, distributed, published, sold, sublicensed, reverse-engineered, or used to create a competing or derivative product, in whole or in part, without the owner\u2019s express written consent.',
+                'Access is a personal, non-exclusive, non-transferable licence to use the application as provided. It grants no right of ownership, may be modified or withdrawn at any time at the owner’s sole discretion, and ends when the owner says it ends.',
+                'The application may not be copied, modified, distributed, published, sold, sublicensed, reverse-engineered, or used to create a competing or derivative product, in whole or in part, without the owner’s express written consent.',
                 'Scores, handicaps and other information you enter remain yours. The software that stores, calculates and presents them does not.',
                 'Questions about use or licensing: contact the owner directly.'
               ].map((t,i)=>(
@@ -2435,7 +2435,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
                         value={prefReason} onChange={e=>setPrefReason(e.target.value)}
                         style={{resize:'vertical',lineHeight:1.45}}/>
                       <div style={{fontSize:11,color:prefReasonOk?'var(--ink-40)':'var(--money-neg)',marginTop:3}}>
-                        {prefReasonOk?'Only the admins see this.':'Please give a short reason \u2014 the admins need it to build the tee sheet.'}
+                        {prefReasonOk?'Only the admins see this.':'Please give a short reason — the admins need it to build the tee sheet.'}
                       </div>
                     </div>
                   )}
@@ -2891,7 +2891,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
                   // waitlist bug, and old scores filing under the new date).
                   const hadScores=!!(week?.scores&&week.scores[day.day])||!!(week?.scoringStarted&&week.scoringStarted[day.day]);
                   const midEdit=!!(week?.editingKeys&&week.editingKeys[day.day]);
-                  const msg='Change '+day.day+' to '+fresh+'?\n\nThis starts '+day.day+' fresh: the old lock, player cap, tee time and teams are cleared.'+(hadScores?'\n\n\u26a0 '+day.day+' still has scoring state from the old date. It will be cleared too (a copy is kept in dayBackup). Finalize the old round FIRST if it was real.':'')+(midEdit?'\n\n\u26a0 '+day.day+' is mid-edit from History. The edit is discarded \u2014 the original round in History is untouched.':'');
+                  const msg='Change '+day.day+' to '+fresh+'?\n\nThis starts '+day.day+' fresh: the old lock, player cap, tee time and teams are cleared.'+(hadScores?'\n\n\u26a0 '+day.day+' still has scoring state from the old date. It will be cleared too (a copy is kept in dayBackup). Finalize the old round FIRST if it was real.':'')+(midEdit?'\n\n\u26a0 '+day.day+' is mid-edit from History. The edit is discarded — the original round in History is untouched.':'');
                   if(!window.confirm(msg))return;
                   write('week/dates/'+day.day,fresh);
                   // editingKeys MUST clear here: a surviving key would make the
@@ -3783,7 +3783,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
     if(!allScored){
       alert('Not ready to publish.\n\nStill waiting on: '+unscoredTeams.map(t=>t.name||('Team '+t.id)).join(', ')+'.'); return;
     }
-    if(totalSkins===0 && !window.confirm('No skins recorded for any team.\n\nThat is unusual \u2014 there is normally at least one. Publish anyway?'))return;
+    if(totalSkins===0 && !window.confirm('No skins recorded for any team.\n\nThat is unusual — there is normally at least one. Publish anyway?'))return;
     if(!window.confirm('Finalize this round?\n\nScores and payouts will be saved and the round will move to History in one step. Players can view results in the History tab.\n\n(Corrections afterward: History → Edit.)'))return;
     // ONE-STEP FINALIZE: save + archive atomically from the caller's side.
     // The exact data object we just wrote is handed to archiveDay directly,
@@ -3886,7 +3886,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
       alert('Cannot start scoring.\n\n'+activeDay+' has no valid date set. Fix it in Manage Days first.'); return;
     }
     if(!isNaN(daysOld)&&daysOld>2){
-      alert('Cannot start scoring.\n\n'+activeDay+' is dated '+d+', which is '+daysOld+' days ago.\n\nThe week\u2019s dates were probably never rolled forward. Fix the date in Manage Days, then start scoring.'); return;
+      alert('Cannot start scoring.\n\n'+activeDay+' is dated '+d+', which is '+daysOld+' days ago.\n\nThe week’s dates were probably never rolled forward. Fix the date in Manage Days, then start scoring.'); return;
     }
     if(!dayTeams.length){ alert('Cannot start scoring.\n\nNo teams have been built for '+activeDay+' yet.'); return; }
     write('week/scoringStarted/'+activeDay, Date.now());
@@ -4452,7 +4452,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
             </div>
             <button className="btn btn-primary" style={{padding:'13px',fontSize:14,fontWeight:700,opacity:allScored?1:0.45,cursor:allScored?'pointer':'not-allowed'}} onClick={handleFinalize} disabled={!allScored}>
               {allScored
-                ? 'Finalize \u0026 Publish \u2014 Save to History'
+                ? 'Finalize \u0026 Publish — Save to History'
                 : ('Waiting on '+unscoredTeams.map(t=>t.name||('Team '+t.id)).join(', '))}
             </button>
 
@@ -6473,7 +6473,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
         <div style={{margin:'0 0 12px',padding:'9px 13px',borderRadius:11,background:GOLD_SOFT,border:'1px solid '+GOLD_BORDER,fontSize:12,fontWeight:700,color:GOLD}}>🏁 {effYear} — final results. This tournament is closed.</div>
       )}
       <div style={{display:'flex',gap:2,margin:'0 0 14px',padding:3,borderRadius:10,background:'var(--surface-2, rgba(0,0,0,0.045))'}}>
-        {isAdmin&&!isArchived&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who\u2019s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&!isArchived&&pill('field','💵 Field')}
+        {isAdmin&&!isArchived&&pill('config','⚙')}{pill('board','🏆 Board')}{pill('whosin','👥 Who’s in')}{pill('teams','⛳ Teams')}{pill('scores','📋 Scores')}{isAdmin&&!isArchived&&pill('field','💵 Field')}
       </div>
 
       {sub==='board'&&(
@@ -6566,6 +6566,34 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               ))}
             </div>
             {isAdmin&&!isArchived&&(()=>{
+              const wl2=(tv_&&tv_.waitlist)||{};
+              const wlRows=Object.entries(wl2).filter(([,w])=>w&&w.name).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
+              if(!wlRows.length)return null;
+              const dLabel=dk=>{try{return new Date((dk==='day1'?cfg.date1:cfg.date2)+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return dk;}};
+              const moveIn=(wuid,w)=>{
+                const rec=tpNorm[String(wuid)]||{};
+                const days={day1:!!(rec.in===true&&(!rec.days||rec.days.day1)),day2:!!(rec.in===true&&(!rec.days||rec.days.day2))};
+                Object.keys(w.days||{}).forEach(dk=>{if(w.days[dk])days[dk]=true;});
+                const overs=['day1',...(cfg.date2?['day2']:[])].filter(dk=>{const c=parseInt(dk==='day1'?cfg.capDay1:cfg.capDay2,10);return c>0&&w.days&&w.days[dk]&&entries.filter(([,v])=>inDay(v,dk)).length>=c;});
+                if(overs.length&&!window.confirm(overs.map(dLabel).join(' and ')+' is still at the cap. Move '+w.name+' in anyway?'))return;
+                wsafe({['tournament/players/'+wuid+'/in']:true,['tournament/players/'+wuid+'/by']:'admin',['tournament/players/'+wuid+'/ts']:Date.now(),['tournament/players/'+wuid+'/days']:days,['tournament/waitlist/'+wuid]:null});
+              };
+              return (
+                <div style={{...card,borderLeft:'3px solid #b8891a'}}>
+                  <div style={hdr}>⏳ Waitlist ({wlRows.length}) <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div>
+                  {wlRows.map(([wuid,w],wi)=>(
+                    <div key={wuid} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0',borderBottom:wi<wlRows.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.06))':'none'}}>
+                      <span style={{fontSize:11,fontWeight:900,color:'var(--ink-40)',width:16}}>{wi+1}.</span>
+                      <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:700,color:'var(--ink)'}}>{w.name}<span style={{fontWeight:600,color:'var(--ink-40)',fontSize:11.5}}> · wants {Object.keys(w.days||{}).filter(dk=>w.days[dk]).map(dLabel).join(' + ')}</span></span>
+                      <button className="btn btn-sm" style={{fontWeight:800,padding:'6px 10px'}} onClick={()=>moveIn(wuid,w)}>Move in</button>
+                      <button className="btn btn-sm" style={{fontWeight:700,padding:'6px 9px',opacity:0.7}} onClick={()=>{if(window.confirm('Take '+w.name+' off the waitlist?'))wsafe({['tournament/waitlist/'+wuid]:null});}}>✕</button>
+                    </div>
+                  ))}
+                  <div style={{fontSize:11,color:'var(--ink-40)',marginTop:5,lineHeight:1.5}}>First come, first served — Move in sets them IN for the day(s) they asked for and clears them off the list.</div>
+                </div>
+              );
+            })()}
+            {isAdmin&&!isArchived&&(()=>{
               const cnt=dk=>entries.filter(([,v])=>inDay(v,dk)).length;
               const savedFor=capSavedDay;
               const capRow=(dk,label,key)=>{
@@ -6589,7 +6617,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                 </div>
               );
             })()}
-            {twoDay?[dayCard('day1','\ud83d\udcc5 '+wdOf(cfg.date1)+' \u2014 '+fd(cfg.date1)),dayCard('day2','\ud83d\udcc5 '+wdOf(cfg.date2)+' \u2014 '+fd(cfg.date2))]:dayCard('day1','\ud83d\udcc5 '+fd(cfg.date1))}
+            {twoDay?[dayCard('day1','\ud83d\udcc5 '+wdOf(cfg.date1)+' — '+fd(cfg.date1)),dayCard('day2','\ud83d\udcc5 '+wdOf(cfg.date2)+' — '+fd(cfg.date2))]:dayCard('day1','\ud83d\udcc5 '+fd(cfg.date1))}
             {decl.length>0&&<div style={card}><div style={hdr}>Can’t make it ({decl.length})</div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{decl.join(' · ')}</div></div>}
             {isAdmin&&deciding.length>0&&<div style={card}><div style={hdr}>Still deciding ({deciding.length}) <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div><div style={{fontSize:12.5,color:'var(--ink-40)',lineHeight:1.7}}>{deciding.join(' · ')}</div></div>}
           </div>
@@ -6601,7 +6629,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
           {dayPills}
           {teams.length===0?(
             <div style={card}>
-              <div style={{fontSize:13.5,color:'var(--ink-40)',textAlign:'center',padding:'14px 0'}}>{isAdmin?'No teams drawn for this day yet.':'Teams haven\u2019t been posted yet — check back!'}</div>
+              <div style={{fontSize:13.5,color:'var(--ink-40)',textAlign:'center',padding:'14px 0'}}>{isAdmin?'No teams drawn for this day yet.':'Teams haven’t been posted yet — check back!'}</div>
               {isAdmin&&<button className="btn" style={{width:'100%',fontWeight:800}} onClick={drawTeams}>🎲 Random draw — {inFieldFor(day).length} players in for this day → teams of {teamSize}</button>}
             </div>
           ):(!published&&!isAdmin)?(
@@ -6942,12 +6970,12 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
                   <div style={{fontSize:15,fontWeight:800,color:'var(--ink)',marginBottom:12}}>📖 How the tournament works</div>
                   {[
                     ['The fund — already banked','All season, $1 from every player every round goes into the tournament fund. It is the floor of the pot and it is already collected — the pot grows every Friday before a single invite goes out.'],
-                    ['Invites & the season lock','GO LIVE (portal) does two things at once: every eligible player sees a persistent invite in the app until they answer, and the season\u2019s books close — the fund, eligibility, and each buy-in lock as quoted. Fridays keep going; those rounds count toward NEXT season and next year\u2019s fund.'],
-                    ['Opt in per day','Players answer Day 1, Day 2, or Both (one buy-in either way — full amount). Each day\u2019s teams draw only from the players in for that day; the Board shows who\u2019s in for which.'],
-                    ['Adding people below the bar','Numbers thin? Tap ✉ Invite on anyone under the rounds bar (💵 Field here, or the portal). They get the same banner and answer for themselves — with an EXCEPTION chip. In/Out toggles remain the \u201cI\u2019m deciding for you\u201d tool; SELF ✓ always means they chose.'],
+                    ['Invites & the season lock','GO LIVE (portal) does two things at once: every eligible player sees a persistent invite in the app until they answer, and the season’s books close — the fund, eligibility, and each buy-in lock as quoted. Fridays keep going; those rounds count toward NEXT season and next year’s fund.'],
+                    ['Opt in per day','Players answer Day 1, Day 2, or Both (one buy-in either way — full amount). Each day’s teams draw only from the players in for that day; the Board shows who’s in for which.'],
+                    ['Adding people below the bar','Numbers thin? Tap ✉ Invite on anyone under the rounds bar (💵 Field here, or the portal). They get the same banner and answer for themselves — with an EXCEPTION chip. In/Out toggles remain the \u201cI’m deciding for you\u201d tool; SELF ✓ always means they chose.'],
                     ['Pay-ins','Each player owes the bar minus their rounds (their $1s are already in the fund). Collect cash at the club, tap Paid on the 💵 Field pill — one shared ledger with the portal. The header shows invited, answered, deciding, and outstanding at all times.'],
-                    ['Answers & the deadline','Players confirm handicap and tees when they tap I\u2019m in — the draw uses those numbers. Answers change freely until the response deadline (set in the portal config); after that they lock automatically and changes go through an admin.'],
-                    ['Payouts','Fund + cash paid in = the pot, split in half across the two days. Each day\u2019s half pays by share of the whole: front 9, back 9, overall, and skins (defaults 20 / 20 / 20 / 40 — a $500 day pays $100 / $100 / $100 and $200 to skins, exactly like Fridays). Computed live on the Scores board. No CTP, no refunds: over-the-bar money stays in.'],
+                    ['Answers & the deadline','Players confirm handicap and tees when they tap I’m in — the draw uses those numbers. Answers change freely until the response deadline (set in the portal config); after that they lock automatically and changes go through an admin.'],
+                    ['Payouts','Fund + cash paid in = the pot, split in half across the two days. Each day’s half pays by share of the whole: front 9, back 9, overall, and skins (defaults 20 / 20 / 20 / 40 — a $500 day pays $100 / $100 / $100 and $200 to skins, exactly like Fridays). Computed live on the Scores board. No CTP, no refunds: over-the-bar money stays in.'],
                     ['What players see','Before GO LIVE: nothing. After: this tab — the Board with the live pot and field, published Teams, live Scores. Their only control is their own answer.'],
                     ['After the tournament','Results live on the Scores board per day. Close-out & archive (frozen results, clean slate for next year) ships as the next build.'],
                   ].map(([t,body],i2)=>(
@@ -7052,7 +7080,7 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
         .catch(()=>{setAttErr("Couldn't read that photo — try a different one.");setAttBusy(false);});
       return;
     }
-    if(!FILE_OK.test(f.name||'')){setAttErr('That file type isn\u2019t supported (PDF, Word, Excel, CSV, text or photos).');return;}
+    if(!FILE_OK.test(f.name||'')){setAttErr('That file type isn’t supported (PDF, Word, Excel, CSV, text or photos).');return;}
     if(f.size>MAX_FILE){setAttErr('Too big — files are capped at 2 MB (this one is '+fmtKB(f.size)+').');return;}
     setAttBusy(true);
     const rd=new FileReader();
@@ -7618,7 +7646,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         <span style={{fontSize:20}}>🏆</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13,fontWeight:800,color:'var(--brand)'}}>You’re invited — {cfg.name||'the tournament'}</div>
-          <div style={{fontSize:11.5,color:'var(--ink-60)',marginTop:1}}>{rsvpLocked?'Responses are closed \u2014 see an admin.':('Tap to say you\u2019re in'+dl)}</div>
+          <div style={{fontSize:11.5,color:'var(--ink-60)',marginTop:1}}>{rsvpLocked?'Responses are closed — see an admin.':('Tap to say you’re in'+dl)}</div>
         </div>
         <span style={{fontSize:12,fontWeight:800,color:'var(--brand)'}}>Respond ›</span>
       </div>
@@ -7660,6 +7688,48 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     const parts=(pick==='day1'?[chk('day1')]:pick==='day2'?[chk('day2')]:[chk('day1'),cfg.date2?chk('day2'):null]).filter(Boolean);
     return parts.length?parts.join(' and '):null;
   };
+  // ── Tournament waitlist (tournament/waitlist/<uid> = {name, days, ts}) ──
+  // Raise-your-hand only: admins see the ordered list on Who's in and move
+  // people in when a spot opens. No automatic promotion.
+  const uid=String((currentUser&&currentUser.id)||'');
+  const wl=(t&&t.waitlist)||{};
+  const myWl=wl[uid]||null;
+  const wlFor=(dk)=>Object.entries(wl).filter(([,w])=>w&&w.days&&w.days[dk]).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
+  const myWlPos=(dk)=>{const l=wlFor(dk);const i=l.findIndex(([k])=>k===uid);return i<0?0:i+1;};
+  const joinWl=(dk)=>{
+    if(adminPreview||frozenWl())return;
+    const days={...((myWl&&myWl.days)||{}),[dk]:true};
+    update({['tournament/waitlist/'+uid]:{name:currentUser.name,days,ts:(myWl&&myWl.ts)||Date.now()}});
+    try{sendPushNotify({audience:'admins',title:'⏳ Tournament waitlist: '+String(currentUser.name).split(' ')[0],body:currentUser.name+' wants a '+wdShort(dk==='day1'?cfg.date1:cfg.date2)+' spot if one opens.',url:'/',tag:'tournwl',vars:{name:currentUser.name}});}catch(e){}
+  };
+  const leaveWl=()=>{if(!adminPreview)update({['tournament/waitlist/'+uid]:null});};
+  const frozenWl=()=>rsvpLocked&&!isAdmin;
+  // The waitlist strip rendered under the day buttons on both surfaces.
+  const wlStrip=()=>{
+    const fulls=[['day1',cfg.date1],...(cfg.date2?[['day2',cfg.date2]]:[])].filter(([dk])=>dayFull(dk));
+    if(isAdmin)return null;
+    if(myWl){
+      const names=Object.keys(myWl.days||{}).filter(dk=>myWl.days[dk]).map(dk=>wdShort(dk==='day1'?cfg.date1:cfg.date2)+' (#'+myWlPos(dk)+')').join(' and ');
+      return (
+        <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8,background:'rgba(184,137,26,0.08)',border:'1px solid rgba(184,137,26,0.3)',borderRadius:10,padding:'8px 11px'}}>
+          <span style={{fontSize:15}}>⏳</span>
+          <span style={{flex:1,fontSize:12,fontWeight:700,color:'#b8891a',lineHeight:1.4}}>You’re on the waitlist for {names}. Clark will move you in if a spot opens.</span>
+          <button onClick={leaveWl} style={{background:'none',border:'none',color:'var(--ink-40)',fontSize:11.5,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Leave</button>
+        </div>
+      );
+    }
+    if(!fulls.length||frozenWl())return null;
+    return (
+      <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:8}}>
+        {fulls.map(([dk,date])=>(
+          <button key={dk} onClick={()=>joinWl(dk)}
+            style={{flex:'1 1 45%',padding:'9px 8px',borderRadius:11,border:'1.5px dashed rgba(184,137,26,0.5)',background:'rgba(184,137,26,0.07)',color:'#b8891a',fontWeight:800,fontSize:12.5,cursor:'pointer',fontFamily:'inherit'}}>
+            ⏳ Waitlist me for {wdShort(date)}
+          </button>
+        ))}
+      </div>
+    );
+  };
   const startOptIn=(pick)=>{
     if(pick&&pickBlocked(pick))return;
     const over=pick&&adminOverNote(pick);
@@ -7676,7 +7746,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     if(isNaN(h)){alert('Enter your handicap so the teams draw fair.');return;}
     // Last-second cap check — someone may have taken the final spot while this
     // sheet was open. Never strips a day the member is ALREADY in.
-    if(pickBlocked(daysPick)){alert('Sorry — that day just filled up. Pick what\u2019s still open.');setConfirming(false);return;}
+    if(pickBlocked(daysPick)){alert('Sorry — that day just filled up. Pick what’s still open.');setConfirming(false);return;}
     const daysObj=cfg.date2?{day1:daysPick!=='day2',day2:daysPick!=='day1'}:{day1:true,day2:false};
     update({['tournament/players/'+currentUser.id+'/in']:true,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now(),['tournament/players/'+currentUser.id+'/handicap']:h,['tournament/players/'+currentUser.id+'/tee']:teeDraft||'Whites',['tournament/players/'+currentUser.id+'/days']:daysObj});
     setConfirming(false);
@@ -7732,6 +7802,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
             pickBlocked('day2')?big(wd(cfg.date2)+' — FULL',()=>{}):big(wd(cfg.date2)+' only',()=>pick('day2')),
             pickBlocked('both')?null:big('Both days',()=>pick('both'),true)
           ]:big("I'm in",()=>pick('both'),true)}
+          {wlStrip()}
           {big("Can't make it",()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}rsvp(false);onDismiss&&onDismiss();})}
           {renderConfirmSheet()}
           <button onClick={()=>onDismiss&&onDismiss()} style={{width:'100%',padding:'10px 0',background:'none',border:'none',color:'var(--ink-40)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>I&rsquo;ll decide later</button>
@@ -7808,7 +7879,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
             <div style={{fontSize:11,color:'var(--ink-50)'}}>covers {cfg.date2?'both days':'the event'}</div>
           </div>
           <div style={{flex:1,minWidth:88,background:owed>0?'var(--warn-soft)':'var(--brand-soft)',border:'1px solid '+(owed>0?'var(--warn-border)':'var(--brand-border)'),borderRadius:8,padding:'6px 9px',textAlign:'center'}}>
-            <div style={{fontSize:11,fontWeight:700,color:owed>0?'var(--warn-ink)':'var(--brand)',textTransform:'uppercase'}}>{owed>0?'You still owe':'You\u2019re covered'}</div>
+            <div style={{fontSize:11,fontWeight:700,color:owed>0?'var(--warn-ink)':'var(--brand)',textTransform:'uppercase'}}>{owed>0?'You still owe':'You’re covered'}</div>
             <div style={{fontSize:15,fontWeight:800,color:owed>0?'var(--warn-ink)':'var(--brand)'}}>${owed}</div>
             <div style={{fontSize:11,color:'var(--ink-40)'}}>{owed>0?'due at sign-in':(cfg.refundOverpaid===true&&bar-myRounds<0?('$'+(myRounds-bar)+' over — refunded'):'all set')}</div>
           </div>
@@ -7829,7 +7900,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           const lit=(k)=>myDays&&(k==='both'?(myDays.day1&&myDays.day2):(k==='day1'?(myDays.day1&&!myDays.day2):(myDays.day2&&!myDays.day1)));
           const bt=(k,label)=>{const blocked=pickBlocked(k)&&!lit(k);return(<button key={k} className="btn btn-sm" disabled={blocked} onClick={()=>{if(blocked)return;if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
             style={{flex:'1 1 45%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand)':'var(--surface)',color:lit(k)?'#fff':'var(--ink-70)',boxShadow:lit(k)?'0 2px 6px rgba(31,107,71,0.3)':'none'}}>{lit(k)?'✓ ':''}{blocked?label.replace(' only','')+' — FULL':label}</button>);};
-          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),(fullNote?<div key="fn" style={{flexBasis:'100%',fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',lineHeight:1.5}}>⛳ {fullNote}</div>:null)];
+          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),(fullNote?<div key="fn" style={{flexBasis:'100%',fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',lineHeight:1.5}}>⛳ {fullNote}</div>:null),<div key="wls" style={{flexBasis:'100%'}}>{wlStrip()}</div>];
         })():(
         <button className="btn btn-sm" onClick={()=>rsvp(true)}
           style={{flex:1,fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand)':'var(--surface)',color:status==='in'?'#fff':'var(--ink-70)'}}>
@@ -8613,7 +8684,7 @@ function renderEmailPlainText(week,notes,subject,events,history){
       txt+=nl+e.name.toUpperCase()+' \u00B7 STABLEFORD ('+(e.ranking==='raw'?'raw total':'net to target')+')'+nl+div+nl;
       e.rows.forEach(p=>{
         const won=(e.awardMap[p.name]||0), sk=e.skinMap[p.name];
-        txt+=' '+String(p.rank).padStart(2)+'. '+p.name+' \u2014 '+p.total+' pts'+(e.ranking==='net'?' ('+(p.net>=0?'+':'')+p.net+')':'')+(won>0?('  $'+won):'')+(sk?('  +$'+sk.amount+' skins'):'')+nl;
+        txt+=' '+String(p.rank).padStart(2)+'. '+p.name+' — '+p.total+' pts'+(e.ranking==='net'?' ('+(p.net>=0?'+':'')+p.net+')':'')+(won>0?('  $'+won):'')+(sk?('  +$'+sk.amount+' skins'):'')+nl;
       });
       txt+='Fund'+(dayScoresP.fundEnabled===false?' (off)':'')+': $'+(dayScoresP.tournFund||0)+((dayScoresP.skinsEnabled&&dayScoresP.skinsPot)?(' \u00B7 Skins: $'+dayScoresP.skinsPot):'')+nl;
     }
@@ -8659,7 +8730,7 @@ function EmailViewV2({ week, isAdmin, history }){
 
   const days = getUpcomingDays(week);
   const dateRange = getShortDateRange(week, days);
-  const defaultSubject = 'Clark Golf \u2014 Week of '+dateRange+' Update';
+  const defaultSubject = 'Clark Golf — Week of '+dateRange+' Update';
   const notes = week?.emailNotes||{};
   const events = week?.emailEvents||'';
 
@@ -8958,7 +9029,7 @@ function MissingRoundCard({ week, fullRoster, read, update, currentUser }){
             <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,color:'var(--ink-50)'}}>
               or another date <input type="date" max={today} value={date} onChange={e=>pickDate(e.target.value)} className="form-input" style={{width:170,padding:'6px 8px'}}/>
             </div>
-            {date&&dayName&&<div style={{fontSize:12.5,marginTop:6,color:'var(--ink-70)'}}>{dayName}, {date}{checking?' \u2014 checking History…':exists?'':exists===false?' \u2014 no round saved, good to go':''}</div>}
+            {date&&dayName&&<div style={{fontSize:12.5,marginTop:6,color:'var(--ink-70)'}}>{dayName}, {date}{checking?' — checking History…':exists?'':exists===false?' — no round saved, good to go':''}</div>}
             {exists&&<div style={{marginTop:8,padding:'10px 12px',borderRadius:9,background:'var(--warn-soft)',border:'1px solid var(--warn-border)',fontSize:12.5,lineHeight:1.5,color:'var(--ink)'}}>
               A round is already saved for {date}. To correct it, open it in <strong>History</strong> and use <strong>Edit</strong>. This tool only fills in rounds that are missing.</div>}
           </div>
@@ -10049,7 +10120,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                 <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>One push to everyone: "{parts.join(' · ')} — sign-ups are open!"</div>
               </div>
               <button className="btn btn-primary btn-sm" onClick={()=>{
-                sendPushNotify({audience:'all',title:'⛳ New week is up \u2014 sign-ups open!',body:'This week: '+parts.join(' · ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
+                sendPushNotify({audience:'all',title:'⛳ New week is up — sign-ups open!',body:'This week: '+parts.join(' · ')+'. Tap to sign up.',url:'/',tag:'weekready',vars:{day:days.join(', ')}});
                 setWeekAnnounced(new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
               }}>Send it</button>
               {weekAnnounced&&<span style={{fontSize:11,fontWeight:600,color:'var(--brand)'}}>Sent {weekAnnounced} ✓</span>}
@@ -12578,7 +12649,7 @@ function App(){
       const hasScores=!!(week.scores&&week.scores[d]);
       const curDate=week.dates&&week.dates[d];
       if(live&&(hasSignups||hasTeams||hasScores)&&curDate!==round.date){
-        window.alert('Can\u2019t edit this round right now.\n\n'+d+' is in use this week ('+(curDate||'no date')+'). Editing the '+round.date+' round would overwrite it.\n\nFinish or cancel this week\u2019s '+d+' first, or correct the old round from the portal.');
+        window.alert('Can’t edit this round right now.\n\n'+d+' is in use this week ('+(curDate||'no date')+'). Editing the '+round.date+' round would overwrite it.\n\nFinish or cancel this week’s '+d+' first, or correct the old round from the portal.');
         return;
       }
     }
@@ -12661,14 +12732,14 @@ function App(){
     const _knownDates=Object.values((week&&week.dates)||{});
     const _daysOld=Math.round((Date.parse(_today)-Date.parse(dayDate))/86400000);
     if(!dayDate||_knownDates.indexOf(dayDate)<0){
-      console.warn('[guard] archiveDay: '+dayDate+' is not one of this week\u2019s dates — refusing.');
+      console.warn('[guard] archiveDay: '+dayDate+' is not one of this week’s dates — refusing.');
       alert('Cannot save this round.\n\nThe date for '+day+' ('+dayDate+') is not part of the current week. Fix the date in Manage Days, then finalize again.');
       return;
     }
     const _isEditing=!!(week.editingKeys&&week.editingKeys[day]);
     if(!_isEditing&&!isNaN(_daysOld)&&_daysOld>2){
       console.warn('[guard] archiveDay: '+dayDate+' is '+_daysOld+' days old — refusing.');
-      alert('Cannot save this round.\n\n'+day+' is dated '+dayDate+', which is '+_daysOld+' days ago. That usually means the week\u2019s dates were never rolled forward. Fix the date in Manage Days, then finalize again.');
+      alert('Cannot save this round.\n\n'+day+' is dated '+dayDate+', which is '+_daysOld+' days ago. That usually means the week’s dates were never rolled forward. Fix the date in Manage Days, then finalize again.');
       return;
     }
 
@@ -12693,7 +12764,7 @@ function App(){
       return hit/Math.max(o.size,myNames.size)>=0.5;               // half the field in common
     };
     const myRank=rank(roundData);
-    sendPushNotify({audience:'all',title:'⛳ '+day+' results are in!',body:'Payouts and the leaderboard are posted \u2014 tap to see how you did.',url:'/',tag:'results-'+day,vars:{day:day}});
+    sendPushNotify({audience:'all',title:'⛳ '+day+' results are in!',body:'Payouts and the leaderboard are posted — tap to see how you did.',url:'/',tag:'results-'+day,vars:{day:day}});
     // Replace, never duplicate: the push wrapper resolves to the NEW entry's key
     // (it returns a Promise<string>, NOT a ref — treating it as a ref nulled the
     // key and made the sweep delete its own round; July 31 near-disaster).
