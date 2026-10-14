@@ -6596,24 +6596,26 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             {isAdmin&&!isArchived&&(()=>{
               const cnt=dk=>entries.filter(([,v])=>inDay(v,dk)).length;
               const savedFor=capSavedDay;
-              const capRow=(dk,label,key)=>{
+              const capRow=(dk,label,key,last)=>{
                 const cur=parseInt(cfg[key],10)>0?parseInt(cfg[key],10):'';
+                const c=parseInt(cfg[key],10)>0?parseInt(cfg[key],10):0;
+                const n=cnt(dk);
                 return (
-                  <div key={dk} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0'}}>
-                    <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>{label}</span>
-                    <span style={{fontSize:12,fontWeight:700,color:'var(--ink-40)'}}>{cnt(dk)} in</span>
-                    <input key={'cap'+dk+String(cur)} type="number" inputMode="numeric" defaultValue={cur} placeholder="no cap" id={'capinp_'+dk}
-                      style={{width:74,padding:'6px 8px',borderRadius:9,border:'1.5px solid var(--hairline)',fontSize:13,fontFamily:'inherit',textAlign:'center',background:'var(--surface)',color:'var(--ink)'}}/>
-                    <button className="btn btn-sm" style={{fontWeight:800,padding:'7px 12px',background:savedFor===dk?'var(--brand)':undefined,color:savedFor===dk?'#fff':undefined}}
-                      onClick={()=>{const el=document.getElementById('capinp_'+dk);const n=parseInt((el&&el.value)||'',10);wsafe({['tournament/config/'+key]:(n>0?n:null)});setCapSavedDay(dk);setTimeout(()=>setCapSavedDay(null),2200);}}>{savedFor===dk?'Saved ✓':'Save'}</button>
+                  <div key={dk} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:last?'none':'1px solid var(--hairline-soft, rgba(0,0,0,0.06))'}}>
+                    <span style={{fontSize:10.5,fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'#b8891a',background:'rgba(184,137,26,0.1)',border:'1px solid rgba(184,137,26,0.3)',borderRadius:7,padding:'4px 9px',flexShrink:0}}>{label}</span>
+                    <span style={{flex:1,fontSize:13,fontWeight:800,color:c&&n>=c?'var(--warn-ink)':'var(--ink)'}}>{n}<span style={{fontWeight:600,color:'var(--ink-40)'}}>{c?(' of '+c+' in'+(n>=c?' · FULL':'')):' in · no cap'}</span></span>
+                    <input key={'cap'+dk+String(cur)} type="text" inputMode="numeric" defaultValue={cur} placeholder="–" id={'capinp_'+dk}
+                      style={{width:56,padding:'9px 0',borderRadius:11,border:'1.5px solid var(--hairline)',fontSize:15,fontWeight:800,fontFamily:'inherit',textAlign:'center',background:'var(--surface)',color:'var(--ink)',outline:'none'}}/>
+                    <button className="btn btn-sm" style={{fontWeight:800,padding:'9px 13px',borderRadius:11,background:savedFor===dk?'var(--brand)':undefined,color:savedFor===dk?'#fff':undefined}}
+                      onClick={()=>{const el=document.getElementById('capinp_'+dk);const n2=parseInt(String((el&&el.value)||'').replace(/[^0-9]/g,''),10);wsafe({['tournament/config/'+key]:(n2>0?n2:null)});setCapSavedDay(dk);setTimeout(()=>setCapSavedDay(null),2200);}}>{savedFor===dk?'Saved ✓':'Save'}</button>
                   </div>
                 );
               };
               return (
                 <div style={{...card,borderLeft:'3px solid #b8891a'}}>
                   <div style={hdr}>Day caps <span style={{fontWeight:600,textTransform:'none'}}>— admins only</span></div>
-                  {twoDay?[capRow('day1',wdOf(cfg.date1),'capDay1'),capRow('day2',wdOf(cfg.date2),'capDay2')]:capRow('day1','Field cap','capDay1')}
-                  <div style={{fontSize:11,color:'var(--ink-40)',lineHeight:1.55,marginTop:4}}>A full day closes to new sign-ups only — nobody already in is touched, a drop reopens the spot, and admins can always add or move people regardless of caps. Blank = no cap.</div>
+                  {twoDay?[capRow('day1',wdOf(cfg.date1),'capDay1',false),capRow('day2',wdOf(cfg.date2),'capDay2',true)]:capRow('day1','Field','capDay1',true)}
+                  <div style={{fontSize:10.5,color:'var(--ink-40)',lineHeight:1.55,marginTop:7}}>Full days close to new sign-ups only — nobody already in is touched, and a drop reopens the spot. Blank = no cap.</div>
                 </div>
               );
             })()}
@@ -7663,20 +7665,34 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const meInDay=(dk)=>!!(me&&me.in===true&&(!cfg.date2||!me.days||me.days[dk]===true));
   const dayFull=(dk)=>{const c=capOf(dk);return !isAdmin&&c>0&&!meInDay(dk)&&dayCount(dk)>=c;};
   const wdShort=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'});}catch(e){return d;}};
-  // One line for members whenever ANY cap is set: how many spots each capped
-  // day has left, or that it's full. Admins see it too (plain information).
-  const fullNote=(()=>{
-    const part=(dk,date)=>{
-      const c=capOf(dk); if(!c)return null;
-      const n=dayCount(dk); const nm=wdShort(date);
-      if(n>=c)return nm+' is full ('+c+' players)';
-      const left=c-n; return nm+': '+left+' of '+c+' spot'+(left===1?'':'s')+' left';
-    };
-    const ps=[part('day1',cfg.date1),cfg.date2?part('day2',cfg.date2):null].filter(Boolean);
-    if(!ps.length)return null;
-    if(dayFull('day1')&&cfg.date2&&dayFull('day2'))return 'Both days are full — talk to Clark if you want on the list.';
-    return ps.join(' · ');
-  })();
+  // Capacity tiles — same visual language as the YOUR ROUNDS / ENTRY FEE row:
+  // one tile per capped day, big state ("FULL" or "3 spots left"), fill bar.
+  const capTiles=()=>{
+    const days=[['day1',cfg.date1],...(cfg.date2?[['day2',cfg.date2]]:[])].filter(([dk])=>capOf(dk)>0);
+    if(!days.length)return null;
+    return (
+      <div style={{display:'flex',gap:8,marginTop:10}}>
+        {days.map(([dk,date])=>{
+          const c=capOf(dk),n=dayCount(dk),left=Math.max(c-n,0),full=n>=c;
+          const nm=(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'});}catch(e){return d;}})(date);
+          return (
+            <div key={dk} style={{flex:1,background:full?'var(--warn-soft)':'var(--surface)',border:'1.5px solid '+(full?'var(--warn-border)':'var(--hairline)'),borderRadius:13,padding:'10px 12px 11px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:3}}>
+                <span style={{fontSize:10.5,fontWeight:900,letterSpacing:'0.08em',color:'var(--ink-40)',textTransform:'uppercase'}}>{nm}</span>
+                <span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-40)'}}>{n} of {c} in</span>
+              </div>
+              <div style={{fontSize:17,fontWeight:900,letterSpacing:'-0.01em',color:full?'var(--warn-ink)':(left<=3?'#b8891a':'var(--brand)'),marginBottom:7}}>
+                {full?'FULL':left+' spot'+(left===1?'':'s')+' left'}
+              </div>
+              <div style={{height:5,borderRadius:3,background:'rgba(0,0,0,0.07)',overflow:'hidden'}}>
+                <div style={{width:Math.max(4,Math.min(100,Math.round(n/c*100)))+'%',height:5,borderRadius:3,background:full?'var(--warn-ink)':(left<=3?'#b8891a':'var(--brand)')}}></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
   // Which picks a full day rules out. 'both' is blocked if EITHER day is full
   // (picking it would shove them into the full day).
   const pickBlocked=(k)=>k==='day1'?dayFull('day1'):k==='day2'?dayFull('day2'):(dayFull('day1')||dayFull('day2'));
@@ -7796,7 +7812,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           <div style={{background:'var(--surface-sunken)',borderRadius:12,padding:'11px 13px',marginBottom:14,fontSize:13,color:'var(--ink-60)',lineHeight:1.6}}>
             You&rsquo;re invited. Entry is <b style={{color:'var(--ink)'}}>${bar}</b> minus $1 for every round you&rsquo;ve played — you&rsquo;re at <b style={{color:'var(--ink)'}}>{myRounds} rounds</b>, so about <b style={{color:'var(--brand)'}}>${Math.max(bar-myRounds,0)}</b> due. Same entry whether you play one day or both.
           </div>
-          {fullNote&&<div style={{fontSize:12.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:10,padding:'8px 11px',marginBottom:10,lineHeight:1.5}}>⛳ {fullNote}</div>}
+          {capTiles()&&<div style={{marginTop:-4,marginBottom:12}}>{capTiles()}</div>}
           {cfg.date2?[
             pickBlocked('day1')?big(wd(cfg.date1)+' — FULL',()=>{}):big(wd(cfg.date1)+' only',()=>pick('day1')),
             pickBlocked('day2')?big(wd(cfg.date2)+' — FULL',()=>{}):big(wd(cfg.date2)+' only',()=>pick('day2')),
@@ -7900,7 +7916,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           const lit=(k)=>myDays&&(k==='both'?(myDays.day1&&myDays.day2):(k==='day1'?(myDays.day1&&!myDays.day2):(myDays.day2&&!myDays.day1)));
           const bt=(k,label)=>{const blocked=pickBlocked(k)&&!lit(k);return(<button key={k} className="btn btn-sm" disabled={blocked} onClick={()=>{if(blocked)return;if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
             style={{flex:'1 1 45%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand)':'var(--surface)',color:lit(k)?'#fff':'var(--ink-70)',boxShadow:lit(k)?'0 2px 6px rgba(31,107,71,0.3)':'none'}}>{lit(k)?'✓ ':''}{blocked?label.replace(' only','')+' — FULL':label}</button>);};
-          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),(fullNote?<div key="fn" style={{flexBasis:'100%',fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',lineHeight:1.5}}>⛳ {fullNote}</div>:null),<div key="wls" style={{flexBasis:'100%'}}>{wlStrip()}</div>];
+          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),<div key="fn" style={{flexBasis:'100%'}}>{capTiles()}</div>,<div key="wls" style={{flexBasis:'100%'}}>{wlStrip()}</div>];
         })():(
         <button className="btn btn-sm" onClick={()=>rsvp(true)}
           style={{flex:1,fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand)':'var(--surface)',color:status==='in'?'#fff':'var(--ink-70)'}}>
