@@ -7589,6 +7589,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   const [previewTap, setPreviewTap] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [daysPick, setDaysPick] = useState('both');
+  const [wlAfter, setWlAfter] = useState(null);         // combo: waitlist to join right after confirm
   const [hcpDraft, setHcpDraft] = useState('');
   const [teeDraft, setTeeDraft] = useState('');
   const [rTee, setRTee] = useState({});
@@ -7746,7 +7747,17 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
       </div>
     );
   };
-  const startOptIn=(pick)=>{
+  // One-tap combo (Jared, Oct 15): "Sunday + Saturday waitlist" — opt into the
+  // open day now, and the moment it's confirmed, join the full day's waitlist.
+  const comboFor=(()=>{
+    if(isAdmin||!cfg.date2)return null;
+    const f1=dayFull('day1'),f2=dayFull('day2');
+    if(f1&&!f2&&!(myWl&&myWl.days&&myWl.days.day1))return {open:'day2',full:'day1'};
+    if(f2&&!f1&&!(myWl&&myWl.days&&myWl.days.day2))return {open:'day1',full:'day2'};
+    return null;
+  })();
+  const startOptIn=(pick,keepWl)=>{
+    if(!keepWl)setWlAfter(null);
     if(pick&&pickBlocked(pick))return;
     const over=pick&&adminOverNote(pick);
     if(over&&!window.confirm(over+'.\n\nAs an admin you can go over the cap. Join anyway?'))return;
@@ -7762,8 +7773,9 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     if(isNaN(h)){alert('Enter your handicap so the teams draw fair.');return;}
     // Last-second cap check — someone may have taken the final spot while this
     // sheet was open. Never strips a day the member is ALREADY in.
-    if(pickBlocked(daysPick)){alert('Sorry — that day just filled up. Pick what’s still open.');setConfirming(false);return;}
+    if(pickBlocked(daysPick)){alert('Sorry — that day just filled up. Pick what’s still open.');setConfirming(false);setWlAfter(null);return;}
     const daysObj=cfg.date2?{day1:daysPick!=='day2',day2:daysPick!=='day1'}:{day1:true,day2:false};
+    if(wlAfter){joinWl(wlAfter);setWlAfter(null);}
     update({['tournament/players/'+currentUser.id+'/in']:true,['tournament/players/'+currentUser.id+'/by']:'member',['tournament/players/'+currentUser.id+'/ts']:Date.now(),['tournament/players/'+currentUser.id+'/handicap']:h,['tournament/players/'+currentUser.id+'/tee']:teeDraft||'Whites',['tournament/players/'+currentUser.id+'/days']:daysObj});
     setConfirming(false);
     if(onDismiss)onDismiss();
@@ -7773,6 +7785,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
   // set state that nothing rendered, so the buttons looked dead (Oct 1 launch).
   const renderConfirmSheet = () => confirming ? (
       <div style={{marginTop:10,padding:'10px 12px',background:'var(--surface-sunken)',borderRadius:10}}>
+        {wlAfter&&<div style={{fontSize:11.5,fontWeight:700,color:'#b8891a',background:'rgba(184,137,26,0.08)',border:'1px solid rgba(184,137,26,0.3)',borderRadius:8,padding:'6px 9px',marginBottom:8}}>⏳ You'll also be added to the {wdShort(wlAfter==='day1'?cfg.date1:cfg.date2)} waitlist.</div>}
         <div style={{fontSize:11.5,fontWeight:800,color:'var(--ink)',marginBottom:7}}>Confirm your sign-up{cfg.date2?(' — '+(daysPick==='both'?'both days':(daysPick==='day1'?'Day 1 only':'Day 2 only'))):''} — teams draw off these:{cfg.date2?<span style={{display:'block',fontWeight:600,color:'var(--ink-40)',marginTop:2}}>Same entry fee for one day or both. Pay Clark before the tournament.</span>:null}</div>
         <div style={{display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
           <div style={{width:92}}>
@@ -7816,7 +7829,8 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           {cfg.date2?[
             pickBlocked('day1')?big(wd(cfg.date1)+' — FULL',()=>{}):big(wd(cfg.date1)+' only',()=>pick('day1')),
             pickBlocked('day2')?big(wd(cfg.date2)+' — FULL',()=>{}):big(wd(cfg.date2)+' only',()=>pick('day2')),
-            pickBlocked('both')?null:big('Both days',()=>pick('both'),true)
+            pickBlocked('both')?null:big('Both days',()=>pick('both'),true),
+            comboFor?big(wd(cfg.date2?(comboFor.open==='day1'?cfg.date1:cfg.date2):cfg.date1)+' + waitlist for '+wd(comboFor.full==='day1'?cfg.date1:cfg.date2),()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;setWlAfter(comboFor.full);startOptIn(comboFor.open,true);},true):null
           ]:big("I'm in",()=>pick('both'),true)}
           {wlStrip()}
           {big("Can't make it",()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}rsvp(false);onDismiss&&onDismiss();})}
@@ -7852,7 +7866,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         <div onClick={onOpen} style={{margin:'0 0 10px',padding:'9px 14px',borderRadius:12,background:amIn?'var(--brand-soft)':'var(--surface)',border:'1px solid '+(amIn?'var(--brand-border)':'var(--hairline)'),display:'flex',alignItems:'center',gap:9,cursor:'pointer'}}>
           <span style={{fontSize:16}}>🏆</span>
           <div style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:amIn?'var(--brand)':'var(--ink-50)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-            {amIn?('You’re in'+(dayTxt?' — '+dayTxt:(dates?' — '+dates:''))):'Tournament: not playing'}
+            {(()=>{const wlDays=myWl&&myWl.days?Object.keys(myWl.days).filter(dk=>myWl.days[dk]).map(dk=>wdShort(dk==='day1'?cfg.date1:cfg.date2)).join(' + '):'';const wlTag=wlDays?' · ⏳ '+wlDays+' waitlist':'';return amIn?('You’re in'+(dayTxt?' — '+dayTxt:(dates?' — '+dates:''))+wlTag):('Tournament: not playing'+wlTag);})()}
           </div>
           <span style={{fontSize:11.5,fontWeight:800,color:amIn?'var(--brand)':'var(--ink-40)',flexShrink:0}}>{amIn?'See the board ›':'Changed your mind? ›'}</span>
         </div>
@@ -7916,7 +7930,10 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
           const lit=(k)=>myDays&&(k==='both'?(myDays.day1&&myDays.day2):(k==='day1'?(myDays.day1&&!myDays.day2):(myDays.day2&&!myDays.day1)));
           const bt=(k,label)=>{const blocked=pickBlocked(k)&&!lit(k);return(<button key={k} className="btn btn-sm" disabled={blocked} onClick={()=>{if(blocked)return;if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;startOptIn(k);}}
             style={{flex:'1 1 45%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:lit(k)?'var(--brand)':'var(--hairline)',background:lit(k)?'var(--brand)':'var(--surface)',color:lit(k)?'#fff':'var(--ink-70)',boxShadow:lit(k)?'0 2px 6px rgba(31,107,71,0.3)':'none'}}>{lit(k)?'✓ ':''}{blocked?label.replace(' only','')+' — FULL':label}</button>);};
-          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),<div key="fn" style={{flexBasis:'100%'}}>{capTiles()}</div>,<div key="wls" style={{flexBasis:'100%'}}>{wlStrip()}</div>];
+          return [bt('day1',wd(cfg.date1)+' only'),bt('day2',wd(cfg.date2)+' only'),bt('both','Both days'),
+            comboFor?<button key="combo" className="btn btn-sm" onClick={()=>{if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}if(rsvpLocked)return;setWlAfter(comboFor.full);startOptIn(comboFor.open,true);}}
+              style={{flexBasis:'100%',fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px dashed rgba(184,137,26,0.55)',background:'rgba(184,137,26,0.07)',color:'#b8891a',borderRadius:11}}>{wd(comboFor.open==='day1'?cfg.date1:cfg.date2)+' + waitlist for '+wd(comboFor.full==='day1'?cfg.date1:cfg.date2)}</button>:null,
+            <div key="fn" style={{flexBasis:'100%'}}>{capTiles()}</div>,<div key="wls" style={{flexBasis:'100%'}}>{wlStrip()}</div>];
         })():(
         <button className="btn btn-sm" onClick={()=>rsvp(true)}
           style={{flex:1,fontWeight:800,padding:'10px 0',fontSize:13,border:'1.5px solid',borderColor:status==='in'?'var(--brand)':'var(--hairline)',background:status==='in'?'var(--brand)':'var(--surface)',color:status==='in'?'#fff':'var(--ink-70)'}}>
