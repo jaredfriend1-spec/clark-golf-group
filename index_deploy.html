@@ -6440,7 +6440,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
       </div>
       {sub==='board'&&(live||isAdmin)&&(
         <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
-          {[['Projected',fundTotal+payinsDue,'when everyone opted in pays',true],['Potential',fundTotal+potentialDue,'if everyone invited played',false]].map(([l,v,note,hot],i)=>(
+          {[['Projected',fundTotal+payinsDue,'when everyone opted in pays',true]].map(([l,v,note,hot],i)=>(
             <React.Fragment key={l}>
               {i>0&&<div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>}
               <div style={hot?{flex:1.1,minWidth:0,background:GOLD_SOFT,border:'1px solid '+GOLD_BORDER,borderRadius:10,padding:'6px 10px',margin:'-4px 0'}:{flex:1,minWidth:0}}>
@@ -6451,11 +6451,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             </React.Fragment>
           ))}
           <div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>
-          <div style={{flex:1.05,minWidth:0}}>
-            <div style={{fontSize:11,color:'var(--ink-40)',fontWeight:700,marginBottom:5}}>Replies</div>
-            <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+          <div style={{flex:1.3,minWidth:0}}>
+            <div style={{fontSize:11.5,color:'var(--ink-40)',fontWeight:800,marginBottom:6}}>Replies</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               {(twoDay?[[d1Label,inFieldFor('day1').length,1],[d2Label,inFieldFor('day2').length,1]]:[['In',inField.length,1]]).concat([['Out',declinedAll,0]]).map(([l,n,good])=>(
-                <span key={l} style={{fontSize:11.5,fontWeight:800,padding:'3px 9px',borderRadius:20,background:good?GOLD_SOFT:'var(--surface-2, rgba(0,0,0,0.04))',border:'1px solid '+(good?GOLD_BORDER:'var(--hairline)'),color:good?GOLD:'var(--ink-40)'}}>{n} {l}</span>
+                <span key={l} style={{fontSize:13.5,fontWeight:800,padding:'6px 12px',borderRadius:20,background:good?GOLD_SOFT:'var(--surface-2, rgba(0,0,0,0.04))',border:'1.5px solid '+(good?GOLD_BORDER:'var(--hairline)'),color:good?GOLD:'var(--ink-50)'}}>{n} {l}</span>
               ))}
             </div>
           </div>
@@ -6503,23 +6503,9 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               </div>
             )}
             {isAdmin&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>Team skins ({skinsPct}% of the pot, plus rounding leftovers): the leftover after team payouts, split by skins won.</div>}
-            {frozenSC?<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>🔒 <b style={{color:'var(--ink)'}}>Round counts and the ${frozenSC.fund} fund are final</b> — locked when {frozenSC.season?('Season '+String(frozenSC.season).replace(/^Season\s*/i,'')):'the season'} ended{frozenSC.endDate?(' '+(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(frozenSC.endDate)):''}. Rounds played since then count toward next year. What you owe is settled at tournament sign-in.</div>:seasonLock&&seasonLock.closedAt&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.75,marginTop:4}}>💵 <b style={{color:'var(--ink)'}}>No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round.</b> The fund keeps building until then — every weekly round adds $1 per player to the pot. What you owe is settled at tournament sign-in.</div>}
+            <div style={{fontSize:12.5,color:'var(--ink-50)',lineHeight:1.65,marginTop:6}}>Same entry fee whether you play one day or both — and it drops $1 for every round you play before the season ends. <b style={{color:'var(--ink)'}}>Pay Clark before the tournament starts.</b></div>
             {!isAdmin&&<div style={{fontSize:12,color:'var(--ink-40)',lineHeight:1.6,marginTop:4}}>Payouts for front 9, back 9, overall and team skins each day — the split is announced by the admins before play.</div>}
           </div>
-          {currentUser&&me&&me.in===true&&(
-            <div style={{...card,borderColor:(myOwed-myPaid<=0)?'var(--brand-border)':'var(--warn-border)'}}>
-              <div style={hdr}>🎟 Your entry</div>
-              {myOwed<=0?(
-                <div style={{fontSize:13.5,fontWeight:700,color:'var(--brand)'}}>Covered by your {myRounds} rounds — nothing due. ✓</div>
-              ):myPaid>=myOwed?(
-                <div style={{fontSize:13.5,fontWeight:700,color:'var(--brand)'}}>Paid ✓ — ${myPaid} received. You're all set.</div>
-              ):(
-                <div style={{fontSize:13.5,fontWeight:700,color:'var(--warn-ink)'}}>${myOwed-myPaid} due at sign-in{myPaid>0?' ($'+myPaid+' already in)':''}.{myOwed-myPaid>0?<span style={{fontWeight:600,color:'var(--ink-40)'}}> Drops $1 per round you play before the season ends.</span>:null}</div>
-              )}
-              <div style={{fontSize:12,color:'var(--ink-40)',marginTop:5}}>{twoDay?('In for '+(dayTag(me)||'both days')+' · '):''}{me.handicap!=null?('Playing off '+me.handicap+' · '):''}{me.tee||'Whites'} tees.</div>
-              <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6,lineHeight:1.55}}>Same entry fee whether you play one day or both — and it drops $1 for every round you play before the season ends. Pay Clark before the tournament starts.</div>
-            </div>
-          )}
           {(live||isAdmin)&&(()=>{
             const stillDeciding=Math.max((fullRoster||[]).length-inField.length-declinedN,0);
             const prizePool=Math.max(availableNow-ctpTotal,0);
@@ -6528,20 +6514,14 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
             const tile=(l,v,acc)=>(<div style={{flex:1,minWidth:96,background:acc?GOLD_SOFT:'var(--surface-sunken)',border:acc?'1px solid '+GOLD_BORDER:'1px solid transparent',borderRadius:10,padding:'9px 10px',textAlign:'center'}}><div style={{fontSize:11,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.04em'}}>{l}</div><div style={{fontSize:acc?22:17,fontWeight:900,color:acc?GOLD:'var(--ink)',marginTop:2,letterSpacing:'-0.01em'}}>{v}</div></div>);
             return (
               <div style={card}>
-                <div style={hdr}>💰 The field &amp; the money</div>
+                <div style={hdr}>⛳ The field{twoDay?(' · '+d1Label+': '+inFieldFor('day1').length+' · '+d2Label+': '+inFieldFor('day2').length):''}</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{tile('Players in',inField.length)}{tile("Can't make it",declinedN)}{tile('Still deciding',stillDeciding)}</div>
-                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:6}}>Pot now = ${fundTotal} fund banked + ${paidTotal} cash in hand. Projected = what the pot will be when every opted-in player pays (fund + every opted-in buy-in). Potential = fund + every eligible or invited player’s buy-in if they all played. ${paidTotal} collected of ${payinsDue} due from opted-in players · ${Math.max(payinsDue-paidTotal,0)} still to collect. Same buy-in for one day or both.</div>
+                {inNames.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:5,marginTop:10}}>{inField.slice().sort((x,y)=>x.name.localeCompare(y.name)).map(p=>{const tg=dayTag(tpNorm[String(p.id)]);return <span key={p.id} style={{fontSize:12.5,fontWeight:600,color:'var(--ink-60)',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:16,padding:'3px 10px'}}>{p.name}{tg&&<b style={{color:GOLD,fontWeight:800}}> {tg}</b>}</span>;})}</div>}
                 {isAdmin&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:8}}>Admin: ${fundTotal} banked in the fund · ${paidTotal} of ${payinsDue} opt-in cash collected · <b style={{color:outstanding>0?'var(--warn-ink)':'var(--brand)'}}>${outstanding} outstanding</b></div>}
-                <div style={{fontSize:12,color:'var(--ink-40)',marginTop:6,lineHeight:1.6}}>Eligibility: {cfg.minRounds!=null?cfg.minRounds:10}+ qualifying rounds (exceptions by the admins).{cfg.refundOverpaid===true?' Players over the bar are refunded.':' Anything over the bar stays in the pot.'} Pot assumes every entry settles.</div>
+                <div style={{fontSize:11.5,color:'var(--ink-40)',marginTop:8}}>{(cfg.minRounds!=null?cfg.minRounds:10)}+ rounds to be invited — exceptions by the admins.</div>
               </div>
             );
           })()}
-          {(live||isAdmin)&&inNames.length>0&&(
-            <div style={card}>
-              <div style={hdr}>👥 The field — {inNames.length} in{twoDay?(' · '+d1Label+': '+inFieldFor('day1').length+' · '+d2Label+': '+inFieldFor('day2').length):''}{declinedN?(' · '+declinedN+" can't make it"):''}</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>{inField.slice().sort((x,y)=>x.name.localeCompare(y.name)).map(p=>{const tg=dayTag(tpNorm[String(p.id)]);return <span key={p.id} style={{fontSize:12.5,fontWeight:600,color:'var(--ink-60)',background:'var(--surface-sunken)',borderRadius:8,padding:'4px 11px'}}>{p.name}{tg?<span style={{fontSize:11,fontWeight:800,color:'var(--brand)',marginLeft:6}}>{tg}</span>:null}</span>;})}</div>
-            </div>
-          )}
         </div>
       )}
 
@@ -7945,10 +7925,17 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         </button>
       </div>
       {renderConfirmSheet()}
-      {t.seasonCounts?<div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-60)',marginTop:8,lineHeight:1.5}}>🔒 Round counts and the ${t.seasonCounts.fund} fund are final — locked at the end of the season.</div>:seasonLock&&seasonLock.closedAt&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--ink-60)',marginTop:8,lineHeight:1.5}}>💵 No money is collected until after the {(d=>{try{return new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return d;}})(seasonLock.closedAt)} round — every weekly round until then adds another $1 to the pot.</div>}
-      {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {cfg.rsvpDeadline} — the app locks at midnight after that; late changes go through Clark directly.</div>}
+      {cfg.rsvpDeadline&&!rsvpLocked&&<div style={{fontSize:11.5,fontWeight:700,color:'var(--warn-ink)',marginTop:8}}>⏳ Answer by {fd(cfg.rsvpDeadline)} — late changes go through Clark directly.</div>}
       {deadlinePassed&&<div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginTop:8}}>Responses closed {cfg.rsvpDeadline}. Need to change your answer? Talk to Clark directly — he can update it.</div>}
-      {status==='in'&&!confirming&&<div style={{fontSize:11,color:'var(--brand)',fontWeight:600,marginTop:8}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?'Day 1 only':'Day 2 only'))):''} · handicap {me&&me.handicap!=null?me.handicap:'—'} · {me&&me.tee?me.tee:'Whites'} tees — tap a day to update.</div>}
+      {status==='in'&&!confirming&&(
+        <div style={{display:'flex',alignItems:'center',gap:10,marginTop:10,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:'10px 13px'}}>
+          <span style={{fontSize:17}}>✅</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:15,fontWeight:900,color:'var(--brand)',letterSpacing:'-0.01em'}}>You're in{cfg.date2&&me&&me.days?(' — '+((me.days.day1&&me.days.day2)?'both days':(me.days.day1?wdShort(cfg.date1):wdShort(cfg.date2)))):''}</div>
+            <div style={{fontSize:11.5,fontWeight:600,color:'var(--ink-50)',marginTop:1}}>{me&&me.handicap!=null?('HCP '+me.handicap+' · '):''}{(me&&me.tee)||'Whites'} tees · tap a day above to change</div>
+          </div>
+        </div>
+      )}
       {status==='declined'&&<div style={{fontSize:11,color:'var(--ink-40)',marginTop:8}}>Changed your mind? Tap I'm in anytime.</div>}
 
     </div>
