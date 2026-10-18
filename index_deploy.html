@@ -548,6 +548,64 @@ const td=()=>new Date().toISOString().split('T')[0];
 const fmtD=d=>{if(!d)return'';const[,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy);};
 const fmtDFull=d=>{if(!d)return'';const[y,m,dy]=d.split('-');return MO[parseInt(m)-1]+' '+parseInt(dy)+', '+y;};
 
+// ═══ The Clubhouse book — pairing money + joke odds. Powers the Stats "Best
+//     Pairings" section and the 🎰 chips on weekly + tournament team cards.
+//     Pure derivation from history (team-level winnings per round); nothing is
+//     stored and nothing here can touch live data. Entertainment only. ═══
+const __cbToArr=x=>Array.isArray(x)?x.filter(Boolean):Object.values(x||{}).filter(Boolean);
+function teamCashOfRound(r){
+  try{
+    const sc=(r&&r.scores)||{}; const ts=sc.teamScores; const teams=__cbToArr(r&&r.teams);
+    if(!ts||!teams.length)return null;
+    const ent=tid=>Array.isArray(ts)?ts[tid]:(ts[tid]!=null?ts[tid]:ts[String(tid)]);
+    const cash={};
+    [['front','frontPot'],['back','backPot'],['overall','overallPot']].forEach(([cat,potk])=>{
+      const vals={};
+      teams.forEach(t=>{const e=(t&&t.id!=null)?ent(t.id):null; if(e&&e[cat]!=null)vals[t.id]=e[cat];});
+      const ids=Object.keys(vals); if(!ids.length)return;
+      let m=Infinity; ids.forEach(i=>{if(vals[i]<m)m=vals[i];});
+      const w=ids.filter(i=>vals[i]===m);
+      w.forEach(i=>{cash[i]=(cash[i]||0)+((Number(sc[potk])||0)/w.length);});
+    });
+    const skc=sc.skinCounts;
+    const sk=tid=>{if(!skc)return 0;const v=Array.isArray(skc)?skc[tid]:(skc[tid]!=null?skc[tid]:skc[String(tid)]);return Number(v)||0;};
+    const tot=teams.reduce((s,t)=>s+((t&&t.id!=null)?sk(t.id):0),0);
+    if(tot>0){const per=(Number(sc.skinsPot)||0)/tot;teams.forEach(t=>{if(t&&t.id!=null&&sk(t.id))cash[t.id]=(cash[t.id]||0)+sk(t.id)*per;});}
+    return cash;
+  }catch(e){return null;}
+}
+function playerMoneyRates(histObj){
+  const rates={};let tSum=0,tCnt=0;
+  Object.values(histObj||{}).forEach(r=>{
+    if(!r)return; const cash=teamCashOfRound(r); if(!cash)return;
+    __cbToArr(r.teams).forEach(t=>{
+      if(!t||t.id==null)return; const won=cash[t.id]||0; tSum+=won; tCnt++;
+      __cbToArr(t.players).forEach(p=>{
+        if(!p||!p.name)return; const n=String(p.name).trim().toLowerCase();
+        const e=(rates[n]=rates[n]||{rds:0,sum:0}); e.rds++; e.sum+=won;
+      });
+    });
+  });
+  return {rates,fieldAvg:tCnt?tSum/tCnt:0,rounds:tCnt};
+}
+function oddsForTeams(teamArr,ratesObj){
+  const teams=__cbToArr(teamArr);
+  if(!ratesObj||!(ratesObj.fieldAvg>0)||teams.length<2)return null;
+  const rates=ratesObj.rates,fieldAvg=ratesObj.fieldAvg;
+  const sts=teams.map(t=>{
+    const ps=__cbToArr(t&&t.players).filter(p=>p&&p.name);
+    if(!ps.length)return fieldAvg;
+    let s=0; ps.forEach(p=>{const e=rates[String(p.name).trim().toLowerCase()]; s+=(e&&e.rds>=3)?(e.sum/e.rds):fieldAvg;});
+    return Math.max(s/ps.length,1);
+  });
+  const tot=sts.reduce((a,b)=>a+b,0); if(!(tot>0))return null;
+  return teams.map((t,i)=>{
+    let p=sts[i]/tot; p=Math.min(Math.max(p,0.02),0.9);
+    const odds=p>=0.5?('-'+Math.max(100,Math.round(p/(1-p)*100))):('+'+Math.max(100,Math.round((1-p)/p*100)));
+    return {odds,p};
+  });
+}
+
 function hashPw(str){let h=5381;for(let i=0;i<str.length;i++){h=Math.imul(h,31)+str.charCodeAt(i)|0;}return(h>>>0).toString(16).padStart(8,'0');}
 
 function getWeekDates(){
@@ -4620,7 +4678,7 @@ function TeamsViewV2(props){
   }
   return <TeamsViewV2Inner {...props}/>;
 }
-function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName }){
+function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser, week, history, isAdmin, matchPairings: livePairings, doNotPair, write, push, del, onSwitchTab, onPromoteWaitlist, onTeamsPublished, settings, targetsByName, oddsRates }){
   // Demo mode is ALWAYS opt-in via button — never touches live data
   const effectiveWeek = week;
   const effectivePairings = livePairings || {};
@@ -4949,6 +5007,9 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
   const currentDisplay = display;
 
   // ── Balance suggestions ──
+  // Clubhouse book: joke odds per published team. Plain const (no hook) so an
+  // early return above can never cause a hooks-order crash; any problem → null.
+  let teamOddsChips=null; try{ if(published&&!indMode&&oddsRates) teamOddsChips=oddsForTeams(currentDisplay,oddsRates); }catch(e){}
   const hcps = currentDisplay.map(t=>t.totalHcp||0);
   const spread = hcps.length ? Math.max(...hcps)-Math.min(...hcps) : 0;
 
@@ -5510,6 +5571,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                   <span style={{fontSize:published?15:13,fontWeight:700,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{teamNameDisplay}</span>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                  {teamOddsChips&&teamOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,color:'#eab308',background:'rgba(234,179,8,0.14)',border:'1px solid rgba(234,179,8,0.4)',padding:'2px 8px',borderRadius:20,fontWeight:800}}>🎰 {teamOddsChips[ti].odds}</span>}
                   {teeChip&&<span style={{fontSize:11,color:'#7dd3a8',background:'rgba(125,211,168,0.12)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>🕐 {teeChip}</span>}
                   <span style={{fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>{indMode?('⛳ Off '+(ti+1===1?'1st':ti+1===2?'2nd':ti+1===3?'3rd':(ti+1)+'th')):('HCP '+teamHcp)}</span>
                   {manualMode && isAdmin && !published && (
@@ -6238,7 +6300,7 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
   );
 }
 
-function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
+function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, oddsRates }){
   const [t, setT] = useState(null);
   const [capSavedDay, setCapSavedDay] = useState(null);   // "Saved ✓" flash on the cap editor
   const [att, setAtt] = useState(null);
@@ -6320,6 +6382,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
   const shareSum=catF+catB+catO+skinsPct;
   const teamSize=cfg.teamSize||4;
   const teams=(tv_&&tv_.teams&&tv_.teams[day])||[];
+  // Clubhouse book: joke odds on the drawn teams (plain const — hook-safe; null on any problem).
+  let tOddsChips=null; try{ if(__cbToArr(teams).length>1&&oddsRates) tOddsChips=oddsForTeams(teams,oddsRates); }catch(e){}
   const published=!!(tv_&&tv_.teamsPublished&&tv_.teamsPublished[day]);
   const sc=(tv_&&tv_.scores&&tv_.scores[day])||{};
   const ctpPicks=(tv_&&tv_.ctp&&tv_.ctp[day])||{};
@@ -6621,11 +6685,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster }){
               {!published&&isAdmin&&(
                 <div style={{fontSize:12,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:10,padding:'7px 11px',marginBottom:10}}>Draft — members can't see these until you publish.</div>
               )}
+              {tOddsChips&&<div style={{fontSize:10.5,color:'var(--ink-40)',margin:'0 2px 8px',textAlign:'right'}}>🎰 opening lines by the Clubhouse book — season form, for laughs only</div>}
               {teams.map((tm,ti)=>(
                 <div key={ti} style={{...card,padding:'11px 14px'}}>
                   <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:6}}>
                     <span style={{fontSize:13,fontWeight:900,color:GOLD,letterSpacing:'0.02em'}}>Team {String.fromCharCode(65+ti)}</span>
                     {tm.totalHcp!=null&&<span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>HCP {tm.totalHcp}</span>}
+                    {tOddsChips&&tOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,fontWeight:800,color:'#b8891a',background:'rgba(184,137,26,0.12)',border:'1px solid rgba(184,137,26,0.4)',padding:'1px 8px',borderRadius:20}}>🎰 {tOddsChips[ti].odds}</span>}
                   </div>
                   {(tm.players||[]).map((p,pi)=>(
                     <div key={pi} style={{display:'flex',alignItems:'center',gap:8,padding:'3px 0'}}>
@@ -10708,7 +10774,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
     return {...o,[k]:opening};
   });
 
-  const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','engage','timing','money','activity','logins','behavior'];
+  const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','pairings','engage','timing','money','activity','logins','behavior'];
   // Master sees everything. Admins get the portal's "Admin View" ticks, members the "Member View" ticks.
   const showSec=id=>{ if(!publicMode)return true; return (sectionMap||{})[id]!==false; };
   // Activity-log entries that fall inside the season being shown (null window = all-time).
@@ -10869,6 +10935,23 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const pairList=Object.entries(pairsByPlayer[pairFocus]||{}).sort((a,b)=>b[1]-a[1]);
   const pairRoundCount=Object.entries(playerRounds).reduce((a,[n,c])=>a+(canonName(n)===pairFocus?c:0),0);
   const uniquePlayerCount=Object.keys(playerRounds).length;
+  // ── Best Pairings: duo money rates from this season's scored team rounds.
+  //    Dollars per round, NOT cash rate — with four pots a week nearly every
+  //    team cashes something, so rate has no spread (learned on real data). ──
+  const duoStats=useMemo(()=>{try{
+    const toA=x=>Array.isArray(x)?x.filter(Boolean):Object.values(x||{}).filter(Boolean);
+    const pair={};let tSum=0,tCnt=0;
+    activeHist.forEach(r=>{
+      const cash=teamCashOfRound(r); if(!cash)return;
+      toA(r.teams).forEach(t=>{
+        if(!t||t.id==null)return; const won=cash[t.id]||0; tSum+=won; tCnt++;
+        const names=[...new Set(toA(t.players).filter(p=>p&&p.name).map(p=>canonName(p.name)))].sort();
+        for(let i=0;i<names.length;i++)for(let j=i+1;j<names.length;j++){const k=names[i]+'|'+names[j];const e=(pair[k]=pair[k]||{n:0,d:0});e.n++;e.d+=won;}
+      });
+    });
+    const rows=Object.entries(pair).filter(([,v])=>v.n>=4).map(([k,v])=>{const s=k.split('|');return {a:s[0],b:s[1],n:v.n,avg:v.d/v.n};}).sort((x,y)=>y.avg-x.avg);
+    return {rows,fieldAvg:tCnt?Math.round(tSum/tCnt):0};
+  }catch(e){return {rows:[],fieldAvg:0};}},[activeHist]);// eslint-disable-line
   const totalOfficialTeams=activeHist.reduce((s,r)=>s+Object.values(r.teams||{}).length,0);
   const hcpTrends=Object.entries(playerHcps).filter(([,arr])=>arr.length>0).map(([name,arr])=>{const sorted=arr.sort((a,b)=>a.date.localeCompare(b.date));const current=sorted[sorted.length-1].hcp;const first=sorted[0].hcp;return{name,current,first,avg:Math.round(arr.reduce((s,x)=>s+x.hcp,0)/arr.length*10)/10,trend:Math.round((current-first)*10)/10,rounds:arr.length};}).sort((a,b)=>a.current-b.current);
   const teeTotals={};Object.values(playerTees).forEach(tMap=>Object.entries(tMap).forEach(([tee,cnt])=>{if(tee)teeTotals[tee]=(teeTotals[tee]||0)+cnt;}));
@@ -10994,6 +11077,30 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
         </S>}
 
         {/* ── 2. Avg Players by Day ── */}
+        {/* ── Best Pairings — the Clubhouse book ──
+             Duos ranked by what their shared team won per round when drawn
+             together, min 4 rounds. Same math sets the 🎰 odds chips on team
+             cards. Entertainment, not science — sample sizes shown on purpose. */}
+        {showSec('pairings')&&duoStats.rows.length>0&&<S id="pairings" icon="🎰" title="Best Pairings" color="#8b5cf6" borderColor="#8b5cf6" summary={duoStats.rows[0].a+' + '+duoStats.rows[0].b+' · $'+Math.round(duoStats.rows[0].avg)+'/round together'}>
+          <div style={{paddingTop:6}}>
+            <div style={{fontSize:11.5,color:'var(--ink-50)',marginBottom:10,lineHeight:1.5}}>Duos drawn together <b>4+ times</b>, ranked by what their shared team won per round. Field average: <b>${duoStats.fieldAvg}</b> a round. Entertainment only — the sample sizes are part of the joke.</div>
+            {[['💰 Dream teams',duoStats.rows.slice(0,8),'#8b5cf6'],['🧊 Oil & water',duoStats.rows.length>10?duoStats.rows.slice(-5).reverse():[],'#1d4ed8']].map(([hd,list,col])=>!list.length?null:(
+              <div key={hd} style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:800,color:col,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>{hd}</div>
+                {list.map((d,i)=>(
+                  <div key={d.a+'|'+d.b} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',width:14,flexShrink:0}}>{i+1}</span>
+                    <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.a} + {d.b}</span>
+                    <span style={{fontSize:11,color:'var(--ink-40)',flexShrink:0}}>{d.n}x</span>
+                    <span style={{fontSize:13,fontWeight:800,color:col,width:58,textAlign:'right',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>${Math.round(d.avg)}/rd</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div style={{fontSize:11,color:'var(--ink-40)',lineHeight:1.45}}>When teams are posted, the 🎰 chip on each team card is this same season form turned into opening odds.</div>
+          </div>
+        </S>}
+
         {showSec('streaks')&&streakStats.n>0&&<S id="streaks" icon="🔥" title="Streaks & Milestones" color="#b45309" borderColor="#d97706" summary={(streakStats.hot[0]?(streakStats.hot[0].name+' has netted money in his last '+streakStats.hot[0].hot+' rounds'):'Who’s hot and who’s ice cold')}>
           <div style={{paddingTop:6}}>
             {[['🔥 Hot — winning-day streaks',streakStats.hot,p=>'his last '+p.hot+' played','came out AHEAD (won more than his buy-in) in each of his own last N rounds — skipped weeks don’t break it','#b45309'],
@@ -12158,6 +12265,7 @@ function App(){
   const [seasonsMeta, setSeasonsMeta] = useState({});
   const [seasonView, setSeasonView] = useState('live');
   const [seasonData, setSeasonData] = useState(null);
+  const [oddsRates, setOddsRates] = useState(null);   // Clubhouse book ratings (lazy, ~125KB once)
   const [alertsDrops, setAlertsDrops] = useState({});
   const [rosterTee, setRosterTee] = useState({});
   const [rosterPins, setRosterPins] = useState({});
@@ -12480,6 +12588,26 @@ function App(){
   const liveSeasonCfg=(settings&&settings.season)||{};
   const liveSeasonName=seasonDisplayName(liveSeasonCfg.name||'Current season');
   const seasonPartsAll=(seasonView==='all'&&seasonData&&seasonData._all)?seasonData.parts:null;
+  // ── Clubhouse book: load season form once, only when someone looks at teams.
+  //     Archived seasons are ~125KB total; merged with the live season and
+  //     reduced to per-player $/round. Read-only, cached for the session. ──
+  useEffect(()=>{
+    if(oddsRates)return;
+    if(!(tab==='teams'||tab==='tournament'))return;
+    // history is a deferred App load (empty on this tab), so read both nodes
+    // directly — a once() each, nothing stays subscribed.
+    readOnce('seasons',all=>{
+      readOnce('history',live=>{
+        try{
+          const m={};
+          Object.entries(all||{}).forEach(([sid,s])=>Object.entries((s&&s.history)||{}).forEach(([k,r])=>{if(r)m[sid+'~'+k]=r;}));
+          Object.entries(live||{}).forEach(([k,r])=>{if(r)m['live~'+k]=r;});
+          const pr=playerMoneyRates(m);
+          if(pr.rounds>0)setOddsRates(pr);   // null until data exists, so it retries later
+        }catch(e){}
+      });
+    });
+  },[tab,oddsRates]);// eslint-disable-line
   const effHistory = useMemo(()=>{
     if(seasonView==='live')return history;
     if(seasonView==='all'){
@@ -13184,7 +13312,7 @@ function App(){
         <div>
           <div className="page-title">Tournament</div>
           <div style={{padding:'14px 16px 0'}}>
-            <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster}/>
+            <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster} oddsRates={oddsRates}/>
           </div>
         </div>
       )}
@@ -13194,7 +13322,7 @@ function App(){
   // off the Whites. Look the man up in the roster, same as a normal sign-up.
   const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
   const entry={name:currentUser.name,playerId:String(currentUser.id||''),tee:(me&&me.tee)||currentUser.tee||'Whites',handicap:(me&&me.handicap!=null&&!isNaN(parseFloat(me.handicap)))?parseFloat(me.handicap):(bestHcpFor(currentUser.name,currentUser.id)!=null?bestHcpFor(currentUser.name,currentUser.id):parseFloat(currentUser.hcp||currentUser.handicap||0)),day:dayName,signedUpAt:Date.now(),isGuest:false};const dup=Object.values(activeWeek?.waitlist||{}).some(s=>s.day===dayName&&s.name===currentUser.name);if(!dup){safePush('week/waitlist',entry);logActivity('waitlist_join',{name:currentUser.name,day:dayName,by:currentUser.name,byRole:currentUser.role||'member'});sendPushNotify({audience:'admins',title:'⏳ Waitlist: '+currentUser.name,body:currentUser.name+' joined the '+dayName+' waitlist.',url:'/',tag:'waitlist',vars:{name:currentUser.name,day:dayName}});};}} onRemoveFromWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(ws)logActivity('waitlist_remove',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'member'});safeDel('week/waitlist/'+key);}} onPromoteWaitlist={(key)=>{const ws=activeWeek?.waitlist?.[key];if(!ws)return;const wme=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(ws.playerId||''));const wh=(ws.handicap!=null&&!isNaN(parseFloat(ws.handicap))&&parseFloat(ws.handicap)!==0)?parseFloat(ws.handicap):((wme&&wme.handicap!=null&&!isNaN(parseFloat(wme.handicap)))?parseFloat(wme.handicap):(bestHcpFor(ws.name,ws.playerId)!=null?bestHcpFor(ws.name,ws.playerId):parseFloat(ws.handicap||0)));addSignup({name:ws.name,playerId:ws.playerId||'',tee:ws.tee||(wme&&wme.tee)||'Whites',handicap:wh,day:ws.day,signedUpAt:Date.now(),isGuest:!!ws.isGuest});safeDel('week/waitlist/'+key);logActivity('waitlist_promote',{name:ws.name,day:ws.day,by:currentUser?currentUser.name:'admin',byRole:currentUser?currentUser.role:'admin'});}}/>}
-      {tab === 'teams' && <TeamsViewV2 avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(!(parseFloat(signup.handicap)>0)){const bh=bestHcpFor(wl.name,wl.playerId);if(bh!=null)signup.handicap=bh;}safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
+      {tab === 'teams' && <TeamsViewV2 oddsRates={oddsRates} avatarFor={avatarForApp} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} history={history} isAdmin={isAdmin} matchPairings={matchPairings} doNotPair={doNotPair} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onTeamsPublished={(day,teams)=>{logActivity('teams_published',{day,teamCount:safeArray(teams).length,by:currentUser?currentUser.name:'admin'});}} onPromoteWaitlist={(key,day)=>{const wl=activeWeek?.waitlist?.[key];if(!wl)return;const signup={...wl};delete signup.waitlist;if(!(parseFloat(signup.handicap)>0)){const bh=bestHcpFor(wl.name,wl.playerId);if(bh!=null)signup.handicap=bh;}safePush('week/signups',signup);safeDel('week/waitlist/'+key);safeUpdate({['week/locked/'+day]:false,['week/teamsPublished/'+day]:false});}}/>}
       {tab === 'scoring' && <ScoringViewV2 targetsByName={(()=>{const m={};[...(activeFullRoster||[]),...safeArray(extra)].forEach(p=>{if(p&&rosterTargets&&rosterTargets[p.id]!=null)m[normName(p.name)]=rosterTargets[p.id];});return m;})()} settings={settings} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} write={safeWrite} update={safeUpdate} onSwitchTab={setTab} onReopenDay={reopenDay} onArchiveDay={archiveDay} onCancelEdit={cancelEditRound}/>}
       {['history','leaderboard','master','attendance'].includes(tab)&&Object.keys(seasonsMeta).length>0&&(
         <div style={{maxWidth:'var(--maxw, 980px)',margin:'0 auto',padding:'10px 16px 0',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
