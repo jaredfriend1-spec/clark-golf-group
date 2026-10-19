@@ -319,6 +319,11 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
      the home RSVP card) get the same 1400px centered cap as everything else,
      so ultra-wide monitors see a balanced column, not edge-to-edge stretch. */
   .app>.page-eyebrow,.app>.page-title,.app>.page-sub,.app>div:not([class]){max-width:1400px;margin-left:auto;margin-right:auto;width:100%}
+  /* Week desktop: existing content flows down column 1 untouched; the new
+     rail (an appended aside) takes column 2 for the full height. */
+  main.content.week-grid{display:grid;grid-template-columns:minmax(0,1fr) 352px;column-gap:24px;align-items:start}
+  main.content.week-grid>*{grid-column:1}
+  main.content.week-grid>.week-rail{grid-column:2;grid-row:1/span 60;display:flex;flex-direction:column;gap:16px;margin-top:40px;position:sticky;top:18px}
 }
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
@@ -2651,7 +2656,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, onShowAvatar, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, onShowAvatar, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup, activityLog }){
   // Sign-ups carry names, playerCards are keyed by roster id — bridge the two once.
   const cardByName=useMemo(()=>{
     const m={};
@@ -2886,8 +2891,40 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     if(wasLottery&&time)sendPushNotify({audience:'all',title:'\ud83d\udd50 '+dayName+' tee time is set!',body:dayName+' tees off at '+time+'.',url:'/',tag:'teetime-'+dayName,vars:{day:dayName,time:time}});
   }
 
+  const isDesk=(typeof window!=='undefined')&&!!(window.matchMedia&&window.matchMedia('(min-width:1100px)').matches);
   return (
-    <main className="content">
+    <main className={"content"+(isDesk?" week-grid":"")}>
+      {isDesk&&(()=>{
+        /* ── Desktop-only right rail — PURE ADDITION. Phones never render this,
+           and nothing in the existing sign-up column is touched. Spec: Jared,
+           Oct 19 — tiles (signed up + teams projected only), Weekly Notes,
+           Lately; no "How Friday pays", no money tiles. ── */
+        const sigs=Object.values(week?.signups||{}).filter(Boolean);
+        const teamsProj=safeArray(week?.activeDays).reduce((s,d)=>{const n=sigs.filter(x=>x&&x.day===d).length;return s+(n>0?Math.ceil(n/4):0);},0);
+        const notes=safeArray(week?.activeDays).map(d=>({d,t:String((week?.emailNotes&&week.emailNotes[d])||'').trim()})).filter(x=>x.t);
+        const log=safeArray(activityLog).filter(e=>e&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0).slice(0,8);
+        const fmtT=ts=>{try{const dt=new Date(ts);return dt.toLocaleDateString([],{weekday:'short'})+' '+dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase().replace(' ','');}catch(e){return'';}};
+        const line=e=>e.action==='signup'?((e.name||'Someone')+' signed up'+(e.day?(' · '+e.day):'')):e.action==='remove_signup'?((e.name||'Someone')+' dropped'+(e.day?(' · '+e.day):'')):e.action==='teams_published'?('Teams published'+(e.day?(' · '+e.day):'')):e.action==='match_request'?((e.name||'Someone')+' asked to play with '+(e.partner||'a partner')):e.action==='waitlist_join'?((e.name||'Someone')+' joined the waitlist'):((e.name||'Someone')+' moved in from the waitlist');
+        const tile=(v,l)=>(<div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:24,fontWeight:800,fontVariantNumeric:'tabular-nums',color:'var(--ink)'}}>{v}</div><div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:1}}>{l}</div></div>);
+        const railCard=(icon,title,body)=>(<div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:14,padding:'15px 17px'}}><div style={{fontSize:12,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink)',borderBottom:'2px solid var(--brand-soft)',display:'inline-block',paddingBottom:5,marginBottom:11}}>{icon} {title}</div>{body}</div>);
+        return (
+          <aside className="week-rail">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              {tile(sigs.length,'Signed up')}
+              {tile(teamsProj,'Teams projected')}
+            </div>
+            {notes.length>0&&railCard('📣','Weekly notes',notes.map(n=>(
+              <div key={n.d} style={{fontSize:13.5,lineHeight:1.6,color:'var(--ink)',marginBottom:8,whiteSpace:'pre-wrap'}}>{notes.length>1&&<b style={{color:'var(--brand)'}}>{n.d}: </b>}{n.t}</div>
+            )))}
+            {railCard('🔔','Lately',log.length?log.map((e,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0',borderBottom:i<log.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.05))':'none'}}>
+                <span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-50)',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:14,padding:'2px 8px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtT(e.ts)}</span>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{line(e)}</span>
+              </div>
+            )):(<div style={{fontSize:12.5,color:'var(--ink-40)'}}>Quiet so far this week.</div>))}
+          </aside>
+        );
+      })()}
       {(()=>{
         if(!currentUser||typeof PUSH_READY==='undefined'||!PUSH_READY)return null;
         let dismissed=false,on=false;
@@ -12671,6 +12708,13 @@ function App(){
   // ── Clubhouse book: load season form once, only when someone looks at teams.
   //     Archived seasons are ~125KB total; merged with the live season and
   //     reduced to per-player $/round. Read-only, cached for the session. ──
+  // Week desktop rail: the Lately card needs the (deferred) activity log.
+  // Gated on `ready` — a mount-time call would hit the no-db fallback and the
+  // deferred guard would never retry.
+  useEffect(()=>{
+    if(!ready)return;
+    try{ if(tab==='home'&&window.matchMedia&&window.matchMedia('(min-width:1100px)').matches)loadDeferred('activityLog'); }catch(e){}
+  },[tab,ready]);// eslint-disable-line
   useEffect(()=>{
     if(oddsRates)return;
     if(!(tab==='teams'||tab==='tournament'))return;
@@ -13401,7 +13445,7 @@ function App(){
         </div>
       )}
       {tab === 'home' && !weekLoaded && <WeekSkeleton/>}
-      {tab === 'home' && weekLoaded && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
+      {tab === 'home' && weekLoaded && <WeekViewV2 activityLog={activityLog} playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
   // tee on it, so the old `currentUser.hcp||0` put everyone on the waitlist at 0
   // off the Whites. Look the man up in the roster, same as a normal sign-up.
   const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
