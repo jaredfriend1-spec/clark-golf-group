@@ -1833,8 +1833,8 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
           </div>
         )}
         <div style={{textAlign:'center',marginBottom:16}}>
-          <button onClick={()=>{setJrSent(false);setShowJoinReq(true);}} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.45)',textDecoration:'underline',textUnderlineOffset:3}}>
-            Not a member yet? Request to join →
+          <button onClick={()=>{setJrSent(false);setShowJoinReq(true);}} style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:14.5,fontWeight:700,color:'rgba(255,255,255,0.65)',textDecoration:'underline',textUnderlineOffset:3}}>
+            Not a member of the group yet? Request to join →
           </button>
         </div>
         {showJoinReq&&(
@@ -1930,9 +1930,6 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
             </div>
           </div>
         )}
-        <div style={{textAlign:'center',marginTop:10}}>
-          <a href="portal.html" style={{display:'inline-block',fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.2)',letterSpacing:'0.05em',textDecoration:'none',padding:'6px 14px',borderRadius:20,border:'1px solid rgba(255,255,255,0.08)'}}>Admin Portal →</a>
-        </div>
       </div>
     </div>
   );
