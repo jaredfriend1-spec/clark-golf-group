@@ -323,7 +323,14 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
      rail (an appended aside) takes column 2 for the full height. */
   main.content.week-grid{display:grid;grid-template-columns:minmax(0,1fr) 352px;column-gap:24px;align-items:start}
   main.content.week-grid>*{grid-column:1}
-  main.content.week-grid>.week-rail{grid-column:2;grid-row:1/span 60;display:flex;flex-direction:column;gap:16px;margin-top:40px;position:sticky;top:18px}
+  main.content.week-grid>.week-rail{grid-column:2;grid-row:1/span 60;display:flex;flex-direction:column;gap:16px;margin-top:34px;position:sticky;top:18px}
+  /* Sleeker sign-up rows on the Week desktop: same markup, same buttons —
+     name and tee/HCP share one line, roomier padding, centered avatar. */
+  main.content.week-grid .player-line{align-items:center}
+  main.content.week-grid .player-line .player-info{display:flex;flex-direction:row;align-items:center;column-gap:14px;row-gap:3px;flex-wrap:wrap;flex:1;min-width:0}
+  main.content.week-grid .player-line .player-info .player-name .name-text{font-size:15px;font-weight:700}
+  main.content.week-grid .player-line .player-info .player-meta{margin-left:auto;align-self:center;font-size:12.5px;gap:7px}
+  main.content.week-grid .player-line .player-info .player-extra{flex-basis:100%}
 }
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
@@ -2895,29 +2902,38 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
   return (
     <main className={"content"+(isDesk?" week-grid":"")}>
       {isDesk&&(()=>{
-        /* ── Desktop-only right rail — PURE ADDITION. Phones never render this,
-           and nothing in the existing sign-up column is touched. Spec: Jared,
-           Oct 19 — tiles (signed up + teams projected only), Weekly Notes,
-           Lately; no "How Friday pays", no money tiles. ── */
+        /* ── Desktop-only right rail v2 — PURE ADDITION (Jared's spec, Oct 19):
+           "This week" summary (per active day: date · count in · tee), Weekly
+           Notes, and Lately filtered to THIS WEEK only. No tiles, no money. ── */
         const sigs=Object.values(week?.signups||{}).filter(Boolean);
-        const teamsProj=safeArray(week?.activeDays).reduce((s,d)=>{const n=sigs.filter(x=>x&&x.day===d).length;return s+(n>0?Math.ceil(n/4):0);},0);
-        const notes=safeArray(week?.activeDays).map(d=>({d,t:String((week?.emailNotes&&week.emailNotes[d])||'').trim()})).filter(x=>x.t);
-        const log=safeArray(activityLog).filter(e=>e&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0).slice(0,8);
+        const actives=safeArray(week?.activeDays);
+        const dayRows=actives.map(d=>{
+          const n=sigs.filter(x=>x&&x.day===d).length;
+          const dt=week?.dates&&week.dates[d];
+          const tee=(week?.teeTimesInfo&&week.teeTimesInfo[d])||'';
+          return {d,n,dt,tee};
+        });
+        const cutoff=(()=>{try{const ds=Object.values(week?.dates||{}).filter(Boolean).sort();if(ds.length)return new Date(ds[0]+'T12:00').getTime()-6*86400000;}catch(e){}return Date.now()-7*86400000;})();
+        const log=safeArray(activityLog).filter(e=>e&&(e.ts||0)>=cutoff&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0&&(!e.day||actives.indexOf(e.day)>=0)).slice(0,8);
         const fmtT=ts=>{try{const dt=new Date(ts);return dt.toLocaleDateString([],{weekday:'short'})+' '+dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase().replace(' ','');}catch(e){return'';}};
+        const fmtD2=s=>{try{const d2=new Date(s+'T12:00');return d2.toLocaleDateString([],{month:'short',day:'numeric'});}catch(e){return s||'';}};
         const line=e=>e.action==='signup'?((e.name||'Someone')+' signed up'+(e.day?(' · '+e.day):'')):e.action==='remove_signup'?((e.name||'Someone')+' dropped'+(e.day?(' · '+e.day):'')):e.action==='teams_published'?('Teams published'+(e.day?(' · '+e.day):'')):e.action==='match_request'?((e.name||'Someone')+' asked to play with '+(e.partner||'a partner')):e.action==='waitlist_join'?((e.name||'Someone')+' joined the waitlist'):((e.name||'Someone')+' moved in from the waitlist');
-        const tile=(v,l)=>(<div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:24,fontWeight:800,fontVariantNumeric:'tabular-nums',color:'var(--ink)'}}>{v}</div><div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.05em',marginTop:1}}>{l}</div></div>);
-        const railCard=(icon,title,body)=>(<div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderRadius:14,padding:'15px 17px'}}><div style={{fontSize:12,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink)',borderBottom:'2px solid var(--brand-soft)',display:'inline-block',paddingBottom:5,marginBottom:11}}>{icon} {title}</div>{body}</div>);
+        const railCard=(icon,title,body)=>(<div className="day-card" style={{padding:'15px 17px',margin:0}}><div style={{fontSize:12,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink)',borderBottom:'2px solid var(--brand-soft)',display:'inline-block',paddingBottom:5,marginBottom:11}}>{icon} {title}</div>{body}</div>);
+        const notes=actives.map(d=>({d,t:String((week?.emailNotes&&week.emailNotes[d])||'').trim()})).filter(x=>x.t);
         return (
           <aside className="week-rail">
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              {tile(sigs.length,'Signed up')}
-              {tile(teamsProj,'Teams projected')}
-            </div>
+            {dayRows.length>0&&railCard('📅','This week',dayRows.map(r=>(
+              <div key={r.d} style={{display:'flex',alignItems:'baseline',gap:9,padding:'6px 0',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.05))'}}>
+                <span style={{fontSize:13,fontWeight:800,color:'var(--brand)',width:38,flexShrink:0}}>{r.d.slice(0,3).toUpperCase()}</span>
+                <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--ink)'}}>{r.dt?fmtD2(r.dt):''}<span style={{color:'var(--ink-40)'}}>{r.tee?(' · Tee '+r.tee):' · Tee TBD'}</span></span>
+                <span style={{fontSize:13.5,fontWeight:800,color:'var(--brand)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{r.n} in</span>
+              </div>
+            )))}
             {notes.length>0&&railCard('📣','Weekly notes',notes.map(n=>(
               <div key={n.d} style={{fontSize:13.5,lineHeight:1.6,color:'var(--ink)',marginBottom:8,whiteSpace:'pre-wrap'}}>{notes.length>1&&<b style={{color:'var(--brand)'}}>{n.d}: </b>}{n.t}</div>
             )))}
-            {railCard('🔔','Lately',log.length?log.map((e,i)=>(
-              <div key={i} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0',borderBottom:i<log.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.05))':'none'}}>
+            {railCard('🔔','Lately',log.length?log.map((e,i2)=>(
+              <div key={i2} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0',borderBottom:i2<log.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.05))':'none'}}>
                 <span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-50)',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:14,padding:'2px 8px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtT(e.ts)}</span>
                 <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{line(e)}</span>
               </div>
