@@ -323,7 +323,8 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
      rail (an appended aside) takes column 2 for the full height. */
   main.content.week-grid{display:grid;grid-template-columns:minmax(0,1fr) 352px;column-gap:24px;align-items:start}
   main.content.week-grid>*{grid-column:1}
-  main.content.week-grid>.week-rail{grid-column:2;grid-row:1/span 60;display:flex;flex-direction:column;gap:16px;margin-top:34px;position:sticky;top:18px}
+  main.content.week-grid>.wk-top-banner{grid-column:1/-1}
+  main.content.week-grid>.week-rail{grid-column:2;grid-row:2/span 60;display:flex;flex-direction:column;gap:16px;margin-top:30px;position:sticky;top:18px}
   /* Sleeker sign-up rows on the Week desktop: same markup, same buttons —
      name and tee/HCP share one line, roomier padding, centered avatar. */
   main.content.week-grid .player-line{align-items:center}
@@ -1006,12 +1007,7 @@ const V2_WRITES_BLOCKED = false;
 const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
 const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
-// BRANCH-ONLY (modern-ui): the branch preview reads the REAL database but is
-// locked into read-only preview mode — window.__cgPreview no-ops every write
-// at the source, so nothing on the preview can touch live data. Remove this
-// block when merging to main.
-const FORCE_PREVIEW_HOST=window.location.hostname.indexOf("clark-golf-group-git-modern-ui-")===0;
-const FB_CONFIG=(IS_PROD_HOST||FORCE_PREVIEW_HOST)?FB_PROD:FB_TEST;
+const FB_CONFIG=IS_PROD_HOST?FB_PROD:FB_TEST;
 // ── PUSH NOTIFICATIONS (FCM) ──────────────────────────────────────────────
 // VAPID public keys: Firebase Console → Project settings → Cloud Messaging →
 // Web Push certificates → "Key pair". Paste each project's key below.
@@ -2911,7 +2907,8 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           const n=sigs.filter(x=>x&&x.day===d).length;
           const dt=week?.dates&&week.dates[d];
           const tee=(week?.teeTimesInfo&&week.teeTimesInfo[d])||'';
-          return {d,n,dt,tee};
+          let w=null; try{ w=wxFor(dt,tee||null); }catch(e){}
+          return {d,n,dt,tee,w};
         });
         const cutoff=(()=>{try{const ds=Object.values(week?.dates||{}).filter(Boolean).sort();if(ds.length)return new Date(ds[0]+'T12:00').getTime()-6*86400000;}catch(e){}return Date.now()-7*86400000;})();
         const log=safeArray(activityLog).filter(e=>e&&(e.ts||0)>=cutoff&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0&&(!e.day||actives.indexOf(e.day)>=0)).slice(0,8);
@@ -2925,7 +2922,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
             {dayRows.length>0&&railCard('📅','This week',dayRows.map(r=>(
               <div key={r.d} style={{display:'flex',alignItems:'baseline',gap:9,padding:'6px 0',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.05))'}}>
                 <span style={{fontSize:13,fontWeight:800,color:'var(--brand)',width:38,flexShrink:0}}>{r.d.slice(0,3).toUpperCase()}</span>
-                <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--ink)'}}>{r.dt?fmtD2(r.dt):''}<span style={{color:'var(--ink-40)'}}>{r.tee?(' · Tee '+r.tee):' · Tee TBD'}</span></span>
+                <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--ink)'}}>{r.dt?fmtD2(r.dt):''}<span style={{color:'var(--ink-40)'}}>{r.tee?(' · Tee '+r.tee):' · Tee TBD'}</span>{r.w&&<span style={{display:'block',fontSize:11.5,color:'var(--ink-50)',marginTop:1}}>{r.w.single?(r.w.temp+'°'):(r.w.lo+'–'+r.w.hi+'°')} · 💧{r.w.rain}% · 🌬 {r.w.wind} mph</span>}</span>
                 <span style={{fontSize:13.5,fontWeight:800,color:'var(--brand)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{r.n} in</span>
               </div>
             )))}
@@ -2949,7 +2946,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
         const standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
         return(
-          <div style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:(isIOS&&!standalone)?'12px 14px':'8px 12px',margin:'0 0 12px',display:'flex',alignItems:(isIOS&&!standalone)?'flex-start':'center',gap:10}}>
+          <div className="wk-top-banner" style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:(isIOS&&!standalone)?'12px 14px':'8px 12px',margin:'0 0 12px',display:'flex',alignItems:(isIOS&&!standalone)?'flex-start':'center',gap:10}}>
             <span style={{fontSize:18,lineHeight:'22px'}}>🔔</span>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{(isIOS&&!standalone)?'Get notified':'Get notified when teams are posted'}</div>
@@ -13232,7 +13229,7 @@ function App(){
 
   // Show landing if not signed in
   if(!currentUser){
-    window.__cgPreview=FORCE_PREVIEW_HOST;
+    window.__cgPreview=false;
     return <Landing
       week={week}
       fullRoster={fullRoster}
@@ -13254,7 +13251,7 @@ function App(){
   const inviteFinalPush = !!(tournCfg&&tournCfg.rsvpDeadline&&daysUntil(tournCfg.rsvpDeadline)<=3);
   const showInviteModal = tournUnanswered && (inviteModalSeen==='' || (inviteFinalPush && inviteModalSeen!=='final'));
   const isPreview = currentUser.role === 'preview' || currentUser.role === 'previewAdmin' || currentUser.id === 'preview';   // by id too: no role-sync can rewrite it away
-  window.__cgPreview = isPreview || FORCE_PREVIEW_HOST;   // branch preview: always read-only
+  window.__cgPreview = isPreview;
 
   const statsAccess = settings?.statsAccess || 'none';
   const statsAllowed = settings?.statsAllowedPlayers || {};   // the control has always written statsAllowedPlayers
