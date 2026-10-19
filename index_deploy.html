@@ -298,6 +298,7 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   .user-strip,.tabs-inner,.content,.day-tiles,.brand-row{max-width:1400px}
 }
 
+.sc-chip{display:none}
 /* ═══════════════ DESKTOP FRAME — @media(min-width:1100px) ═══════════════
    The phone's tab bars stand up as a fixed left rail (the portal/mockup look).
    Below 1100px .side-rail is display:contents, so phones and the 900px wide
@@ -353,6 +354,16 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
      at the top, so sticky bars belong at the viewport top. !important wins over
      the JS-set inline value. */
   :root{--tabs-h:0px!important}
+  /* Money rail polish: tighter cards, tinted inputs, accent strips, readable breakdown */
+  main.content.sc-desk .sc-body>.sc-side{margin-bottom:10px!important;border-top:3px solid var(--hairline)}
+  main.content.sc-desk .sc-body>.sc-side.sc-pot{border-top-color:var(--highlight)}
+  main.content.sc-desk .sc-body>.sc-side.sc-splits{border-top-color:var(--brand)}
+  main.content.sc-desk .sc-body>.sc-side.sc-brk{border-top-color:var(--money-pos)}
+  main.content.sc-desk .sc-side label{margin-bottom:3px!important;font-size:10px!important}
+  main.content.sc-desk .sc-side .form-input{padding:6px 9px!important;font-size:13px!important;background:var(--surface-sunken)!important;border-radius:8px!important}
+  main.content.sc-desk .sc-chip{display:inline-block;font-size:10.5px;font-weight:800;color:var(--brand);background:var(--brand-soft);border:1px solid var(--brand-border);border-radius:12px;padding:1px 8px;margin-left:8px}
+  main.content.sc-desk .brk-h{background:var(--surface-sunken);border-left:3px solid var(--brand);padding:4px 8px;border-radius:6px;color:var(--ink-70)!important;margin-bottom:6px!important}
+  main.content.sc-desk .brk-team{font-weight:800;color:var(--ink)}
 }
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
@@ -4185,7 +4196,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         );})()}
         {/* ── ADMIN: POT CALCULATOR ── */}
         {isAdmin && (
-          <div className="day-card sc-side" style={{marginBottom:12,overflow:'hidden'}}>
+          <div className="day-card sc-side sc-pot" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowPot(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -4249,11 +4260,12 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
         {/* ── PAYOUT SPLITS (full admins and scoring admins) ── */}
         {isScorer && (
-          <div className="day-card sc-side" style={{marginBottom:12,overflow:'hidden'}}>
+          <div className="day-card sc-side sc-splits" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowSplits(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                 <span style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Payout splits</span>
+                <span className="sc-chip">{(fp===1&&bp===1&&op===1)?'1st only':(fp===2&&bp===2&&op===2)?'1st + 2nd':'mixed'}</span>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-40)" strokeWidth="2" strokeLinecap="round" style={{transform:showSplits?'rotate(180deg)':'none',transition:'transform 0.18s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
@@ -4306,7 +4318,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           return(
             <>
               {/* Compact bar */}
-              <div className="day-card sc-side" style={{marginBottom:10,padding:'0'}}>
+              <div className="day-card sc-side sc-paid" style={{marginBottom:10,padding:'0'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',gap:10}}>
                   <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
                     <div style={{width:32,height:32,borderRadius:'50%',background:allPaid?'var(--brand-soft)':'var(--surface-sunken)',border:'1.5px solid',borderColor:allPaid?'var(--brand-border)':'var(--hairline)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -4330,7 +4342,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
               {/* Detail panel */}
               {showPaid && (
-                <div className="day-card" style={{marginBottom:12}}>
+                <div className="day-card sc-side sc-paid" style={{marginBottom:12}}>
                   {dayTeams.map((t,ti)=>(
                     <div key={t.id||ti}>
                       {/* Team header */}
@@ -4464,7 +4476,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           const winningSummary = buildWinningSummary(allRows);
           return(
             <>
-              <div className="day-card sc-side" style={{marginBottom:12,padding:'12px 14px'}}>
+              <div className="day-card sc-side sc-brk" style={{marginBottom:12,padding:'12px 14px'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',marginBottom:10}}>
                   Payout breakdown
                   {!payoutsCalculated&&isScorer&&<span style={{fontSize:11,fontWeight:400,color:'var(--ink-40)',marginLeft:6}}>(preview)</span>}
@@ -4473,11 +4485,11 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                   if(!rows.length)return null;
                   return(
                     <div key={l} style={{marginBottom:12}}>
-                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
+                      <div className="brk-h" style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
                       {rows.map((row,i)=>(
                         <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
                           <span style={{fontSize:13,color:'var(--ink-70)',fontWeight:500}}>
-                            {row.label}{row.teams&&row.teams.length>0?' — '+row.teams.map(t=>t.name).join(' & '):''}
+                            {row.label}{row.teams&&row.teams.length>0?<>{' — '}<span className="brk-team">{row.teams.map(t=>t.name).join(' & ')}</span></>:''}
                             {row.isTie&&<span style={{marginLeft:5,fontSize:11,color:'var(--warn-ink)',fontWeight:700}}>SPLIT</span>}
                           </span>
                           <span style={{fontSize:14,fontWeight:700,color:row.isTie?'var(--warn-ink)':'var(--money-pos)'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
@@ -4489,7 +4501,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                 {/* Skins breakdown */}
                 {parseFloat(sv||0)>0&&(
                   <div style={{marginBottom:12}}>
-                    <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div>
+                    <div className="brk-h" style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div>
                     {[
                       {l:'Skins pot (gross)',v:f$(sv),c:'var(--ink-50)'},
                       {l:'Tournament fund (−$'+pc+'/player)',v:'−'+f$(pc),c:'var(--warn-ink)'},
@@ -4505,7 +4517,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                       const t=dayTeams.find(t=>String(t.id)===String(tid));
                       return t?(
                         <div key={tid} style={{display:'flex',justifyContent:'space-between',padding:'5px 0 5px 12px',borderBottom:'1px solid var(--hairline-soft)'}}>
-                          <span style={{fontSize:12,color:'var(--ink-70)'}}>{t.name} — {c} skin{parseInt(c)!==1?'s':''}</span>
+                          <span style={{fontSize:12,color:'var(--ink-70)'}}><span className="brk-team">{t.name}</span> — {c} skin{parseInt(c)!==1?'s':''}</span>
                           <span style={{fontSize:13,fontWeight:700,color:'var(--money-pos)'}}>{f$(parseInt(c)*flooredPerSk)}</span>
                         </div>
                       ):null;
