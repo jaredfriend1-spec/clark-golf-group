@@ -9587,13 +9587,8 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
         const doorOn=isMasterHere||(!!myEmail&&Object.values(portalUsersReg||{}).some(u=>u&&u.appDoor===true&&String(u.email||'').toLowerCase().trim()===myEmail));
         if(!doorOn)return null;   // per person: their Portal Users row must have App door ticked
         return (
-          <div style={{margin:'0 16px 14px',padding:'13px 15px',borderRadius:14,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',display:'flex',alignItems:'center',gap:12}}>
-            <span style={{fontSize:22}}>🛠️</span>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13.5,fontWeight:800,color:'var(--brand)'}}>Admin Portal</div>
-              <div style={{fontSize:11.5,color:'var(--ink-60)',marginTop:1}}>Opens in this window — one sign-in per device, then it just works. There’s a ← Back to App button up top.</div>
-            </div>
-            <a href={"/portal.html?v="+encodeURIComponent(APP_BUILD)} className="btn btn-sm" style={{fontWeight:800,textDecoration:'none',flexShrink:0}}>Open ↗</a>
+          <div style={{margin:'-8px 16px 12px',display:'flex',justifyContent:'flex-end'}}>
+            <a href={"/portal.html?v="+encodeURIComponent(APP_BUILD)} className="btn btn-ghost btn-sm" style={{fontWeight:700,textDecoration:'none'}} title="Opens in this window — Back to App button up top">🛠️ Admin Portal ↗</a>
           </div>
         );
       })()}
@@ -10052,47 +10047,6 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
           </div>
         )}
         <div style={{margin:'22px 0 18px',borderTop:'2px solid var(--hairline)'}}/>
-        {/* ── APP SETTINGS (mirror of portal → Configuration/App Settings) ── */}
-        <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
-          <button onClick={()=>setShowAppSettings(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'12px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-            <span style={{fontSize:14}}>⚙️</span>
-            <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>App Settings <span style={{fontWeight:500,color:'var(--ink-40)',fontSize:11}}>· sign-up rules &amp; guests</span></span>
-            <span style={{color:'var(--ink-40)',fontSize:11}}>{showAppSettings?'▲':'▼'}</span>
-          </button>
-          {showAppSettings&&(
-            <div style={{borderTop:'1px solid var(--hairline)',padding:'6px 16px 14px'}}>
-              {[
-                {key:'allowGuests',label:'Allow guests',sub:'Members can bring guests to a day'},
-                {key:'allowPairings',label:'Allow guest pairing requests',sub:'"Pair with me" option on guest sign-ups'},
-                {key:'allowMatches',label:'Allow match play requests',sub:'Head-to-head match sign-ups'},
-                {key:'allowTeePrefs',label:'Allow tee time preferences',sub:'First tee / last tee requests'},
-              ].map(({key,label,sub})=>{
-                const on=(settings?.gameRules?.signupRules?.[key])!==false;
-                return(
-                  <div key={key} style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
-                    <div onClick={()=>write('settings/gameRules/signupRules/'+key,!on)} style={{width:36,height:20,borderRadius:20,background:on?'var(--brand)':'var(--hairline)',position:'relative',cursor:'pointer',flexShrink:0,transition:'background 0.2s'}}>
-                      <div style={{position:'absolute',top:2,left:on?18:2,width:22,height:22,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:600,color:on?'var(--ink)':'var(--ink-40)'}}>{label}</div>
-                      <div style={{fontSize:11,color:'var(--ink-40)'}}>{sub}</div>
-                    </div>
-                  </div>
-                );
-              })}
-              <div style={{display:'flex',alignItems:'center',gap:11,padding:'10px 0 2px'}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>Max guests per member</div>
-                  <div style={{fontSize:11,color:'var(--ink-40)'}}>Per day, when guests are allowed</div>
-                </div>
-                <select className="form-input" style={{maxWidth:80}} value={settings?.maxGuests??3} onChange={e=>write('settings/maxGuests',parseInt(e.target.value))}>
-                  {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-              <div style={{fontSize:11,color:'var(--ink-40)',marginTop:8,fontStyle:'italic'}}>Changes apply instantly. Game mode templates are still managed in the Admin Portal.</div>
-            </div>
-          )}
-        </div>
         {/* ── 5. ROSTER ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
@@ -10332,6 +10286,47 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
         </div>
 
 
+        {/* ── APP SETTINGS (mirror of portal → Configuration/App Settings) ── */}
+        <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+          <button onClick={()=>setShowAppSettings(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'12px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+            <span style={{fontSize:14}}>⚙️</span>
+            <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>App Settings <span style={{fontWeight:500,color:'var(--ink-40)',fontSize:11}}>· sign-up rules &amp; guests</span></span>
+            <span style={{color:'var(--ink-40)',fontSize:11}}>{showAppSettings?'▲':'▼'}</span>
+          </button>
+          {showAppSettings&&(
+            <div style={{borderTop:'1px solid var(--hairline)',padding:'6px 16px 14px'}}>
+              {[
+                {key:'allowGuests',label:'Allow guests',sub:'Members can bring guests to a day'},
+                {key:'allowPairings',label:'Allow guest pairing requests',sub:'"Pair with me" option on guest sign-ups'},
+                {key:'allowMatches',label:'Allow match play requests',sub:'Head-to-head match sign-ups'},
+                {key:'allowTeePrefs',label:'Allow tee time preferences',sub:'First tee / last tee requests'},
+              ].map(({key,label,sub})=>{
+                const on=(settings?.gameRules?.signupRules?.[key])!==false;
+                return(
+                  <div key={key} style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                    <div onClick={()=>write('settings/gameRules/signupRules/'+key,!on)} style={{width:36,height:20,borderRadius:20,background:on?'var(--brand)':'var(--hairline)',position:'relative',cursor:'pointer',flexShrink:0,transition:'background 0.2s'}}>
+                      <div style={{position:'absolute',top:2,left:on?18:2,width:22,height:22,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600,color:on?'var(--ink)':'var(--ink-40)'}}>{label}</div>
+                      <div style={{fontSize:11,color:'var(--ink-40)'}}>{sub}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{display:'flex',alignItems:'center',gap:11,padding:'10px 0 2px'}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>Max guests per member</div>
+                  <div style={{fontSize:11,color:'var(--ink-40)'}}>Per day, when guests are allowed</div>
+                </div>
+                <select className="form-input" style={{maxWidth:80}} value={settings?.maxGuests??3} onChange={e=>write('settings/maxGuests',parseInt(e.target.value))}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div style={{fontSize:11,color:'var(--ink-40)',marginTop:8,fontStyle:'italic'}}>Changes apply instantly. Game mode templates are still managed in the Admin Portal.</div>
+            </div>
+          )}
+        </div>
         {/* ── PUSH SUBSCRIBERS ── */}
         {(()=>{
           const byName={};
@@ -10526,6 +10521,13 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
         )}
 
         {/* A round is missing from History? — master & super admins (this tab is admin-only) */}
+        {isAdmin && (
+          <div style={{display:'flex',alignItems:'center',gap:10,margin:'28px 16px 14px'}}>
+            <div style={{flex:1,height:1,background:'var(--hairline)'}}/>
+            <span style={{fontSize:10.5,fontWeight:800,letterSpacing:'0.08em',color:'var(--ink-40)',textTransform:'uppercase'}}>End-of-week controls</span>
+            <div style={{flex:1,height:1,background:'var(--hairline)'}}/>
+          </div>
+        )}
         {isAdmin && <MissingRoundCard week={week} fullRoster={fullRoster} read={read} update={update} currentUser={currentUser}/>}
 
         {/* ── 6. END WEEK (bottom) ── */}
