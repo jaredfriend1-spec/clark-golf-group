@@ -1128,7 +1128,11 @@ const V2_WRITES_BLOCKED = false;
 // and previews can never touch production data.
 const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
-const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
+// Production-safe guard (flipped for the main merge, Oct 19): ONLY the
+// modern-ui branch preview runs on the TEST database. Every other host —
+// the real domain, Vercel's internal deploy URLs, localhost — is LIVE, so
+// no member can ever land on test data through a stray link.
+const IS_PROD_HOST=window.location.hostname.indexOf("-git-modern-ui-")===-1;
 const FB_CONFIG=IS_PROD_HOST?FB_PROD:FB_TEST;
 // ── PUSH NOTIFICATIONS (FCM) ──────────────────────────────────────────────
 // VAPID public keys: Firebase Console → Project settings → Cloud Messaging →
