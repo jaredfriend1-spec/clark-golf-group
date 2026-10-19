@@ -367,11 +367,21 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   .aw-list>.aw-hero{grid-column:1/-1;box-shadow:none!important;padding:14px!important;margin-bottom:0!important}
   .aw-list>.aw-years{grid-column:1/-1;margin-bottom:0!important}
   .aw-card{margin-bottom:0!important;border-left:1px solid var(--hairline)!important;border-radius:12px!important;padding:12px 14px!important}
-  .aw-card .aw-win{font-size:17px!important}
-  .aw-card .aw-blurb{font-size:12.5px!important;line-height:1.45!important;margin-top:6px!important}
+  /* Awards typography: calm hierarchy — two weights, color only on the stat */
+  .aw-card>div:first-child{margin-bottom:7px!important;gap:7px!important}
+  .aw-card>div:first-child>span:first-child{font-size:16px!important}
+  .aw-card>div:first-child>span:last-child{font-weight:700!important;font-size:11px!important;color:var(--ink-40)!important;letter-spacing:0.06em!important}
+  .aw-card>div:nth-child(2) img,.aw-card>div:nth-child(2) span>div{width:40px!important;height:40px!important}
+  .aw-card .aw-win{font-size:16px!important;font-weight:700!important;color:var(--ink)!important;letter-spacing:0!important}
+  .aw-card .aw-win+div{font-size:12px!important;font-weight:600!important;color:#a07716!important;margin-top:1px!important}
+  .aw-card .aw-blurb{font-size:12.5px!important;line-height:1.5!important;margin-top:7px!important;color:var(--ink-70)!important;font-weight:400!important}
+  .aw-card>div:last-child>div{padding:3px 0!important}
+  .aw-card>div:last-child>div>span:first-child{font-weight:600!important;font-size:11px!important}
+  .aw-card>div:last-child>div>span:nth-child(3){font-size:13px!important;font-weight:600!important}
   div:has(>.aw-list)>.page-title{display:none}
   /* Standings: readable table width, quiet summary row, aligned columns */
   main.stand-main{max-width:980px;margin-left:auto;margin-right:auto}
+  main.att-main{max-width:900px;margin-left:auto;margin-right:auto}
   .lb-sum{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
   .lb-sum>div{background:var(--surface)!important;border:1px solid var(--hairline)!important}
   .lb-h,.lb-r{grid-template-columns:34px minmax(0,1fr) 56px 90px 90px 96px!important;gap:8px!important}
@@ -8253,7 +8263,7 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
     );
   }
   return(
-    <main className="content">
+    <main className="content att-main">
       <div className="page-eyebrow">{seasonTitle||'Season'}</div>
       <div className="page-title">Attendance</div>
       <div style={{padding:'0 12px'}}>
