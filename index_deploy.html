@@ -994,7 +994,12 @@ const V2_WRITES_BLOCKED = false;
 const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
 const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
-const FB_CONFIG=IS_PROD_HOST?FB_PROD:FB_TEST;
+// BRANCH-ONLY (modern-ui): the branch preview reads the REAL database but is
+// locked into read-only preview mode — window.__cgPreview no-ops every write
+// at the source, so nothing on the preview can touch live data. Remove this
+// block when merging to main.
+const FORCE_PREVIEW_HOST=window.location.hostname.indexOf("clark-golf-group-git-modern-ui-")===0;
+const FB_CONFIG=(IS_PROD_HOST||FORCE_PREVIEW_HOST)?FB_PROD:FB_TEST;
 // ── PUSH NOTIFICATIONS (FCM) ──────────────────────────────────────────────
 // VAPID public keys: Firebase Console → Project settings → Cloud Messaging →
 // Web Push certificates → "Key pair". Paste each project's key below.
@@ -13167,7 +13172,7 @@ function App(){
 
   // Show landing if not signed in
   if(!currentUser){
-    window.__cgPreview=false;
+    window.__cgPreview=FORCE_PREVIEW_HOST;
     return <Landing
       week={week}
       fullRoster={fullRoster}
@@ -13189,7 +13194,7 @@ function App(){
   const inviteFinalPush = !!(tournCfg&&tournCfg.rsvpDeadline&&daysUntil(tournCfg.rsvpDeadline)<=3);
   const showInviteModal = tournUnanswered && (inviteModalSeen==='' || (inviteFinalPush && inviteModalSeen!=='final'));
   const isPreview = currentUser.role === 'preview' || currentUser.role === 'previewAdmin' || currentUser.id === 'preview';   // by id too: no role-sync can rewrite it away
-  window.__cgPreview = isPreview;
+  window.__cgPreview = isPreview || FORCE_PREVIEW_HOST;   // branch preview: always read-only
 
   const statsAccess = settings?.statsAccess || 'none';
   const statsAllowed = settings?.statsAllowedPlayers || {};   // the control has always written statsAllowedPlayers
