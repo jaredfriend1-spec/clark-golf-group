@@ -340,6 +340,19 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   main.content.teams-grid>div:has(>.day-card){display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;align-items:start}
   main.content.teams-grid>div:has(>.day-card)>.day-card{margin-bottom:0!important;min-width:0}
   main.content.teams-grid>div:has(>.day-card)>:not(.day-card){grid-column:1/-1;min-width:0}
+  /* Score desktop: entry column left; the money cards (pot, splits, payment,
+     payout preview) float into a 372px right rail. Same markup, phone untouched. */
+  main.content.sc-desk{max-width:1400px;margin-left:auto;margin-right:auto}
+  main.content.sc-desk .sc-body{position:relative}
+  main.content.sc-desk .sc-body::after{content:"";display:block;clear:both}
+  main.content.sc-desk .sc-body>.sc-side{float:right;clear:right;width:372px}
+  main.content.sc-desk .sc-body>*:not(.sc-side){margin-right:404px}
+  /* The phone nav rows are restyled into the tall side rail up here, so the JS
+     measurement of nav.tabs heights (--tabs-h, the sticky-header offset) comes
+     out ~450px and pins sticky bars mid-page. Under the rail nothing is fixed
+     at the top, so sticky bars belong at the viewport top. !important wins over
+     the JS-set inline value. */
+  :root{--tabs-h:0px!important}
 }
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
@@ -4111,8 +4124,9 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
     );
   }
 
+  const isDeskS=(typeof window!=='undefined')&&!!(window.matchMedia&&window.matchMedia('(min-width:1100px)').matches);
   return(
-    <main className="content">
+    <main className={"content"+(isDeskS?" sc-desk":"")}>
 
 
       <div className="page-eyebrow">Scoring</div>
@@ -4142,7 +4156,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         </div>
       )}
 
-      <div style={{padding:'0 12px'}}>
+      <div className="sc-body" style={{padding:'0 12px'}}>
 
         {/* Member waiting state */}
         {!canSeeScores && (
@@ -4171,7 +4185,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         );})()}
         {/* ── ADMIN: POT CALCULATOR ── */}
         {isAdmin && (
-          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+          <div className="day-card sc-side" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowPot(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -4235,7 +4249,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
         {/* ── PAYOUT SPLITS (full admins and scoring admins) ── */}
         {isScorer && (
-          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+          <div className="day-card sc-side" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowSplits(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
@@ -4292,7 +4306,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           return(
             <>
               {/* Compact bar */}
-              <div className="day-card" style={{marginBottom:10,padding:'0'}}>
+              <div className="day-card sc-side" style={{marginBottom:10,padding:'0'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',gap:10}}>
                   <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
                     <div style={{width:32,height:32,borderRadius:'50%',background:allPaid?'var(--brand-soft)':'var(--surface-sunken)',border:'1.5px solid',borderColor:allPaid?'var(--brand-border)':'var(--hairline)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -4450,7 +4464,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           const winningSummary = buildWinningSummary(allRows);
           return(
             <>
-              <div className="day-card" style={{marginBottom:12,padding:'12px 14px'}}>
+              <div className="day-card sc-side" style={{marginBottom:12,padding:'12px 14px'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',marginBottom:10}}>
                   Payout breakdown
                   {!payoutsCalculated&&isScorer&&<span style={{fontSize:11,fontWeight:400,color:'var(--ink-40)',marginLeft:6}}>(preview)</span>}
@@ -4533,7 +4547,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
               {/* Winnings summary */}
               {winningSummary.length > 0 && (
-                <div style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:12,overflow:'hidden',marginBottom:12}}>
+                <div className="sc-side" style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:12,overflow:'hidden',marginBottom:12}}>
                   <div style={{background:'var(--brand)',padding:'8px 14px',display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:15}}>🏆</span>
                     <span style={{fontSize:11,fontWeight:700,color:'#fff',textTransform:'uppercase',letterSpacing:'0.07em'}}>Winnings Summary</span>
