@@ -370,9 +370,9 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   /* Awards typography: calm hierarchy — two weights, color only on the stat */
   .aw-card>div:first-child{margin-bottom:7px!important;gap:7px!important}
   .aw-card>div:first-child>span:first-child{font-size:16px!important}
-  .aw-card>div:first-child>span:last-child{font-weight:800!important;font-size:11.5px!important;color:var(--ink-70)!important;letter-spacing:0.06em!important}
+  .aw-card>div:first-child>span:last-child{font-weight:800!important;font-size:13px!important;color:var(--ink)!important;letter-spacing:0.04em!important}
   .aw-card>div:nth-child(2) img,.aw-card>div:nth-child(2) span>div,.aw-card>div:nth-child(2) .m-press>div{width:30px!important;height:30px!important;font-size:11px!important}
-  .aw-card .aw-win{font-size:13.5px!important;font-weight:650!important;color:var(--ink)!important;letter-spacing:0!important;line-height:1.3!important}
+  .aw-card .aw-win{font-size:13px!important;font-weight:600!important;color:var(--ink)!important;letter-spacing:0!important;line-height:1.35!important}
   .aw-card .aw-win+div{font-size:12px!important;font-weight:600!important;color:#a07716!important;margin-top:1px!important}
   .aw-card .aw-blurb{font-size:12.5px!important;line-height:1.5!important;margin-top:7px!important;color:var(--ink-70)!important;font-weight:400!important}
   .aw-card>div:last-child>div{padding:3px 0!important}
@@ -383,7 +383,25 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   main.stand-main{max-width:980px;margin-left:auto;margin-right:auto}
   main.att-main{max-width:900px;margin-left:auto;margin-right:auto}
   .lb-sum{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
-  .lb-sum>div{background:var(--surface)!important;border:1px solid var(--hairline)!important}
+  .lb-sum>div{background:var(--surface)!important;border:1px solid var(--hairline)!important;padding:10px 12px!important}
+  .lb-sum>div>div:first-child{font-weight:700!important;font-size:10px!important;color:var(--ink-40)!important}
+  .lb-sum>div>div:last-child>span:first-child{font-weight:600!important;font-size:12.5px!important}
+  .lb-sum>div>div:last-child>span:last-child{font-weight:700!important;font-size:14px!important}
+  /* Lists span exactly as wide as the boxes above them (.day-card's base
+     0-12px side margin double-indents inside already-padded wrappers) */
+  main.att-main .day-card,main.stand-main .day-card,.hist-list>.day-card{margin-left:0!important;margin-right:0!important}
+  /* Admin / Stats / Tourney: readable centered widths */
+  main.admin-main{max-width:900px;margin-left:auto;margin-right:auto}
+  main.stats-main{max-width:980px;margin-left:auto;margin-right:auto}
+  .tourney-main{max-width:1000px;margin-left:auto;margin-right:auto}
+  div:has(>.tourney-main)>.page-title{max-width:1000px;margin-left:auto!important;margin-right:auto!important}
+  /* Tourney board box: quiet tiles, proportionate labels, thin chips */
+  .tb-split{align-items:stretch!important}
+  .tb-split>div:first-child{background:none!important;border:none!important;margin:0!important;padding:0!important}
+  .tb-split>div:first-child>div:nth-child(1){color:var(--ink-40)!important;text-transform:none!important;letter-spacing:0!important;font-weight:700!important;font-size:11.5px!important}
+  .tb-split>div:first-child>div:nth-child(2){font-size:18px!important;font-weight:700!important}
+  .tb-split>div:first-child>div:nth-child(3){color:var(--ink-40)!important;font-weight:400!important}
+  .tb-split span{font-weight:700!important;font-size:12.5px!important;border-width:1px!important;padding:5px 11px!important}
   .lb-h,.lb-r{grid-template-columns:34px minmax(0,1fr) 56px 90px 90px 96px!important;gap:8px!important}
   .lb-h{padding:7px 14px!important}
   .lb-r{padding:9px 14px!important}
@@ -6638,7 +6656,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   }
   if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
   return (
-    <div>
+    <div className="tourney-main">
       <div style={{background:DARK,borderRadius:(sub==='board'&&(live||isAdmin))?'16px 16px 0 0':16,padding:'15px 18px',marginBottom:(sub==='board'&&(live||isAdmin))?0:14,display:'flex',alignItems:'center',gap:13}}>
         <div style={{width:42,height:42,borderRadius:12,background:'rgba(184,137,26,0.18)',border:'1px solid rgba(184,137,26,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:21,flexShrink:0}}>&#127942;</div>
         <div style={{flex:1,minWidth:0}}>
@@ -6653,7 +6671,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
         )}
       </div>
       {sub==='board'&&(live||isAdmin)&&(
-        <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
+        <div className="tb-split" style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
           {[['Projected',fundTotal+payinsDue,'when everyone opted in pays',true]].map(([l,v,note,hot],i)=>(
             <React.Fragment key={l}>
               {i>0&&<div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>}
@@ -9504,7 +9522,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   const showWeekSec = viewMode==='week';
   const showAdminSec = viewMode==='admin';
   return(
-    <main className="content">
+    <main className="content admin-main">
       <div className="page-eyebrow" style={{marginTop:10}}>{viewMode==='week'?'Run the week':'Admin only'}</div>
       <div className="page-title" style={{marginBottom:14}}>{viewMode==='week'?'Manage Week':'Admin Panel'}</div>
       {showAdminSec&&(()=>{
@@ -11197,7 +11215,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const statCard=(val,label,color)=>(<div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontSize:26,fontWeight:800,color:color||'var(--ink)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</div><div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:3}}>{label}</div></div>);
 
   return(
-    <main className="content">
+    <main className="content stats-main">
       {/* (A "‹ Admin" back bar used to sit here, from when Stats was opened from
           inside the Admin tab. Stats has its own tab now, so it was removed.) */}
       <div className="page-eyebrow">{publicMode?'Clark Golf':'Master Admin'}</div>
