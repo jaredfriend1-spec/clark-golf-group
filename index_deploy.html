@@ -332,6 +332,11 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   main.content.week-grid .player-line .player-info .player-name .name-text{font-size:15px;font-weight:700}
   main.content.week-grid .player-line .player-info .player-meta{margin-left:auto;align-self:center;font-size:12.5px;gap:7px}
   main.content.week-grid .player-line .player-info .player-extra{flex-basis:100%}
+  /* Teams desktop (published view): team cards flow 2–3 across; headers and
+     controls keep the full width. The cards themselves are untouched. */
+  main.content.teams-grid>div:has(>.day-card){display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;align-items:start}
+  main.content.teams-grid>div:has(>.day-card)>.day-card{margin-bottom:0!important;min-width:0}
+  main.content.teams-grid>div:has(>.day-card)>:not(.day-card){grid-column:1/-1;min-width:0}
 }
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
@@ -5087,9 +5092,10 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
   let teamOddsChips=null; try{ if(published&&!indMode&&oddsRates) teamOddsChips=oddsForTeams(currentDisplay,oddsRates); }catch(e){}
   const hcps = currentDisplay.map(t=>t.totalHcp||0);
   const spread = hcps.length ? Math.max(...hcps)-Math.min(...hcps) : 0;
+  const isDeskT=(typeof window!=='undefined')&&!!(window.matchMedia&&window.matchMedia('(min-width:1100px)').matches);
 
   return (
-    <main className="content">
+    <main className={"content"+(isDeskT&&published&&!editTeams&&!manualMode?" teams-grid":"")}>
 
 
       <div className="page-eyebrow">{indMode?"Groups · tee-off order":"Teams"}</div>
