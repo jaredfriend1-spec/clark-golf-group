@@ -370,6 +370,13 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   .aw-card .aw-win{font-size:17px!important}
   .aw-card .aw-blurb{font-size:12.5px!important;line-height:1.45!important;margin-top:6px!important}
   div:has(>.aw-list)>.page-title{display:none}
+  /* Standings: readable table width, quiet summary row, aligned columns */
+  main.stand-main{max-width:980px;margin-left:auto;margin-right:auto}
+  .lb-sum{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+  .lb-sum>div{background:var(--surface)!important;border:1px solid var(--hairline)!important}
+  .lb-h,.lb-r{grid-template-columns:34px minmax(0,1fr) 56px 90px 90px 96px!important;gap:8px!important}
+  .lb-h{padding:7px 14px!important}
+  .lb-r{padding:9px 14px!important}
   /* Money rail: one quiet contained column — uniform bars, thin 1px lines, no decoration */
   main.content.sc-desk .sc-body>.sc-side{margin-bottom:8px!important;border:1px solid var(--hairline);box-shadow:none!important}
   main.content.sc-desk .sc-side label{margin-bottom:3px!important;font-size:10px!important}
@@ -8576,7 +8583,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
   const display=showMe&&meName?sorted.filter(p=>p.name===meName):sorted;
 
   return(
-    <main className="content">
+    <main className="content stand-main">
       <div className="page-eyebrow">{seasonTitle||'Season'}</div>
       <div className="page-title">Standings</div>
       <div className="page-sub"><strong>{rounds.length}</strong> round{rounds.length!==1?'s':''} · <strong>{leaderboard.length}</strong> players</div>
@@ -8586,7 +8593,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
         {/* Summary cards */}
         {/* Four highlights as compact cards: label, then name and number on one
             line. The small print moves into the tooltip — the table below has it. */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
+        <div className="lb-sum" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
           {[
             {icon:'🏆',label:'Top Net Winner',name:topNet?.name,val:((topNet?.net||0)>=0?'+':'−')+f$(Math.abs(topNet?.net||0)),desc:'after '+f$(topNet?.paid||0)+' paid in',bg:'var(--brand-soft)',border:'var(--brand-border)',col:'var(--brand)'},
             {icon:'💰',label:'Most $ Won',name:topGross?.name,val:f$(topGross?.won||0),desc:topGross?.rounds+' rounds',bg:'var(--info-soft)',border:'var(--info-border)',col:'var(--info)'},
@@ -8614,7 +8621,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
           </div>
 
           {/* Column headers */}
-          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',padding:'6px 12px',background:'var(--surface-sunken)',borderTop:'1px solid var(--hairline)',borderBottom:'1px solid var(--hairline)',gap:4}}>
+          <div className="lb-h" style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',padding:'6px 12px',background:'var(--surface-sunken)',borderTop:'1px solid var(--hairline)',borderBottom:'1px solid var(--hairline)',gap:4}}>
             {['#','Player','Rds','Paid','Won','Net'].map((h,i)=>(
               <div key={h} style={{fontSize:11,fontWeight:700,color:i===4&&lbSort==='gross'?'var(--info)':i===5&&lbSort==='net'?'var(--brand)':'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:i>2?'right':'left'}}>{h}</div>
             ))}
@@ -8629,7 +8636,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
             return(
               <div key={p.name} style={{borderBottom:'1px solid var(--hairline-soft)',background:isMe?'rgba(184,101,31,0.04)':'transparent'}}>
                 <div
-                  style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) 24px 46px 46px 50px',alignItems:'center',padding:'10px 10px',gap:3,cursor:breakdown.length?'pointer':'default'}}
+                  className="lb-r" style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) 24px 46px 46px 50px',alignItems:'center',padding:'10px 10px',gap:3,cursor:breakdown.length?'pointer':'default'}}
                   onClick={()=>breakdown.length&&setExpandedPlayer(isExpanded?null:p.name)}>
                   {/* Rank badge */}
                   <div style={{width:22,height:22,borderRadius:'50%',
