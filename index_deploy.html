@@ -10774,7 +10774,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
     return {...o,[k]:opening};
   });
 
-  const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','pairings','engage','timing','money','activity','logins','behavior'];
+  const SHAREABLE_SECTIONS=['overview','avgday','pots','scores','players','hcp','tees','teams','pairings','beatodds','engage','timing','money','activity','logins','behavior'];
   // Master sees everything. Admins get the portal's "Admin View" ticks, members the "Member View" ticks.
   const showSec=id=>{ if(!publicMode)return true; return (sectionMap||{})[id]!==false; };
   // Activity-log entries that fall inside the season being shown (null window = all-time).
@@ -10952,6 +10952,36 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
     const rows=Object.entries(pair).filter(([,v])=>v.n>=4).map(([k,v])=>{const s=k.split('|');return {a:s[0],b:s[1],n:v.n,avg:v.d/v.n};}).sort((x,y)=>y.avg-x.avg);
     return {rows,fieldAvg:tCnt?Math.round(tSum/tCnt):0};
   }catch(e){return {rows:[],fieldAvg:0};}},[activeHist]);// eslint-disable-line
+  // ── Beating the Odds: replay the season with the book running. Form is
+  //    accumulated chronologically, so each round's odds use only the rounds
+  //    BEFORE it ("on paper that morning"). The first ~20 team-rounds have no
+  //    book yet and sit out — odds need a few weeks of form. ──
+  const beatOdds=useMemo(()=>{try{
+    const toA=x=>Array.isArray(x)?x.filter(Boolean):Object.values(x||{}).filter(Boolean);
+    const sorted=[...activeHist].filter(r=>r&&r.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    const acc={};let tSum=0,tCnt=0;const events=[];
+    sorted.forEach(r=>{
+      const cash=teamCashOfRound(r); if(!cash)return;
+      const teams=toA(r.teams).filter(t=>t&&t.id!=null&&toA(t.players).length);
+      if(tCnt>=20&&teams.length>1){
+        const odds=oddsForTeams(teams,{rates:acc,fieldAvg:tSum/tCnt});
+        if(odds){
+          const ps=odds.map(o=>o.p);const pMax=Math.max(...ps),pMin=Math.min(...ps);
+          teams.forEach((t,i)=>{
+            events.push({date:r.date,label:t.name||('Team '+t.id),names:toA(t.players).map(p=>p.name),
+              p:odds[i].p,odds:odds[i].odds,won:Math.round(cash[t.id]||0),
+              isFav:odds[i].p===pMax,isDog:odds[i].p===pMin});
+          });
+        }
+      }
+      teams.forEach(t=>{const won=cash[t.id]||0;tSum+=won;tCnt++;
+        toA(t.players).forEach(p=>{if(p&&p.name){const n=String(p.name).trim().toLowerCase();
+          const e2=(acc[n]=acc[n]||{rds:0,sum:0});e2.rds++;e2.sum+=won;}});});
+    });
+    const upsets=events.filter(e=>e.isDog&&e.won>0).sort((a,b)=>(b.won/b.p)-(a.won/a.p)).slice(0,6);
+    const folds=events.filter(e=>e.isFav&&e.won<=0).sort((a,b)=>b.p-a.p).slice(0,5);
+    return {upsets,folds,rated:events.length};
+  }catch(e){return {upsets:[],folds:[],rated:0};}},[activeHist]);// eslint-disable-line
   const totalOfficialTeams=activeHist.reduce((s,r)=>s+Object.values(r.teams||{}).length,0);
   const hcpTrends=Object.entries(playerHcps).filter(([,arr])=>arr.length>0).map(([name,arr])=>{const sorted=arr.sort((a,b)=>a.date.localeCompare(b.date));const current=sorted[sorted.length-1].hcp;const first=sorted[0].hcp;return{name,current,first,avg:Math.round(arr.reduce((s,x)=>s+x.hcp,0)/arr.length*10)/10,trend:Math.round((current-first)*10)/10,rounds:arr.length};}).sort((a,b)=>a.current-b.current);
   const teeTotals={};Object.values(playerTees).forEach(tMap=>Object.entries(tMap).forEach(([tee,cnt])=>{if(tee)teeTotals[tee]=(teeTotals[tee]||0)+cnt;}));
@@ -11098,6 +11128,31 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
               </div>
             ))}
             <div style={{fontSize:11,color:'var(--ink-40)',lineHeight:1.45}}>When teams are posted, the 🎰 chip on each team card is this same season form turned into opening odds.</div>
+          </div>
+        </S>}
+
+        {/* ── Beating the Odds — the book, replayed backwards ──
+             Each round's odds come from form BEFORE that day (chronological
+             accumulation), so "+340 on paper" means that morning's paper. */}
+        {showSec('beatodds')&&(beatOdds.upsets.length>0||beatOdds.folds.length>0)&&<S id="beatodds" icon="🎲" title="Beating the Odds" color="#b45309" borderColor="#d97706" summary={beatOdds.upsets[0]?(beatOdds.upsets[0].label+' ('+beatOdds.upsets[0].odds+') won $'+beatOdds.upsets[0].won+' on '+fmtD(beatOdds.upsets[0].date)):'the favorites that folded'}>
+          <div style={{paddingTop:6}}>
+            <div style={{fontSize:11.5,color:'var(--ink-50)',marginBottom:10,lineHeight:1.5}}>The Clubhouse book, replayed: every round priced with the form the teams brought into it that morning. The season's longest shots that cashed anyway — and the day's favorites that won nothing at all. (With 4+ teams out there, even the favorite is plus-money.) Entertainment only.</div>
+            {[['🎲 Biggest upsets',beatOdds.upsets,'#b45309',e=>'won $'+e.won],['💀 Favorites that folded',beatOdds.folds,'#1d4ed8',e=>'won $0']].map(([hd,list,col,fmt])=>!list.length?null:(
+              <div key={hd} style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:800,color:col,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:6}}>{hd}</div>
+                {list.map((e,i)=>(
+                  <div key={e.date+e.label+i} style={{padding:'6px 0',borderTop:'1px solid var(--hairline-soft)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',width:14,flexShrink:0}}>{i+1}</span>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:'var(--ink)'}}>{fmtD(e.date)} — {e.label} <span style={{fontWeight:800,color:col}}>({e.isFav?"day's fav, ":''}{e.odds})</span></span>
+                      <span style={{fontSize:13,fontWeight:800,color:col,flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmt(e)}</span>
+                    </div>
+                    <div style={{fontSize:11,color:'var(--ink-40)',margin:'2px 0 0 22px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.names.join(', ')}</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div style={{fontSize:11,color:'var(--ink-40)',lineHeight:1.45}}>Early-season rounds sit out — the book needs a few weeks of form before it can set a line. {beatOdds.rated} team-rounds were priced.</div>
           </div>
         </S>}
 
