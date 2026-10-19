@@ -22,7 +22,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0A1614;color:#e2e8f0;-webkit-font-smoothing:antialiased}
+html,body{height:100%;font-family:"DM Sans",sans-serif;background:#122820;color:#EAF0ED;-webkit-font-smoothing:antialiased}
 .shell{display:flex;min-height:100vh;flex-direction:column}
 
 /* ── Topbar ── */
@@ -36,25 +36,25 @@ html,body{height:100%;font-family:"DM Sans",sans-serif;background:#0A1614;color:
 
 /* ── Body / Sidebar / Main ── */
 .body{display:flex;flex:1;overflow:hidden}
-.sidebar{width:210px;background:#0d1c18;border-right:1px solid rgba(255,255,255,0.06);padding:14px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sidebar{width:210px;background:#14271F;border-right:1px solid rgba(255,255,255,0.06);padding:14px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
 @media(max-width:680px){.sidebar{display:none}.mob-nav{display:flex!important}}
 .mob-nav{display:none;position:sticky;top:calc(env(safe-area-inset-top) + 56px);left:0;right:0;background:#0d1c18;border-bottom:1px solid rgba(255,255,255,0.08);z-index:99;padding:5px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
 .mob-btn{min-width:50px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 5px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:9px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.04em;transition:all 0.15s;border-radius:7px}
 .mob-btn.on{color:#10b981;background:rgba(16,185,129,0.12)}
 .mob-btn svg{width:18px;height:18px}
-.nav-sep{font-size:9px;font-weight:700;color:rgba(255,255,255,0.15);text-transform:uppercase;letter-spacing:0.1em;padding:12px 8px 4px;margin-top:4px}
-.ni{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;border:none;background:none;color:rgba(255,255,255,0.38);font-size:12px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:100%;text-align:left;transition:all 0.12s}
+.nav-sep{font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.1em;padding:12px 8px 4px;margin-top:4px}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;border:none;background:none;color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;cursor:pointer;font-family:"DM Sans",sans-serif;width:100%;text-align:left;transition:all 0.12s}
 .ni:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.75)}
 .ni.on{background:rgba(16,185,129,0.12);color:#10b981}
 .ni svg{width:15px;height:15px;flex-shrink:0}
 .ni-foot{margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)}
-.main{flex:1;padding:22px 24px;overflow-y:auto;padding-bottom:80px;max-width:880px;background:#0c1a15}
+.main{flex:1;padding:22px 24px;overflow-y:auto;padding-bottom:80px;max-width:1120px;background:#152A21}
 @media(max-width:680px){.main{padding:14px 12px;padding-bottom:32px}}
 
 /* ── Cards ── */
-.card{background:#132318;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.card{background:#1C332A;border:1px solid rgba(255,255,255,0.12);border-radius:14px;margin-bottom:14px;overflow:hidden}
 .card-hdr{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.card-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.09em}
+.card-title{font-size:12.5px;font-weight:700;color:rgba(255,255,255,0.62);text-transform:uppercase;letter-spacing:0.09em}
 .card-body{padding:14px 16px}
 
 /* ── Stat grid ── */
@@ -255,6 +255,9 @@ select.inp option:checked{background:#10b981;color:#fff}
   .main{padding:48px 80px;max-width:1400px}
 }
 
+/* ── Desktop concept test (Oct 19): bigger text on laptops, lighter frame.
+     zoom scales every inline style at once; phones (<900px) are untouched. ── */
+@media(min-width:900px){ html{zoom:1.15} .mob-back{display:none} }
 </style>
 </head>
 <body>
