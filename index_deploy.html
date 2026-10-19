@@ -354,6 +354,22 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
      at the top, so sticky bars belong at the viewport top. !important wins over
      the JS-set inline value. */
   :root{--tabs-h:0px!important}
+  /* History: one contained list, one line per round */
+  main.hist-main{max-width:1100px;margin-left:auto;margin-right:auto}
+  .hist-list>.day-card{margin-bottom:0!important;border-radius:0;box-shadow:none;border:1px solid var(--hairline);border-top-width:0}
+  .hist-list>.day-card:first-of-type{border-top-width:1px;border-top-left-radius:12px;border-top-right-radius:12px}
+  .hist-list>.day-card:last-of-type,.hist-list>.day-card:has(+:not(.day-card)){border-bottom-left-radius:12px;border-bottom-right-radius:12px;margin-bottom:14px!important}
+  .hist-list>.day-card>div:first-child{padding:9px 14px!important}
+  .hist-list>.day-card>div:first-child>div:first-child{display:flex;align-items:baseline;column-gap:12px;flex-wrap:wrap}
+  .hist-list>.day-card>div:first-child>div:first-child>div{margin-top:0!important}
+  /* Awards: two across, calmer — thin borders, smaller type, no big shadow */
+  .aw-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:10px;align-items:start;max-width:1120px;margin:0 auto}
+  .aw-list>.aw-hero{grid-column:1/-1;box-shadow:none!important;padding:14px!important;margin-bottom:0!important}
+  .aw-list>.aw-years{grid-column:1/-1;margin-bottom:0!important}
+  .aw-card{margin-bottom:0!important;border-left:1px solid var(--hairline)!important;border-radius:12px!important;padding:12px 14px!important}
+  .aw-card .aw-win{font-size:17px!important}
+  .aw-card .aw-blurb{font-size:12.5px!important;line-height:1.45!important;margin-top:6px!important}
+  div:has(>.aw-list)>.page-title{display:none}
   /* Money rail: one quiet contained column — uniform bars, thin 1px lines, no decoration */
   main.content.sc-desk .sc-body>.sc-side{margin-bottom:8px!important;border:1px solid var(--hairline);box-shadow:none!important}
   main.content.sc-desk .sc-side label{margin-bottom:3px!important;font-size:10px!important}
@@ -6001,7 +6017,7 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
   }
 
   return (
-    <main className="content">
+    <main className="content hist-main">
       <div className="page-eyebrow">Past rounds</div>
       <div className="page-title">History</div>
       <div className="page-sub">
@@ -6011,7 +6027,7 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
         }
       </div>
 
-      <div style={{padding:'0 12px'}}>
+      <div className="hist-list" style={{padding:'0 12px'}}>
 
         {rounds.length === 0 && (
           <div style={{textAlign:'center',padding:'48px 20px',color:'var(--ink-40)'}}>
@@ -6362,14 +6378,14 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
   const GOLD='#b8891a', GOLD_SOFT='rgba(184,137,26,0.12)', GOLD_BORDER='rgba(184,137,26,0.45)', DARK='#0f2f22', DARK2='#174332';
   if(!doc)return null;
   return (
-    <div style={{padding:'14px 16px 0'}}>
-      <div style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'18px',marginBottom:14,textAlign:'center',boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
+    <div className="aw-list" style={{padding:'14px 16px 0'}}>
+      <div className="aw-hero" style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'18px',marginBottom:14,textAlign:'center',boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
         <div style={{fontSize:30}}>🏆</div>
         <div style={{fontSize:11,fontWeight:800,color:'rgba(184,137,26,0.95)',textTransform:'uppercase',letterSpacing:'0.12em',marginTop:4}}>Clark Golf Group</div>
         <div style={{fontSize:21,fontWeight:900,color:'#fff',lineHeight:1.15,marginTop:2}}>{/^season\b/i.test(String(y))?(y+' Awards'):(y+' Season Awards')}</div>
       </div>
       {years.length>1&&(
-        <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+        <div className="aw-years" style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
           {years.map(v=>(<button key={v} onClick={()=>setYear(v)} style={{padding:'6px 12px',borderRadius:9,border:'1.5px solid',borderColor:y===v?GOLD:'var(--hairline)',background:y===v?GOLD_SOFT:'transparent',color:y===v?GOLD:'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{v}</button>))}
         </div>
       )}
@@ -6380,7 +6396,7 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
         const names=String(it.winner||'').split(' & ').map(x=>x.trim()).filter(Boolean);
         const tap=(nm)=>(rect)=>{const a=avatarFor?avatarFor(nm):null;onShowAvatar&&onShowAvatar({rect,name:nm,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme});};
         return(
-        <div key={ix} style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderLeft:'3px solid '+GOLD,borderRadius:14,padding:'14px 15px',marginBottom:11}}>
+        <div key={ix} className="aw-card" style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderLeft:'3px solid '+GOLD,borderRadius:14,padding:'14px 15px',marginBottom:11}}>
           <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
             <span style={{fontSize:21}}>{it.icon}</span>
             <span style={{fontSize:12,fontWeight:900,color:'var(--ink)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{it.title}</span>
@@ -6390,11 +6406,11 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
               {names.map((nm,ni)=>{const a=avatarFor?avatarFor(nm):null;return <PlayerAvatar key={ni} name={nm} logo={a&&a.logo} size={names.length>1?42:52} title={nm} onClick={tap(nm)}/>;})}
             </div>
             <div style={{flex:1,minWidth:0}}>
-              <div onClick={()=>{if(names.length===1){const a=avatarFor?avatarFor(names[0]):null;onShowAvatar&&onShowAvatar({name:names[0],logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme});}}} style={{fontSize:names.length>1?18:21,fontWeight:900,color:GOLD,letterSpacing:'-0.01em',lineHeight:1.15,cursor:names.length===1?'pointer':'default'}}>{it.winner}</div>
+              <div onClick={()=>{if(names.length===1){const a=avatarFor?avatarFor(names[0]):null;onShowAvatar&&onShowAvatar({name:names[0],logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme});}}} className="aw-win" style={{fontSize:names.length>1?18:21,fontWeight:900,color:GOLD,letterSpacing:'-0.01em',lineHeight:1.15,cursor:names.length===1?'pointer':'default'}}>{it.winner}</div>
               {it.detail&&<div style={{fontSize:12.5,fontWeight:700,color:'var(--ink-40)',marginTop:2}}>{it.detail}</div>}
             </div>
           </div>
-          {it.blurb&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.6,marginTop:9}}>{it.blurb}</div>}
+          {it.blurb&&<div className="aw-blurb" style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.6,marginTop:9}}>{it.blurb}</div>}
           {safeArray(it.runnersUp).length>0&&(
             <div style={{marginTop:10,paddingTop:9,borderTop:'1px solid var(--hairline-soft)'}}>
               {safeArray(it.runnersUp).map((r2,ri)=>{
