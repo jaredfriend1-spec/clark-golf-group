@@ -323,8 +323,11 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
      rail (an appended aside) takes column 2 for the full height. */
   main.content.week-grid{display:grid;grid-template-columns:minmax(0,1fr) 352px;column-gap:24px;align-items:start}
   main.content.week-grid>*{grid-column:1}
-  main.content.week-grid>.wk-top-banner{grid-column:1/-1}
-  main.content.week-grid>.week-rail{grid-column:2;grid-row:2/span 60;display:flex;flex-direction:column;gap:16px;margin-top:30px;position:sticky;top:18px}
+  /* Header spans the full width; rail + first card then start on the SAME row (tops aligned) */
+  main.content.week-grid>.page-eyebrow{grid-column:1/-1;grid-row:1}
+  main.content.week-grid>.page-title{grid-column:1/-1;grid-row:2}
+  main.content.week-grid>.page-sub{grid-column:1/-1;grid-row:3}
+  main.content.week-grid>.week-rail{grid-column:2;grid-row:4/span 90;display:flex;flex-direction:column;gap:16px;margin-top:0;position:sticky;top:18px}
   /* Sleeker sign-up rows on the Week desktop: same markup, same buttons —
      name and tee/HCP share one line, roomier padding, centered avatar. */
   main.content.week-grid .player-line{align-items:center}
