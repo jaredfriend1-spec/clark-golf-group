@@ -548,7 +548,7 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
-const APP_BUILD='2026.08.18-z';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
+const APP_BUILD='2026.10.19-a';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -4907,7 +4907,12 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
   }
 
   function editInPlace(day){
-    // True draft: published teams stay live for members; nothing changes until Save.
+    // Aug 28 "true draft" regression fix: that change kept teamsPublished set, but every
+    // Move/drag/edit/Save control is gated on !published — so Edit Teams silently did
+    // nothing. Restore the proven pre-Aug-28 flow: unpublish (teams themselves are kept),
+    // which flips the view back to the full builder with the lineup loaded. Adjust, then
+    // Publish & Lock puts it back in front of members.
+    del('week/teamsPublished/'+day);
     setEditTeams([...savedTeams.map(t=>({...t,players:[...safeArray(t.players).map(p=>({...p}))]}))]);
   }
 
