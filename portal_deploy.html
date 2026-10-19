@@ -35,10 +35,11 @@ html,body{height:100%;font-family:"DM Sans",sans-serif;background:#122820;color:
 .rb-superadmin{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.25)}
 
 /* ── Body / Sidebar / Main ── */
-.body{display:flex;flex:1;overflow:hidden}
+.body{display:flex;flex:1;overflow:hidden;background:#152A21}
 .sidebar{width:210px;background:#14271F;border-right:1px solid rgba(255,255,255,0.06);padding:14px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
 @media(max-width:680px){.sidebar{display:none}.mob-nav{display:flex!important}}
-.mob-nav{display:none;position:sticky;top:calc(env(safe-area-inset-top) + 56px);left:0;right:0;background:#0d1c18;border-bottom:1px solid rgba(255,255,255,0.08);z-index:99;padding:5px 8px;flex-wrap:wrap;justify-content:center;gap:2px}
+.mob-nav{display:none;position:sticky;top:calc(env(safe-area-inset-top) + 56px);left:0;right:0;background:#14271F;border-bottom:1px solid rgba(255,255,255,0.1);z-index:99;padding:7px 12px}
+.mob-select{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.18);background:#1C332A;color:#EAF0ED;font-size:15px;font-weight:700;font-family:"DM Sans",sans-serif;appearance:auto}
 .mob-btn{min-width:50px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 5px;border:none;background:none;color:rgba(255,255,255,0.3);font-size:9px;font-weight:700;cursor:pointer;font-family:"DM Sans",sans-serif;text-transform:uppercase;letter-spacing:0.04em;transition:all 0.15s;border-radius:7px}
 .mob-btn.on{color:#10b981;background:rgba(16,185,129,0.12)}
 .mob-btn svg{width:18px;height:18px}
@@ -5574,13 +5575,12 @@ function Portal(){
       </div>
       <a href="/" className="mob-back" style={{position:"fixed",left:12,bottom:"calc(env(safe-area-inset-bottom) + 66px)",zIndex:50,background:"#4ade80",color:"#0b1f17",fontWeight:800,fontSize:12.5,padding:"10px 14px",borderRadius:22,textDecoration:"none",boxShadow:"0 6px 18px rgba(0,0,0,0.35)"}}>← App</a>
       <div className="mob-nav">
-        {NAV_ITEMS.map(n=>(
-          <button key={n.id} className={`mob-btn${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.icon}<span>{n.label}</span></button>
-        ))}
-        <button className="mob-btn" onClick={signOut} style={{marginLeft:4,borderLeft:"1px solid rgba(255,255,255,0.08)",paddingLeft:8}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:18,height:18}}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-          <span>Sign Out</span>
-        </button>
+        {/* Phones: one slim dropdown instead of the icon grid — the screen goes
+            back to the content. Desktop keeps the sidebar; this bar hides there. */}
+        <select className="mob-select" value={tab} onChange={e=>{if(e.target.value==="__out"){signOut();return;}setTab(e.target.value);}}>
+          {NAV_ITEMS.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}
+          <option value="__out">— Sign Out —</option>
+        </select>
       </div>
       <div className="body">
         <div className="sidebar">
