@@ -297,6 +297,164 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 @media(min-width:1400px){
   .user-strip,.tabs-inner,.content,.day-tiles,.brand-row{max-width:1400px}
 }
+
+.sc-chip{display:none}
+/* ═══════════════ DESKTOP FRAME — @media(min-width:1100px) ═══════════════
+   The phone's tab bars stand up as a fixed left rail (the portal/mockup look).
+   Below 1100px .side-rail is display:contents, so phones and the 900px wide
+   mode render exactly as before — this block only ever ADDS at ≥1100px. */
+.side-rail{display:contents}
+@media(min-width:1100px){
+  .app{padding-left:232px}
+  .side-rail{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:232px;background:#0A1614;border-right:1px solid rgba(255,255,255,0.07);z-index:8002;overflow-y:auto;padding:14px 10px 16px}
+  .side-rail::before{content:'CLARK GOLF GROUP';display:block;font-weight:800;font-size:12px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);padding:6px 12px 14px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px}
+  .side-rail .tabs{background:transparent;border-bottom:none;padding:0}
+  .side-rail .tabs-inner{flex-direction:column;max-width:none;margin:0;padding:0}
+  .side-rail .tab{flex:none;min-width:0;flex-direction:row;justify-content:flex-start;gap:12px;padding:11px 12px;border-bottom:none;border-left:3px solid transparent;border-radius:0 10px 10px 0;font-size:13.5px;letter-spacing:0.01em;text-transform:none;text-align:left;color:rgba(255,255,255,0.55)}
+  .side-rail .tab svg{width:18px;height:18px}
+  .side-rail .tab:hover{color:#fff;background:rgba(255,255,255,0.04)}
+  .side-rail .tab.on{color:#34d58b;background:rgba(54,165,111,0.12);border-left-color:#34d58b;border-bottom-color:transparent}
+  .side-rail .tabs-admin-row{background:transparent;border-bottom:none}
+  .side-rail .tabs-admin-row .tabs-inner{border-top:1px solid rgba(255,255,255,0.08);margin-top:8px;padding-top:8px}
+  /* Content governor: tabs that render outside main.content (Tourney, Awards,
+     the home RSVP card) get the same 1400px centered cap as everything else,
+     so ultra-wide monitors see a balanced column, not edge-to-edge stretch. */
+  .app>.page-eyebrow,.app>.page-title,.app>.page-sub,.app>div:not([class]){max-width:1400px;margin-left:auto;margin-right:auto;width:100%}
+  /* Week desktop: existing content flows down column 1 untouched; the new
+     rail (an appended aside) takes column 2 for the full height. */
+  main.content.week-grid{display:grid;grid-template-columns:minmax(0,1fr) 352px;column-gap:24px;align-items:start}
+  main.content.week-grid>*{grid-column:1}
+  /* Header spans the full width; rail + first card then start on the SAME row (tops aligned) */
+  main.content.week-grid>.page-eyebrow{grid-column:1/-1;grid-row:1}
+  main.content.week-grid>.page-title{grid-column:1/-1;grid-row:2}
+  main.content.week-grid>.page-sub{grid-column:1/-1;grid-row:3}
+  main.content.week-grid>.week-rail{grid-column:2;grid-row:4/span 90;display:flex;flex-direction:column;gap:16px;margin-top:0;position:sticky;top:18px}
+  /* Sleeker sign-up rows on the Week desktop: same markup, same buttons —
+     name and tee/HCP share one line, roomier padding, centered avatar. */
+  main.content.week-grid .player-line{align-items:center}
+  main.content.week-grid .player-line .player-info{display:flex;flex-direction:row;align-items:center;column-gap:14px;row-gap:3px;flex-wrap:wrap;flex:1;min-width:0}
+  main.content.week-grid .player-line .player-info .player-name .name-text{font-size:15px;font-weight:700}
+  main.content.week-grid .player-line .player-info .player-meta{margin-left:auto;align-self:center;font-size:12.5px;gap:7px}
+  main.content.week-grid .player-line .player-info .player-extra{flex-basis:100%}
+  /* Teams desktop (published view): team cards flow 2–3 across; headers and
+     controls keep the full width. The cards themselves are untouched. */
+  main.content.teams-grid>div:has(>.day-card){display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;align-items:start}
+  main.content.teams-grid>div:has(>.day-card)>.day-card{margin-bottom:0!important;min-width:0}
+  main.content.teams-grid>div:has(>.day-card)>:not(.day-card){grid-column:1/-1;min-width:0}
+  /* Score desktop: entry column left; the money cards (pot, splits, payment,
+     payout preview) float into a 372px right rail. Same markup, phone untouched. */
+  main.content.sc-desk{max-width:1400px;margin-left:auto;margin-right:auto}
+  main.content.sc-desk .sc-body{position:relative}
+  main.content.sc-desk .sc-body::after{content:"";display:block;clear:both}
+  main.content.sc-desk .sc-body>.sc-side{float:right;clear:right;width:372px;margin-left:0!important;margin-right:0!important}
+  main.content.sc-desk .sc-body>*:not(.sc-side){margin-right:404px}
+  /* The phone nav rows are restyled into the tall side rail up here, so the JS
+     measurement of nav.tabs heights (--tabs-h, the sticky-header offset) comes
+     out ~450px and pins sticky bars mid-page. Under the rail nothing is fixed
+     at the top, so sticky bars belong at the viewport top. !important wins over
+     the JS-set inline value. */
+  :root{--tabs-h:0px!important}
+  /* History: one contained list, one line per round */
+  main.hist-main{max-width:1100px;margin-left:auto;margin-right:auto}
+  .hist-list>.day-card{margin-bottom:0!important;border-radius:0;box-shadow:none;border:1px solid var(--hairline);border-top-width:0}
+  .hist-list>.day-card:first-of-type{border-top-width:1px;border-top-left-radius:12px;border-top-right-radius:12px}
+  .hist-list>.day-card:last-of-type,.hist-list>.day-card:has(+:not(.day-card)){border-bottom-left-radius:12px;border-bottom-right-radius:12px;margin-bottom:14px!important}
+  .hist-list>.day-card>div:first-child{padding:9px 14px!important}
+  .hist-list>.day-card>div:first-child>div:first-child{display:flex;align-items:baseline;column-gap:12px;flex-wrap:wrap}
+  .hist-list>.day-card>div:first-child>div:first-child>div{margin-top:0!important}
+  /* Awards: two across, calmer — thin borders, smaller type, no big shadow */
+  .aw-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:10px;align-items:stretch;max-width:1120px;margin:0 auto}
+  .aw-list>.aw-hero{grid-column:1/-1;box-shadow:none!important;padding:14px!important;margin-bottom:0!important}
+  .aw-list>.aw-years{grid-column:1/-1;margin-bottom:0!important}
+  .aw-card{margin-bottom:0!important;border-left:1px solid var(--hairline)!important;border-radius:12px!important;padding:12px 14px!important}
+  /* Awards typography: calm hierarchy — two weights, color only on the stat */
+  .aw-card>div:first-child{margin-bottom:7px!important;gap:7px!important}
+  .aw-card>div:first-child>span:first-child{font-size:16px!important}
+  .aw-card>div:first-child>span:last-child{font-weight:800!important;font-size:13px!important;color:var(--ink)!important;letter-spacing:0.04em!important}
+  .aw-card>div:nth-child(2) img,.aw-card>div:nth-child(2) span>div,.aw-card>div:nth-child(2) .m-press>div{width:30px!important;height:30px!important;font-size:11px!important}
+  .aw-card .aw-win{font-size:13px!important;font-weight:600!important;color:var(--ink)!important;letter-spacing:0!important;line-height:1.35!important}
+  .aw-card .aw-win+div{font-size:12px!important;font-weight:600!important;color:#a07716!important;margin-top:1px!important}
+  .aw-card .aw-blurb{font-size:12.5px!important;line-height:1.5!important;margin-top:7px!important;color:var(--ink-70)!important;font-weight:400!important}
+  .aw-card>div:last-child>div{padding:3px 0!important}
+  .aw-card>div:last-child>div>span:first-child{font-weight:600!important;font-size:11px!important}
+  .aw-card>div:last-child>div>span:nth-child(3){font-size:13px!important;font-weight:600!important}
+  div:has(>.aw-list)>.page-title{display:none}
+  /* Standings: readable table width, quiet summary row, aligned columns */
+  main.stand-main{max-width:980px;margin-left:auto;margin-right:auto}
+  main.att-main{max-width:900px;margin-left:auto;margin-right:auto}
+  .lb-sum{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+  .lb-sum>div{background:var(--surface)!important;border:1px solid var(--hairline)!important;padding:10px 12px!important}
+  .lb-sum>div>div:first-child{font-weight:700!important;font-size:10px!important;color:var(--ink-40)!important}
+  .lb-sum>div>div:last-child>span:first-child{font-weight:600!important;font-size:12.5px!important}
+  .lb-sum>div>div:last-child>span:last-child{font-weight:700!important;font-size:14px!important}
+  /* Lists span exactly as wide as the boxes above them (.day-card's base
+     0-12px side margin double-indents inside already-padded wrappers) */
+  main.att-main .day-card,main.stand-main .day-card,.hist-list>.day-card{margin-left:0!important;margin-right:0!important}
+  /* Admin / Stats / Tourney: readable centered widths */
+  main.admin-main{max-width:900px;margin-left:auto;margin-right:auto}
+  main.stats-main{max-width:980px;margin-left:auto;margin-right:auto}
+  .tourney-main{max-width:1000px;margin-left:auto;margin-right:auto}
+  div:has(>.tourney-main)>.page-title{max-width:1000px;margin-left:auto!important;margin-right:auto!important}
+  /* Tourney board box: quiet tiles, proportionate labels, thin chips */
+  .tb-split{align-items:stretch!important}
+  .tb-split>div:first-child{background:none!important;border:none!important;margin:0!important;padding:0!important}
+  .tb-split>div:first-child>div:nth-child(1){color:var(--ink-40)!important;text-transform:none!important;letter-spacing:0!important;font-weight:700!important;font-size:11.5px!important}
+  .tb-split>div:first-child>div:nth-child(2){font-size:18px!important;font-weight:700!important}
+  .tb-split>div:first-child>div:nth-child(3){color:var(--ink-40)!important;font-weight:400!important}
+  .tb-split span{font-weight:700!important;font-size:12.5px!important;border-width:1px!important;padding:5px 11px!important}
+  .lb-h,.lb-r{grid-template-columns:34px minmax(0,1fr) 56px 90px 90px 96px!important;gap:8px!important}
+  .lb-h{padding:7px 14px!important}
+  .lb-r{padding:9px 14px!important}
+  /* Money rail: one quiet contained column — uniform bars, thin 1px lines, no decoration */
+  main.content.sc-desk .sc-body>.sc-side{margin-bottom:8px!important;border:1px solid var(--hairline);box-shadow:none!important}
+  main.content.sc-desk .sc-side label{margin-bottom:3px!important;font-size:10px!important}
+  main.content.sc-desk .sc-side .form-input{padding:6px 9px!important;font-size:13px!important;background:var(--surface-sunken)!important;border-radius:8px!important}
+  main.content.sc-desk .sc-chip{display:inline;font-size:11px;font-weight:600;color:var(--ink-40);background:none;border:none;padding:0;margin-left:8px}
+  main.content.sc-desk .sc-paid>div:has(.sc-paid-ic){padding:9px 14px!important}
+  main.content.sc-desk .sc-paid .sc-paid-ic{width:26px!important;height:26px!important}
+  /* Payout breakdown: one line per item — segment label left, winner + amount right */
+  main.content.sc-desk .sc-brk div:has(>.brk-h){display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:10px;align-items:start;margin-bottom:0!important;padding:3px 0;border-bottom:1px solid var(--hairline-soft)}
+  main.content.sc-desk .sc-brk div:has(>.brk-h)>.brk-h{background:none;border:none;border-radius:0;padding:7px 0 0!important;margin:0!important;grid-column:1;color:var(--ink-40)!important}
+  main.content.sc-desk .sc-brk div:has(>.brk-h)>:not(.brk-h){grid-column:2;border-bottom:none!important;padding:5px 0!important}
+  main.content.sc-desk .brk-team{font-weight:600;color:var(--ink)}
+}
+/* ═══════════ MODERN PASS, ALL WIDTHS (branch): same language as desktop —
+   calm two-weight typography, thin lines, state visible when collapsed.
+   Layout splits (rails, grids, width caps) remain in the >=1100px block. */
+.aw-card>div:first-child{margin-bottom:7px!important;gap:7px!important}
+.aw-card>div:first-child>span:first-child{font-size:16px!important}
+.aw-card>div:first-child>span:last-child{font-weight:800!important;font-size:13px!important;color:var(--ink)!important;letter-spacing:0.04em!important}
+.aw-card>div:nth-child(2) img,.aw-card>div:nth-child(2) span>div,.aw-card>div:nth-child(2) .m-press>div{width:30px!important;height:30px!important;font-size:11px!important}
+.aw-card .aw-win{font-size:13px!important;font-weight:600!important;color:var(--ink)!important;letter-spacing:0!important;line-height:1.35!important}
+.aw-card .aw-win+div{font-size:12px!important;font-weight:600!important;color:#a07716!important;margin-top:1px!important}
+.aw-card .aw-blurb{font-size:12.5px!important;line-height:1.5!important;margin-top:7px!important;color:var(--ink-70)!important;font-weight:400!important}
+.aw-card{border-left:1px solid var(--hairline)!important}
+.aw-hero{box-shadow:none!important;padding:14px!important}
+.sc-chip{display:inline;font-size:11px;font-weight:600;color:var(--ink-40);margin-left:8px}
+.sc-brk div:has(>.brk-h){display:grid;grid-template-columns:68px minmax(0,1fr);column-gap:10px;align-items:start;margin-bottom:0!important;padding:3px 0;border-bottom:1px solid var(--hairline-soft)}
+.sc-brk div:has(>.brk-h)>.brk-h{background:none;border:none;border-radius:0;padding:7px 0 0!important;margin:0!important;grid-column:1;color:var(--ink-40)!important}
+.sc-brk div:has(>.brk-h)>:not(.brk-h){grid-column:2;border-bottom:none!important;padding:5px 0!important}
+.brk-team{font-weight:600;color:var(--ink)}
+.hist-list>.day-card{margin-bottom:0!important;border-radius:0;box-shadow:none;border:1px solid var(--hairline);border-top-width:0}
+.hist-list>.day-card:first-of-type{border-top-width:1px;border-top-left-radius:12px;border-top-right-radius:12px}
+.hist-list>.day-card:last-of-type,.hist-list>.day-card:has(+:not(.day-card)){border-bottom-left-radius:12px;border-bottom-right-radius:12px;margin-bottom:14px!important}
+.hist-list>.day-card>div:first-child{padding:10px 14px!important}
+@media(max-width:1099px){
+  .hist-list>.day-card>div:first-child{gap:6px!important}
+  .hist-list>.day-card>div:first-child .btn-sm{padding:4px 9px;font-size:10px}
+  .hist-list>.day-card>div:first-child>div:first-child>div:first-child{font-size:14px}
+}
+.lb-sum>div{background:var(--surface)!important;border:1px solid var(--hairline)!important;padding:10px 12px!important}
+.lb-sum>div>div:first-child{font-weight:700!important;font-size:10px!important;color:var(--ink-40)!important}
+.lb-sum>div>div:last-child>span:first-child{font-weight:600!important;font-size:12.5px!important}
+.lb-sum>div>div:last-child>span:last-child{font-weight:700!important;font-size:14px!important}
+.tb-split>div:first-child{background:none!important;border:none!important;margin:0!important;padding:0!important}
+.tb-split>div:first-child>div:nth-child(1){color:var(--ink-40)!important;text-transform:none!important;letter-spacing:0!important;font-weight:700!important;font-size:11.5px!important}
+.tb-split>div:first-child>div:nth-child(2){font-size:18px!important;font-weight:700!important}
+.tb-split>div:first-child>div:nth-child(3){color:var(--ink-40)!important;font-weight:400!important}
+.tb-split span{font-weight:700!important;font-size:12.5px!important;border-width:1px!important;padding:5px 11px!important}
+.wn-sum>div:first-child{padding:6px 12px!important}
+.wn-sum>div:first-child span{font-size:10.5px!important}
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
    Every element's resting state is the visible one; an animation only moves it
@@ -970,7 +1128,11 @@ const V2_WRITES_BLOCKED = false;
 // and previews can never touch production data.
 const FB_PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",authDomain:"clark-group-dd15e.firebaseapp.com",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e",storageBucket:"clark-group-dd15e.firebasestorage.app",messagingSenderId:"92891899165",appId:"1:92891899165:web:817f5f164f3fc50b506df4"};
 const FB_TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",authDomain:"clark-group-test.firebaseapp.com",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test",storageBucket:"clark-group-test.firebasestorage.app",messagingSenderId:"141407112439",appId:"1:141407112439:web:17460c6eb5baf4502b97f2"};
-const IS_PROD_HOST=window.location.hostname==="clark-golf-group-two.vercel.app";
+// Production-safe guard (flipped for the main merge, Oct 19): ONLY the
+// modern-ui branch preview runs on the TEST database. Every other host —
+// the real domain, Vercel's internal deploy URLs, localhost — is LIVE, so
+// no member can ever land on test data through a stray link.
+const IS_PROD_HOST=window.location.hostname.indexOf("-git-modern-ui-")===-1;
 const FB_CONFIG=IS_PROD_HOST?FB_PROD:FB_TEST;
 // ── PUSH NOTIFICATIONS (FCM) ──────────────────────────────────────────────
 // VAPID public keys: Firebase Console → Project settings → Cloud Messaging →
@@ -2623,7 +2785,7 @@ function TeeTimeModal({ day, onClose, onSave }){
 }
 
 // ═══════════════ WEEK VIEW ═══════════════
-function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, onShowAvatar, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup }){
+function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, settings, playerCards, onOpenProfile, onShowAvatar, rosterTargets, cancelledDays, write, push, del, onSwitchTab, onAddToWaitlist, onRemoveFromWaitlist, onPromoteWaitlist, onLogRemove, onLogMatch, onLogSignup, activityLog }){
   // Sign-ups carry names, playerCards are keyed by roster id — bridge the two once.
   const cardByName=useMemo(()=>{
     const m={};
@@ -2858,8 +3020,50 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     if(wasLottery&&time)sendPushNotify({audience:'all',title:'\ud83d\udd50 '+dayName+' tee time is set!',body:dayName+' tees off at '+time+'.',url:'/',tag:'teetime-'+dayName,vars:{day:dayName,time:time}});
   }
 
+  const isDesk=(typeof window!=='undefined')&&!!(window.matchMedia&&window.matchMedia('(min-width:1100px)').matches);
   return (
-    <main className="content">
+    <main className={"content"+(isDesk?" week-grid":"")}>
+      {isDesk&&(()=>{
+        /* ── Desktop-only right rail v2 — PURE ADDITION (Jared's spec, Oct 19):
+           "This week" summary (per active day: date · count in · tee), Weekly
+           Notes, and Lately filtered to THIS WEEK only. No tiles, no money. ── */
+        const sigs=Object.values(week?.signups||{}).filter(Boolean);
+        const actives=safeArray(week?.activeDays);
+        const dayRows=actives.map(d=>{
+          const n=sigs.filter(x=>x&&x.day===d).length;
+          const dt=week?.dates&&week.dates[d];
+          const tee=(week?.teeTimesInfo&&week.teeTimesInfo[d])||'';
+          let w=null; try{ w=wxFor(dt,tee||null); }catch(e){}
+          return {d,n,dt,tee,w};
+        });
+        const cutoff=(()=>{try{const ds=Object.values(week?.dates||{}).filter(Boolean).sort();if(ds.length)return new Date(ds[0]+'T12:00').getTime()-6*86400000;}catch(e){}return Date.now()-7*86400000;})();
+        const log=safeArray(activityLog).filter(e=>e&&(e.ts||0)>=cutoff&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0&&(!e.day||actives.indexOf(e.day)>=0)).slice(0,8);
+        const fmtT=ts=>{try{const dt=new Date(ts);return dt.toLocaleDateString([],{weekday:'short'})+' '+dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase().replace(' ','');}catch(e){return'';}};
+        const fmtD2=s=>{try{const d2=new Date(s+'T12:00');return d2.toLocaleDateString([],{month:'short',day:'numeric'});}catch(e){return s||'';}};
+        const line=e=>e.action==='signup'?((e.name||'Someone')+' signed up'+(e.day?(' · '+e.day):'')):e.action==='remove_signup'?((e.name||'Someone')+' dropped'+(e.day?(' · '+e.day):'')):e.action==='teams_published'?('Teams published'+(e.day?(' · '+e.day):'')):e.action==='match_request'?((e.name||'Someone')+' asked to play with '+(e.partner||'a partner')):e.action==='waitlist_join'?((e.name||'Someone')+' joined the waitlist'):((e.name||'Someone')+' moved in from the waitlist');
+        const railCard=(icon,title,body)=>(<div className="day-card" style={{padding:'15px 17px',margin:0}}><div style={{fontSize:12,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink)',borderBottom:'2px solid var(--brand-soft)',display:'inline-block',paddingBottom:5,marginBottom:11}}>{icon} {title}</div>{body}</div>);
+        const notes=actives.map(d=>({d,t:String((week?.emailNotes&&week.emailNotes[d])||'').trim()})).filter(x=>x.t);
+        return (
+          <aside className="week-rail">
+            {dayRows.length>0&&railCard('📅','This week',dayRows.map(r=>(
+              <div key={r.d} style={{display:'flex',alignItems:'baseline',gap:9,padding:'6px 0',borderBottom:'1px solid var(--hairline-soft, rgba(0,0,0,0.05))'}}>
+                <span style={{fontSize:13,fontWeight:800,color:'var(--brand)',width:38,flexShrink:0}}>{r.d.slice(0,3).toUpperCase()}</span>
+                <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--ink)'}}>{r.dt?fmtD2(r.dt):''}<span style={{color:'var(--ink-40)'}}>{r.tee?(' · Tee '+r.tee):' · Tee TBD'}</span>{r.w&&<span style={{display:'block',fontSize:11.5,color:'var(--ink-50)',marginTop:1}}>{r.w.single?(r.w.temp+'°'):(r.w.lo+'–'+r.w.hi+'°')} · 💧{r.w.rain}% · 🌬 {r.w.wind} mph</span>}</span>
+                <span style={{fontSize:13.5,fontWeight:800,color:'var(--brand)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{r.n} in</span>
+              </div>
+            )))}
+            {notes.length>0&&railCard('📣','Weekly notes',notes.map(n=>(
+              <div key={n.d} style={{fontSize:13.5,lineHeight:1.6,color:'var(--ink)',marginBottom:8,whiteSpace:'pre-wrap'}}>{notes.length>1&&<b style={{color:'var(--brand)'}}>{n.d}: </b>}{n.t}</div>
+            )))}
+            {railCard('🔔','Lately',log.length?log.map((e,i2)=>(
+              <div key={i2} style={{display:'flex',alignItems:'center',gap:9,padding:'6px 0',borderBottom:i2<log.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.05))':'none'}}>
+                <span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-50)',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:14,padding:'2px 8px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtT(e.ts)}</span>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{line(e)}</span>
+              </div>
+            )):(<div style={{fontSize:12.5,color:'var(--ink-40)'}}>Quiet so far this week.</div>))}
+          </aside>
+        );
+      })()}
       {(()=>{
         if(!currentUser||typeof PUSH_READY==='undefined'||!PUSH_READY)return null;
         let dismissed=false,on=false;
@@ -2868,7 +3072,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
         const standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
         return(
-          <div style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:(isIOS&&!standalone)?'12px 14px':'8px 12px',margin:'0 0 12px',display:'flex',alignItems:(isIOS&&!standalone)?'flex-start':'center',gap:10}}>
+          <div className="wk-top-banner" style={{background:'var(--surface)',border:'1.5px solid var(--brand-border)',borderRadius:12,padding:(isIOS&&!standalone)?'12px 14px':'8px 12px',margin:'0 0 12px',display:'flex',alignItems:(isIOS&&!standalone)?'flex-start':'center',gap:10}}>
             <span style={{fontSize:18,lineHeight:'22px'}}>🔔</span>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{(isIOS&&!standalone)?'Get notified':'Get notified when teams are posted'}</div>
@@ -3028,6 +3232,27 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
           <div className="events-text" dangerouslySetInnerHTML={{__html: parseMarkdown(week.emailEvents)}}/>
         </div>
       )}
+
+      {/* Lately — phone/tablet gets the same week-only feed the desktop rail shows (below events) */}
+      {!isDesk&&(()=>{
+        const actives=safeArray(week?.activeDays);
+        const cutoff=(()=>{try{const ds=Object.values(week?.dates||{}).filter(Boolean).sort();if(ds.length)return new Date(ds[0]+'T12:00').getTime()-6*86400000;}catch(e){}return Date.now()-7*86400000;})();
+        const log=safeArray(activityLog).filter(e=>e&&(e.ts||0)>=cutoff&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0&&(!e.day||actives.indexOf(e.day)>=0)).slice(0,6);
+        if(!log.length)return null;
+        const fmtT=ts=>{try{const dt=new Date(ts);return dt.toLocaleDateString([],{weekday:'short'})+' '+dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase().replace(' ','');}catch(e){return'';}};
+        const line=e=>e.action==='signup'?((e.name||'Someone')+' signed up'+(e.day?(' · '+e.day):'')):e.action==='remove_signup'?((e.name||'Someone')+' dropped'+(e.day?(' · '+e.day):'')):e.action==='teams_published'?('Teams published'+(e.day?(' · '+e.day):'')):e.action==='match_request'?((e.name||'Someone')+' asked to play with '+(e.partner||'a partner')):e.action==='waitlist_join'?((e.name||'Someone')+' joined the waitlist'):((e.name||'Someone')+' moved in from the waitlist');
+        return (
+          <div className="day-card" style={{padding:'13px 15px'}}>
+            <div style={{fontSize:11.5,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink)',marginBottom:8}}>🔔 Lately</div>
+            {log.map((e,i2)=>(
+              <div key={i2} style={{display:'flex',alignItems:'center',gap:9,padding:'5px 0',borderBottom:i2<log.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.05))':'none'}}>
+                <span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-50)',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:14,padding:'2px 8px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtT(e.ts)}</span>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{line(e)}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {signupModal&&!window.__cgPreview && (
         <SignupModal
@@ -4025,8 +4250,9 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
     );
   }
 
+  const isDeskS=(typeof window!=='undefined')&&!!(window.matchMedia&&window.matchMedia('(min-width:1100px)').matches);
   return(
-    <main className="content">
+    <main className={"content"+(isDeskS?" sc-desk":"")}>
 
 
       <div className="page-eyebrow">Scoring</div>
@@ -4056,7 +4282,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         </div>
       )}
 
-      <div style={{padding:'0 12px'}}>
+      <div className="sc-body" style={{padding:'0 12px'}}>
 
         {/* Member waiting state */}
         {!canSeeScores && (
@@ -4085,7 +4311,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
         );})()}
         {/* ── ADMIN: POT CALCULATOR ── */}
         {isAdmin && (
-          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+          <div className="day-card sc-side sc-pot" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowPot(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -4102,12 +4328,10 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
             </button>
             {showPot && (
               <div style={{padding:'0 14px 14px',borderTop:'1px solid var(--hairline)'}}>
-                <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:6,marginTop:10,display:'flex',justifyContent:'space-between'}}>
-                  <span>$25 × {pc} = {f$(pot.gross)} collected</span>
-                  <span style={{color:'var(--money-neg)',fontWeight:700}}>Tournament fund: −${pot.fund}</span>
-                </div>
-                <div style={{fontSize:12,color:'var(--money-pos)',fontWeight:700,marginBottom:12}}>
-                  {f$(pot.total)} available (Front {f$(pot.front)} + Back {f$(pot.back)} + Overall {f$(pot.overall)} + Skins {f$(pot.skins-pot.fund)})
+                <div style={{fontSize:12,color:'var(--ink-50)',margin:'10px 0 12px',display:'flex',flexWrap:'wrap',columnGap:10,rowGap:3}}>
+                  <span>{f$(pot.gross)} collected</span>
+                  <span style={{color:'var(--money-neg)',fontWeight:600}}>−${pot.fund} fund</span>
+                  <span style={{color:'var(--money-pos)',fontWeight:600}}>{f$(pot.total)} payable</span>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
                   {[['Front 9',fv,setFv,pot.front],['Back 9',bv,setBv,pot.back],['Overall',ov,setOv,pot.overall],['Skins',sv,setSv,pot.skins]].map(([l,v,sv2,def])=>(
@@ -4149,11 +4373,12 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
         {/* ── PAYOUT SPLITS (full admins and scoring admins) ── */}
         {isScorer && (
-          <div className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+          <div className="day-card sc-side sc-splits" style={{marginBottom:12,overflow:'hidden'}}>
             <button onClick={()=>setShowSplits(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2.2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                 <span style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Payout splits</span>
+                <span className="sc-chip">{(fp===1&&bp===1&&op===1)?'1st only':(fp===2&&bp===2&&op===2)?'1st + 2nd':'mixed'}</span>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-40)" strokeWidth="2" strokeLinecap="round" style={{transform:showSplits?'rotate(180deg)':'none',transition:'transform 0.18s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
@@ -4206,10 +4431,10 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           return(
             <>
               {/* Compact bar */}
-              <div className="day-card" style={{marginBottom:10,padding:'0'}}>
+              <div className="day-card sc-side sc-paid" style={{marginBottom:10,padding:'0'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',gap:10}}>
                   <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
-                    <div style={{width:32,height:32,borderRadius:'50%',background:allPaid?'var(--brand-soft)':'var(--surface-sunken)',border:'1.5px solid',borderColor:allPaid?'var(--brand-border)':'var(--hairline)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <div className="sc-paid-ic" style={{width:32,height:32,borderRadius:'50%',background:allPaid?'var(--brand-soft)':'var(--surface-sunken)',border:'1.5px solid',borderColor:allPaid?'var(--brand-border)':'var(--hairline)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={allPaid?'var(--brand)':'var(--ink-40)'} strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                     </div>
                     <div>
@@ -4230,7 +4455,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
               {/* Detail panel */}
               {showPaid && (
-                <div className="day-card" style={{marginBottom:12}}>
+                <div className="day-card sc-side sc-paid" style={{marginBottom:12}}>
                   {dayTeams.map((t,ti)=>(
                     <div key={t.id||ti}>
                       {/* Team header */}
@@ -4364,7 +4589,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
           const winningSummary = buildWinningSummary(allRows);
           return(
             <>
-              <div className="day-card" style={{marginBottom:12,padding:'12px 14px'}}>
+              <div className="day-card sc-side sc-brk" style={{marginBottom:12,padding:'12px 14px'}}>
                 <div style={{fontSize:13,fontWeight:700,color:'var(--ink)',marginBottom:10}}>
                   Payout breakdown
                   {!payoutsCalculated&&isScorer&&<span style={{fontSize:11,fontWeight:400,color:'var(--ink-40)',marginLeft:6}}>(preview)</span>}
@@ -4373,11 +4598,11 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                   if(!rows.length)return null;
                   return(
                     <div key={l} style={{marginBottom:12}}>
-                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
+                      <div className="brk-h" style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>{l}</div>
                       {rows.map((row,i)=>(
                         <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
                           <span style={{fontSize:13,color:'var(--ink-70)',fontWeight:500}}>
-                            {row.label}{row.teams&&row.teams.length>0?' — '+row.teams.map(t=>t.name).join(' & '):''}
+                            {row.label}{row.teams&&row.teams.length>0?<>{' — '}<span className="brk-team">{row.teams.map(t=>t.name).join(' & ')}</span></>:''}
                             {row.isTie&&<span style={{marginLeft:5,fontSize:11,color:'var(--warn-ink)',fontWeight:700}}>SPLIT</span>}
                           </span>
                           <span style={{fontSize:14,fontWeight:700,color:row.isTie?'var(--warn-ink)':'var(--money-pos)'}}>{f$(row.amt)}{row.isTie?' ea':''}</span>
@@ -4389,7 +4614,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                 {/* Skins breakdown */}
                 {parseFloat(sv||0)>0&&(
                   <div style={{marginBottom:12}}>
-                    <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div>
+                    <div className="brk-h" style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.08em'}}>Skins</div>
                     {[
                       {l:'Skins pot (gross)',v:f$(sv),c:'var(--ink-50)'},
                       {l:'Tournament fund (−$'+pc+'/player)',v:'−'+f$(pc),c:'var(--warn-ink)'},
@@ -4405,7 +4630,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
                       const t=dayTeams.find(t=>String(t.id)===String(tid));
                       return t?(
                         <div key={tid} style={{display:'flex',justifyContent:'space-between',padding:'5px 0 5px 12px',borderBottom:'1px solid var(--hairline-soft)'}}>
-                          <span style={{fontSize:12,color:'var(--ink-70)'}}>{t.name} — {c} skin{parseInt(c)!==1?'s':''}</span>
+                          <span style={{fontSize:12,color:'var(--ink-70)'}}><span className="brk-team">{t.name}</span> — {c} skin{parseInt(c)!==1?'s':''}</span>
                           <span style={{fontSize:13,fontWeight:700,color:'var(--money-pos)'}}>{f$(parseInt(c)*flooredPerSk)}</span>
                         </div>
                       ):null;
@@ -4447,7 +4672,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
               {/* Winnings summary */}
               {winningSummary.length > 0 && (
-                <div style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:12,overflow:'hidden',marginBottom:12}}>
+                <div className="sc-side wn-sum" style={{background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:12,overflow:'hidden',marginBottom:12}}>
                   <div style={{background:'var(--brand)',padding:'8px 14px',display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:15}}>🏆</span>
                     <span style={{fontSize:11,fontWeight:700,color:'#fff',textTransform:'uppercase',letterSpacing:'0.07em'}}>Winnings Summary</span>
@@ -5014,9 +5239,10 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
   let teamOddsChips=null; try{ if(published&&!indMode&&oddsRates) teamOddsChips=oddsForTeams(currentDisplay,oddsRates); }catch(e){}
   const hcps = currentDisplay.map(t=>t.totalHcp||0);
   const spread = hcps.length ? Math.max(...hcps)-Math.min(...hcps) : 0;
+  const isDeskT=(typeof window!=='undefined')&&!!(window.matchMedia&&window.matchMedia('(min-width:1100px)').matches);
 
   return (
-    <main className="content">
+    <main className={"content"+(isDeskT&&published&&!editTeams&&!manualMode?" teams-grid":"")}>
 
 
       <div className="page-eyebrow">{indMode?"Groups · tee-off order":"Teams"}</div>
@@ -5886,7 +6112,7 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
   }
 
   return (
-    <main className="content">
+    <main className="content hist-main">
       <div className="page-eyebrow">Past rounds</div>
       <div className="page-title">History</div>
       <div className="page-sub">
@@ -5896,7 +6122,7 @@ function HistoryViewV2({ history, historyTrash, read, isAdmin, write, del, onSof
         }
       </div>
 
-      <div style={{padding:'0 12px'}}>
+      <div className="hist-list" style={{padding:'0 12px'}}>
 
         {rounds.length === 0 && (
           <div style={{textAlign:'center',padding:'48px 20px',color:'var(--ink-40)'}}>
@@ -6247,14 +6473,14 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
   const GOLD='#b8891a', GOLD_SOFT='rgba(184,137,26,0.12)', GOLD_BORDER='rgba(184,137,26,0.45)', DARK='#0f2f22', DARK2='#174332';
   if(!doc)return null;
   return (
-    <div style={{padding:'14px 16px 0'}}>
-      <div style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'18px',marginBottom:14,textAlign:'center',boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
+    <div className="aw-list" style={{padding:'14px 16px 0'}}>
+      <div className="aw-hero" style={{background:'linear-gradient(135deg,'+DARK+' 0%,'+DARK2+' 100%)',borderRadius:16,padding:'18px',marginBottom:14,textAlign:'center',boxShadow:'0 8px 24px rgba(15,47,34,0.28)'}}>
         <div style={{fontSize:30}}>🏆</div>
         <div style={{fontSize:11,fontWeight:800,color:'rgba(184,137,26,0.95)',textTransform:'uppercase',letterSpacing:'0.12em',marginTop:4}}>Clark Golf Group</div>
         <div style={{fontSize:21,fontWeight:900,color:'#fff',lineHeight:1.15,marginTop:2}}>{/^season\b/i.test(String(y))?(y+' Awards'):(y+' Season Awards')}</div>
       </div>
       {years.length>1&&(
-        <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+        <div className="aw-years" style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
           {years.map(v=>(<button key={v} onClick={()=>setYear(v)} style={{padding:'6px 12px',borderRadius:9,border:'1.5px solid',borderColor:y===v?GOLD:'var(--hairline)',background:y===v?GOLD_SOFT:'transparent',color:y===v?GOLD:'var(--ink-40)',fontWeight:800,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{v}</button>))}
         </div>
       )}
@@ -6265,7 +6491,7 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
         const names=String(it.winner||'').split(' & ').map(x=>x.trim()).filter(Boolean);
         const tap=(nm)=>(rect)=>{const a=avatarFor?avatarFor(nm):null;onShowAvatar&&onShowAvatar({rect,name:nm,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme});};
         return(
-        <div key={ix} style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderLeft:'3px solid '+GOLD,borderRadius:14,padding:'14px 15px',marginBottom:11}}>
+        <div key={ix} className="aw-card" style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderLeft:'3px solid '+GOLD,borderRadius:14,padding:'14px 15px',marginBottom:11}}>
           <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
             <span style={{fontSize:21}}>{it.icon}</span>
             <span style={{fontSize:12,fontWeight:900,color:'var(--ink)',textTransform:'uppercase',letterSpacing:'0.05em'}}>{it.title}</span>
@@ -6275,11 +6501,11 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
               {names.map((nm,ni)=>{const a=avatarFor?avatarFor(nm):null;return <PlayerAvatar key={ni} name={nm} logo={a&&a.logo} size={names.length>1?42:52} title={nm} onClick={tap(nm)}/>;})}
             </div>
             <div style={{flex:1,minWidth:0}}>
-              <div onClick={()=>{if(names.length===1){const a=avatarFor?avatarFor(names[0]):null;onShowAvatar&&onShowAvatar({name:names[0],logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme});}}} style={{fontSize:names.length>1?18:21,fontWeight:900,color:GOLD,letterSpacing:'-0.01em',lineHeight:1.15,cursor:names.length===1?'pointer':'default'}}>{it.winner}</div>
+              <div onClick={()=>{if(names.length===1){const a=avatarFor?avatarFor(names[0]):null;onShowAvatar&&onShowAvatar({name:names[0],logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme});}}} className="aw-win" style={{fontSize:names.length>1?18:21,fontWeight:900,color:GOLD,letterSpacing:'-0.01em',lineHeight:1.15,cursor:names.length===1?'pointer':'default'}}>{it.winner}</div>
               {it.detail&&<div style={{fontSize:12.5,fontWeight:700,color:'var(--ink-40)',marginTop:2}}>{it.detail}</div>}
             </div>
           </div>
-          {it.blurb&&<div style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.6,marginTop:9}}>{it.blurb}</div>}
+          {it.blurb&&<div className="aw-blurb" style={{fontSize:13,color:'var(--ink-60)',lineHeight:1.6,marginTop:9}}>{it.blurb}</div>}
           {safeArray(it.runnersUp).length>0&&(
             <div style={{marginTop:10,paddingTop:9,borderTop:'1px solid var(--hairline-soft)'}}>
               {safeArray(it.runnersUp).map((r2,ri)=>{
@@ -6490,7 +6716,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   }
   if(!cfg.name&&!cfg.date1)return <div style={{padding:'30px 16px',textAlign:'center',color:'var(--ink-40)',fontSize:13}}>No tournament configured yet.</div>;
   return (
-    <div>
+    <div className="tourney-main">
       <div style={{background:DARK,borderRadius:(sub==='board'&&(live||isAdmin))?'16px 16px 0 0':16,padding:'15px 18px',marginBottom:(sub==='board'&&(live||isAdmin))?0:14,display:'flex',alignItems:'center',gap:13}}>
         <div style={{width:42,height:42,borderRadius:12,background:'rgba(184,137,26,0.18)',border:'1px solid rgba(184,137,26,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:21,flexShrink:0}}>&#127942;</div>
         <div style={{flex:1,minWidth:0}}>
@@ -6505,7 +6731,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
         )}
       </div>
       {sub==='board'&&(live||isAdmin)&&(
-        <div style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
+        <div className="tb-split" style={{background:'var(--surface)',border:'1px solid var(--hairline)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:14}}>
           {[['Projected',fundTotal+payinsDue,'when everyone opted in pays',true]].map(([l,v,note,hot],i)=>(
             <React.Fragment key={l}>
               {i>0&&<div style={{width:1,alignSelf:'stretch',background:'var(--hairline)'}}></div>}
@@ -8115,7 +8341,7 @@ function AttendanceViewV2({ avatarFor, onShowAvatar, isAdmin, currentUser, fullR
     );
   }
   return(
-    <main className="content">
+    <main className="content att-main">
       <div className="page-eyebrow">{seasonTitle||'Season'}</div>
       <div className="page-title">Attendance</div>
       <div style={{padding:'0 12px'}}>
@@ -8445,7 +8671,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
   const display=showMe&&meName?sorted.filter(p=>p.name===meName):sorted;
 
   return(
-    <main className="content">
+    <main className="content stand-main">
       <div className="page-eyebrow">{seasonTitle||'Season'}</div>
       <div className="page-title">Standings</div>
       <div className="page-sub"><strong>{rounds.length}</strong> round{rounds.length!==1?'s':''} · <strong>{leaderboard.length}</strong> players</div>
@@ -8455,7 +8681,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
         {/* Summary cards */}
         {/* Four highlights as compact cards: label, then name and number on one
             line. The small print moves into the tooltip — the table below has it. */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
+        <div className="lb-sum" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
           {[
             {icon:'🏆',label:'Top Net Winner',name:topNet?.name,val:((topNet?.net||0)>=0?'+':'−')+f$(Math.abs(topNet?.net||0)),desc:'after '+f$(topNet?.paid||0)+' paid in',bg:'var(--brand-soft)',border:'var(--brand-border)',col:'var(--brand)'},
             {icon:'💰',label:'Most $ Won',name:topGross?.name,val:f$(topGross?.won||0),desc:topGross?.rounds+' rounds',bg:'var(--info-soft)',border:'var(--info-border)',col:'var(--info)'},
@@ -8483,7 +8709,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
           </div>
 
           {/* Column headers */}
-          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',padding:'6px 12px',background:'var(--surface-sunken)',borderTop:'1px solid var(--hairline)',borderBottom:'1px solid var(--hairline)',gap:4}}>
+          <div className="lb-h" style={{display:'grid',gridTemplateColumns:'28px 1fr 28px 52px 52px 56px',padding:'6px 12px',background:'var(--surface-sunken)',borderTop:'1px solid var(--hairline)',borderBottom:'1px solid var(--hairline)',gap:4}}>
             {['#','Player','Rds','Paid','Won','Net'].map((h,i)=>(
               <div key={h} style={{fontSize:11,fontWeight:700,color:i===4&&lbSort==='gross'?'var(--info)':i===5&&lbSort==='net'?'var(--brand)':'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:i>2?'right':'left'}}>{h}</div>
             ))}
@@ -8498,7 +8724,7 @@ function StandingsViewV2({ history, currentUser, seasonTitle }){
             return(
               <div key={p.name} style={{borderBottom:'1px solid var(--hairline-soft)',background:isMe?'rgba(184,101,31,0.04)':'transparent'}}>
                 <div
-                  style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) 24px 46px 46px 50px',alignItems:'center',padding:'10px 10px',gap:3,cursor:breakdown.length?'pointer':'default'}}
+                  className="lb-r" style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) 24px 46px 46px 50px',alignItems:'center',padding:'10px 10px',gap:3,cursor:breakdown.length?'pointer':'default'}}
                   onClick={()=>breakdown.length&&setExpandedPlayer(isExpanded?null:p.name)}>
                   {/* Rank badge */}
                   <div style={{width:22,height:22,borderRadius:'50%',
@@ -9356,7 +9582,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   const showWeekSec = viewMode==='week';
   const showAdminSec = viewMode==='admin';
   return(
-    <main className="content">
+    <main className="content admin-main">
       <div className="page-eyebrow" style={{marginTop:10}}>{viewMode==='week'?'Run the week':'Admin only'}</div>
       <div className="page-title" style={{marginBottom:14}}>{viewMode==='week'?'Manage Week':'Admin Panel'}</div>
       {showAdminSec&&(()=>{
@@ -9365,13 +9591,8 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
         const doorOn=isMasterHere||(!!myEmail&&Object.values(portalUsersReg||{}).some(u=>u&&u.appDoor===true&&String(u.email||'').toLowerCase().trim()===myEmail));
         if(!doorOn)return null;   // per person: their Portal Users row must have App door ticked
         return (
-          <div style={{margin:'0 16px 14px',padding:'13px 15px',borderRadius:14,background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',display:'flex',alignItems:'center',gap:12}}>
-            <span style={{fontSize:22}}>🛠️</span>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13.5,fontWeight:800,color:'var(--brand)'}}>Admin Portal</div>
-              <div style={{fontSize:11.5,color:'var(--ink-60)',marginTop:1}}>Opens in this window — one sign-in per device, then it just works. There’s a ← Back to App button up top.</div>
-            </div>
-            <a href={"/portal.html?v="+encodeURIComponent(APP_BUILD)} className="btn btn-sm" style={{fontWeight:800,textDecoration:'none',flexShrink:0}}>Open ↗</a>
+          <div style={{margin:'-8px 16px 12px',display:'flex',justifyContent:'flex-end'}}>
+            <a href={"/portal.html?v="+encodeURIComponent(APP_BUILD)} className="btn btn-ghost btn-sm" style={{fontWeight:700,textDecoration:'none'}} title="Opens in this window — Back to App button up top">🛠️ Admin Portal ↗</a>
           </div>
         );
       })()}
@@ -9830,47 +10051,6 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
           </div>
         )}
         <div style={{margin:'22px 0 18px',borderTop:'2px solid var(--hairline)'}}/>
-        {/* ── APP SETTINGS (mirror of portal → Configuration/App Settings) ── */}
-        <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
-          <button onClick={()=>setShowAppSettings(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'12px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-            <span style={{fontSize:14}}>⚙️</span>
-            <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>App Settings <span style={{fontWeight:500,color:'var(--ink-40)',fontSize:11}}>· sign-up rules &amp; guests</span></span>
-            <span style={{color:'var(--ink-40)',fontSize:11}}>{showAppSettings?'▲':'▼'}</span>
-          </button>
-          {showAppSettings&&(
-            <div style={{borderTop:'1px solid var(--hairline)',padding:'6px 16px 14px'}}>
-              {[
-                {key:'allowGuests',label:'Allow guests',sub:'Members can bring guests to a day'},
-                {key:'allowPairings',label:'Allow guest pairing requests',sub:'"Pair with me" option on guest sign-ups'},
-                {key:'allowMatches',label:'Allow match play requests',sub:'Head-to-head match sign-ups'},
-                {key:'allowTeePrefs',label:'Allow tee time preferences',sub:'First tee / last tee requests'},
-              ].map(({key,label,sub})=>{
-                const on=(settings?.gameRules?.signupRules?.[key])!==false;
-                return(
-                  <div key={key} style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
-                    <div onClick={()=>write('settings/gameRules/signupRules/'+key,!on)} style={{width:36,height:20,borderRadius:20,background:on?'var(--brand)':'var(--hairline)',position:'relative',cursor:'pointer',flexShrink:0,transition:'background 0.2s'}}>
-                      <div style={{position:'absolute',top:2,left:on?18:2,width:22,height:22,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:600,color:on?'var(--ink)':'var(--ink-40)'}}>{label}</div>
-                      <div style={{fontSize:11,color:'var(--ink-40)'}}>{sub}</div>
-                    </div>
-                  </div>
-                );
-              })}
-              <div style={{display:'flex',alignItems:'center',gap:11,padding:'10px 0 2px'}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>Max guests per member</div>
-                  <div style={{fontSize:11,color:'var(--ink-40)'}}>Per day, when guests are allowed</div>
-                </div>
-                <select className="form-input" style={{maxWidth:80}} value={settings?.maxGuests??3} onChange={e=>write('settings/maxGuests',parseInt(e.target.value))}>
-                  {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-              <div style={{fontSize:11,color:'var(--ink-40)',marginTop:8,fontStyle:'italic'}}>Changes apply instantly. Game mode templates are still managed in the Admin Portal.</div>
-            </div>
-          )}
-        </div>
         {/* ── 5. ROSTER ── */}
         <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
           <SectionHeader
@@ -10110,6 +10290,47 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
         </div>
 
 
+        {/* ── APP SETTINGS (mirror of portal → Configuration/App Settings) ── */}
+        <div className="day-card" style={{marginBottom:10,overflow:'hidden'}}>
+          <button onClick={()=>setShowAppSettings(s=>!s)} style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'12px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+            <span style={{fontSize:14}}>⚙️</span>
+            <span style={{flex:1,fontSize:13,fontWeight:700,color:'var(--ink)'}}>App Settings <span style={{fontWeight:500,color:'var(--ink-40)',fontSize:11}}>· sign-up rules &amp; guests</span></span>
+            <span style={{color:'var(--ink-40)',fontSize:11}}>{showAppSettings?'▲':'▼'}</span>
+          </button>
+          {showAppSettings&&(
+            <div style={{borderTop:'1px solid var(--hairline)',padding:'6px 16px 14px'}}>
+              {[
+                {key:'allowGuests',label:'Allow guests',sub:'Members can bring guests to a day'},
+                {key:'allowPairings',label:'Allow guest pairing requests',sub:'"Pair with me" option on guest sign-ups'},
+                {key:'allowMatches',label:'Allow match play requests',sub:'Head-to-head match sign-ups'},
+                {key:'allowTeePrefs',label:'Allow tee time preferences',sub:'First tee / last tee requests'},
+              ].map(({key,label,sub})=>{
+                const on=(settings?.gameRules?.signupRules?.[key])!==false;
+                return(
+                  <div key={key} style={{display:'flex',alignItems:'center',gap:11,padding:'9px 0',borderBottom:'1px solid var(--hairline-soft)'}}>
+                    <div onClick={()=>write('settings/gameRules/signupRules/'+key,!on)} style={{width:36,height:20,borderRadius:20,background:on?'var(--brand)':'var(--hairline)',position:'relative',cursor:'pointer',flexShrink:0,transition:'background 0.2s'}}>
+                      <div style={{position:'absolute',top:2,left:on?18:2,width:22,height:22,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600,color:on?'var(--ink)':'var(--ink-40)'}}>{label}</div>
+                      <div style={{fontSize:11,color:'var(--ink-40)'}}>{sub}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{display:'flex',alignItems:'center',gap:11,padding:'10px 0 2px'}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>Max guests per member</div>
+                  <div style={{fontSize:11,color:'var(--ink-40)'}}>Per day, when guests are allowed</div>
+                </div>
+                <select className="form-input" style={{maxWidth:80}} value={settings?.maxGuests??3} onChange={e=>write('settings/maxGuests',parseInt(e.target.value))}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div style={{fontSize:11,color:'var(--ink-40)',marginTop:8,fontStyle:'italic'}}>Changes apply instantly. Game mode templates are still managed in the Admin Portal.</div>
+            </div>
+          )}
+        </div>
         {/* ── PUSH SUBSCRIBERS ── */}
         {(()=>{
           const byName={};
@@ -10304,6 +10525,13 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
         )}
 
         {/* A round is missing from History? — master & super admins (this tab is admin-only) */}
+        {isAdmin && (
+          <div style={{display:'flex',alignItems:'center',gap:10,margin:'28px 16px 14px'}}>
+            <div style={{flex:1,height:1,background:'var(--hairline)'}}/>
+            <span style={{fontSize:10.5,fontWeight:800,letterSpacing:'0.08em',color:'var(--ink-40)',textTransform:'uppercase'}}>End-of-week controls</span>
+            <div style={{flex:1,height:1,background:'var(--hairline)'}}/>
+          </div>
+        )}
         {isAdmin && <MissingRoundCard week={week} fullRoster={fullRoster} read={read} update={update} currentUser={currentUser}/>}
 
         {/* ── 6. END WEEK (bottom) ── */}
@@ -11049,7 +11277,7 @@ function StatsViewV2({ week, history, read, rosterPins, rosterAdmins, activityLo
   const statCard=(val,label,color)=>(<div style={{background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:10,padding:'10px',textAlign:'center'}}><div style={{fontSize:26,fontWeight:800,color:color||'var(--ink)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</div><div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:3}}>{label}</div></div>);
 
   return(
-    <main className="content">
+    <main className="content stats-main">
       {/* (A "‹ Admin" back bar used to sit here, from when Stats was opened from
           inside the Admin tab. Stats has its own tab now, so it was removed.) */}
       <div className="page-eyebrow">{publicMode?'Clark Golf':'Master Admin'}</div>
@@ -12648,6 +12876,13 @@ function App(){
   // ── Clubhouse book: load season form once, only when someone looks at teams.
   //     Archived seasons are ~125KB total; merged with the live season and
   //     reduced to per-player $/round. Read-only, cached for the session. ──
+  // Week desktop rail: the Lately card needs the (deferred) activity log.
+  // Gated on `ready` — a mount-time call would hit the no-db fallback and the
+  // deferred guard would never retry.
+  useEffect(()=>{
+    if(!ready)return;
+    try{ if(tab==='home')loadDeferred('activityLog'); }catch(e){}
+  },[tab,ready]);// eslint-disable-line
   useEffect(()=>{
     if(oddsRates)return;
     if(!(tab==='teams'||tab==='tournament'))return;
@@ -13287,6 +13522,9 @@ function App(){
         )}
       </header>
 
+      {/* side-rail: display:contents below 1100px (zero layout effect on phones
+          and the existing 900px wide mode); becomes the fixed left rail on laptops. */}
+      <div className="side-rail">
       {/* Row 1: always Week · Teams · Score · History */}
       <nav className={'tabs'+(ADMIN_TABS.length>0?' tabs-six':'')}>
         <div className="tabs-inner">
@@ -13328,6 +13566,7 @@ function App(){
         </div>
       </nav>
       )}
+      </div>{/* /side-rail */}
 
       {/* Active announcement (banner or modal) */}
       {(()=>{
@@ -13374,7 +13613,7 @@ function App(){
         </div>
       )}
       {tab === 'home' && !weekLoaded && <WeekSkeleton/>}
-      {tab === 'home' && weekLoaded && <WeekViewV2 playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
+      {tab === 'home' && weekLoaded && <WeekViewV2 activityLog={activityLog} playerCards={playerCards} onOpenProfile={openMyProfile} onShowAvatar={showAvatar} cancelledDays={cancelledDays} rosterTargets={rosterTargets} currentUser={currentUser} week={activeWeek} isAdmin={isAdmin} matchPairings={matchPairings} fullRoster={activeFullRoster} settings={settings} write={safeWrite} push={safePush} del={safeDel} onSwitchTab={setTab} onLogRemove={(key,rs)=>{logActivity('remove_signup',{name:rs.name,day:rs.day,by:currentUser?currentUser.name:'member',byRole:currentUser?currentUser.role:'unknown'});}} onLogSignup={(entry)=>{logActivity('signup',{name:entry.name,day:entry.day,isGuest:entry.isGuest||false,guestOf:entry.guestOf||null,by:currentUser?currentUser.name:'player',byRole:currentUser?currentUser.role:'unknown'});}} onLogMatch={(mp)=>{logActivity('match_request',{name:mp.requester,partner:mp.partner,day:mp.day,by:mp.requester,byRole:currentUser?currentUser.role:'member'});}} onAddToWaitlist={(dayName)=>{if(!currentUser)return;// currentUser only carries {name,id,role,ini} — it has never had a handicap or
   // tee on it, so the old `currentUser.hcp||0` put everyone on the waitlist at 0
   // off the Whites. Look the man up in the roster, same as a normal sign-up.
   const me=safeArray(activeFullRoster).find(pl=>pl&&String(pl.id)===String(currentUser.id));
@@ -13497,7 +13736,7 @@ extraStyles.textContent = `
 .admin-note-text{font-size:12.5px;color:var(--ink);line-height:1.5;font-weight:400}
 
 /* Day card wrapper for unified top zone */
-.day-card{background:var(--surface);margin:0 12px 24px;border:2px solid #D8D3C5;border-radius:14px;overflow:hidden;box-shadow:0 2px 4px rgba(15,15,15,0.06),0 8px 20px rgba(15,15,15,0.05)}
+.day-card{background:var(--surface);margin:0 12px 16px;border:1px solid var(--hairline);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,15,15,0.04),0 4px 12px rgba(15,15,15,0.04)}
 .day-card-top{background:var(--surface);border-bottom:2px solid #D8D3C5}
 .day-card-head{display:flex;align-items:center;padding:18px 18px 16px;gap:14px;background:var(--surface);cursor:pointer;user-select:none}
 .day-card-head:hover{background:#FAFAF7}

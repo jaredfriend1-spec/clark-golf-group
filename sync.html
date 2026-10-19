@@ -1,0 +1,41 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clark Golf — Seed Test Data</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>body{font-family:system-ui,sans-serif;background:#122820;color:#EAF0ED;max-width:720px;margin:40px auto;padding:0 20px}
+h1{font-size:22px}.card{background:#1C332A;border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:18px 20px;margin:14px 0}
+input{padding:10px 12px;border-radius:9px;border:1.5px solid rgba(255,255,255,0.25);background:#14271F;color:#fff;font-size:15px;font-weight:700}
+button{padding:11px 18px;border-radius:10px;border:none;background:#10b981;color:#06130c;font-weight:800;font-size:14px;cursor:pointer}
+button:disabled{opacity:0.4}#log{font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap;color:#9fd8bd;max-height:360px;overflow:auto}</style></head><body>
+<h1>Seed the TEST database from LIVE</h1>
+<div class="card">Copies a snapshot of the <b>live</b> database into <b>clark-group-test</b> so the modern-ui preview can be used freely — teams, scoring, anything — without touching live data.<br><br>
+Reads live (never writes it). <b>Overwrites the test database.</b> Skips the heavyweight nodes (dayBackup, board file payloads).<br><br>
+Type <b>COPY</b> and go: <input id="c" placeholder="COPY" size="8"> <button id="go" onclick="run()">Copy live → test</button></div>
+<div class="card"><div id="log">ready.</div></div>
+<script>
+const PROD={apiKey:"AIzaSyBrYlN16zSJQ6pRRQBhBn4YLA7FzkmqJfg",databaseURL:"https://clark-group-dd15e-default-rtdb.firebaseio.com",projectId:"clark-group-dd15e"};
+const TEST={apiKey:"AIzaSyCQHKnl22opc8HIaCHRM34kHIgyVDE65Yk",databaseURL:"https://clark-group-test-default-rtdb.firebaseio.com",projectId:"clark-group-test"};
+const NODES=["settings","week","history","historyTrash","attendance","seasons","tournament","awards","announcements","announcementDismissals","activityLog","extraPlayers","rosterAdmins","rosterPins","rosterEmails","rosterHcp","rosterTee","rosterTargets","rosterEdits","rosterDeleted","playerCards","userMeta","joinRequests","matchPairings","doNotPair","cancelledDays","board/messages","board/config","emailEvents"];
+const L=m=>{const e=document.getElementById('log');e.textContent+="\n"+m;e.scrollTop=1e9;};
+async function run(){
+  if(document.getElementById('c').value.trim()!=='COPY'){L('type COPY first.');return;}
+  document.getElementById('go').disabled=true;
+  try{
+    const src=firebase.initializeApp(PROD,'src').database();
+    const dst=firebase.initializeApp(TEST,'dst').database();
+    let total=0;
+    for(const n of NODES){
+      try{
+        L('reading '+n+' …');
+        const snap=await src.ref(n).once('value');
+        const v=snap.val();
+        const size=v==null?0:JSON.stringify(v).length;
+        await dst.ref(n).set(v==null?null:v);
+        total+=size;
+        L('  ✓ '+n+' ('+Math.round(size/1024)+' KB)');
+      }catch(e){L('  ✗ '+n+': '+e.message);}
+    }
+    L('\nDONE — '+Math.round(total/1024)+' KB copied. The preview now runs on a copy of today\'s live data.');
+  }catch(e){L('FAILED: '+e.message);}
+}
+</script></body></html>
