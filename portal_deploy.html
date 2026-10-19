@@ -258,7 +258,11 @@ select.inp option:checked{background:#10b981;color:#fff}
 
 /* ── Desktop concept test (Oct 19): bigger text on laptops, lighter frame.
      zoom scales every inline style at once; phones (<900px) are untouched. ── */
-@media(min-width:900px){ html{zoom:1.15} .mob-back{display:none} }
+@media(min-width:900px){ html{zoom:1.15} .mob-back{display:none}
+  /* Pin the frame: the window never scrolls — only .main does. Sidebar and
+     topbar stay put, so the active tab is always in sight. 100vh is divided
+     by the zoom factor because zoom inflates rendered lengths. */
+  .shell{height:calc(100vh/1.15);min-height:0;overflow:hidden} }
 </style>
 </head>
 <body>
