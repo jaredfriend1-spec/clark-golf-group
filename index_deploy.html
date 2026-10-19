@@ -346,7 +346,7 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   main.content.sc-desk{max-width:1400px;margin-left:auto;margin-right:auto}
   main.content.sc-desk .sc-body{position:relative}
   main.content.sc-desk .sc-body::after{content:"";display:block;clear:both}
-  main.content.sc-desk .sc-body>.sc-side{float:right;clear:right;width:372px}
+  main.content.sc-desk .sc-body>.sc-side{float:right;clear:right;width:372px;margin-left:0!important;margin-right:0!important}
   main.content.sc-desk .sc-body>*:not(.sc-side){margin-right:404px}
   /* The phone nav rows are restyled into the tall side rail up here, so the JS
      measurement of nav.tabs heights (--tabs-h, the sticky-header offset) comes
@@ -453,6 +453,8 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 .tb-split>div:first-child>div:nth-child(2){font-size:18px!important;font-weight:700!important}
 .tb-split>div:first-child>div:nth-child(3){color:var(--ink-40)!important;font-weight:400!important}
 .tb-split span{font-weight:700!important;font-size:12.5px!important;border-width:1px!important;padding:5px 11px!important}
+.wn-sum>div:first-child{padding:6px 12px!important}
+.wn-sum>div:first-child span{font-size:10.5px!important}
 /* ═══════════════ MOTION ═══════════════
    One rule governs everything here: nothing is REVEALED by an animation.
    Every element's resting state is the visible one; an animation only moves it
@@ -3227,6 +3229,27 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
         </div>
       )}
 
+      {/* Lately — phone/tablet gets the same week-only feed the desktop rail shows (below events) */}
+      {!isDesk&&(()=>{
+        const actives=safeArray(week?.activeDays);
+        const cutoff=(()=>{try{const ds=Object.values(week?.dates||{}).filter(Boolean).sort();if(ds.length)return new Date(ds[0]+'T12:00').getTime()-6*86400000;}catch(e){}return Date.now()-7*86400000;})();
+        const log=safeArray(activityLog).filter(e=>e&&(e.ts||0)>=cutoff&&['signup','remove_signup','teams_published','match_request','waitlist_join','waitlist_promote'].indexOf(e.action)>=0&&(!e.day||actives.indexOf(e.day)>=0)).slice(0,6);
+        if(!log.length)return null;
+        const fmtT=ts=>{try{const dt=new Date(ts);return dt.toLocaleDateString([],{weekday:'short'})+' '+dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase().replace(' ','');}catch(e){return'';}};
+        const line=e=>e.action==='signup'?((e.name||'Someone')+' signed up'+(e.day?(' · '+e.day):'')):e.action==='remove_signup'?((e.name||'Someone')+' dropped'+(e.day?(' · '+e.day):'')):e.action==='teams_published'?('Teams published'+(e.day?(' · '+e.day):'')):e.action==='match_request'?((e.name||'Someone')+' asked to play with '+(e.partner||'a partner')):e.action==='waitlist_join'?((e.name||'Someone')+' joined the waitlist'):((e.name||'Someone')+' moved in from the waitlist');
+        return (
+          <div className="day-card" style={{padding:'13px 15px'}}>
+            <div style={{fontSize:11.5,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink)',marginBottom:8}}>🔔 Lately</div>
+            {log.map((e,i2)=>(
+              <div key={i2} style={{display:'flex',alignItems:'center',gap:9,padding:'5px 0',borderBottom:i2<log.length-1?'1px solid var(--hairline-soft, rgba(0,0,0,0.05))':'none'}}>
+                <span style={{fontSize:10.5,fontWeight:700,color:'var(--ink-50)',background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:14,padding:'2px 8px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{fmtT(e.ts)}</span>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{line(e)}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {signupModal&&!window.__cgPreview && (
         <SignupModal
           day={signupModal.day}
@@ -4301,12 +4324,10 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
             </button>
             {showPot && (
               <div style={{padding:'0 14px 14px',borderTop:'1px solid var(--hairline)'}}>
-                <div style={{fontSize:12,color:'var(--ink-50)',marginBottom:6,marginTop:10,display:'flex',justifyContent:'space-between'}}>
-                  <span>$25 × {pc} = {f$(pot.gross)} collected</span>
-                  <span style={{color:'var(--money-neg)',fontWeight:700}}>Tournament fund: −${pot.fund}</span>
-                </div>
-                <div style={{fontSize:12,color:'var(--money-pos)',fontWeight:700,marginBottom:12}}>
-                  {f$(pot.total)} available (Front {f$(pot.front)} + Back {f$(pot.back)} + Overall {f$(pot.overall)} + Skins {f$(pot.skins-pot.fund)})
+                <div style={{fontSize:12,color:'var(--ink-50)',margin:'10px 0 12px',display:'flex',flexWrap:'wrap',columnGap:10,rowGap:3}}>
+                  <span>{f$(pot.gross)} collected</span>
+                  <span style={{color:'var(--money-neg)',fontWeight:600}}>−${pot.fund} fund</span>
+                  <span style={{color:'var(--money-pos)',fontWeight:600}}>{f$(pot.total)} payable</span>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
                   {[['Front 9',fv,setFv,pot.front],['Back 9',bv,setBv,pot.back],['Overall',ov,setOv,pot.overall],['Skins',sv,setSv,pot.skins]].map(([l,v,sv2,def])=>(
@@ -4647,7 +4668,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
 
               {/* Winnings summary */}
               {winningSummary.length > 0 && (
-                <div className="sc-side" style={{background:'var(--brand-soft)',border:'1.5px solid var(--brand-border)',borderRadius:12,overflow:'hidden',marginBottom:12}}>
+                <div className="sc-side wn-sum" style={{background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:12,overflow:'hidden',marginBottom:12}}>
                   <div style={{background:'var(--brand)',padding:'8px 14px',display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:15}}>🏆</span>
                     <span style={{fontSize:11,fontWeight:700,color:'#fff',textTransform:'uppercase',letterSpacing:'0.07em'}}>Winnings Summary</span>
@@ -12854,7 +12875,7 @@ function App(){
   // deferred guard would never retry.
   useEffect(()=>{
     if(!ready)return;
-    try{ if(tab==='home'&&window.matchMedia&&window.matchMedia('(min-width:1100px)').matches)loadDeferred('activityLog'); }catch(e){}
+    try{ if(tab==='home')loadDeferred('activityLog'); }catch(e){}
   },[tab,ready]);// eslint-disable-line
   useEffect(()=>{
     if(oddsRates)return;
