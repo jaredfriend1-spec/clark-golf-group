@@ -2820,7 +2820,11 @@ function AwardsTab({user}){
   const allItems=()=>{
     const items={};
     AWARDS.filter(included).filter(a=>winnerOf(a)).forEach(a=>{
-      const ru=a.board.filter(b=>b.name!==winnerOf(a)).slice(0,placesOf(a)-1).map(b=>({name:b.name,detail:b.detail||""}));
+      // Oct 19: a hand-edited winner of "Bob Latos." (stray period) failed this
+      // exact-match filter, so the winner showed again as 2nd place and the real
+      // 3rd fell off. Compare loosely: case, spaces and trailing punctuation ignored.
+      const sameName=(x,y)=>String(x||"").toLowerCase().replace(/[.\s]+/g," ").trim().replace(/[.,!]+$/,"")===String(y||"").toLowerCase().replace(/[.\s]+/g," ").trim().replace(/[.,!]+$/,"");
+      const ru=a.board.filter(b=>!sameName(b.name,winnerOf(a))).slice(0,placesOf(a)-1).map(b=>({name:b.name,detail:b.detail||""}));
       items[a.id]={order:orderOf(a),icon:val(a.id,"icon",a.icon),title:val(a.id,"title",a.title),blurb:val(a.id,"blurb",a.blurb),winner:winnerOf(a),detail:detailOf(a),...(ru.length?{runnersUp:ru}:{})};
     });
     customs.forEach((c,i2)=>{if(c.title)items["custom"+i2]={order:1000+i2,icon:c.icon||"🏅",title:c.title,blurb:c.blurb||"",winner:c.winner||"",detail:c.detail||""};});
