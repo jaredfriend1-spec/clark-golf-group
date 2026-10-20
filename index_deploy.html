@@ -10388,18 +10388,18 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                     <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
                       const s=withEm.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+withEm.length+' emails — paste into Gmail.');setTimeout(()=>setAddPlayerToast(''),3000);});
-                    }}>📋 Copy all ({withEm.length})</button>
+                    }} title="Every member with an email (MCC staff left out)">📋 Copy emails · all members ({withEm.length})</button>
                     <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
                       const reg=withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id]));
                       const s=reg.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+reg.length+' registered emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
-                    }}>📱 Registered only ({withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id])).length})</button>
-                    <a href={ROSTER_SHEET_URL} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{fontWeight:700,textDecoration:'none'}}>📄 Roster sheet ↗</a>
-                    {staffEm.length>0&&<button className="btn btn-sm btn-secondary" style={{fontWeight:700}} onClick={()=>{
+                    }} title="Only members who have a PIN / signed into the app (MCC staff left out)">📱 Copy emails · registered ({withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id])).length})</button>
+                    <button className="btn btn-sm btn-secondary" style={{fontWeight:700}} disabled={!staffEm.length} title={staffEm.length?'Only MCC staff':'Nobody is marked MCC staff yet'} onClick={()=>{
                       const s=staffEm.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+staffEm.length+' staff emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
-                    }}>👔 Staff ({staffEm.length})</button>}
-                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{staffEm.length>0?staffEm.length+' staff left out of Copy all · ':''}{liveRoster.length-withEmAll.length>0?(liveRoster.length-withEmAll.length)+' of '+liveRoster.length+' have no email — see the portal Roster tab.':'Every player has an email ✓'}</span>
+                    }}>👔 Copy emails · staff ({staffEm.length})</button>
+                    <a href={ROSTER_SHEET_URL} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{fontWeight:700,textDecoration:'none'}}>📄 Roster sheet ↗</a>
+                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{staffEm.length>0?staffEm.length+' staff left out of the member copies · ':''}{liveRoster.length-withEmAll.length>0?(liveRoster.length-withEmAll.length)+' of '+liveRoster.length+' have no email — see the portal Roster tab.':'Every player has an email ✓'}</span>
                   </div>
                 );
               })()}

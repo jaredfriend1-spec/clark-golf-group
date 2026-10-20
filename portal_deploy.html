@@ -1707,15 +1707,15 @@ function RosterTab(){
 
             <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",margin:"0 0 12px"}}>
 
-              <button className="btn btn-sm" onClick={()=>copy(allEm,"all roster, no staff")}>📋 Copy ALL roster emails ({allEm.length}){staffEm.length?" — no staff":""}</button>
+              <button className="btn btn-sm" title="Every member with an email (MCC staff left out)" onClick={()=>copy(allEm,"all members, no staff")}>📋 Copy emails · all members ({allEm.length})</button>
 
-              <button className="btn btn-sm" onClick={()=>copy(regEm,"registered, no staff")}>📱 Copy REGISTERED only — has PIN ({regEm.length})</button>
+              <button className="btn btn-sm" title="Only members who have a PIN (MCC staff left out)" onClick={()=>copy(regEm,"registered members, no staff")}>📱 Copy emails · registered ({regEm.length})</button>
 
-              {staffEm.length>0&&<button className="btn btn-gh btn-sm" onClick={()=>copy(staffEm,"MCC staff")}>👔 Copy STAFF ({staffEm.length})</button>}
-
-              <a href={ROSTER_SHEET_URL} target="_blank" rel="noopener noreferrer" className="btn btn-gh btn-sm" style={{textDecoration:"none"}}>📄 Roster sheet ↗</a>
+              <button className="btn btn-gh btn-sm" disabled={!staffEm.length} title={staffEm.length?"Only MCC staff":"Nobody is marked MCC staff yet"} onClick={()=>copy(staffEm,"MCC staff")}>👔 Copy emails · staff ({staffEm.length})</button>
 
               <button className="btn btn-gh btn-sm" onClick={()=>setShowClUpd(v=>!v)}>{showClUpd?"✕ Close":"🔁 Update Clark's list"}</button>
+
+              <a href={ROSTER_SHEET_URL} target="_blank" rel="noopener noreferrer" className="btn btn-gh btn-sm" style={{textDecoration:"none"}}>📄 Roster sheet ↗</a>
 
               
 
