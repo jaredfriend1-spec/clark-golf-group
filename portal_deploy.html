@@ -1438,9 +1438,37 @@ function RosterTab(){
   const roundsOf=p=>roundsByName[String(p.name||"").toLowerCase().trim()]||0;
   const [seg,setSeg]=useState("active"); // active | inactive
   const [q,setQ]=useState("");
-  const [clFilter,setClFilter]=useState("all");
   const clarkList=useDB("clarkEmailList");
-  const onClarkList=p=>{const e=String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();if(!e)return false;return Object.values(clarkList||{}).some(x=>String(x.email||"").toLowerCase().trim()===e);};
+  // Clark's-list matching: email OR name. Names compare nickname-aware
+  // (Bob=Robert, Jim=Jimmy=James...), punctuation/order-insensitive, so
+  // "Rennie Cory" or "Bob Latos." still match. Oct 20, Jared.
+  const CL_NICK={bob:"robert",bobby:"robert",rob:"robert",bill:"william",billy:"william",will:"william",jim:"james",jimmy:"james",mike:"michael",tom:"thomas",tommy:"thomas",ray:"raymond",chris:"christopher",jeff:"jeffrey",dave:"david",steve:"steven",stephen:"steven",ken:"kenneth",pete:"peter",greg:"gregory",matt:"matthew",tim:"timothy",joe:"joseph",joey:"joseph",dan:"daniel",frank:"francis",rick:"richard",rich:"richard",rodolifo:"rodolfo"};
+  const clKey=s2=>String(s2||"").toLowerCase().replace(/[^a-z\s]/g," ").split(/\s+/).filter(Boolean).map(t=>CL_NICK[t]||t).sort().join(" ");
+  const clEntries=Object.values(clarkList||{});
+  const onClarkList=p=>{
+    const e=String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
+    if(e&&clEntries.some(x=>String(x.email||"").toLowerCase().trim()===e))return true;
+    const k=clKey(p.name); if(!k)return false;
+    return clEntries.some(x=>clKey(x.name)===k);
+  };
+  const [showClUpd,setShowClUpd]=useState(false);
+  const [clPaste,setClPaste]=useState("");
+  function updateClarkList(){
+    const raw=clPaste.replace(/\[([^\]]+)\]\([^)]*\)/g,"$1");   // strip markdown links
+    const entries=[...new Set(raw.split(/[\n,]+/).map(x=>x.trim()).filter(x=>x&&!/^(to|copy)$/i.test(x)))];
+    if(entries.length<3){showToast("Paste Clark's full list first");return;}
+    const node={}; let matchedN=0;
+    entries.forEach((entry,i)=>{
+      let hit=null;
+      if(entry.includes("@")){const e=entry.toLowerCase();const id=Object.keys(rosterEmails||{}).find(k2=>String(rosterEmails[k2]).toLowerCase()===e);if(id)hit=all.find(p=>String(p.id)===String(id));}
+      if(!hit){const k=clKey(entry);hit=live.find(p=>clKey(p.name)===k)||all.find(p=>clKey(p.name)===k);}
+      if(hit){matchedN++;node["c"+i]={name:hit.name,email:(rosterEmails&&rosterEmails[hit.id])||""};}
+      else node["c"+i]={name:entry,email:entry.includes("@")?entry:""};
+    });
+    wr("clarkEmailList",node);
+    setShowClUpd(false);setClPaste("");
+    showToast("Clark's list updated — "+entries.length+" entries, "+matchedN+" matched to the roster ✓");
+  }
   const [editing,setEditing]=useState(null);
   const [adding,setAdding]=useState(false);
   const [revealPin,setRevealPin]=useState(null); // player id whose PIN is shown
@@ -1465,8 +1493,9 @@ function RosterTab(){
   const activeList=visible.filter(p=>!!(rosterPins&&rosterPins[p.id]));
   const inactiveList=visible.filter(p=>!(rosterPins&&rosterPins[p.id]));
 
-  const currentList=seg==="active"?activeList:inactiveList;
-  const filtered=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).filter(p=>clFilter==="all"?true:(clFilter==="on"?onClarkList(p):!onClarkList(p))).sort((a,b)=>a.name.localeCompare(b.name));
+  const notClList=visible.filter(p=>!onClarkList(p));
+  const currentList=seg==="active"?activeList:seg==="inactive"?inactiveList:notClList;
+  const filtered=currentList.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name));
 
   function saveEdit(){
     if(!editing)return;
@@ -1651,6 +1680,8 @@ function RosterTab(){
 
               <button className="btn btn-sm" onClick={()=>copy(regEm,"registered")}>📱 Copy REGISTERED only — has PIN ({regEm.length})</button>
 
+              <button className="btn btn-gh btn-sm" onClick={()=>setShowClUpd(v=>!v)}>{showClUpd?"✕ Close":"🔁 Update Clark's list"}</button>
+
               
 
               <div style={{display:"flex",gap:5,marginLeft:"auto",alignItems:"center"}}>
@@ -1664,11 +1695,21 @@ function RosterTab(){
 
         })()}
 
+        {showClUpd&&(
+          <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+            <div className="lbl" style={{marginBottom:6}}>Paste Clark's current list (names or emails, commas or lines — links are fine)</div>
+            <textarea className="inp" rows={5} style={{width:"100%",resize:"vertical",fontSize:12,lineHeight:1.6}} value={clPaste} onChange={e=>setClPaste(e.target.value)} placeholder="Bob Sundell, Brian Grimes, …"/>
+            <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center"}}>
+              <button className="btn btn-sm" onClick={updateClarkList}>Match &amp; save</button>
+              <span style={{fontSize:10.5,color:"rgba(255,255,255,0.35)"}}>Replaces the stored list; CL ✓ marks and the "Not on Clark's List" card update instantly.</span>
+            </div>
+          </div>
+        )}
       </div>
 
     {/* The stat cards ARE the filter — tap one to switch the list below (Jared, Oct 20) */}
-    <div className="stat-grid sg-3" style={{marginBottom:14}}>
-      {[["active",activeList.length,"#10b981","Active (Has PIN)"],["inactive",inactiveList.length,"#f87171","Inactive (No PIN)"],["deleted",deletedList.length,"rgba(255,255,255,0.55)","Deleted"]].map(([id,n,col,label])=>(
+    <div className="stat-grid sg-4" style={{marginBottom:14}}>
+      {[["active",activeList.length,"#10b981","Active (Has PIN)"],["inactive",inactiveList.length,"#f87171","Inactive (No PIN)"],["notcl",notClList.length,"#fbbf24","Not on Clark's List"],["deleted",deletedList.length,"rgba(255,255,255,0.55)","Deleted"]].map(([id,n,col,label])=>(
         <div key={id} className="stat" role="button" tabIndex={0} onClick={()=>setSeg(id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')setSeg(id);}}
           style={{cursor:"pointer",userSelect:"none",borderColor:seg===id?col:undefined,boxShadow:seg===id?("inset 0 0 0 1px "+col):undefined,opacity:seg===id?1:0.82}}>
           <div className="stat-v" style={{color:col}}>{n}</div><div className="stat-l">{label}{seg===id?" ▾":""}</div>
