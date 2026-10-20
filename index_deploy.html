@@ -1423,6 +1423,12 @@ function DropIcon({size}){
 const ARCHIVE_IN_FLIGHT={};
 const DAY_BACKUP_SIG={};
 function pushTriggerKey(tag){const t=String(tag||'');if(t.indexOf('pub-')===0)return 'publish';if(t.indexOf('results-')===0)return 'results';if(t.indexOf('cancel-')===0)return 'cancel';if(t==='join')return 'join';if(t==='drop')return 'drops';if(t==='waitlist')return 'waitlist';if(t==='weekready')return 'weekready';if(t.indexOf('teetime-')===0)return 'teetime';return null;}
+// Handicap text <-> number (Oct 20, Jared). A PLUS handicap (better than
+// scratch) is stored as a NEGATIVE number, so team totals, the hat draw and
+// the suggested blind draw all just add/sort as usual. Display shows "+2".
+function hcpParse(str){const t=String(str==null?'':str).trim();if(t==='')return null;const neg=t[0]==='+'||t[0]==='-';const n=parseFloat(t.replace(/[^0-9.]/g,''));if(isNaN(n))return null;return neg?-n:n;}
+function hcpShow(v){if(v==null||v==='')return '';const n=parseFloat(v);if(isNaN(n))return String(v);return n<0?('+'+Math.abs(n)):String(n);}
+function hcpClean(str){return String(str||'').replace(/[^0-9.+\-]/g,'').replace(/(?!^)[+\-]/g,'');}
 // Collision-aware PIN derivation. <=5 digits = a chosen PIN (verbatim).
 // Longer = a phone number: store last 4, or last 5/6 if taken by someone else.
 function derivePin(input, pinsMap, excludeId){
@@ -6552,7 +6558,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const [tDrag,setTDrag]=useState(null);             // {ti,pi} — weekly-style drag-and-drop between tournament teams
   const [tCopied,setTCopied]=useState(false);
   const [tBlind,setTBlind]=useState(null);           // ti of the short team being assigned a blind draw
-  const [fFilter,setFFilter]=useState('in');          // Field view filter: in | paid | unpaid | all (Oct 20, Jared)
+  const [fFilter,setFFilter]=useState('in');
+  const [fHcp,setFHcp]=useState({});              // Field handicap text while typing: {id: '14.' } — saved on blur/Enter          // Field view filter: in | paid | unpaid | all (Oct 20, Jared)
   function setBlindDraw(ti,name,handicap){
     wsafe({...backupEntry('before assigning blind draw'),['tournament/teams/'+day+'/'+ti+'/blindDraw']:{name,handicap:parseFloat(handicap)||0}});
     setTBlind(null);
@@ -6749,7 +6756,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     // Same as the weekly Copy teams: plain text to the clipboard.
     const nl=String.fromCharCode(10); let text=((cfg.name||'Tournament')+' — '+dayLabel)+nl+nl;
     teams.forEach((tm,ti)=>{ text+='Team '+(ti+1)+(teeFor(ti)?(' — '+teeFor(ti)):'')+(tm.totalHcp!=null?('  (HCP '+tm.totalHcp+')'):'')+nl;
-      (tm.players||[]).forEach((q,qi)=>{ text+='  '+(qi+1)+'. '+q.name+(q.handicap!=null?(' (HCP '+q.handicap+')'):'')+nl; });
+      (tm.players||[]).forEach((q,qi)=>{ text+='  '+(qi+1)+'. '+q.name+(q.handicap!=null?(' (HCP '+hcpShow(q.handicap)+')'):'')+nl; });
       if(tm.blindDraw) text+='  * Draw: '+tm.blindDraw.name+nl;
       text+=nl; });
     navigator.clipboard.writeText(text.trim()).then(()=>{setTCopied(true);setTimeout(()=>setTCopied(false),2500);}).catch(()=>{});
@@ -7029,13 +7036,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                           {isAdmin&&<span style={{color:'var(--ink-20)',cursor:'grab',fontSize:16,flexShrink:0,userSelect:'none'}}>⋮</span>}
                           <span style={{display:'inline-flex',alignItems:'center',flexShrink:0}}>
                             <PlayerAvatar name={p.name} logo={a&&a.logo} size={34} title={p.name}
-                              onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,meta:(tee?tee:'')+(hcp!=null?((tee?' · ':'')+'HCP '+hcp):'')})):undefined}/>
+                              onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,meta:(tee?tee:'')+(hcp!=null?((tee?' · ':'')+'HCP '+hcpShow(hcp)):'')})):undefined}/>
                           </span>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontSize:14,fontWeight:600,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
                             {(tee||hcp!=null)&&<div style={{display:'flex',alignItems:'center',gap:5,marginTop:2,fontSize:12,color:'var(--ink-50)'}}>
                               {tee&&<span style={{background:TEE_DOT_COLOR[tee]||'#888',width:8,height:8,borderRadius:'50%',display:'inline-block'}}></span>}
-                              <span>{tee?tee:''}{hcp!=null?((tee?' · ':'')+'HCP '+hcp):''}</span>
+                              <span>{tee?tee:''}{hcp!=null?((tee?' · ':'')+'HCP '+hcpShow(hcp)):''}</span>
                             </div>}
                           </div>
                           {isAdmin&&teams.length>1&&(
@@ -7056,7 +7063,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                               {tm.blindDraw.name}
                               <span style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:20,padding:'1px 6px'}}>draw</span>
                             </div>
-                            {tm.blindDraw.handicap!=null&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:2}}>HCP {tm.blindDraw.handicap}</div>}
+                            {tm.blindDraw.handicap!=null&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:2}}>HCP {hcpShow(tm.blindDraw.handicap)}</div>}
                           </div>
                           {isAdmin&&<button className="player-btn danger" title="Remove blind draw" onClick={()=>clearBlindDraw(ti)}>
                             <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -7066,7 +7073,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'9px 10px',margin:'6px 0 2px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:9}}>
                           <div>
                             <div style={{fontSize:12.5,fontWeight:700,color:'var(--warn-ink)'}}>Blind draw TBD</div>
-                            <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>{drawSuggestions[ti]?('Suggested: '+drawSuggestions[ti].name+' (HCP '+drawSuggestions[ti].h+') — evens the teams'):((teamSize-(tm.players||[]).length)+' short — assign on the day')}</div>
+                            <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>{drawSuggestions[ti]?('Suggested: '+drawSuggestions[ti].name+' (HCP '+hcpShow(drawSuggestions[ti].h)+') — evens the teams'):((teamSize-(tm.players||[]).length)+' short — assign on the day')}</div>
                           </div>
                           {isAdmin&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0,color:'var(--warn-ink)',borderColor:'var(--warn-border)'}} onClick={()=>setTBlind(ti)}>Assign</button>}
                         </div>
@@ -7098,7 +7105,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                           <button key={c.name} onClick={()=>setBlindDraw(tBlind,c.name,c.h)}
                             style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',marginBottom:8,borderRadius:10,border:'1.5px solid var(--hairline)',background:'var(--surface)',cursor:'pointer',fontFamily:'inherit'}}>
                             <span style={{fontSize:14,fontWeight:600,color:'var(--ink)',display:'flex',alignItems:'center',gap:6}}>{c.name}{c.name===sug&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:20,padding:'1px 7px'}}>suggested — evens teams</span>}</span>
-                            <span style={{fontSize:12,color:'var(--ink-50)'}}>HCP {c.h}</span>
+                            <span style={{fontSize:12,color:'var(--ink-50)'}}>HCP {hcpShow(c.h)}</span>
                           </button>
                         ));
                       })()}
@@ -7417,7 +7424,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                     <div style={{display:'flex',gap:7,alignItems:'center',marginTop:7,flexWrap:'wrap'}}>
                       <div style={{display:'flex',alignItems:'center',gap:5}}>
                         <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Hcp</span>
-                        <input className="form-input" inputMode="decimal" value={row.rec&&row.rec.handicap!=null?row.rec.handicap:(row.defHcp!=null?row.defHcp:'')} placeholder="—" onChange={e=>{const v=e.target.value.replace(/[^0-9.]/g,'');wsafe({['tournament/players/'+row.id+'/handicap']:v===''?null:parseFloat(v)});}} style={{width:58,height:36,textAlign:'center',fontSize:13.5,fontWeight:700,padding:0}}/>
+                        <input className="form-input" inputMode="text" title="Decimals OK (14.5). Plus handicap: type +2" value={fHcp[row.id]!=null?fHcp[row.id]:hcpShow(row.rec&&row.rec.handicap!=null?row.rec.handicap:(row.defHcp!=null?row.defHcp:''))} placeholder="—"
+                          onChange={e=>{const v=hcpClean(e.target.value);setFHcp(m=>({...m,[row.id]:v}));}}
+                          onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}}
+                          onBlur={()=>{const v=fHcp[row.id];if(v==null)return;const n=hcpParse(v);wsafe({['tournament/players/'+row.id+'/handicap']:n});setFHcp(m=>{const c={...m};delete c[row.id];return c;});}}
+                          style={{width:62,height:36,textAlign:'center',fontSize:13.5,fontWeight:700,padding:0}}/>
                       </div>
                       <select className="form-input" value={(row.rec&&row.rec.tee)||row.defTee} onChange={e=>wsafe({['tournament/players/'+row.id+'/tee']:e.target.value})} style={{width:'auto',height:36,fontSize:12.5,padding:'0 8px'}}>
                         {TEES.map(x=><option key={x} value={x}>{x}</option>)}
@@ -8280,13 +8291,13 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
     if(pick)setDaysPick(pick);
     if(adminPreview){setPreviewTap(true);setTimeout(()=>setPreviewTap(false),2200);return;}
     if(rsvpLocked)return;
-    setHcpDraft(String((me&&me.handicap!=null)?me.handicap:((rosterMe&&rosterMe.handicap!=null&&rosterMe.handicap!=='')?rosterMe.handicap:'')));
+    setHcpDraft(hcpShow((me&&me.handicap!=null)?me.handicap:((rosterMe&&rosterMe.handicap!=null&&rosterMe.handicap!=='')?rosterMe.handicap:'')));
     setTeeDraft((me&&me.tee)||(rTee&&rTee[currentUser.id])||'Whites');
     setConfirming(true);
   };
   const confirmIn=()=>{
-    const h=parseFloat(hcpDraft);
-    if(isNaN(h)){alert('Enter your handicap so the teams draw fair.');return;}
+    const h=hcpParse(hcpDraft);
+    if(h==null){alert('Enter your handicap so the teams draw fair (plus handicap: type +2).');return;}
     // Last-second cap check — someone may have taken the final spot while this
     // sheet was open. Never strips a day the member is ALREADY in.
     if(pickBlocked(daysPick)){alert('Sorry — that day just filled up. Pick what’s still open.');setConfirming(false);setWlAfter(null);return;}
@@ -8306,7 +8317,7 @@ function TournamentRsvpCard({ currentUser, isAdmin, read, update, fullRoster, fo
         <div style={{display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
           <div style={{width:92}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Handicap</div>
-            <input className="form-input" inputMode="decimal" value={hcpDraft} onChange={e=>setHcpDraft(e.target.value.replace(/[^0-9.]/g,''))} style={{height:38,textAlign:'center',fontSize:14,fontWeight:700}}/>
+            <input className="form-input" inputMode="decimal" value={hcpDraft} placeholder="e.g. 14.5 or +2" onChange={e=>setHcpDraft(hcpClean(e.target.value))} style={{height:38,textAlign:'center',fontSize:14,fontWeight:700}}/>
           </div>
           <div style={{width:110}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase'}}>Tees</div>
