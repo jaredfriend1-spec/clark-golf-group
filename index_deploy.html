@@ -341,6 +341,10 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   main.content.teams-grid>div:has(>.day-card){display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;align-items:start}
   main.content.teams-grid>div:has(>.day-card)>.day-card{margin-bottom:0!important;min-width:0}
   main.content.teams-grid>div:has(>.day-card)>:not(.day-card){grid-column:1/-1;min-width:0}
+  /* Tournament teams: same two-across flow as weekly published teams */
+  .tour-teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;align-items:start}
+  .tour-teams>.day-card{margin-bottom:0!important;min-width:0}
+  .tour-teams>:not(.day-card){grid-column:1/-1;min-width:0}
   /* Score desktop: entry column left; the money cards (pot, splits, payment,
      payout preview) float into a 372px right rail. Same markup, phone untouched. */
   main.content.sc-desk{max-width:1400px;margin-left:auto;margin-right:auto}
@@ -6528,7 +6532,7 @@ function AwardsView({ read, avatarFor, onShowAvatar }){
   );
 }
 
-function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, oddsRates }){
+function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, oddsRates, avatarFor, onShowAvatar }){
   const [t, setT] = useState(null);
   const [capSavedDay, setCapSavedDay] = useState(null);   // "Saved ✓" flash on the cap editor
   const [att, setAtt] = useState(null);
@@ -6545,6 +6549,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const [saveErr, setSaveErr] = useState(null);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [editCell, setEditCell] = useState(null);   // {ti,key,val} while typing a score
+  const [tMove,setTMove]=useState(null);             // {ti,pi,name} — weekly-style Move sheet on tournament teams
   useEffect(()=>{
     const d2=t&&t.config&&t.config.date2;
     if(!d2)return;
@@ -6909,31 +6914,60 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
           ):(!published&&!isAdmin)?(
             <div style={card}><div style={{fontSize:13.5,color:'var(--ink-40)',textAlign:'center',padding:'14px 0'}}>Teams haven't been posted yet — check back!</div></div>
           ):(
-            <div>
+            <div className="tour-teams">
               {!published&&isAdmin&&(
                 <div style={{fontSize:12,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:10,padding:'7px 11px',marginBottom:10}}>Draft — members can't see these until you publish.</div>
               )}
               {tOddsChips&&<div style={{fontSize:10.5,color:'var(--ink-40)',margin:'0 2px 8px',textAlign:'right'}}>🎰 opening lines by the Clubhouse book — season form, for laughs only</div>}
               {teams.map((tm,ti)=>(
-                <div key={ti} style={{...card,padding:'11px 14px'}}>
-                  <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:6}}>
-                    <span style={{fontSize:13,fontWeight:900,color:GOLD,letterSpacing:'0.02em'}}>Team {String.fromCharCode(65+ti)}</span>
-                    {tm.totalHcp!=null&&<span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>HCP {tm.totalHcp}</span>}
-                    {tOddsChips&&tOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,fontWeight:800,color:'#b8891a',background:'rgba(184,137,26,0.12)',border:'1px solid rgba(184,137,26,0.4)',padding:'1px 8px',borderRadius:20}}>🎰 {tOddsChips[ti].odds}</span>}
-                  </div>
-                  {(tm.players||[]).map((p,pi)=>(
-                    <div key={pi} style={{display:'flex',alignItems:'center',gap:8,padding:'3px 0'}}>
-                      <span style={{flex:1,fontSize:13.5,color:'var(--ink)'}}>{p.name}</span>
-                      {isAdmin&&<button onClick={()=>{const alsoOut=window.confirm(p.name+' — drop from this team.\n\nOK = also mark them OUT for '+(twoDay?d1Label&&day==='day1'?d1Label:d2Label:'the day')+' (they dropped).\nCancel = just take them off the team (keep them in the field).');dropFromTeam(ti,pi,alsoOut);}} title="Drop from team" style={{width:30,height:30,borderRadius:8,border:'1px solid var(--hairline)',background:'transparent',color:'var(--money-neg)',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>✕</button>}
-                      {isAdmin&&teams.length>1&&(
-                        <select value={ti} onChange={e=>movePlayer(ti,pi,parseInt(e.target.value,10))} className="form-input" style={{width:'auto',padding:'3px 7px',fontSize:11.5}}>
-                          {teams.map((_,i2)=><option key={i2} value={i2}>{'Team '+String.fromCharCode(65+i2)}</option>)}
-                        </select>
-                      )}
+                <div key={ti} className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+                  <div style={{background:'#0A1614',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                    <span style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'0.01em'}}>Team {String.fromCharCode(65+ti)}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                      {tOddsChips&&tOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,color:'#eab308',background:'rgba(234,179,8,0.14)',border:'1px solid rgba(234,179,8,0.4)',padding:'2px 8px',borderRadius:20,fontWeight:800}}>🎰 {tOddsChips[ti].odds}</span>}
+                      {tm.totalHcp!=null&&<span style={{fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>HCP {tm.totalHcp}</span>}
                     </div>
-                  ))}
+                  </div>
+                  <div className="day-card-body" style={{padding:'6px 12px 10px'}}>
+                    {(tm.players||[]).map((p,pi)=>{
+                      const rr=(fullRoster||[]).find(x=>x&&String(x.name).toLowerCase().trim()===String(p.name).toLowerCase().trim());
+                      const tee=(rr&&rr.tee)||'';
+                      const hcp=p.handicap!=null?p.handicap:(rr&&rr.handicap!=null?rr.handicap:null);
+                      const a=avatarFor?avatarFor(p.name):null;
+                      return (
+                        <div key={pi} style={{padding:'8px 2px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--hairline-soft)'}}>
+                          <span style={{display:'inline-flex',alignItems:'center',flexShrink:0}}>
+                            <PlayerAvatar name={p.name} logo={a&&a.logo} size={34} title={p.name}
+                              onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,meta:(tee?tee:'')+(hcp!=null?((tee?' · ':'')+'HCP '+hcp):'')})):undefined}/>
+                          </span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                            {(tee||hcp!=null)&&<div style={{display:'flex',alignItems:'center',gap:5,marginTop:2,fontSize:12,color:'var(--ink-50)'}}>
+                              {tee&&<span style={{background:TEE_DOT_COLOR[tee]||'#888',width:8,height:8,borderRadius:'50%',display:'inline-block'}}></span>}
+                              <span>{tee?tee:''}{hcp!=null?((tee?' · ':'')+'HCP '+hcp):''}</span>
+                            </div>}
+                          </div>
+                          {isAdmin&&teams.length>1&&(
+                            <button onClick={()=>setTMove({ti,pi,name:p.name})} style={{padding:'4px 9px',borderRadius:6,border:'1.5px solid var(--hairline)',background:'var(--surface)',color:'var(--ink-50)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',flexShrink:0}}>Move</button>
+                          )}
+                          {isAdmin&&<button className="player-btn danger" title="Drop from team" onClick={()=>{const alsoOut=window.confirm(p.name+' — drop from this team.\n\nOK = also mark them OUT for '+(twoDay?d1Label&&day==='day1'?d1Label:d2Label:'the day')+' (they dropped).\nCancel = just take them off the team (keep them in the field).');dropFromTeam(ti,pi,alsoOut);}}>
+                            <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
+              {tMove&&teams[tMove.ti]&&(
+                <MovePlayerSheet
+                  playerName={tMove.name}
+                  teams={teams.map((tm2,i2)=>({name:'Team '+String.fromCharCode(65+i2),totalHcp:tm2.totalHcp,players:tm2.players}))}
+                  fromTeamIdx={tMove.ti}
+                  onMove={(toTi)=>movePlayer(tMove.ti,tMove.pi,toTi)}
+                  onClose={()=>setTMove(null)}
+                />
+              )}
               {isAdmin&&(()=>{
                 const onTeams=new Set(teams.flatMap(tm=>(tm.players||[]).map(p=>p.name)));
                 const missing=inFieldFor(day).filter(p=>!onTeams.has(p.name));
@@ -7049,13 +7083,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                   </div>
                 )}
                 {rows.map(r=>(
-                  <div key={r.ti} style={{...card,padding:'11px 14px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{fontSize:12.5,fontWeight:800,color:'var(--brand)',width:64}}>{r.label}</span>
-                      <span style={{flex:1,fontSize:11.5,color:'var(--ink-50)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.players.join(', ')}</span>
-                      <span style={{fontSize:16,fontWeight:800,color:(r.f!=null&&r.b!=null&&r.f+r.b<0)?'var(--money-neg)':'var(--ink)'}}>{r.f!=null&&r.b!=null?fmtRel(r.f+r.b):'—'}</span>
+                  <div key={r.ti} className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
+                    <div style={{background:'#0A1614',padding:'9px 14px',display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>{r.label}</span>
+                      <span style={{flex:1,fontSize:11,color:'rgba(255,255,255,0.55)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.players.join(', ')}</span>
+                      <span style={{fontSize:16,fontWeight:800,color:(r.f!=null&&r.b!=null&&r.f+r.b<0)?'#f87171':'#fff',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{r.f!=null&&r.b!=null?fmtRel(r.f+r.b):'—'}</span>
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:12,marginTop:8,flexWrap:'wrap'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',flexWrap:'wrap'}}>
                       {[['F','f'],['B','b']].map(([lbl,key])=>(
                         <div key={key} style={{display:'flex',alignItems:'center',gap:6}}>
                           <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>{lbl}</span>
@@ -13608,7 +13642,7 @@ function App(){
         <div>
           <div className="page-title">Tournament</div>
           <div style={{padding:'14px 16px 0'}}>
-            <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster} oddsRates={oddsRates}/>
+            <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster} oddsRates={oddsRates} avatarFor={avatarForApp} onShowAvatar={showAvatar}/>
           </div>
         </div>
       )}
