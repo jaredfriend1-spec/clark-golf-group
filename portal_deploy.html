@@ -1666,19 +1666,17 @@ function RosterTab(){
 
       </div>
 
+    {/* The stat cards ARE the filter — tap one to switch the list below (Jared, Oct 20) */}
     <div className="stat-grid sg-3" style={{marginBottom:14}}>
-      <div className="stat"><div className="stat-v" style={{color:"#10b981"}}>{activeList.length}</div><div className="stat-l">Active (Has PIN)</div></div>
-      <div className="stat"><div className="stat-v" style={{color:"#f87171"}}>{inactiveList.length}</div><div className="stat-l">Inactive (No PIN)</div></div>
-      <div className="stat"><div className="stat-v" style={{color:"rgba(255,255,255,0.4)"}}>{deletedList.length}</div><div className="stat-l">Deleted</div></div>
-    </div>
-
-    {/* SEGMENT TABS */}
-    <div className="sec-tabs">
-      {[["active","Active — Has PIN"],["inactive","Inactive — No PIN"]].map(([id,label])=>(
-        <button key={id} className={`mtab${seg===id?" on":""}`} style={{fontSize:12}} onClick={()=>setSeg(id)}>{label}</button>
+      {[["active",activeList.length,"#10b981","Active (Has PIN)"],["inactive",inactiveList.length,"#f87171","Inactive (No PIN)"],["deleted",deletedList.length,"rgba(255,255,255,0.55)","Deleted"]].map(([id,n,col,label])=>(
+        <div key={id} className="stat" role="button" tabIndex={0} onClick={()=>setSeg(id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')setSeg(id);}}
+          style={{cursor:"pointer",userSelect:"none",borderColor:seg===id?col:undefined,boxShadow:seg===id?("inset 0 0 0 1px "+col):undefined,opacity:seg===id?1:0.82}}>
+          <div className="stat-v" style={{color:col}}>{n}</div><div className="stat-l">{label}{seg===id?" ▾":""}</div>
+        </div>
       ))}
     </div>
 
+    {seg!=="deleted"&&(
     <div className="card">
       {adding&&(
         <div style={{padding:"14px",background:"rgba(16,185,129,0.04)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
@@ -1805,6 +1803,7 @@ function RosterTab(){
         })}
       </div>
     </div>
+    )}
 
     {/* DELETE CONFIRM */}
     {confirmDel&&(
@@ -1824,10 +1823,11 @@ function RosterTab(){
 
     </div>
 
-    {deletedList.length>0&&(
-      <div className="card" style={{marginTop:14}}>
+    {seg==="deleted"&&(
+      <div className="card">
         <div className="card-hdr"><span className="card-title">🗑 Deleted ({deletedList.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginLeft:10}}>removed from every list · restore any time</span></div>
         <div style={{padding:"6px 14px 12px"}}>
+          {deletedList.length===0&&<div style={{padding:"14px 2px",fontSize:12,color:"rgba(255,255,255,0.35)"}}>Nothing in the trash.</div>}
           {deletedList.map(p=>(
             <div key={p.id} className="p-row" style={{opacity:0.75}}>
               <div style={{flex:1}}><div className="p-name">{p.name}</div><div className="p-sub">{roundsOf(p)} rounds{p.isExtra?" · extra":""}</div></div>
