@@ -668,6 +668,9 @@ const DEMO_ROSTER=[
 const TC={Blends:'#1e3a8a',Whites:'#94a3b8',Golds:'#f59e0b',SGA:'#ef4444'};
 const TEE_DOT_COLOR={Blends:'#1E3A8A',Whites:'#1A1A1A',Golds:'#B8651F',SGA:'#9333EA'};
 const ADMIN_PW='clark';
+// Admin-only link to the roster Google Sheet (Oct 20, Jared). Who can open it
+// is controlled by the sheet's own Google sharing settings.
+const ROSTER_SHEET_URL='https://docs.google.com/spreadsheets/d/16JufHQZn8wDld6LB4NlqU11D1WqozyCj9PSx7hrzgSg/edit?gid=0#gid=0';
 const APP_BUILD='2026.10.19-a';  // NOTE: never exceed -z in a suffix — string compare breaks; roll the date instead
 const DAYS_OF_WEEK=['Friday','Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -10391,6 +10394,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                       const s=reg.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+reg.length+' registered emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
                     }}>📱 Registered only ({withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id])).length})</button>
+                    <a href={ROSTER_SHEET_URL} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{fontWeight:700,textDecoration:'none'}}>📄 Roster sheet ↗</a>
                     {staffEm.length>0&&<button className="btn btn-sm btn-secondary" style={{fontWeight:700}} onClick={()=>{
                       const s=staffEm.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+staffEm.length+' staff emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
