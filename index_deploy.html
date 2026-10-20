@@ -6624,6 +6624,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const skinsPct=cfg.skinsPct!=null?cfg.skinsPct:40;
   const shareSum=catF+catB+catO+skinsPct;
   const teamSize=cfg.teamSize||4;
+  // First tee time per day (settings; blank = TBD). Team 1 goes off at the
+  // first time, each later team +10 minutes (cfg.teeGap overrides the gap).
+  const teeBase=(day==='day1'?cfg.teeTime1:cfg.teeTime2)||'';
+  const teeFor=(ti)=>{const m=/^(\d{1,2}):(\d{2})/.exec(teeBase);if(!m)return '';const gap=parseInt(cfg.teeGap,10)||10;const t=(parseInt(m[1],10)*60+parseInt(m[2],10)+ti*gap)%1440;const h24=Math.floor(t/60),mm=t%60;return (((h24+11)%12)+1)+':'+String(mm).padStart(2,'0')+' '+(h24<12?'AM':'PM');};
   const teams=(tv_&&tv_.teams&&tv_.teams[day])||[];
   // Clubhouse book: joke odds on the drawn teams (plain const — hook-safe; null on any problem).
   let tOddsChips=null; try{ if(__cbToArr(teams).length>1&&oddsRates) tOddsChips=oddsForTeams(teams,oddsRates); }catch(e){}
@@ -6716,7 +6720,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   function copyTeamsT(){
     // Same as the weekly Copy teams: plain text to the clipboard.
     const nl=String.fromCharCode(10); let text=((cfg.name||'Tournament')+' — '+dayLabel)+nl+nl;
-    teams.forEach((tm,ti)=>{ text+='Team '+(ti+1)+(tm.totalHcp!=null?('  (HCP '+tm.totalHcp+')'):'')+nl;
+    teams.forEach((tm,ti)=>{ text+='Team '+(ti+1)+(teeFor(ti)?(' — '+teeFor(ti)):'')+(tm.totalHcp!=null?('  (HCP '+tm.totalHcp+')'):'')+nl;
       (tm.players||[]).forEach((q,qi)=>{ text+='  '+(qi+1)+'. '+q.name+(q.handicap!=null?(' (HCP '+q.handicap+')'):'')+nl; });
       if(tm.blindDraw) text+='  * Draw: '+tm.blindDraw.name+nl;
       text+=nl; });
@@ -6974,6 +6978,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                         </div>
                       )}
                       <span style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'0.01em'}}>Team {ti+1}</span>
+                      <span title={teeBase?'Tee time':'Tee time to be announced'} style={{fontSize:12,fontWeight:700,color:teeFor(ti)?'#fbbf24':'rgba(255,255,255,0.4)',whiteSpace:'nowrap'}}>⛳ {teeFor(ti)||'TBD'}</span>
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
                       {tOddsChips&&tOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,color:'#eab308',background:'rgba(234,179,8,0.14)',border:'1px solid rgba(234,179,8,0.4)',padding:'2px 8px',borderRadius:20,fontWeight:800}}>🎰 {tOddsChips[ti].odds}</span>}
@@ -7387,7 +7392,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
             <div style={hdr}>⚙ Tournament configuration <span style={{fontWeight:600,textTransform:'none'}}>— mirrors the portal; changes apply everywhere instantly</span></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(105px,1fr))',gap:9}}>
             {(()=>{
-              const cur={name:cfg.name||'',date1:cfg.date1||'',date2:cfg.date2||'',rsvpDeadline:cfg.rsvpDeadline||''};
+              const cur={name:cfg.name||'',date1:cfg.date1||'',date2:cfg.date2||'',rsvpDeadline:cfg.rsvpDeadline||'',teeTime1:cfg.teeTime1||'',teeTime2:cfg.teeTime2||''};
               const d=idDraft||cur;
               const dirty=idDraft&&JSON.stringify(idDraft)!==JSON.stringify(cur);
               const edit=(k,v)=>setIdDraft(prev=>({...(prev||cur),[k]:v}));
@@ -7395,7 +7400,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                 if(d.date2&&d.date1&&d.date2<d.date1){alert('Day 2 is before Day 1 — check the dates.');return;}
                 if(d.rsvpDeadline&&d.date1&&d.rsvpDeadline>d.date1){alert('The response deadline is after Day 1 — players could answer mid-round. Check the dates.');return;}
                 if(!window.confirm('Lock in these details? Name, dates, and the deadline drive the schedule, invite banners, and auto-day.'))return;
-                wsafe({'tournament/config/name':d.name||null,'tournament/config/date1':d.date1||null,'tournament/config/date2':d.date2||null,'tournament/config/rsvpDeadline':d.rsvpDeadline||null});
+                wsafe({'tournament/config/name':d.name||null,'tournament/config/date1':d.date1||null,'tournament/config/date2':d.date2||null,'tournament/config/rsvpDeadline':d.rsvpDeadline||null,'tournament/config/teeTime1':d.teeTime1||null,'tournament/config/teeTime2':d.teeTime2||null});
                 setIdDraft(null);
               };
               const lbl=t=><div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',marginBottom:2}}>{t}</div>;
@@ -7407,7 +7412,10 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                     <div>{lbl('Day 1')}<input className="form-input" type="date" value={d.date1} onChange={e=>edit('date1',e.target.value)} style={{height:38}}/></div>
                     <div>{lbl('Day 2 (blank = 1-day)')}<input className="form-input" type="date" value={d.date2} onChange={e=>edit('date2',e.target.value)} style={{height:38}}/></div>
                     <div>{lbl('Responses due by')}<input className="form-input" type="date" value={d.rsvpDeadline} onChange={e=>edit('rsvpDeadline',e.target.value)} style={{height:38}}/></div>
+                    <div>{lbl('First tee — Day 1')}<input className="form-input" type="time" value={d.teeTime1} onChange={e=>edit('teeTime1',e.target.value)} style={{height:38}}/></div>
+                    <div>{lbl('First tee — Day 2')}<input className="form-input" type="time" value={d.teeTime2} onChange={e=>edit('teeTime2',e.target.value)} style={{height:38}}/></div>
                   </div>
+                  <div style={{fontSize:10.5,color:'var(--ink-40)',marginTop:6,lineHeight:1.5}}>Tee times show on the team cards — Team 1 goes off at the first time, each next team +10 minutes. Leave blank to show TBD until you know.</div>
                   {dirty&&(
                     <div style={{display:'flex',gap:8,marginTop:9}}>
                       <button className="btn btn-sm" style={{flex:1,fontWeight:800}} onClick={saveDetails}>💾 Save details</button>
