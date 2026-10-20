@@ -6629,6 +6629,33 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const teeBase=(day==='day1'?cfg.teeTime1:cfg.teeTime2)||'';
   const teeFor=(ti)=>{const m=/^(\d{1,2}):(\d{2})/.exec(teeBase);if(!m)return '';const gap=parseInt(cfg.teeGap,10)||10;const t=(parseInt(m[1],10)*60+parseInt(m[2],10)+ti*gap)%1440;const h24=Math.floor(t/60),mm=t%60;return (((h24+11)%12)+1)+':'+String(mm).padStart(2,'0')+' '+(h24<12?'AM':'PM');};
   const teams=(tv_&&tv_.teams&&tv_.teams[day])||[];
+  // Suggested blind draws: for each short team still unassigned, the field
+  // player whose handicap brings that team's effective total closest to the
+  // full-team average — a different player per team, recomputed live as
+  // teams and draws change. Suggestion only; the admin still taps to assign.
+  const drawSuggestions=(()=>{
+    const hcpFor=(q)=>{const rec=tpNorm[String(q.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(q.id));return (rec.handicap!=null)?rec.handicap:((r&&r.handicap!=null)?r.handicap:0);};
+    const eff=(tm)=>(tm.totalHcp||0)+(tm.blindDraw?(parseFloat(tm.blindDraw.handicap)||0):0);
+    if(!teams.length)return {};
+    const full=teams.filter(tm=>(tm.players||[]).length===teamSize);
+    const target=full.length?(full.reduce((sum,tm)=>sum+eff(tm),0)/full.length)
+      :(teams.reduce((sum,tm)=>{const n=(tm.players||[]).length||1;return sum+eff(tm)/n*teamSize;},0)/teams.length);
+    const used=new Set(teams.filter(tm=>tm.blindDraw&&tm.blindDraw.name).map(tm=>tm.blindDraw.name));
+    const out={};
+    teams.forEach((tm,ti)=>{
+      if((tm.players||[]).length>=teamSize||tm.blindDraw)return;
+      const onThis=new Set((tm.players||[]).map(q=>q.name));
+      let best=null;
+      inFieldFor(day).forEach(q=>{
+        if(onThis.has(q.name)||used.has(q.name))return;
+        const h=hcpFor(q);
+        const d=Math.abs((tm.totalHcp||0)+h-target);
+        if(!best||d<best.d)best={name:q.name,h,d};
+      });
+      if(best){out[ti]={name:best.name,h:best.h};used.add(best.name);}
+    });
+    return out;
+  })();
   // Clubhouse book: joke odds on the drawn teams (plain const — hook-safe; null on any problem).
   let tOddsChips=null; try{ if(__cbToArr(teams).length>1&&oddsRates) tOddsChips=oddsForTeams(teams,oddsRates); }catch(e){}
   const published=!!(tv_&&tv_.teamsPublished&&tv_.teamsPublished[day]);
@@ -7038,7 +7065,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'9px 10px',margin:'6px 0 2px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:9}}>
                           <div>
                             <div style={{fontSize:12.5,fontWeight:700,color:'var(--warn-ink)'}}>Blind draw TBD</div>
-                            <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>{teamSize-(tm.players||[]).length} short — assign on the day</div>
+                            <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>{drawSuggestions[ti]?('Suggested: '+drawSuggestions[ti].name+' (HCP '+drawSuggestions[ti].h+') — evens the teams'):((teamSize-(tm.players||[]).length)+' short — assign on the day')}</div>
                           </div>
                           {isAdmin&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0,color:'var(--warn-ink)',borderColor:'var(--warn-border)'}} onClick={()=>setTBlind(ti)}>Assign</button>}
                         </div>
@@ -7062,12 +7089,14 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                     <div className="modal-body" style={{paddingTop:8,paddingBottom:8,maxHeight:380,overflowY:'auto'}}>
                       {(()=>{
                         const onThis=new Set((teams[tBlind].players||[]).map(q=>q.name));
-                        const cands=inFieldFor(day).filter(q=>!onThis.has(q.name)).map(q=>{const rec=tpNorm[String(q.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(q.id));const h=(rec.handicap!=null)?rec.handicap:((r&&r.handicap!=null)?r.handicap:0);return {name:q.name,h};}).sort((a,b)=>a.name.localeCompare(b.name));
+                        const cands=inFieldFor(day).filter(q=>!onThis.has(q.name)).map(q=>{const rec=tpNorm[String(q.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(q.id));const h=(rec.handicap!=null)?rec.handicap:((r&&r.handicap!=null)?r.handicap:0);return {name:q.name,h};});
+                        const sug=drawSuggestions[tBlind]&&drawSuggestions[tBlind].name;
+                        cands.sort((a,b)=>((a.name===sug?-1:0)+(b.name===sug?1:0))||a.name.localeCompare(b.name));
                         if(!cands.length)return <div style={{padding:12,fontSize:13,color:'var(--ink-40)'}}>Nobody else is in the field for this day.</div>;
                         return cands.map(c=>(
                           <button key={c.name} onClick={()=>setBlindDraw(tBlind,c.name,c.h)}
                             style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',marginBottom:8,borderRadius:10,border:'1.5px solid var(--hairline)',background:'var(--surface)',cursor:'pointer',fontFamily:'inherit'}}>
-                            <span style={{fontSize:14,fontWeight:600,color:'var(--ink)'}}>{c.name}</span>
+                            <span style={{fontSize:14,fontWeight:600,color:'var(--ink)',display:'flex',alignItems:'center',gap:6}}>{c.name}{c.name===sug&&<span style={{fontSize:10.5,fontWeight:700,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:20,padding:'1px 7px'}}>suggested — evens teams</span>}</span>
                             <span style={{fontSize:12,color:'var(--ink-50)'}}>HCP {c.h}</span>
                           </button>
                         ));
