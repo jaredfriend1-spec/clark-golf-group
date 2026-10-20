@@ -7283,7 +7283,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                 {/* ── SCORE GRID — same shape as the weekly Score tab ── */}
                 <div className="day-card" style={{marginBottom:12,overflow:'visible'}}>
                   <div style={{position:'sticky',top:'var(--tabs-h)',zIndex:10,background:'var(--surface)',borderBottom:'2px solid var(--hairline)',padding:'10px 14px 8px',borderRadius:'14px 14px 0 0'}}>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 88px 88px 88px',gap:6,alignItems:'center'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 72px 72px 72px',gap:6,alignItems:'center'}}>
                       <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{twoDay?(day==='day1'?d1Label:d2Label):'Scores'}</div>
                       <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Front</div>
                       <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Back</div>
@@ -7293,22 +7293,33 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                   <div style={{padding:'6px 14px 12px'}}>
                     {rows.map((r,ri)=>(
                       <div key={r.ti} style={{marginBottom:10}}>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 88px 88px 88px',gap:6,alignItems:'center',marginBottom:4}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 72px 72px 72px',gap:6,alignItems:'center',marginBottom:4}}>
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.label}</div>
                             <div style={{marginTop:2}}>
                               {r.players.map((nm,pi)=>(
-                                <div key={pi} style={{fontSize:11,color:'var(--ink-50)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
+                                <div key={pi} style={{fontSize:11,color:'var(--ink-50)',lineHeight:1.4,overflowWrap:'anywhere'}}>{nm}</div>
                               ))}
                             </div>
                           </div>
-                          {['f','b','o'].map(key=>(
-                            <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
-                              {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,-1)}>−</button>}
-                              {scoreCell(r.ti,key,fmtRel(r[key]),'var(--ink)',30)}
-                              {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,1)}>+</button>}
-                            </div>
-                          ))}
+                          {['f','b','o'].map(key=>{
+                            // Same compact box as the weekly ScorePickerV2 (one 72px
+                            // box, small − / + inside) so names get the room weekly
+                            // gives them. Middle number stays tap-to-type.
+                            const v=r[key];
+                            const col=v==null?'var(--ink-20)':v<0?'var(--money-pos)':v>0?'var(--money-neg)':'var(--ink-50)';
+                            const ib={background:'none',border:'none',cursor:'pointer',fontSize:16,color:'var(--ink-50)',width:22,height:46,display:'flex',alignItems:'center',justifyContent:'center',padding:0,fontFamily:'inherit',flexShrink:0};
+                            if(!isAdmin)return(
+                              <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'center',height:46,background:'var(--surface-sunken)',border:'1px solid var(--hairline)',borderRadius:8}}>
+                                <span style={{fontSize:17,fontWeight:700,color:col,fontVariantNumeric:'tabular-nums'}}>{fmtRel(v)}</span>
+                              </div>);
+                            return(
+                              <div key={key} style={{display:'flex',alignItems:'center',border:'1.5px solid var(--hairline)',borderRadius:8,background:'var(--surface-sunken)',height:46,minWidth:0}}>
+                                <button style={ib} onClick={()=>bumpW(r.ti,key,-1)}>−</button>
+                                <div style={{flex:1,minWidth:0,display:'flex',justifyContent:'center'}}>{scoreCell(r.ti,key,fmtRel(v),col,26)}</div>
+                                <button style={ib} onClick={()=>bumpW(r.ti,key,1)}>+</button>
+                              </div>);
+                          })}
                         </div>
                         {ri<rows.length-1&&<div style={{height:1,background:'var(--hairline-soft)',margin:'6px 0'}}/>}
                       </div>
