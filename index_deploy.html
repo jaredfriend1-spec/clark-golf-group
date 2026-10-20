@@ -6552,6 +6552,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const [tDrag,setTDrag]=useState(null);             // {ti,pi} — weekly-style drag-and-drop between tournament teams
   const [tCopied,setTCopied]=useState(false);
   const [tBlind,setTBlind]=useState(null);           // ti of the short team being assigned a blind draw
+  const [fFilter,setFFilter]=useState('in');          // Field view filter: in | paid | unpaid | all (Oct 20, Jared)
   function setBlindDraw(ti,name,handicap){
     wsafe({...backupEntry('before assigning blind draw'),['tournament/teams/'+day+'/'+ti+'/blindDraw']:{name,handicap:parseFloat(handicap)||0}});
     setTBlind(null);
@@ -7346,13 +7347,39 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
         const settledN=inRows.filter(x=>x.net<=0).length;
         const outstanding=inRows.reduce((s,x)=>s+x.net,0);
         const chip=(txt,color,border)=>(<span style={{fontSize:11,fontWeight:800,color,border:'1px solid '+border,borderRadius:6,padding:'1px 6px',marginLeft:5,whiteSpace:'nowrap'}}>{txt}</span>);
+        // Filters + pay summary (Oct 20, Jared): "In" = in for at least one day.
+        // Paid = in and nothing left to pay (paid in full OR covered by rounds).
+        const paidRows=inRows.filter(x=>x.net<=0), unpaidRows=inRows.filter(x=>x.net>0);
+        const collected=inRows.reduce((s,x)=>s+Math.min(x.paid,x.owed),0);
+        const shown=fFilter==='in'?inRows:fFilter==='paid'?paidRows:fFilter==='unpaid'?unpaidRows:rows;
+        const shownSorted=fFilter==='all'?shown:[...shown].sort((x,y)=>x.name.localeCompare(y.name));
+        const fPill=(id,label,n)=>(<button key={id} onClick={()=>setFFilter(id)} style={{flex:1,height:34,borderRadius:9,border:'1.5px solid',borderColor:fFilter===id?'var(--brand)':'var(--hairline)',background:fFilter===id?'var(--brand-soft)':'var(--surface)',color:fFilter===id?'var(--brand)':'var(--ink-50)',fontWeight:700,fontSize:12.5,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>{label} <span style={{fontWeight:800}}>{n}</span></button>);
+        const stat=(label,val,col,sub)=>(<div style={{flex:1,minWidth:0,padding:'8px 10px',border:'1px solid var(--hairline)',borderRadius:10,background:'var(--surface)'}}><div style={{fontSize:10.5,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.03em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{label}</div><div style={{fontSize:18,fontWeight:800,color:col||'var(--ink)',marginTop:1,lineHeight:1.2}}>{val}</div>{sub!=null&&<div style={{fontSize:11.5,fontWeight:700,color:col||'var(--ink-50)',marginTop:1}}>{sub}</div>}</div>);
 
         return (
           <div>
             <div style={{...card,padding:'11px 14px'}}>
-              <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {invitedRows.length} invited · {answeredN} answered · {invitedRows.length-answeredN} deciding · {inRows.length} in · {settledN} settled · ${outstanding} outstanding</span></div>
-              <div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Day buttons answer FOR someone (tap a lit day again to clear it); Out declines. One buy-in covers any days. Tap Paid ✓ when the cash lands.</div>
-              {rows.map(row=>(
+              <div style={hdr}>💵 Field selection &amp; pay-ins <span style={{fontWeight:600,textTransform:'none'}}>— {invitedRows.length} invited · {answeredN} answered · {invitedRows.length-answeredN} deciding</span></div>
+              <div style={{display:'flex',gap:7,marginBottom:8}}>
+                {stat('In',inRows.length,null,'players')}
+                {stat('Paid',paidRows.length,'var(--brand)','$'+collected+' in')}
+                {stat('Owe',unpaidRows.length,unpaidRows.length?'var(--money-neg)':'var(--brand)','$'+outstanding+' due')}
+              </div>
+              {unpaidRows.length>0&&(
+                <div style={{fontSize:12,color:'var(--ink-60)',lineHeight:1.6,marginBottom:10,padding:'7px 10px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:9}}>
+                  <span style={{fontWeight:800,color:'var(--warn-ink)'}}>Still owe: </span>
+                  {[...unpaidRows].sort((x,y)=>x.name.localeCompare(y.name)).map((x,i)=>(<React.Fragment key={x.id}><span style={{whiteSpace:'nowrap'}}>{x.name} <b>${x.net}</b></span>{i<unpaidRows.length-1?' · ':''}</React.Fragment>))}
+                </div>
+              )}
+              <div style={{display:'flex',gap:6,marginBottom:10}}>
+                {fPill('in','In',inRows.length)}
+                {fPill('unpaid','Owe',unpaidRows.length)}
+                {fPill('paid','Paid',paidRows.length)}
+                {fPill('all','All',rows.length)}
+              </div>
+              {fFilter==='all'&&<div style={{fontSize:11.5,color:'var(--ink-40)',lineHeight:1.6,marginBottom:8}}>Tap In/Out to place anyone — including under the {cfg.minRounds!=null?cfg.minRounds:10}-round bar (EXCEPTION chip). Members confirm handicap + tees when they opt in; fix either here anytime — the draw uses these numbers. Day buttons answer FOR someone (tap a lit day again to clear it); Out declines. One buy-in covers any days. Tap Paid ✓ when the cash lands.</div>}
+              {shownSorted.length===0&&<div style={{fontSize:13,color:'var(--ink-40)',textAlign:'center',padding:'16px 0'}}>{fFilter==='unpaid'?'Everyone who is in has paid ✓':'Nobody here yet.'}</div>}
+              {shownSorted.map(row=>(
                 <div key={row.id} style={{padding:'7px 0',borderBottom:'1px solid var(--hairline-soft)',opacity:(!row.isIn&&isDeclined(row.rec))?0.6:1}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
                     <div style={{flex:1,minWidth:0}}>
