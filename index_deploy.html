@@ -9758,6 +9758,11 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   // Alt email (e.g. the address Clark has) — stored at rosterEmails2/{id}, shown in the portal too; never used for PINs
   const [rosterEmails2, setRosterEmails2] = useState({});
   useEffect(()=>{ if(read){ const u=read('rosterEmails2', v=>setRosterEmails2(v||{})); return ()=>{ if(typeof u==='function')u(); }; } },[]);
+  // MCC staff tag (Oct 20, Jared): rosterStaff/{id}=true. Only effect: staff are
+  // left out of "Copy all" / "Registered only" and get their own Copy staff button.
+  const [rosterStaff, setRosterStaff] = useState({});
+  useEffect(()=>{ if(read){ const u=read('rosterStaff', v=>setRosterStaff(v||{})); return ()=>{ if(typeof u==='function')u(); }; } },[]);
+  const [editRosterStaff, setEditRosterStaff] = useState(false);
   const [editRosterPinVal, setEditRosterPinVal] = useState('');
   const [editRosterRole, setEditRosterRole] = useState('none'); // 'none' | 'scoring' | 'admin' | 'master'
   const [editRosterHcp, setEditRosterHcp] = useState('');
@@ -10371,9 +10376,12 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
             <div style={{borderTop:'1px solid var(--hairline)',padding:'12px 16px'}}>
               {(()=>{
                 const liveRoster=allRoster.filter(p=>!(rosterHidden&&rosterHidden[p.id])&&!(rosterDeletedAdmin&&rosterDeletedAdmin[p.id]));
-                const withEm=liveRoster.map(p=>({p,em:(rosterEmails&&rosterEmails[p.id])||''})).filter(x=>x.em&&String(x.em).indexOf('@')>0);
+                const withEmAll=liveRoster.map(p=>({p,em:(rosterEmails&&rosterEmails[p.id])||''})).filter(x=>x.em&&String(x.em).indexOf('@')>0);
+                const isStaffP=p=>!!(rosterStaff&&rosterStaff[p.id]);
+                const withEm=withEmAll.filter(x=>!isStaffP(x.p));          // Copy all / Registered: no MCC staff
+                const staffEm=withEmAll.filter(x=>isStaffP(x.p));
                 return (
-                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12,flexWrap:'wrap'}}>
                     <button className="btn btn-sm" style={{fontWeight:700}} onClick={()=>{
                       const s=withEm.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+withEm.length+' emails — paste into Gmail.');setTimeout(()=>setAddPlayerToast(''),3000);});
@@ -10383,7 +10391,11 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                       const s=reg.map(x=>String(x.em).trim()).join(', ');
                       navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+reg.length+' registered emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
                     }}>📱 Registered only ({withEm.filter(x=>!!(rosterPins&&rosterPins[x.p.id])).length})</button>
-                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{liveRoster.length-withEm.length>0?(liveRoster.length-withEm.length)+' of '+liveRoster.length+' have no email — see the portal Roster tab.':'Every player has an email ✓'}</span>
+                    {staffEm.length>0&&<button className="btn btn-sm btn-secondary" style={{fontWeight:700}} onClick={()=>{
+                      const s=staffEm.map(x=>String(x.em).trim()).join(', ');
+                      navigator.clipboard.writeText(s).then(()=>{setAddPlayerToast('Copied '+staffEm.length+' staff emails.');setTimeout(()=>setAddPlayerToast(''),3000);});
+                    }}>👔 Staff ({staffEm.length})</button>}
+                    <span style={{fontSize:11,color:'var(--ink-40)'}}>{staffEm.length>0?staffEm.length+' staff left out of Copy all · ':''}{liveRoster.length-withEmAll.length>0?(liveRoster.length-withEmAll.length)+' of '+liveRoster.length+' have no email — see the portal Roster tab.':'Every player has an email ✓'}</span>
                   </div>
                 );
               })()}
@@ -10473,6 +10485,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                             <div><label className="form-label">Email</label><input className="form-input" type="email" value={editRosterEmailVal} onChange={e=>setEditRosterEmailVal(e.target.value)}/></div>
                           </div>
                           <div style={{marginBottom:6}}><label className="form-label">Alt email (optional — e.g. the one on Clark's list)</label><input className="form-input" type="email" value={editRosterEmail2Val} onChange={e=>setEditRosterEmail2Val(e.target.value)}/></div>
+                          <label style={{display:'flex',alignItems:'center',gap:8,fontSize:13,fontWeight:600,color:'var(--ink)',margin:'2px 0 8px',cursor:'pointer'}}><input type="checkbox" checked={editRosterStaff} onChange={e=>setEditRosterStaff(e.target.checked)} style={{width:18,height:18}}/>MCC staff <span style={{fontWeight:500,color:'var(--ink-40)',fontSize:11.5}}>— left out of Copy all emails</span></label>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                             <div><label className="form-label">Handicap</label><input className="form-input" type="text" placeholder="e.g. 14.2 — plus: +2" value={editRosterHcp} onChange={e=>setEditRosterHcp(hcpClean(e.target.value))}/></div>
                             <div><label className="form-label">Stableford target</label><input className="form-input" type="number" step="1" placeholder="36" value={editRosterTarget} onChange={e=>setEditRosterTarget(e.target.value)}/></div>
@@ -10522,6 +10535,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                               if(editRosterVal.trim())onEditRosterName(p.id,editRosterVal.trim());
                               onEditRosterEmail(p.id,editRosterEmailVal.trim());
                               {const a2=editRosterEmail2Val.trim(); a2?write('rosterEmails2/'+p.id,a2):del('rosterEmails2/'+p.id);}
+                              if(editRosterStaff!==!!(rosterStaff&&rosterStaff[p.id])){editRosterStaff?write('rosterStaff/'+p.id,true):del('rosterStaff/'+p.id);}
                               if(editRosterPinVal.trim())onSaveMemberPin(p.id,editRosterPinVal.trim());
                               // Save role — preserve 'master' as-is, map other values:
                               //   'none' → null (remove admin), 'scoring' → 'scoring', 'admin' → true, 'master' → 'master'
@@ -10546,9 +10560,10 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                               {(rosterAdmins&&rosterAdmins[p.id]==='master')&&<span style={{fontSize:11,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'rgba(245,158,11,0.15)',color:'#92400e'}}>⭐ Master</span>}
                               {(rosterAdmins&&rosterAdmins[p.id]==='scoring')&&<span style={{fontSize:11,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'rgba(139,92,246,0.12)',color:'#7c3aed'}}>📊 Scoring</span>}
                               {(rosterAdmins&&rosterAdmins[p.id]===true)&&<span style={{fontSize:11,fontWeight:700,marginLeft:5,padding:'1px 5px',borderRadius:20,background:'var(--warn-soft)',color:'var(--warn-ink)'}}>🛡️ Admin</span>}
+                              {(rosterStaff&&rosterStaff[p.id])&&<span style={{fontSize:11,fontWeight:700,marginLeft:5,padding:'1px 6px',borderRadius:20,background:'var(--surface-sunken)',color:'var(--ink-50)',border:'1px solid var(--hairline)'}}>👔 Staff</span>}
                             </div>
                             <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>
-                              {p.handicap?'HCP '+p.handicap:'No HCP'} · {p.tee||'Whites'}{email?' · '+email:''}
+                              {(p.handicap!=null&&p.handicap!=='')?'HCP '+hcpShow(p.handicap):'No HCP'} · {p.tee||'Whites'}{email?' · '+email:''}
                               {hasPin&&<span style={{marginLeft:5,fontSize:11,color:'var(--brand)',fontWeight:600}}>✓ PIN{String(rosterPins[p.id]).length===5?' · 5-digit':''}</span>}
                             </div>
                           </div>
@@ -10558,6 +10573,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                               setEditRosterVal(p.name);
                               setEditRosterEmailVal(email);
                               setEditRosterEmail2Val((rosterEmails2&&rosterEmails2[p.id])||'');
+                              setEditRosterStaff(!!(rosterStaff&&rosterStaff[p.id]));
                               setEditRosterPinVal('');
                               const cur = rosterAdmins && rosterAdmins[p.id];
                               setEditRosterRole(cur==='master'?'master':cur==='scoring'?'scoring':cur?'admin':'none');
