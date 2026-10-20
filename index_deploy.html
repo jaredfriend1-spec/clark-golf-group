@@ -398,7 +398,6 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
   main.admin-main{max-width:900px;margin-left:auto;margin-right:auto}
   main.stats-main{max-width:980px;margin-left:auto;margin-right:auto}
   .tourney-main{max-width:1000px;margin-left:auto;margin-right:auto}
-  div:has(>.tourney-main)>.page-title{max-width:1000px;margin-left:auto!important;margin-right:auto!important}
   /* Tourney board box: quiet tiles, proportionate labels, thin chips */
   .tb-split{align-items:stretch!important}
   .tb-split>div:first-child{background:none!important;border:none!important;margin:0!important;padding:0!important}
@@ -13691,7 +13690,7 @@ function App(){
       )}
       {tab === 'tournament' && (
         <div>
-          <div className="page-title">Tournament</div>
+          <div className="page-title" style={{maxWidth:1000,marginLeft:'auto',marginRight:'auto',boxSizing:'content-box'}}>Tournament</div>
           <div style={{padding:'14px 16px 0'}}>
             <TournamentTabView read={read} update={update} currentUser={currentUser} isAdmin={isAdmin} fullRoster={activeFullRoster} oddsRates={oddsRates} avatarFor={avatarForApp} onShowAvatar={showAvatar}/>
           </div>
