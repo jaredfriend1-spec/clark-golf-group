@@ -6693,6 +6693,16 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     return window.confirm(dayLabel+' already has scores entered.\n\n'+what+' changes a team after scoring. Each team keeps its score, so only do this to fix a mistake.\n\nA backup is saved first. Continue?');
   };
   const recalcTeams=u=>{u.forEach(tm=>{tm.totalHcp=Math.round((tm.players.reduce((s,q)=>s+(parseFloat(q.handicap)||0),0))*10)/10;});return u;};
+  function moveTeamOrderT(from,to){
+    // Tee order, same as the weekly GRP dropdown. HARD lock once scores exist:
+    // tournament scores key by team INDEX, so reordering after scoring would
+    // attach scores to the wrong teams. Before scoring it's free (backup first).
+    if(from===to)return;
+    if(dayHasScores){window.alert('Locked — this day already has scores. Team order can\'t change once scoring starts.');return;}
+    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const [m]=u.splice(from,1); u.splice(to,0,m);
+    wsafe({...backupEntry('before reordering teams'),['tournament/teams/'+day]:recalcTeams(u)});
+  }
   function movePlayer(fromTi,pi,toTi){
     const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
     const [p]=u[fromTi].players.splice(pi,1);
@@ -6922,7 +6932,17 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
               {teams.map((tm,ti)=>(
                 <div key={ti} className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
                   <div style={{background:'#0A1614',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                    <span style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'0.01em'}}>Team {String.fromCharCode(65+ti)}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                      {isAdmin&&teams.length>1&&(
+                        <div style={{display:'flex',alignItems:'center',gap:5,flexShrink:0}}>
+                          <select value={ti} onChange={e=>moveTeamOrderT(ti,parseInt(e.target.value,10))} title="Tee order — Team 1 goes first" style={{background:'#1e293b',color:'#fff',border:'1px solid rgba(255,255,255,0.2)',borderRadius:4,padding:'2px 4px',fontSize:13,fontWeight:700,outline:'none',cursor:'pointer'}}>
+                            {teams.map((_,i2)=><option key={i2} value={i2}>{i2+1}</option>)}
+                          </select>
+                          <span style={{color:'rgba(255,255,255,0.2)'}}>|</span>
+                        </div>
+                      )}
+                      <span style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'0.01em'}}>Team {ti+1}</span>
+                    </div>
                     <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
                       {tOddsChips&&tOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,color:'#eab308',background:'rgba(234,179,8,0.14)',border:'1px solid rgba(234,179,8,0.4)',padding:'2px 8px',borderRadius:20,fontWeight:800}}>🎰 {tOddsChips[ti].odds}</span>}
                       {tm.totalHcp!=null&&<span style={{fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>HCP {tm.totalHcp}</span>}
@@ -6962,7 +6982,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
               {tMove&&teams[tMove.ti]&&(
                 <MovePlayerSheet
                   playerName={tMove.name}
-                  teams={teams.map((tm2,i2)=>({name:'Team '+String.fromCharCode(65+i2),totalHcp:tm2.totalHcp,players:tm2.players}))}
+                  teams={teams.map((tm2,i2)=>({name:'Team '+(i2+1),totalHcp:tm2.totalHcp,players:tm2.players}))}
                   fromTeamIdx={tMove.ti}
                   onMove={(toTi)=>movePlayer(tMove.ti,tMove.pi,toTi)}
                   onClose={()=>setTMove(null)}
@@ -6980,7 +7000,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                         <span style={{flex:1,fontSize:13.5,color:'var(--ink)'}}>{p.name} <span style={{fontSize:11,color:'var(--ink-40)'}}>hcp {h!=null?h:'—'}</span></span>
                         <select className="form-input" defaultValue="" onChange={e=>{if(e.target.value==='')return;addToTeam(p.name,h,parseInt(e.target.value,10));}} style={{width:'auto',padding:'4px 8px',fontSize:12}}>
                           <option value="">Add to…</option>
-                          {teams.map((_,i2)=><option key={i2} value={i2}>{'Team '+String.fromCharCode(65+i2)}</option>)}
+                          {teams.map((_,i2)=><option key={i2} value={i2}>{'Team '+(i2+1)}</option>)}
                         </select>
                       </div>);})}
                   </div>
@@ -7033,7 +7053,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
           ):(()=>{
             const rows=teams.map((tm,ti)=>{
               const s=sc[ti]||{};
-              return {ti,label:'Team '+String.fromCharCode(65+ti),players:(tm.players||[]).map(p=>p.name),f:s.f!=null?s.f:null,b:s.b!=null?s.b:null,sk:Number(s.skins)||0};
+              return {ti,label:'Team '+(ti+1),players:(tm.players||[]).map(p=>p.name),f:s.f!=null?s.f:null,b:s.b!=null?s.b:null,sk:Number(s.skins)||0};
             });
             const scoredRows=rows.filter(r=>r.f!=null&&r.b!=null).map(r=>({...r,tot:r.f+r.b}));
             const lead=key=>scoredRows.length?scoredRows.slice().sort((x,y)=>x[key]-y[key])[0]:null;
@@ -7082,33 +7102,64 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                     </span>
                   </div>
                 )}
-                {rows.map(r=>(
-                  <div key={r.ti} className="day-card" style={{marginBottom:12,overflow:'hidden'}}>
-                    <div style={{background:'#0A1614',padding:'9px 14px',display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>{r.label}</span>
-                      <span style={{flex:1,fontSize:11,color:'rgba(255,255,255,0.55)',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.players.join(', ')}</span>
-                      <span style={{fontSize:16,fontWeight:800,color:(r.f!=null&&r.b!=null&&r.f+r.b<0)?'#f87171':'#fff',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{r.f!=null&&r.b!=null?fmtRel(r.f+r.b):'—'}</span>
-                    </div>
-                    <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',flexWrap:'wrap'}}>
-                      {[['F','f'],['B','b']].map(([lbl,key])=>(
-                        <div key={key} style={{display:'flex',alignItems:'center',gap:6}}>
-                          <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>{lbl}</span>
-                          {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,-1)}>−</button>}
-                          {scoreCell(r.ti,key,fmtRel(r[key]),'var(--ink)',30)}
-                          {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,1)}>+</button>}
-                        </div>
-                      ))}
-                      {true&&(
-                        <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:'auto'}}>
-                          <span style={{fontSize:11,fontWeight:700,color:'var(--ink-40)'}}>SKINS</span>
-                          {isAdmin&&<button style={stBtn} onClick={()=>bumpSk(r.ti,-1)}>−</button>}
-                          {scoreCell(r.ti,'skins',r.sk,'var(--brand)',22)}
-                          {isAdmin&&<button style={stBtn} onClick={()=>bumpSk(r.ti,1)}>+</button>}
-                        </div>
-                      )}
+                {/* ── SCORE GRID — same shape as the weekly Score tab ── */}
+                <div className="day-card" style={{marginBottom:12,overflow:'visible'}}>
+                  <div style={{position:'sticky',top:'var(--tabs-h)',zIndex:10,background:'var(--surface)',borderBottom:'2px solid var(--hairline)',padding:'10px 14px 8px',borderRadius:'14px 14px 0 0'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 96px 96px 58px',gap:6,alignItems:'center'}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{twoDay?(day==='day1'?d1Label:d2Label):'Scores'}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Front</div>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Back</div>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Total</div>
                     </div>
                   </div>
-                ))}
+                  <div style={{padding:'6px 14px 12px'}}>
+                    {rows.map((r,ri)=>(
+                      <div key={r.ti} style={{marginBottom:10}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 96px 96px 58px',gap:6,alignItems:'center',marginBottom:4}}>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.label}</div>
+                            <div style={{marginTop:2}}>
+                              {r.players.map((nm,pi)=>(
+                                <div key={pi} style={{fontSize:11,color:'var(--ink-50)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{nm}</div>
+                              ))}
+                            </div>
+                          </div>
+                          {['f','b'].map(key=>(
+                            <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                              {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,-1)}>−</button>}
+                              {scoreCell(r.ti,key,fmtRel(r[key]),'var(--ink)',30)}
+                              {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,1)}>+</button>}
+                            </div>
+                          ))}
+                          <div style={{textAlign:'center',fontSize:16,fontWeight:800,color:(r.f!=null&&r.b!=null&&r.f+r.b<0)?'var(--money-neg)':'var(--ink)',fontVariantNumeric:'tabular-nums'}}>{r.f!=null&&r.b!=null?fmtRel(r.f+r.b):'—'}</div>
+                        </div>
+                        {ri<rows.length-1&&<div style={{height:1,background:'var(--hairline-soft)',margin:'6px 0'}}/>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── SKINS TAPPER — same shape as the weekly Score tab ── */}
+                <div className="day-card" style={{marginBottom:12,padding:'12px 14px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Skins tapper</div>
+                    <div style={{fontSize:11,color:'var(--ink-50)',fontWeight:500}}>{rows.reduce((s2,r)=>s2+r.sk,0)} skin{rows.reduce((s2,r)=>s2+r.sk,0)!==1?'s':''}</div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
+                    {rows.map(r=>(
+                      <div key={r.ti} className="sk-box"
+                        onClick={isAdmin?()=>bumpSk(r.ti,1):undefined}
+                        style={{padding:'14px 8px',border:'1.5px solid',borderColor:r.sk>0?'var(--brand)':'var(--hairline)',borderRadius:10,background:r.sk>0?'var(--brand-soft)':'var(--surface)',cursor:isAdmin?'pointer':'default',textAlign:'center',userSelect:'none'}}>
+                        <div style={{fontSize:11,fontWeight:700,color:'var(--ink-50)',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.06em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.label}</div>
+                        <div style={{fontSize:36,fontWeight:700,color:r.sk>0?'var(--brand)':'var(--ink-20)',lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{r.sk}</div>
+                        <div style={{fontSize:11,color:'var(--ink-40)',marginTop:2}}>skin{r.sk!==1?'s':''}</div>
+                        {isAdmin&&r.sk>0&&(
+                          <div onClick={e=>{e.stopPropagation();bumpSk(r.ti,-1);}} style={{fontSize:11,color:'var(--money-neg)',marginTop:4,cursor:'pointer',fontWeight:700}}>− undo</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div style={card}>
                   <div style={hdr}>🏆 Results — ${pool} pool {cfg.payMode==='combined'?'(combined)':'this day'}</div>
                   <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
