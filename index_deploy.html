@@ -6549,6 +6549,8 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [editCell, setEditCell] = useState(null);   // {ti,key,val} while typing a score
   const [tMove,setTMove]=useState(null);             // {ti,pi,name} — weekly-style Move sheet on tournament teams
+  const [tDrag,setTDrag]=useState(null);             // {ti,pi} — weekly-style drag-and-drop between tournament teams
+  const [tCopied,setTCopied]=useState(false);
   useEffect(()=>{
     const d2=t&&t.config&&t.config.date2;
     if(!d2)return;
@@ -6701,6 +6703,27 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
     const [m]=u.splice(from,1); u.splice(to,0,m);
     wsafe({...backupEntry('before reordering teams'),['tournament/teams/'+day]:recalcTeams(u)});
+  }
+  function copyTeamsT(){
+    // Same as the weekly Copy teams: plain text to the clipboard.
+    const nl=String.fromCharCode(10); let text=((cfg.name||'Tournament')+' — '+dayLabel)+nl+nl;
+    teams.forEach((tm,ti)=>{ text+='Team '+(ti+1)+(tm.totalHcp!=null?('  (HCP '+tm.totalHcp+')'):'')+nl;
+      (tm.players||[]).forEach((q,qi)=>{ text+='  '+(qi+1)+'. '+q.name+(q.handicap!=null?(' (HCP '+q.handicap+')'):'')+nl; });
+      text+=nl; });
+    navigator.clipboard.writeText(text.trim()).then(()=>{setTCopied(true);setTimeout(()=>setTCopied(false),2500);}).catch(()=>{});
+  }
+  function dropT(ti,pi){
+    // Weekly drag-and-drop ported verbatim: same guards and the same atomic
+    // backup+write every other team change uses.
+    if(!tDrag||!isAdmin){setTDrag(null);return;}
+    if(tDrag.ti===ti&&tDrag.pi===pi){setTDrag(null);return;}
+    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const [m]=u[tDrag.ti].players.splice(tDrag.pi,1);
+    if(!m){setTDrag(null);return;}
+    if(!okToChangeTeams('Moving '+(m.name||'a player'))){setTDrag(null);return;}
+    u[ti].players.splice(pi,0,m);
+    wsafe({...backupEntry('before moving '+(m.name||'a player')),['tournament/teams/'+day]:recalcTeams(u)});
+    setTDrag(null);
   }
   function movePlayer(fromTi,pi,toTi){
     const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
@@ -6954,7 +6977,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                       const hcp=p.handicap!=null?p.handicap:(rr&&rr.handicap!=null?rr.handicap:null);
                       const a=avatarFor?avatarFor(p.name):null;
                       return (
-                        <div key={pi} style={{padding:'8px 2px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--hairline-soft)'}}>
+                        <div key={pi}
+                          draggable={!!isAdmin}
+                          onDragStart={e=>{e.stopPropagation();if(isAdmin)setTDrag({ti,pi});}}
+                          onDragOver={e=>{e.preventDefault();e.stopPropagation();}}
+                          onDrop={e=>{e.stopPropagation();dropT(ti,pi);}}
+                          style={{padding:'8px 2px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--hairline-soft)'}}>
+                          {isAdmin&&<span style={{color:'var(--ink-20)',cursor:'grab',fontSize:16,flexShrink:0,userSelect:'none'}}>⋮</span>}
                           <span style={{display:'inline-flex',alignItems:'center',flexShrink:0}}>
                             <PlayerAvatar name={p.name} logo={a&&a.logo} size={34} title={p.name}
                               onClick={onShowAvatar?((rect)=>onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,meta:(tee?tee:'')+(hcp!=null?((tee?' · ':'')+'HCP '+hcp):'')})):undefined}/>
@@ -7012,6 +7041,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                   ):(
                     <button className="btn btn-secondary" style={{flex:1}} onClick={()=>setPath('teamsPublished/'+day,null)}>Unpublish</button>
                   )}
+                  <button className="btn btn-secondary" style={{flex:1}} onClick={copyTeamsT}>{tCopied?'✓ Copied':'Copy teams'}</button>
                   <button className="btn btn-secondary" style={{flex:1,opacity:dayHasScores?0.5:1}} onClick={drawTeams} title={dayHasScores?'Locked — this day has scores':''}>{dayHasScores?'🔒 Redraw':'🎲 Redraw'}</button>
                   <button className="btn btn-secondary" style={{flex:1,color:'var(--money-neg)',borderColor:'var(--money-neg)'}} onClick={()=>{
                     if(!window.confirm('Clear '+dayLabel+' teams? Scores and CTP picks for the day are cleared too. Players stay opted in.\n\nA backup is saved first — you can restore it from this screen.'))return;
