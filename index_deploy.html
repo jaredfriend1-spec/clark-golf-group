@@ -6551,6 +6551,15 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
   const [tMove,setTMove]=useState(null);             // {ti,pi,name} — weekly-style Move sheet on tournament teams
   const [tDrag,setTDrag]=useState(null);             // {ti,pi} — weekly-style drag-and-drop between tournament teams
   const [tCopied,setTCopied]=useState(false);
+  const [tBlind,setTBlind]=useState(null);           // ti of the short team being assigned a blind draw
+  function setBlindDraw(ti,name,handicap){
+    wsafe({...backupEntry('before assigning blind draw'),['tournament/teams/'+day+'/'+ti+'/blindDraw']:{name,handicap:parseFloat(handicap)||0}});
+    setTBlind(null);
+  }
+  function clearBlindDraw(ti){
+    if(!window.confirm('Remove the blind draw from Team '+(ti+1)+'?'))return;
+    wsafe({...backupEntry('before removing blind draw'),['tournament/teams/'+day+'/'+ti+'/blindDraw']:null});
+  }
   useEffect(()=>{
     const d2=t&&t.config&&t.config.date2;
     if(!d2)return;
@@ -6700,7 +6709,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     // attach scores to the wrong teams. Before scoring it's free (backup first).
     if(from===to)return;
     if(dayHasScores){window.alert('Locked — this day already has scores. Team order can\'t change once scoring starts.');return;}
-    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const u=teams.map(tm=>({...(tm.blindDraw?{blindDraw:tm.blindDraw}:{}),players:(tm.players||[]).map(p=>({...p}))}));
     const [m]=u.splice(from,1); u.splice(to,0,m);
     wsafe({...backupEntry('before reordering teams'),['tournament/teams/'+day]:recalcTeams(u)});
   }
@@ -6709,6 +6718,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     const nl=String.fromCharCode(10); let text=((cfg.name||'Tournament')+' — '+dayLabel)+nl+nl;
     teams.forEach((tm,ti)=>{ text+='Team '+(ti+1)+(tm.totalHcp!=null?('  (HCP '+tm.totalHcp+')'):'')+nl;
       (tm.players||[]).forEach((q,qi)=>{ text+='  '+(qi+1)+'. '+q.name+(q.handicap!=null?(' (HCP '+q.handicap+')'):'')+nl; });
+      if(tm.blindDraw) text+='  * Draw: '+tm.blindDraw.name+nl;
       text+=nl; });
     navigator.clipboard.writeText(text.trim()).then(()=>{setTCopied(true);setTimeout(()=>setTCopied(false),2500);}).catch(()=>{});
   }
@@ -6717,7 +6727,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     // backup+write every other team change uses.
     if(!tDrag||!isAdmin){setTDrag(null);return;}
     if(tDrag.ti===ti&&tDrag.pi===pi){setTDrag(null);return;}
-    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const u=teams.map(tm=>({...(tm.blindDraw?{blindDraw:tm.blindDraw}:{}),players:(tm.players||[]).map(p=>({...p}))}));
     const [m]=u[tDrag.ti].players.splice(tDrag.pi,1);
     if(!m){setTDrag(null);return;}
     if(!okToChangeTeams('Moving '+(m.name||'a player'))){setTDrag(null);return;}
@@ -6726,14 +6736,14 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     setTDrag(null);
   }
   function movePlayer(fromTi,pi,toTi){
-    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const u=teams.map(tm=>({...(tm.blindDraw?{blindDraw:tm.blindDraw}:{}),players:(tm.players||[]).map(p=>({...p}))}));
     const [p]=u[fromTi].players.splice(pi,1);
     if(!okToChangeTeams('Moving '+(p&&p.name||'a player')))return;
     u[toTi].players.push(p);
     wsafe({...backupEntry('before moving '+(p&&p.name||'a player')),['tournament/teams/'+day]:recalcTeams(u)});
   }
   function dropFromTeam(ti,pi,alsoOut){
-    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const u=teams.map(tm=>({...(tm.blindDraw?{blindDraw:tm.blindDraw}:{}),players:(tm.players||[]).map(p=>({...p}))}));
     const [p]=u[ti].players.splice(pi,1);
     if(!okToChangeTeams('Removing '+(p&&p.name||'a player')))return;
     wsafe({...backupEntry('before removing '+(p&&p.name||'a player')),['tournament/teams/'+day]:recalcTeams(u)});
@@ -6746,7 +6756,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     }
   }
   function addToTeam(name,handicap,ti){
-    const u=teams.map(tm=>({players:(tm.players||[]).map(p=>({...p}))}));
+    const u=teams.map(tm=>({...(tm.blindDraw?{blindDraw:tm.blindDraw}:{}),players:(tm.players||[]).map(p=>({...p}))}));
     if(!okToChangeTeams('Adding '+name))return;
     u[ti].players.push({name,handicap:parseFloat(handicap)||0});
     wsafe({...backupEntry('before adding '+name),['tournament/teams/'+day]:recalcTeams(u)});
@@ -6967,7 +6977,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
                       {tOddsChips&&tOddsChips[ti]&&<span title="The Clubhouse book — season form, entertainment only" style={{fontSize:11,color:'#eab308',background:'rgba(234,179,8,0.14)',border:'1px solid rgba(234,179,8,0.4)',padding:'2px 8px',borderRadius:20,fontWeight:800}}>🎰 {tOddsChips[ti].odds}</span>}
-                      {tm.totalHcp!=null&&<span style={{fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>HCP {tm.totalHcp}</span>}
+                      {tm.totalHcp!=null&&<span style={{fontSize:11,color:'rgba(255,255,255,0.55)',background:'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:20,fontWeight:700}}>HCP {Math.round(((tm.totalHcp||0)+(tm.blindDraw?(parseFloat(tm.blindDraw.handicap)||0):0))*10)/10}</span>}
                     </div>
                   </div>
                   <div className="day-card-body" style={{padding:'6px 12px 10px'}}>
@@ -7004,9 +7014,63 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                         </div>
                       );
                     })}
+                    {(tm.players||[]).length<teamSize&&(
+                      tm.blindDraw?(
+                        <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 2px'}}>
+                          <span style={{fontSize:16,flexShrink:0}}>🎲</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'var(--ink)',display:'flex',alignItems:'center',gap:6}}>
+                              {tm.blindDraw.name}
+                              <span style={{fontSize:11,fontWeight:600,color:'var(--warn-ink)',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:20,padding:'1px 6px'}}>draw</span>
+                            </div>
+                            {tm.blindDraw.handicap!=null&&<div style={{fontSize:12,color:'var(--ink-50)',marginTop:2}}>HCP {tm.blindDraw.handicap}</div>}
+                          </div>
+                          {isAdmin&&<button className="player-btn danger" title="Remove blind draw" onClick={()=>clearBlindDraw(ti)}>
+                            <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>}
+                        </div>
+                      ):(
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'9px 10px',margin:'6px 0 2px',background:'var(--warn-soft)',border:'1px solid var(--warn-border)',borderRadius:9}}>
+                          <div>
+                            <div style={{fontSize:12.5,fontWeight:700,color:'var(--warn-ink)'}}>Blind draw TBD</div>
+                            <div style={{fontSize:11,color:'var(--ink-50)',marginTop:1}}>{teamSize-(tm.players||[]).length} short — assign on the day</div>
+                          </div>
+                          {isAdmin&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0,color:'var(--warn-ink)',borderColor:'var(--warn-border)'}} onClick={()=>setTBlind(ti)}>Assign</button>}
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               ))}
+              {tBlind!=null&&teams[tBlind]&&(
+                <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setTBlind(null);}}>
+                  <div className="modal">
+                    <div className="modal-head">
+                      <div>
+                        <div className="modal-title">Blind draw — Team {tBlind+1}</div>
+                        <div className="modal-sub">Pick the player whose ball also counts for this team</div>
+                      </div>
+                      <button className="modal-close" onClick={()=>setTBlind(null)}>
+                        <svg viewBox="0 0 24 24" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                    <div className="modal-body" style={{paddingTop:8,paddingBottom:8,maxHeight:380,overflowY:'auto'}}>
+                      {(()=>{
+                        const onThis=new Set((teams[tBlind].players||[]).map(q=>q.name));
+                        const cands=inFieldFor(day).filter(q=>!onThis.has(q.name)).map(q=>{const rec=tpNorm[String(q.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(q.id));const h=(rec.handicap!=null)?rec.handicap:((r&&r.handicap!=null)?r.handicap:0);return {name:q.name,h};}).sort((a,b)=>a.name.localeCompare(b.name));
+                        if(!cands.length)return <div style={{padding:12,fontSize:13,color:'var(--ink-40)'}}>Nobody else is in the field for this day.</div>;
+                        return cands.map(c=>(
+                          <button key={c.name} onClick={()=>setBlindDraw(tBlind,c.name,c.h)}
+                            style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',marginBottom:8,borderRadius:10,border:'1.5px solid var(--hairline)',background:'var(--surface)',cursor:'pointer',fontFamily:'inherit'}}>
+                            <span style={{fontSize:14,fontWeight:600,color:'var(--ink)'}}>{c.name}</span>
+                            <span style={{fontSize:12,color:'var(--ink-50)'}}>HCP {c.h}</span>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
               {tMove&&teams[tMove.ti]&&(
                 <MovePlayerSheet
                   playerName={tMove.name}
