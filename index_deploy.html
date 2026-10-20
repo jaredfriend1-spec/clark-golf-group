@@ -827,7 +827,12 @@ function getNextWeekLabel(){const wd=getNextWeekDates();return'Week of '+fmtD(wd
 // teams currently lightest on handicap, best-of-many attempts kept so the
 // spread stays tight. No pairing requests, matches, tee prefs or any other
 // social input exist here at all — handicaps and chance, nothing else.
-function buildTeamsRandom(players, perTeam){
+function buildTeamsRandom(players, perTeam, avoidPairs){
+  // avoidPairs (optional, Oct 20 — Jared): Set of "nameA|nameB" (sorted, lower
+  // case) who already played together (Saturday). Sunday's draw places each
+  // name on a team with none of its Saturday partners when one is open, and
+  // prefers zero-repeat draws over tighter spreads. Repeats only happen when
+  // the numbers make them unavoidable.
   // TIERED HAT DRAW, the way real scrambles do it: rank the field by handicap,
   // cut it into tiers of one-player-per-team (an A hat, a B hat, …), then every
   // team draws one name from each hat. Within a hat the placement is a pure
@@ -843,16 +848,38 @@ function buildTeamsRandom(players, perTeam){
   const ranked=[...players].sort((a,b)=>h(a)-h(b));
   const tiers=[]; for(let i=0;i<ranked.length;i+=numTeams)tiers.push(ranked.slice(i,i+numTeams));
   const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const pk=(a,b)=>{const x=String(a).toLowerCase().trim(),y=String(b).toLowerCase().trim();return x<y?x+'|'+y:y+'|'+x;};
+  const avoid=(avoidPairs&&avoidPairs.size)?avoidPairs:null;
+  const clash=(p,t)=>avoid?t.players.reduce((c,q)=>c+(avoid.has(pk(p.name,q.name))?1:0),0):0;
+  const repeatsOf=teams=>{if(!avoid)return 0;let r=0;teams.forEach(t=>{for(let i=0;i<t.players.length;i++)for(let j=i+1;j<t.players.length;j++)if(avoid.has(pk(t.players[i].name,t.players[j].name)))r++;});return r;};
   let best=null;
-  for(let attempt=0; attempt<80; attempt++){
+  for(let attempt=0; attempt<(avoid?600:80); attempt++){
     const teams=Array.from({length:numTeams},(_,i)=>({id:i+1,name:'',players:[],totalHcp:0,_target:i<extra?base+1:base}));
     for(const tier of tiers){
       const names=shuffle([...tier]);
-      const order=shuffle(teams.filter(t=>t.players.length<t._target));
-      names.forEach((p,i)=>{ const t=order[i]; if(!t)return; t.players.push({...p}); t.totalHcp+=h(p); });
+      if(!avoid){
+        const order=shuffle(teams.filter(t=>t.players.length<t._target));
+        names.forEach((p,i)=>{ const t=order[i]; if(!t)return; t.players.push({...p}); t.totalHcp+=h(p); });
+      } else {
+        // still one per team per tier; each name takes a random OPEN team
+        // with the fewest Saturday partners on it (zero when possible)
+        const open=shuffle(teams.filter(t=>t.players.length<t._target));
+        names.forEach(p=>{
+          if(!open.length)return;
+          let bi=0,bc=Infinity;
+          open.forEach((t,ix)=>{const c=clash(p,t);if(c<bc){bc=c;bi=ix;}});
+          const t=open.splice(bi,1)[0]; t.players.push({...p}); t.totalHcp+=h(p);
+        });
+      }
     }
     const tots=teams.map(t=>t.totalHcp);
     const spread=Math.max(...tots)-Math.min(...tots);
+    const reps=repeatsOf(teams);
+    if(avoid){
+      if(!best||reps<best.reps||(reps===best.reps&&spread<best.spread))best={teams,spread,reps};
+      if(reps===0&&spread<=6)break;
+      continue;
+    }
     if(!best||spread<best.spread)best={teams,spread};
     // ACCEPT THE FIRST fair-enough draw, don't hunt for the tightest: taking
     // the first one under the bar keeps every fair draw equally likely, while
@@ -877,6 +904,12 @@ function buildTeamsRandom(players, perTeam){
         for(let pi=0;pi<teams[i].players.length;pi++)for(let pj=0;pj<teams[j].players.length;pj++){
           const A=teams[i].players[pi], B=teams[j].players[pj];
           if(tierOf[A.name]!==tierOf[B.name])continue;   // tier structure stays
+          if(avoid){
+            const others=(tm,skip)=>tm.players.filter((_,k)=>k!==skip);
+            const before=others(teams[i],pi).filter(q=>avoid.has(pk(A.name,q.name))).length+others(teams[j],pj).filter(q=>avoid.has(pk(B.name,q.name))).length;
+            const after=others(teams[i],pi).filter(q=>avoid.has(pk(B.name,q.name))).length+others(teams[j],pj).filter(q=>avoid.has(pk(A.name,q.name))).length;
+            if(after>before)continue;   // never trade balance for a Saturday repeat
+          }
           const hA=h(A), hB=h(B);
           const nt=teams.map((t,idx)=>idx===i?t.totalHcp-hA+hB:idx===j?t.totalHcp-hB+hA:t.totalHcp);
           const imp=cur-(Math.max(...nt)-Math.min(...nt));
@@ -2241,7 +2274,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
     setPickedPlayer(p);
     setPlayerName(p.name);
     setTee(p.tee || 'Whites');
-    setHcp(p.handicap != null ? String(p.handicap) : '');
+    setHcp(p.handicap != null ? hcpShow(p.handicap) : '');
     setStep('main');
   }
 
@@ -2263,8 +2296,8 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
   }
   function saveGuest(){
     if(!guestDraft.name.trim()){ setErr('Enter guest name'); return; }
-    const ghcp = parseFloat(guestDraft.hcp);
-    if(guestDraft.hcp === '' || isNaN(ghcp) || ghcp < 0 || ghcp > 54){ setErr('Enter guest handicap (0–54)'); return; }
+    const ghcp = hcpParse(guestDraft.hcp);
+    if(ghcp == null || ghcp < -10 || ghcp > 54){ setErr('Enter guest handicap (0–54, or plus like +2)'); return; }
     const draft = { ...guestDraft, pair: ALLOW_PAIRINGS ? guestDraft.pair : false };
     if(guestIdx === -1){
       setGuests([...guests, { ...draft, name: draft.name.trim(), key:null, addedAt: Date.now() + guests.length }]);
@@ -2320,8 +2353,8 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
     if(isAdminAdd && !playerName){ setErr('Select a player'); return; }
     if(isGuestUser && !playerName.trim()){ setErr('Enter your name'); return; }
     if(isGuestUser && !guestOf){ setErr('Select who you are a guest of'); return; }
-    const hcpNum = parseFloat(hcp);
-    if(hcp === '' || isNaN(hcpNum) || hcpNum < 0 || hcpNum > 54){ setErr('Enter a valid handicap (0–54)'); return; }
+    const hcpNum = hcpParse(hcp);
+    if(hcpNum == null || hcpNum < -10 || hcpNum > 54){ setErr('Enter a valid handicap (0–54, or a plus handicap like +2)'); return; }
 
     setSaving(true);
     setErr('');
@@ -2357,7 +2390,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
         day: day.day,
         name: normName(g.name.trim()),
         tee: g.tee,
-        handicap: parseFloat(g.hcp),
+        handicap: hcpParse(g.hcp),
         isGuest: true,
         guestOf: finalName,
         pairWithGuest: g.pair ? true : null,
@@ -2400,7 +2433,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
   // RENDER HELPERS
   // ─────────────────────────────────────────────────────────────
   const playerSummary = playerName ? (
-    <span>{playerName}<span style={{color:'var(--ink-40)'}}> · {tee} · HCP {hcp || '—'}</span>{pref !== 'none' && <span style={{color:'var(--ink-40)'}}> · {pref==='first'?'First tee':'Last tee'}</span>}</span>
+    <span>{playerName}<span style={{color:'var(--ink-40)'}}> · {tee} · HCP {hcp ? hcpShow(hcpParse(hcp)) : '—'}</span>{pref !== 'none' && <span style={{color:'var(--ink-40)'}}> · {pref==='first'?'First tee':'Last tee'}</span>}</span>
   ) : null;
 
   const canAddGuest = ALLOW_GUESTS && !isGuestUser && !isEditingGuest && guests.length < MAX_GUESTS;
@@ -2432,7 +2465,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
                 <button key={p.id} onClick={()=>selectPlayer(p)}
                   style={{width:'100%',textAlign:'left',padding:'10px 12px',background:'none',border:'none',borderBottom:i<filtered.length-1?'1px solid var(--hairline-soft)':'none',cursor:'pointer',fontFamily:'inherit',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <span style={{fontSize:13,fontWeight:600,color:'var(--ink)'}}>{p.name}</span>
-                  <span style={{fontSize:11,color:'var(--ink-40)'}}>{p.tee||'Whites'} · HCP {p.handicap ?? '—'}</span>
+                  <span style={{fontSize:11,color:'var(--ink-40)'}}>{p.tee||'Whites'} · HCP {p.handicap!=null?hcpShow(p.handicap):'—'}</span>
                 </button>
               ))}
             </div>
@@ -2479,7 +2512,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
             <div className="form-group">
               <label className="form-label">Handicap</label>
               <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Guest's course handicap for the tees they're playing</div>
-              <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 18" value={guestDraft.hcp} onChange={e=>{setGuestDraft({...guestDraft, hcp:e.target.value});setErr('');}}/>
+              <input className="form-input" type="text" inputMode="text" placeholder="e.g. 18 — plus: +2" value={guestDraft.hcp} onChange={e=>{setGuestDraft({...guestDraft, hcp:hcpClean(e.target.value)});setErr('');}}/>
             </div>
             {ALLOW_PAIRINGS && (
             <div className="form-group">
@@ -2634,7 +2667,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
               <div className="form-group">
                 <label className="form-label">Handicap</label>
                 <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Use your course handicap for the tees you're playing today</div>
-                <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
+                <input className="form-input" type="text" inputMode="text" placeholder="e.g. 14.5 — plus: +2" value={hcp} onChange={e=>{setHcp(hcpClean(e.target.value));setErr('');}}/>
               </div>
               {!isEditingGuest && isIndividualDay && (
                 <div className="form-group">
@@ -2681,7 +2714,7 @@ function SignupModal({ day, isIndividualDay, rosterTargets, currentUser, existin
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{g.name || <em style={{color:'var(--ink-40)'}}>Unnamed guest</em>}</div>
                     <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>
-                      {g.tee} · HCP {g.hcp || '—'}{g.pair ? <span style={{color:'var(--brand)'}}> · Paired with {isAdminAdd ? playerName.split(' ')[0] : 'you'}</span> : ''}
+                      {g.tee} · HCP {g.hcp ? hcpShow(hcpParse(g.hcp)) : '—'}{g.pair ? <span style={{color:'var(--brand)'}}> · Paired with {isAdminAdd ? playerName.split(' ')[0] : 'you'}</span> : ''}
                     </div>
                   </div>
                   <button className="btn btn-ghost btn-sm" style={{fontSize:11}} onClick={()=>startEditGuest(i)}>Edit</button>
@@ -2956,7 +2989,7 @@ function WeekViewV2({ currentUser, week, isAdmin, matchPairings, fullRoster, set
     try{
       if(!entry.isGuest&&rosterMatch&&rosterMatch.id<=96){
         const hv=parseFloat(entry.handicap);
-        if(!isNaN(hv)&&hv>0&&hv!==parseFloat(rosterMatch.handicap))write('rosterHcp/'+rosterMatch.id,hv);
+        if(!isNaN(hv)&&hv!==0&&hv!==parseFloat(rosterMatch.handicap))write('rosterHcp/'+rosterMatch.id,hv);
       }
     }catch(e){}
     // Save or update main signup
@@ -3490,7 +3523,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                       isAdmin={!!(a&&isAdmin&&isMe)}
                       title={isMe?'You':p.name}
-                      onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' · ':'')+'HCP '+p.handicap):'')}))}/>
+                      onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' · ':'')+'HCP '+hcpShow(p.handicap)):'')}))}/>
                   </span>;})()}
                 <div className="player-info">
                   <div className="player-name">
@@ -3516,7 +3549,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                     {p._underHost && <span>Guest</span>}
                     {p._underHost && p.pairWithGuest && <><span className="meta-sep">·</span><span className="meta-pair">Pair with {String(p.guestOf||'').trim().split(' ')[0]}</span></>}
                     <span className="meta-tee"><span className="tee-dot" style={{background:TEE_DOT_COLOR[p.tee]||'#888'}}></span>
-                    {p.tee} · HCP {p.handicap}</span>
+                    {p.tee} · HCP {hcpShow(p.handicap)}</span>
                   </span>
                   {hasExtraLine && (
                     <div className="player-extra">
@@ -3604,7 +3637,7 @@ function DayCardV2({ day, wx, avatarFor, onOpenProfile, onShowAvatar, modeInfo, 
                 <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #fde68a'}}>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{s.name}</div>
-                    <div style={{fontSize:11,color:'#b45309'}}>{s.tee} · HCP {s.handicap}</div>
+                    <div style={{fontSize:11,color:'#b45309'}}>{s.tee} · HCP {hcpShow(s.handicap)}</div>
                   </div>
                   {isAdmin && onPromoteWaitlist && (
                     <button onClick={()=>onPromoteWaitlist(k)} style={{background:'#166534',border:'none',borderRadius:6,padding:'3px 10px',fontSize:11,fontWeight:700,color:'#fff',cursor:'pointer',fontFamily:'inherit',marginRight:6}}>↑ Move in</button>
@@ -4231,7 +4264,7 @@ function ScoringViewV2Inner({ currentUser, week, isAdmin, write, update, onSwitc
               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                 {safeArray(t.players).filter(p=>p&&p.name).map((p,pi)=>(
                   <span key={pi} style={{fontSize:12,padding:'3px 9px',borderRadius:20,background:'var(--surface-2, rgba(0,0,0,0.04))',border:'1px solid var(--hairline-soft)'}}>
-                    {p.name}{p.handicap!=null?(<span style={{color:'var(--ink-50)'}}> {p.handicap}</span>):null}
+                    {p.name}{p.handicap!=null?(<span style={{color:'var(--ink-50)'}}> {hcpShow(p.handicap)}</span>):null}
                   </span>
                 ))}
               </div>
@@ -5232,7 +5265,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
     display.forEach((team,i)=>{
       text+=(published?team.name:'Group '+(i+1))+nl;
       safeArray(team.players).forEach(p=>{
-        text+='  '+p.slot+'. '+p.name+' (HCP '+p.handicap+') '+p.tee+nl;
+        text+='  '+p.slot+'. '+p.name+' (HCP '+hcpShow(p.handicap)+') '+p.tee+nl;
       });
       if(team.blindDraw) text+='  * Draw: '+team.blindDraw.name+nl;
       text+=nl;
@@ -5699,7 +5732,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                     <div style={{fontSize:11,color:'var(--money-pos)',fontWeight:700}}>Spread: {swap.newSpread.toFixed(1)} <span style={{color:'var(--ink-40)',fontWeight:400}}>(−{swap.improvement.toFixed(1)})</span></div>
                   </div>
                   <div style={{fontSize:12,color:'var(--ink-70)',marginBottom:8,lineHeight:1.5}}>
-                    <strong>{swap.pA.name}</strong> <span style={{color:'var(--ink-40)'}}>HCP {swap.pA.handicap}</span> ↔ <strong>{swap.pB.name}</strong> <span style={{color:'var(--ink-40)'}}>HCP {swap.pB.handicap}</span>
+                    <strong>{swap.pA.name}</strong> <span style={{color:'var(--ink-40)'}}>HCP {hcpShow(swap.pA.handicap)}</span> ↔ <strong>{swap.pB.name}</strong> <span style={{color:'var(--ink-40)'}}>HCP {hcpShow(swap.pB.handicap)}</span>
                     <div style={{fontSize:11,color:'var(--ink-50)',marginTop:2}}>{swap.tA.name||'Group '+(swap.ti+1)} → {swap.tB.name||'Group '+(swap.tj+1)}</div>
                   </div>
                   <button onClick={()=>applySwap(swap)} className="btn btn-ghost btn-sm" style={{width:'100%'}}>Apply this swap</button>
@@ -5721,7 +5754,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
                   <div>
                     <span style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{p.name}</span>
-                    <span style={{fontSize:11,color:'var(--ink-50)',marginLeft:6}}>{p.tee} HCP {p.handicap}</span>
+                    <span style={{fontSize:11,color:'var(--ink-50)',marginLeft:6}}>{p.tee} HCP {hcpShow(p.handicap)}</span>
                     {p.isGuest&&p.guestOf&&<span style={{fontSize:11,background:'var(--hairline-soft)',color:'var(--ink-50)',padding:'1px 6px',borderRadius:20,marginLeft:5}}>Guest of {p.guestOf}</span>}
                   </div>
                   <button onClick={()=>setPlacingPlayer(placingPlayer===p.name?null:p.name)} style={{padding:'5px 10px',borderRadius:6,border:'1.5px solid var(--warn-border)',background:placingPlayer===p.name?'var(--warn-ink)':'var(--surface)',color:placingPlayer===p.name?'#fff':'var(--warn-ink)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
@@ -5864,7 +5897,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
                         return <span style={{display:'inline-flex',alignItems:'center',paddingTop:1}}>
                           <PlayerAvatar name={p.name} logo={a&&a.logo} size={40}
                             title={isMe?'You':p.name}
-                            onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' · ':'')+'HCP '+p.handicap):'')}))}/>
+                            onClick={((rect)=>onShowAvatar&&onShowAvatar({rect,name:p.name,logo:a&&a.logo,tagline:a&&a.tagline,theme:a&&a.theme,isMe,meta:(p.tee?p.tee:'')+(p.handicap!=null?((p.tee?' · ':'')+'HCP '+hcpShow(p.handicap)):'')}))}/>
                         </span>;})()}
 
                       {/* Slot badge */}
@@ -6053,7 +6086,7 @@ function TeamsViewV2Inner({ avatarFor, onOpenProfile, onShowAvatar, currentUser,
               <div key={k} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:'1px solid #fde68a'}}>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{s.name}</div>
-                  <div style={{fontSize:11,color:'#b45309'}}>{s.tee} · HCP {s.handicap}</div>
+                  <div style={{fontSize:11,color:'#b45309'}}>{s.tee} · HCP {hcpShow(s.handicap)}</div>
                 </div>
                 {onPromoteWaitlist && (
                   <button onClick={()=>onPromoteWaitlist(k,activeDay)} style={{background:'#1F6B47',color:'#fff',border:'none',borderRadius:7,padding:'5px 12px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>Add to Round</button>
@@ -6709,12 +6742,21 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
     const players=dayField.map(p=>{const rec=tpNorm[String(p.id)]||{};const r=(fullRoster||[]).find(x=>String(x.id)===String(p.id));const h=(rec.handicap!=null)?rec.handicap:(r&&r.handicap);return {name:p.name,handicap:parseFloat(h)||0};});
     // 100% random draw, balance-checked — NOT the weekly builder, which is
     // deterministic and would hand back the same teams on every Redraw.
-    const built=buildTeamsRandom(players,teamSize);
+    // Day 2: avoid repeating Day 1 pairings when possible (Jared, Oct 20)
+    let avoidSet=null;
+    if(day==='day2'){
+      const d1=(tv_&&tv_.teams&&tv_.teams.day1)||[];
+      const arr=Array.isArray(d1)?d1:Object.values(d1||{});
+      avoidSet=new Set();
+      const pk=(a,b)=>{const x=String(a).toLowerCase().trim(),y=String(b).toLowerCase().trim();return x<y?x+'|'+y:y+'|'+x;};
+      arr.forEach(tm=>{const ns=(tm&&tm.players||[]).map(q=>q.name);for(let i=0;i<ns.length;i++)for(let j=i+1;j<ns.length;j++)avoidSet.add(pk(ns[i],ns[j]));});
+    }
+    const built=buildTeamsRandom(players,teamSize,avoidSet);
     const drawn=built.map(tm=>({players:(tm.players||[]).map(p=>({name:p.name,handicap:parseFloat(p.handicap)||0})),totalHcp:Math.round(((tm.players||[]).reduce((s,p)=>s+(parseFloat(p.handicap)||0),0))*10)/10}));
     wsafe({...backupEntry('before redraw'),['tournament/teams/'+day]:drawn,['tournament/teamsPublished/'+day]:null,['tournament/scores/'+day]:null});
   }
   // A day "has scores" once any team has a front, back or skins entered.
-  const dayHasScores=Object.values(sc||{}).some(x=>x&&(x.f!=null||x.b!=null||(Number(x.skins)||0)>0));
+  const dayHasScores=Object.values(sc||{}).some(x=>x&&(x.f!=null||x.b!=null||x.o!=null||(Number(x.skins)||0)>0));
   const dayLabel=day==='day1'?'Day 1':'Day 2';
   // Snapshot of the day (teams, scores, closest-to-pin, published) to be written
   // in the SAME update as the change it protects — both land or neither does.
@@ -7164,7 +7206,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
               <div style={{fontSize:11,fontWeight:800,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Backups for {dayLabel}</div>
               {dayBackups.slice(0,3).map(b=>{
                 const nTeams=Array.isArray(b.teams)?b.teams.length:Object.keys(b.teams||{}).length;
-                const nScored=Object.values(b.scores||{}).filter(x=>x&&(x.f!=null||x.b!=null)).length;
+                const nScored=Object.values(b.scores||{}).filter(x=>x&&(x.f!=null||x.b!=null||x.o!=null)).length;
                 return (
                   <div key={b.ts} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0'}}>
                     <div style={{flex:1,minWidth:0,fontSize:12,color:'var(--ink-70)'}}>
@@ -7188,10 +7230,11 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
           ):(()=>{
             const rows=teams.map((tm,ti)=>{
               const s=sc[ti]||{};
-              return {ti,label:'Team '+(ti+1),players:(tm.players||[]).map(p=>p.name),f:s.f!=null?s.f:null,b:s.b!=null?s.b:null,sk:Number(s.skins)||0};
+              return {ti,label:'Team '+(ti+1),players:(tm.players||[]).map(p=>p.name),f:s.f!=null?s.f:null,b:s.b!=null?s.b:null,o:s.o!=null?s.o:null,sk:Number(s.skins)||0};
             });
-            const scoredRows=rows.filter(r=>r.f!=null&&r.b!=null).map(r=>({...r,tot:r.f+r.b}));
-            const lead=key=>scoredRows.length?scoredRows.slice().sort((x,y)=>x[key]-y[key])[0]:null;
+            // Front, Back and Overall are each ENTERED, exactly like the weekly
+            // Score tab — Overall is its own clicker, not Front+Back (Oct 20).
+            const lead=key=>{const L=rows.filter(r=>r[key]!=null);return L.length?L.slice().sort((x,y)=>x[key]-y[key])[0]:null;};
             const skinCount=rows.reduce((s,r)=>s+r.sk,0);
             const catTotal=Math.floor(pool*catF/100)+Math.floor(pool*catB/100)+Math.floor(pool*catO/100);
             const skinsPot=Math.max(pool-catTotal,0);  // skins share + rounding leftovers, like Fridays
@@ -7240,17 +7283,17 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                 {/* ── SCORE GRID — same shape as the weekly Score tab ── */}
                 <div className="day-card" style={{marginBottom:12,overflow:'visible'}}>
                   <div style={{position:'sticky',top:'var(--tabs-h)',zIndex:10,background:'var(--surface)',borderBottom:'2px solid var(--hairline)',padding:'10px 14px 8px',borderRadius:'14px 14px 0 0'}}>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 96px 96px 58px',gap:6,alignItems:'center'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 88px 88px 88px',gap:6,alignItems:'center'}}>
                       <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{twoDay?(day==='day1'?d1Label:d2Label):'Scores'}</div>
                       <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Front</div>
                       <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Back</div>
-                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Total</div>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--ink-40)',textTransform:'uppercase',letterSpacing:'0.08em',textAlign:'center'}}>Overall</div>
                     </div>
                   </div>
                   <div style={{padding:'6px 14px 12px'}}>
                     {rows.map((r,ri)=>(
                       <div key={r.ti} style={{marginBottom:10}}>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 96px 96px 58px',gap:6,alignItems:'center',marginBottom:4}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 88px 88px 88px',gap:6,alignItems:'center',marginBottom:4}}>
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:14,fontWeight:700,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.label}</div>
                             <div style={{marginTop:2}}>
@@ -7259,14 +7302,13 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                               ))}
                             </div>
                           </div>
-                          {['f','b'].map(key=>(
+                          {['f','b','o'].map(key=>(
                             <div key={key} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
                               {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,-1)}>−</button>}
                               {scoreCell(r.ti,key,fmtRel(r[key]),'var(--ink)',30)}
                               {isAdmin&&<button style={stBtn} onClick={()=>bumpW(r.ti,key,1)}>+</button>}
                             </div>
                           ))}
-                          <div style={{textAlign:'center',fontSize:16,fontWeight:800,color:(r.f!=null&&r.b!=null&&r.f+r.b<0)?'var(--money-neg)':'var(--ink)',fontVariantNumeric:'tabular-nums'}}>{r.f!=null&&r.b!=null?fmtRel(r.f+r.b):'—'}</div>
                         </div>
                         {ri<rows.length-1&&<div style={{height:1,background:'var(--hairline-soft)',margin:'6px 0'}}/>}
                       </div>
@@ -7298,7 +7340,7 @@ function TournamentTabView({ read, update, currentUser, isAdmin, fullRoster, odd
                 <div style={card}>
                   <div style={hdr}>🏆 Results — ${pool} pool {cfg.payMode==='combined'?'(combined)':'this day'}</div>
                   <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
-                    {[['Front 9',lead('f'),Math.floor(pool*catF/100),r=>r&&r.f],['Back 9',lead('b'),Math.floor(pool*catB/100),r=>r&&r.b],['Overall',lead('tot'),Math.floor(pool*catO/100),r=>r&&r.tot]].map(([label,win,cat$,get])=>(
+                    {[['Front 9',lead('f'),Math.floor(pool*catF/100),r=>r&&r.f],['Back 9',lead('b'),Math.floor(pool*catB/100),r=>r&&r.b],['Overall',lead('o'),Math.floor(pool*catO/100),r=>r&&r.o]].map(([label,win,cat$,get])=>(
                       <div key={label} style={{flex:1,minWidth:118,background:'var(--brand-soft)',border:'1px solid var(--brand-border)',borderRadius:10,padding:'9px 11px'}}>
                         <div style={{fontSize:11,fontWeight:800,color:'var(--brand)',textTransform:'uppercase'}}>{label} · ${cat$}</div>
                         <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{win?win.label:'—'} {win&&<span style={{fontWeight:600,color:'var(--ink-50)'}}>({fmtRel(get(win))})</span>}</div>
@@ -10421,7 +10463,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                           </div>
                           <div style={{marginBottom:6}}><label className="form-label">Alt email (optional — e.g. the one on Clark's list)</label><input className="form-input" type="email" value={editRosterEmail2Val} onChange={e=>setEditRosterEmail2Val(e.target.value)}/></div>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                            <div><label className="form-label">Handicap</label><input className="form-input" type="number" step="0.1" placeholder="e.g. 14.2" value={editRosterHcp} onChange={e=>setEditRosterHcp(e.target.value)}/></div>
+                            <div><label className="form-label">Handicap</label><input className="form-input" type="text" placeholder="e.g. 14.2 — plus: +2" value={editRosterHcp} onChange={e=>setEditRosterHcp(hcpClean(e.target.value))}/></div>
                             <div><label className="form-label">Stableford target</label><input className="form-input" type="number" step="1" placeholder="36" value={editRosterTarget} onChange={e=>setEditRosterTarget(e.target.value)}/></div>
                             <div><label className="form-label">Tee</label>
                               <select className="form-input" value={editRosterTee} onChange={e=>setEditRosterTee(e.target.value)}>
@@ -10476,7 +10518,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                                 const roleVal = editRosterRole==='admin'?true:editRosterRole==='scoring'?'scoring':null;
                                 onSaveAdminFlag(p.id, roleVal);
                               }
-                              if(editRosterHcp!==''){const hcpVal=parseFloat(editRosterHcp);if(!isNaN(hcpVal)){const re={...(rosterEdits||{}),[p.id]:rosterEdits?.[p.id]||p.name};write('rosterHcp/'+p.id,hcpVal);}}
+                              if(editRosterHcp!==''){const hcpVal=hcpParse(editRosterHcp);if(hcpVal!=null){const re={...(rosterEdits||{}),[p.id]:rosterEdits?.[p.id]||p.name};write('rosterHcp/'+p.id,hcpVal);}}
                               if(editRosterTarget===''){write('rosterTargets/'+p.id,null);}else{const tv=parseInt(editRosterTarget);if(!isNaN(tv))write('rosterTargets/'+p.id,tv);}
                               write('rosterTee/'+p.id,editRosterTee||'Whites');
                               setEditRosterId(null);
@@ -10508,7 +10550,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                               setEditRosterPinVal('');
                               const cur = rosterAdmins && rosterAdmins[p.id];
                               setEditRosterRole(cur==='master'?'master':cur==='scoring'?'scoring':cur?'admin':'none');
-                              setEditRosterHcp(p.handicap!=null?String(p.handicap):'');
+                              setEditRosterHcp(p.handicap!=null?hcpShow(p.handicap):'');
                               setEditRosterTarget(rosterTargets&&rosterTargets[p.id]!=null?String(rosterTargets[p.id]):'');
                               setEditRosterTee(p.tee||'Whites');
                             }}>Edit</button>
@@ -12290,7 +12332,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
 
   // Current values (with defaults)
   const currentTee = (rosterTee && rosterTee[playerId]) || 'Whites';
-  const currentHcp = rosterHcp && rosterHcp[playerId] != null ? String(rosterHcp[playerId]) : '';
+  const currentHcp = rosterHcp && rosterHcp[playerId] != null ? hcpShow(rosterHcp[playerId]) : '';
   const currentPin = (rosterPins && rosterPins[playerId]) || '';
   const currentEmail = (rosterEmails && rosterEmails[playerId]) || '';
   const currentCard = (playerCards && playerCards[playerId]) || {};
@@ -12458,8 +12500,8 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
   async function handleSave(){
     if(saving) return;
     // Validation
-    if(hcp !== '' && (isNaN(parseFloat(hcp)) || parseFloat(hcp) < 0 || parseFloat(hcp) > 54)){
-      setErr('Handicap must be 0–54'); return;
+    if(hcp !== '' && (hcpParse(hcp)==null || hcpParse(hcp) < -10 || hcpParse(hcp) > 54)){
+      setErr('Handicap must be 0–54 (plus handicap: type +2)'); return;
     }
     if(changingPhone && !phonesMatch){
       setErr(phoneMismatch ? 'Phone numbers don\'t match' : 'Enter and confirm a full 10-digit phone number');
@@ -12481,13 +12523,13 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
       if(newTee !== currentTee){ changes.push('tee: ' + currentTee + ' → ' + newTee); }
       updates['rosterTee/'+playerId] = newTee;
       // Default handicap
-      const newHcpVal = hcp === '' ? null : parseFloat(hcp);
-      const oldHcpVal = currentHcp === '' ? null : parseFloat(currentHcp);
+      const newHcpVal = hcp === '' ? null : hcpParse(hcp);
+      const oldHcpVal = currentHcp === '' ? null : hcpParse(currentHcp);
       if(newHcpVal !== oldHcpVal){
         changes.push('handicap: ' + (oldHcpVal == null ? '—' : oldHcpVal) + ' → ' + (newHcpVal == null ? '—' : newHcpVal));
       }
       if(hcp === '') updates['rosterHcp/'+playerId] = null;
-      else updates['rosterHcp/'+playerId] = parseFloat(hcp);
+      else updates['rosterHcp/'+playerId] = hcpParse(hcp);
       // Phone (last 4 = PIN)
       if(changingPhone){
         updates['rosterPins/'+playerId] = newPin;
@@ -12679,7 +12721,7 @@ function ProfileModal({ currentUser, history, rosterTee, rosterHcp, rosterPins, 
           <div className="form-group">
             <label className="form-label">Default handicap</label>
             <div style={{fontSize:11,color:'var(--ink-50)',marginBottom:5,marginTop:-2,fontStyle:'italic'}}>Course handicap for the tees you usually play</div>
-            <input className="form-input" type="number" inputMode="decimal" min="0" max="54" step="0.1" placeholder="e.g. 14" value={hcp} onChange={e=>{setHcp(e.target.value);setErr('');}}/>
+            <input className="form-input" type="text" inputMode="text" placeholder="e.g. 14.5 — plus: +2" value={hcp} onChange={e=>{setHcp(hcpClean(e.target.value));setErr('');}}/>
             <div style={{fontSize:11,color:'var(--ink-50)',marginTop:4}}>You can override per-round when signing up. Past sign-ups are not affected.</div>
           </div>
 
