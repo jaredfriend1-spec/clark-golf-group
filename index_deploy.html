@@ -9663,6 +9663,10 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
   const [editRosterId, setEditRosterId] = useState(null);
   const [editRosterVal, setEditRosterVal] = useState('');
   const [editRosterEmailVal, setEditRosterEmailVal] = useState('');
+  const [editRosterEmail2Val, setEditRosterEmail2Val] = useState('');
+  // Alt email (e.g. the address Clark has) — stored at rosterEmails2/{id}, shown in the portal too; never used for PINs
+  const [rosterEmails2, setRosterEmails2] = useState({});
+  useEffect(()=>{ if(read){ const u=read('rosterEmails2', v=>setRosterEmails2(v||{})); return ()=>{ if(typeof u==='function')u(); }; } },[]);
   const [editRosterPinVal, setEditRosterPinVal] = useState('');
   const [editRosterRole, setEditRosterRole] = useState('none'); // 'none' | 'scoring' | 'admin' | 'master'
   const [editRosterHcp, setEditRosterHcp] = useState('');
@@ -10377,6 +10381,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                             <div><label className="form-label">Name</label><input className="form-input" value={editRosterVal} onChange={e=>setEditRosterVal(e.target.value)}/></div>
                             <div><label className="form-label">Email</label><input className="form-input" type="email" value={editRosterEmailVal} onChange={e=>setEditRosterEmailVal(e.target.value)}/></div>
                           </div>
+                          <div style={{marginBottom:6}}><label className="form-label">Alt email (optional — e.g. the one on Clark's list)</label><input className="form-input" type="email" value={editRosterEmail2Val} onChange={e=>setEditRosterEmail2Val(e.target.value)}/></div>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                             <div><label className="form-label">Handicap</label><input className="form-input" type="number" step="0.1" placeholder="e.g. 14.2" value={editRosterHcp} onChange={e=>setEditRosterHcp(e.target.value)}/></div>
                             <div><label className="form-label">Stableford target</label><input className="form-input" type="number" step="1" placeholder="36" value={editRosterTarget} onChange={e=>setEditRosterTarget(e.target.value)}/></div>
@@ -10425,6 +10430,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                             <button className="btn btn-primary btn-sm" onClick={()=>{
                               if(editRosterVal.trim())onEditRosterName(p.id,editRosterVal.trim());
                               onEditRosterEmail(p.id,editRosterEmailVal.trim());
+                              {const a2=editRosterEmail2Val.trim(); a2?write('rosterEmails2/'+p.id,a2):del('rosterEmails2/'+p.id);}
                               if(editRosterPinVal.trim())onSaveMemberPin(p.id,editRosterPinVal.trim());
                               // Save role — preserve 'master' as-is, map other values:
                               //   'none' → null (remove admin), 'scoring' → 'scoring', 'admin' → true, 'master' → 'master'
@@ -10460,6 +10466,7 @@ function AdminViewV2({ viewMode='admin', tournCfg, settings, week, history, isAd
                               setEditRosterId(p.id);
                               setEditRosterVal(p.name);
                               setEditRosterEmailVal(email);
+                              setEditRosterEmail2Val((rosterEmails2&&rosterEmails2[p.id])||'');
                               setEditRosterPinVal('');
                               const cur = rosterAdmins && rosterAdmins[p.id];
                               setEditRosterRole(cur==='master'?'master':cur==='scoring'?'scoring':cur?'admin':'none');

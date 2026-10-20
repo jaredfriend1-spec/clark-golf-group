@@ -1430,6 +1430,7 @@ function RosterTab(){
   const rosterHidden=useDB("rosterHidden");
   const rosterPins=useDB("rosterPins");
   const rosterEmails=useDB("rosterEmails");
+  const rosterEmails2=useDB("rosterEmails2");   // alternate email (e.g. the one Clark has) — never used for PINs
   const rosterAdmins=useDB("rosterAdmins");
   const rosterHcp=useDB("rosterHcp");
   const rosterTee=useDB("rosterTee");
@@ -1447,10 +1448,30 @@ function RosterTab(){
   const clEntries=Object.values(clarkList||{});
   const onClarkList=p=>{
     const e=String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
-    if(e&&clEntries.some(x=>String(x.email||"").toLowerCase().trim()===e))return true;
+    const e2=String((rosterEmails2&&rosterEmails2[p.id])||"").toLowerCase().trim();
+    if((e||e2)&&clEntries.some(x=>{const xe=String(x.email||"").toLowerCase().trim();return xe&&(xe===e||xe===e2);}))return true;
     const k=clKey(p.name); if(!k)return false;
     return clEntries.some(x=>clKey(x.name)===k);
   };
+  // Per-player toggle (Oct 20, Jared): add/remove a roster player on Clark's
+  // stored list straight from the roster card editor.
+  function clToggleAdd(p){
+    const em=(rosterEmails2&&rosterEmails2[p.id])||(rosterEmails&&rosterEmails[p.id])||"";
+    firebase.database().ref("clarkEmailList").push({name:p.name,email:em});
+    showToast(p.name+" added to Clark's list ✓");
+  }
+  function clToggleRemove(p){
+    const e=String((rosterEmails&&rosterEmails[p.id])||"").toLowerCase().trim();
+    const e2=String((rosterEmails2&&rosterEmails2[p.id])||"").toLowerCase().trim();
+    const k=clKey(p.name);
+    const hits=Object.entries(clarkList||{}).filter(([,x])=>{
+      const xe=String(x.email||"").toLowerCase().trim();
+      return (e&&xe===e)||(e2&&xe===e2)||clKey(x.name)===k;
+    });
+    if(!hits.length){showToast("Not found on the stored list","err");return;}
+    hits.forEach(([key])=>firebase.database().ref("clarkEmailList/"+key).remove());
+    showToast(p.name+" removed from Clark's list");
+  }
   const [showClUpd,setShowClUpd]=useState(false);
   const [clPaste,setClPaste]=useState("");
   function updateClarkList(){
@@ -1499,7 +1520,7 @@ function RosterTab(){
 
   function saveEdit(){
     if(!editing)return;
-    const{id,name,tee,hcp,email}=editing;
+    const{id,name,tee,hcp,email,email2}=editing;
     const base=ROSTER.find(p=>p.id===id);
     if(base){
       if(name!==base.name)wr("rosterEdits/"+id,name);
@@ -1510,6 +1531,7 @@ function RosterTab(){
       if(entry){const[k,p]=entry;wr("extraPlayers/"+k,{...p,name,tee,hcp:parseFloat(hcp)||0});}
     }
     if(email!==undefined){email.trim()?wr("rosterEmails/"+id,email.trim()):dl("rosterEmails/"+id);}
+    if(email2!==undefined){email2.trim()?wr("rosterEmails2/"+id,email2.trim()):dl("rosterEmails2/"+id);}
     setEditing(null);showToast("Saved ✓");
   }
 
@@ -1536,12 +1558,12 @@ function RosterTab(){
     const entry=Object.entries(extra||{}).find(([,p])=>String(p.id)===String(id));
     if(entry){
       dl("extraPlayers/"+entry[0]);
-      dl("rosterPins/"+id);dl("rosterEmails/"+id);dl("rosterAdmins/"+id);dl("rosterHidden/"+id);dl("rosterDeleted/"+id);
+      dl("rosterPins/"+id);dl("rosterEmails/"+id);dl("rosterEmails2/"+id);dl("rosterAdmins/"+id);dl("rosterHidden/"+id);dl("rosterDeleted/"+id);
       showToast("Deleted ✓");
     } else {
       // Base roster player: lives in the app's source, so we flag it. Same effect everywhere; restorable.
       wr("rosterDeleted/"+id,{at:Date.now()});
-      dl("rosterPins/"+id);dl("rosterEmails/"+id);dl("rosterAdmins/"+id);dl("rosterHidden/"+id);
+      dl("rosterPins/"+id);dl("rosterEmails/"+id);dl("rosterEmails2/"+id);dl("rosterAdmins/"+id);dl("rosterHidden/"+id);
       showToast("Deleted ✓ — restore from Deleted list");
     }
     setConfirmDel(null);
@@ -1781,7 +1803,17 @@ function RosterTab(){
                   </div>
                 </div>
                 <div className="lbl">Email (optional)</div>
-                <input className="inp" value={editing.email||""} onChange={e=>setEditing(v=>({...v,email:e.target.value}))} placeholder="player@email.com" style={{marginBottom:14}}/>
+                <input className="inp" value={editing.email||""} onChange={e=>setEditing(v=>({...v,email:e.target.value}))} placeholder="player@email.com" style={{marginBottom:10}}/>
+                <div className="lbl">Alt email (optional — e.g. the one on Clark's list)</div>
+                <input className="inp" value={editing.email2||""} onChange={e=>setEditing(v=>({...v,email2:e.target.value}))} placeholder="second@email.com" style={{marginBottom:10}}/>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,background:"#0e1d19",borderRadius:8,padding:"10px 14px",marginBottom:14}}>
+                  <div className="lbl" style={{marginBottom:0}}>Clark's list</div>
+                  {onClarkList(p)?(
+                    <button className="btn btn-gh btn-sm" style={{color:"#4ade80",borderColor:"rgba(16,185,129,0.35)"}} onClick={()=>clToggleRemove(p)}>CL ✓ On the list — tap to remove</button>
+                  ):(
+                    <button className="btn btn-sm" onClick={()=>clToggleAdd(p)}>+ Add to Clark's list</button>
+                  )}
+                </div>
 
                 {/* PIN MANAGEMENT */}
                 <div style={{background:"#0e1d19",borderRadius:8,padding:"12px 14px",marginBottom:14}}>
@@ -1821,6 +1853,7 @@ function RosterTab(){
               <div style={{flex:1}}>
                 <div className="p-name">{p.name} {onClarkList(p)&&<span title="On Clark’s email list" style={{fontSize:9,fontWeight:800,color:"#4ade80",border:"1px solid rgba(16,185,129,0.35)",borderRadius:5,padding:"1px 5px",marginLeft:4,verticalAlign:"middle"}}>CL ✓</span>}</div>
                 <div style={{fontSize:11,color:email?"rgba(255,255,255,0.45)":"rgba(255,255,255,0.25)",marginTop:1}}>{email||"no email"}</div>
+                {(rosterEmails2&&rosterEmails2[p.id])?<div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginTop:1}}>alt: {rosterEmails2[p.id]}</div>:null}
                 <div style={{marginTop:3}}>
                   <span className="b b-b">{p.tee}</span>
                   <span className="b b-gray">HCP {p.hcp}</span>
@@ -1834,7 +1867,7 @@ function RosterTab(){
               <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
                 {(
                   <>
-                    <button className="btn btn-gh btn-sm" onClick={()=>setEditing({id:p.id,name:p.name,tee:p.tee||"Whites",hcp:p.hcp||"",email})}>Edit</button>
+                    <button className="btn btn-gh btn-sm" onClick={()=>setEditing({id:p.id,name:p.name,tee:p.tee||"Whites",hcp:p.hcp||"",email,email2:(rosterEmails2&&rosterEmails2[p.id])||""})}>Edit</button>
                     <button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(p)}>Delete</button>
                   </>
                 )}
