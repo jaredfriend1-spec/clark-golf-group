@@ -1838,6 +1838,7 @@ function SelfRegister({fullRoster,rosterPins,onComplete,onBack}){
 // ═══════════════ LANDING ═══════════════
 function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullRoster,savePinFn,settings,playerCards,week,push}){
   const [showLegal,setShowLegal]=useState(false);
+  const [showPromo,setShowPromo]=useState(false);   // sign-in page video (Oct 21) — file lives at /promo.mp4; swap the file to update
   const [showJoinReq,setShowJoinReq]=useState(false);
   const [jr,setJr]=useState({name:'',phone:'',email:'',referredBy:''});
   const [jrSent,setJrSent]=useState(false);
@@ -2032,7 +2033,18 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
         <div style={{textAlign:'center',marginBottom:20}}>
           <div className="land-title">Clark <em>Golf</em> Group</div>
           <div className="land-week">{getWeekLabel(week)}</div>
+          <button onClick={()=>setShowPromo(true)} style={{marginTop:14,display:'inline-flex',alignItems:'center',gap:9,padding:'9px 16px 9px 10px',borderRadius:999,border:'1px solid rgba(54,165,111,0.45)',background:'rgba(54,165,111,0.10)',color:'#fff',fontFamily:'inherit',fontSize:13.5,fontWeight:700,cursor:'pointer'}}>
+            <span style={{width:26,height:26,borderRadius:'50%',background:'#36A56F',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l14 8-14 8z"/></svg></span>
+            See what we're about <span style={{color:'rgba(255,255,255,0.45)',fontWeight:600}}>· 40 sec</span>
+          </button>
         </div>
+        {showPromo&&(
+          <div onClick={e=>{if(e.target===e.currentTarget)setShowPromo(false);}} style={{position:'fixed',inset:0,zIndex:10000,background:'rgba(0,0,0,0.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+            <button onClick={()=>setShowPromo(false)} aria-label="Close video" style={{position:'absolute',top:'max(14px, env(safe-area-inset-top))',right:16,width:38,height:38,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.08)',color:'#fff',fontSize:18,cursor:'pointer',lineHeight:1}}>✕</button>
+            <video src={'/promo.mp4?v='+APP_BUILD} controls autoPlay playsInline preload="metadata" onEnded={()=>setShowPromo(false)}
+              style={{maxWidth:'100%',maxHeight:'88vh',aspectRatio:'9 / 16',borderRadius:14,background:'#0A1614',boxShadow:'0 20px 60px rgba(0,0,0,0.6)'}}/>
+          </div>
+        )}
         {showRegBanner&&(
           <div onClick={()=>setShowSelfReg(true)} style={{cursor:'pointer',marginBottom:20,background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,position:'relative'}}>
             <div style={{width:32,height:32,borderRadius:8,background:'rgba(16,185,129,0.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>

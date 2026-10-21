@@ -1,7 +1,7 @@
 // Clark Golf Group — Service Worker
 // Enables PWA "Add to Home Screen" and basic offline support
 
-const CACHE_NAME = 'clark-golf-v3';   // bumped: purges any stale v1 entries on activate
+const CACHE_NAME = 'clark-golf-v4';   // bumped: purges any stale v1 entries on activate
 
 // Files to cache for offline use
 const PRECACHE_URLS = [
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
 
 // Pages that must always come straight from the network (never a cached or
 // substituted copy): the admin portal. Everything under /portal is bypassed.
-const NETWORK_ONLY_PATHS = ['/portal'];
+const NETWORK_ONLY_PATHS = ['/portal', '/promo'];   // promo video: let the browser stream it (range requests), never cache
 
 // Install: pre-cache core files
 self.addEventListener('install', event => {
