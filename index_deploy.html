@@ -2033,10 +2033,6 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
         <div style={{textAlign:'center',marginBottom:20}}>
           <div className="land-title">Clark <em>Golf</em> Group</div>
           <div className="land-week">{getWeekLabel(week)}</div>
-          <button onClick={()=>setShowPromo(true)} style={{marginTop:14,display:'inline-flex',alignItems:'center',gap:9,padding:'9px 16px 9px 10px',borderRadius:999,border:'1px solid rgba(54,165,111,0.45)',background:'rgba(54,165,111,0.10)',color:'#fff',fontFamily:'inherit',fontSize:13.5,fontWeight:700,cursor:'pointer'}}>
-            <span style={{width:26,height:26,borderRadius:'50%',background:'#36A56F',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l14 8-14 8z"/></svg></span>
-            See what we're about <span style={{color:'rgba(255,255,255,0.45)',fontWeight:600}}>· 40 sec</span>
-          </button>
         </div>
         {showPromo&&(
           <div onClick={e=>{if(e.target===e.currentTarget)setShowPromo(false);}} style={{position:'fixed',inset:0,zIndex:10000,background:'rgba(0,0,0,0.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -2120,6 +2116,12 @@ function Landing({onPlayer,onPreview,onMemberLogin,rosterPins,rosterAdmins,fullR
             <div style={{width:38,height:38,borderRadius:10,background:'rgba(99,102,241,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
             <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:'rgba(255,255,255,0.8)',marginBottom:2}}>{showRegBanner?'Create Your Sign-In':'Create or Update Your Sign-In'}</div><div style={{fontSize:12,color:'rgba(255,255,255,0.35)'}}>Register or update your phone number</div></div>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(129,140,248,0.35)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div style={{textAlign:'center',marginTop:18}}>
+            <button onClick={()=>setShowPromo(true)} style={{display:'inline-flex',alignItems:'center',gap:9,padding:'9px 16px 9px 10px',borderRadius:999,border:'1px solid rgba(54,165,111,0.45)',background:'rgba(54,165,111,0.10)',color:'#fff',fontFamily:'inherit',fontSize:13.5,fontWeight:700,cursor:'pointer'}}>
+            <span style={{width:26,height:26,borderRadius:'50%',background:'#36A56F',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l14 8-14 8z"/></svg></span>
+            See what we're about
           </button>
         </div>
         <div style={{textAlign:'center',marginTop:14,marginBottom:2}}>
