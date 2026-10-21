@@ -104,6 +104,11 @@ button{font-family:inherit;cursor:pointer;font-weight:500}
 .day-tile.you-in::before{content:'';position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:#36A56F}
 .day-tile-num{font-weight:700;font-size:24px;color:#36A56F;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.025em}
 .day-tile-num.zero{color:rgba(255,255,255,0.25);font-weight:400}
+.day-tile-pin{position:absolute;top:5px;left:7px;font-size:11px;line-height:1;opacity:0.9}
+@media (min-width:1100px){.day-tile-pin{top:8px;left:10px;font-size:13px}}
+.day-tile.note-tile{background:rgba(234,179,8,0.06);border-color:rgba(234,179,8,0.28)}
+.day-tile-note{font-size:11.5px;font-weight:700;color:#eab308;line-height:12px;height:24px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;padding:0 2px}
+@media (min-width:1100px){.day-tile-note{font-size:15px;line-height:32px;height:32px;white-space:nowrap}}
 .day-tile-label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.12em;text-transform:uppercase;margin-top:5px}
 
 /* ═══════════════ TAB NAV ═══════════════ */
@@ -13852,20 +13857,27 @@ function App(){
           <div className="brand-week">{weekLabel.toUpperCase()}</div>
         </div>
 
-        {activeDays.length > 0 && (
+        {(()=>{const noteDaysH=DAYS_OF_WEEK.filter(d=>!activeDays.includes(d)&&week?.showNoteOnly?.[d]&&String(week?.emailNotes?.[d]||'').trim());return (activeDays.length>0||noteDaysH.length>0) && (
           <div className="day-tiles">
-            {activeDays.map(d => {
+            {sortDays([...activeDays,...noteDaysH]).map(d => {
+              if(noteDaysH.includes(d)) return (
+                <div className="day-tile note-tile" key={d} title={week.emailNotes[d]}>
+                  <div className="day-tile-note">{String(week.emailNotes[d]).trim()}</div>
+                  <div className="day-tile-label">{d.slice(0,3)}</div>
+                </div>
+              );
               const cnt = Object.values(week?.signups||{}).filter(s=>s.day===d).length;
               const youHere = Object.values(week?.signups||{}).some(s=>s.day===d && s.name===currentUser.name);
               return (
                 <div className={'day-tile' + (youHere ? ' you-in' : '')} key={d}>
+                  {String(week?.emailNotes?.[d]||'').trim()&&<span className="day-tile-pin" title="This day has a note — see below">📌</span>}
                   <div className={'day-tile-num' + (cnt === 0 ? ' zero' : '')}>{cnt}</div>
                   <div className="day-tile-label">{d.slice(0,3)}</div>
                 </div>
               );
             })}
           </div>
-        )}
+        );})()}
       </header>
 
       {/* side-rail: display:contents below 1100px (zero layout effect on phones
