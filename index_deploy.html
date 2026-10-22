@@ -7786,10 +7786,21 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   const goldNames=(m)=>new Set(safeArray(m.mentions).map(x=>String((x&&x.name)||'').split(' ')[0].toLowerCase()));
   const renderText=(m,mine)=>{
     const gold=goldNames(m);
-    return String(m.text||'').split(/(@[A-Za-z]+)/g).map((part,i)=>{
-      if(part[0]==='@'&&gold.has(part.slice(1).toLowerCase()))
-        return <span key={i} style={{background:mine?'rgba(255,255,255,0.22)':'var(--gold-soft, rgba(184,137,26,0.14))',color:mine?'#ffe9b0':'#b8891a',fontWeight:800,borderRadius:6,padding:'0 4px'}}>{part}</span>;
-      return part;
+    // Web addresses become tappable links (Oct 21, Jared — sharing the promo video).
+    // Trailing punctuation stays outside the link; only http(s) and www. are linked.
+    const URL_RE=/((?:https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?)\]'"])/gi;
+    let key=0;
+    return String(m.text||'').split(URL_RE).flatMap((chunk,ci)=>{
+      if(ci%2===1){
+        const href=/^https?:\/\//i.test(chunk)?chunk:('https://'+chunk);
+        return [<a key={'u'+(key++)} href={href} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
+          style={{color:mine?'#ffe9b0':'var(--brand)',fontWeight:700,textDecoration:'underline',wordBreak:'break-all'}}>{chunk}</a>];
+      }
+      return chunk.split(/(@[A-Za-z]+)/g).map(part=>{
+        if(part[0]==='@'&&gold.has(part.slice(1).toLowerCase()))
+          return <span key={'m'+(key++)} style={{background:mine?'rgba(255,255,255,0.22)':'var(--gold-soft, rgba(184,137,26,0.14))',color:mine?'#ffe9b0':'#b8891a',fontWeight:800,borderRadius:6,padding:'0 4px'}}>{part}</span>;
+        return part;
+      });
     });
   };
   const doSend=()=>{
