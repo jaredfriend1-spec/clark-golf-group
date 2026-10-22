@@ -7644,6 +7644,19 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
   const frozen=!!(boardCfg&&boardCfg.frozen);
   const [text,setText]=useState('');
   const [draftMentions,setDraftMentions]=useState([]);
+  // Composer grows upward as you type (Oct 22, Jared — like iMessage/WhatsApp):
+  // one line when empty, up to ~5 lines, then scrolls inside the box.
+  // Enter still sends; line breaks are folded to spaces, exactly as the old
+  // one-line field behaved, so posts render the same as before.
+  const composerRef=useRef(null);
+  React.useLayoutEffect(()=>{
+    const el=composerRef.current; if(!el)return;
+    el.style.height='auto';
+    const h=Math.min(el.scrollHeight+3, 128);
+    el.style.height=h+'px';
+    el.style.overflowY=(el.scrollHeight+3>128)?'auto':'hidden';
+    if(el.selectionEnd===el.value.length) el.scrollTop=el.scrollHeight;
+  },[text]);
   const [replyTo,setReplyTo]=useState(null);           // {k,name,snippet}
   // ── Attachments ─────────────────────────────────────────────────────────
   // The message itself carries only a tiny thumbnail ({att:{kind,thumb,w,h,fid}}
@@ -8178,14 +8191,15 @@ function BoardOverlay({ currentUser, isAdmin, messages, write, update, del, push
             ))}
           </div>
         )}
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
           <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onChange={pickFile} style={{display:'none'}}/>
           {!editFor&&<button onClick={()=>{if(!frozen&&!attBusy&&fileInputRef.current)fileInputRef.current.click();}} disabled={frozen} aria-label="Attach a photo or file"
             style={{background:'var(--surface-sunken, #f6f4ec)',border:'1.5px solid var(--hairline)',color:'var(--ink-50)',borderRadius:'50%',width:40,height:40,fontSize:17,cursor:frozen?'default':'pointer',flexShrink:0,fontFamily:'inherit',opacity:frozen?0.5:1}}>{attBusy?'⏳':'📎'}</button>}
-          <input value={text} disabled={frozen} onChange={ev=>setText(ev.target.value)}
-            onKeyDown={ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();doSend();}}}
+          <textarea ref={composerRef} rows={1} value={text} disabled={frozen} onChange={ev=>setText(ev.target.value.replace(/\r?\n/g,' '))}
+            onKeyDown={ev=>{if(ev.key==='Enter'){ev.preventDefault();doSend();}}}
+            enterKeyHint="send"
             placeholder={frozen?'Board is frozen':'Message the group…'}
-            style={{flex:1,border:'1.5px solid var(--hairline)',borderRadius:22,padding:'11px 15px',fontSize:16,fontFamily:'inherit',background:'var(--surface)',color:'var(--ink)',outline:'none',opacity:frozen?0.5:1}}/>
+            style={{flex:1,minWidth:0,border:'1.5px solid var(--hairline)',borderRadius:20,padding:'9px 15px',fontSize:16,lineHeight:'20px',minHeight:40,height:40,maxHeight:128,boxSizing:'border-box',resize:'none',overflowY:'hidden',display:'block',fontFamily:'inherit',background:'var(--surface)',color:'var(--ink)',outline:'none',opacity:frozen?0.5:1}}/>
           <button onClick={doSend} disabled={frozen||attBusy||(!text.trim()&&!pendAtt)} aria-label="Send"
             style={{background:(text.trim()||pendAtt)&&!frozen&&!attBusy?'var(--brand)':'var(--hairline)',color:'#fff',border:'none',borderRadius:'50%',width:40,height:40,fontSize:16,cursor:(text.trim()||pendAtt)&&!frozen?'pointer':'default',flexShrink:0,fontFamily:'inherit'}}>➤</button>
         </div>
